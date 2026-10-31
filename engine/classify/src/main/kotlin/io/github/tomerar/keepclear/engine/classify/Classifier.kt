@@ -26,7 +26,10 @@ class Classifier(
         val keep = item.isFavorite || (now - item.mtimeMillis) in 0 until recentMillis
         // Conservative reading of CLS-5: every SAFE item with a keep signal is downgraded, even
         // regenerable junk and other apps' bins (open question for the owner in docs/progress.md).
-        val downgraded = rule.category == Category.SAFE && keep
+        // SAFE is an allowlist for deletion: it must not rely on lossy normalisation. If removing
+        // zero-width/bidi characters changed the path, a junk-looking name is not trusted as junk.
+        val lossy = canonical != losslessLowercase(item.path)
+        val downgraded = rule.category == Category.SAFE && (keep || lossy)
         return ClassifiedItem(
             item = item,
             category = if (downgraded) Category.REVIEW else rule.category,
@@ -36,6 +39,10 @@ class Classifier(
             keepSignal = downgraded,
         )
     }
+
+    private fun losslessLowercase(path: String): String =
+        "/" + java.text.Normalizer.normalize(path, java.text.Normalizer.Form.NFC).lowercase(java.util.Locale.ROOT)
+            .split('/').filter { it.isNotEmpty() }.joinToString("/")
 
     private fun protectedItem(item: ScanItem) = ClassifiedItem(
         item = item,

@@ -1,4 +1,4 @@
-rulesVersion=1
+rulesVersion=2
 SAFE files=35 bytes=122771629
 REVIEW files=103 bytes=104613636
 MOVE files=230 bytes=1278496811

@@ -49,7 +49,7 @@ data class Rule(
  * classify a protected path as anything else.
  */
 object Rules {
-    const val RULES_VERSION = 1
+    const val RULES_VERSION = 2
     const val SCHEMA_VERSION = 1
 
     private const val HOUR = 3_600_000L
@@ -78,6 +78,10 @@ object Rules {
     private fun RuleInput.isLegacyWhatsApp(): Boolean = whatsAppRoot == 0
 
     private fun RuleInput.isVideo(): Boolean = item.mime?.startsWith("video/") == true || extension in videoExtensions
+
+    private val imageExtensions = setOf("jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "dng", "raw")
+
+    private fun RuleInput.isImage(): Boolean = item.mime?.startsWith("image/") == true || extension in imageExtensions
 
     val all: List<Rule> = listOf(
         // Already deleted in another app (SAFE-8, E-CLS-7).
@@ -134,6 +138,10 @@ object Rules {
         Rule("telegram_legacy", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.relStartsWith("telegram") },
         // Memories (CLS-3).
         Rule("camera", Category.MOVE, RiskChip.MIGHT_BE_MEMORY, bucket = { it.month() }) { it.relStartsWith("dcim") },
+        // CLS-3: photos and videos in Pictures/ albums (screenshots and AI images matched earlier).
+        Rule("pictures_media", Category.MOVE, RiskChip.MIGHT_BE_MEMORY, bucket = { it.month() }) {
+            it.relStartsWith("pictures") && (it.isVideo() || it.isImage())
+        },
         Rule("big_video", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.isVideo() && it.item.size > BIG_VIDEO_BYTES },
         Rule("apk_files", Category.REVIEW, RiskChip.UNKNOWN) { it.extension == "apk" || it.extension == "apks" },
         Rule("old_download", Category.REVIEW, RiskChip.UNKNOWN) {

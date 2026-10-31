@@ -86,4 +86,7 @@
     <string name="group_unknown">Other files</string>
     <string name="why_unknown">We don\'t know what these are. Here\'s what\'s inside.</string>
     <string name="if_deleted_unknown">Files that exist only here would be gone. Look first.</string>
+    <string name="group_pictures_media">Photos and videos in your albums</string>
+    <string name="why_pictures_media">Photos and videos saved in your Pictures folders.</string>
+    <string name="if_deleted_pictures_media">KeepClear only removes them after copying them to your drive and checking every file.</string>
 </resources>

@@ -93,12 +93,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
                     is ScanEvent.Done -> {
                         val id = runId
-                        val complete = event.complete && !storageFailed
-                        if (id != null) {
-                            runCatching {
-                                app.scanIndex.finish(id, complete, event.files, event.bytes, event.maxGeneration)
-                            }
-                        }
+                        val finished = id == null || runCatching {
+                            app.scanIndex.finish(
+                                id,
+                                event.complete && !storageFailed,
+                                event.files,
+                                event.bytes,
+                                event.maxGeneration,
+                            )
+                        }.isSuccess
+                        // If finalising the index failed, the stale-entry cleanup didn't happen: say so.
+                        val complete = event.complete && !storageFailed && finished
                         _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, complete)) }
                     }
 

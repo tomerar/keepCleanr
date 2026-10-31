@@ -86,4 +86,7 @@
     <string name="group_unknown">קבצים אחרים</string>
     <string name="why_unknown">אנחנו לא יודעים מה אלה. הנה מה שיש בפנים.</string>
     <string name="if_deleted_unknown">קבצים שנמצאים רק כאן יימחקו. כדאי להציץ קודם.</string>
+    <string name="group_pictures_media">תמונות וסרטונים באלבומים</string>
+    <string name="why_pictures_media">תמונות וסרטונים ששמורים בתיקיות התמונות שלכם.</string>
+    <string name="if_deleted_pictures_media">KeepClear מסיר אותם רק אחרי שהם הועתקו לכונן שלכם וכל קובץ נבדק.</string>
 </resources>

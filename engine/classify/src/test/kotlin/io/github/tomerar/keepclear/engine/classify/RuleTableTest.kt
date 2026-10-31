@@ -99,6 +99,24 @@ class RuleTableTest {
     }
 
     @Test
+    fun `album photos and videos are MOVE (CLS-3)`() {
+        c("Pictures/Family/photo.jpg").run {
+            category shouldBe Category.MOVE
+            ruleId shouldBe "pictures_media"
+        }
+        c("Pictures/Family/clip.mp4").category shouldBe Category.MOVE
+        c("Pictures/Screenshots/s.png").ruleId shouldBe "screenshots"
+        c("Pictures/notes.txt").ruleId shouldBe "unknown"
+    }
+
+    @Test
+    fun `junk names that only match after removing hidden characters are not SAFE`() {
+        c("Documents/.thumb\u200Bnails/photo.jpg").category shouldBe Category.REVIEW
+        c("Download/upload\u200B.tmp").category shouldBe Category.REVIEW
+        c("DCIM/.thumbnails/1.jpg").category shouldBe Category.SAFE
+    }
+
+    @Test
     fun `sent photo without a byte-identical twin is REVIEW (E-CLS-1)`() {
         val rel = "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/IMG-1.jpg"
         c(rel).category shouldBe Category.REVIEW
