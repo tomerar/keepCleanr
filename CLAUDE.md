@@ -7,6 +7,7 @@ KeepClear is an open-source (GPL-3.0-or-later) Android storage cleaner. Junk is 
 1. `docs/spec/requirements.md`: what to build, with IDs (SAFETY-*, MOVE-*, …) and priorities.
 2. `docs/spec/design.md`: modules, data flow, abstractions.
 3. `docs/spec/edge-cases.md`: required behaviour for failures (E-*).
+   Also `docs/spec/threat-model.md` (SEC-*): treat sidecars, manifests, archives and intents as untrusted.
 4. `docs/spec/tasks.md`: current milestone, definition of done, required tests.
 5. `docs/adr/`: decisions; don't contradict an ADR without writing a new one.
 6. `docs/research/`: evidence and sources. Check it before assuming an Android API or Play policy behaviour.
@@ -49,6 +50,11 @@ Spec phase. **No app code until the owner approves the spec.**
 - Rules and filters are data (JSON/tables) with table-driven positive and negative tests.
 - Add `// SPDX-License-Identifier: GPL-3.0-or-later` to new files. Code reused from GPL-3.0/MIT/Apache projects keeps its copyright line and gets an entry in `THIRD_PARTY.md`. Never copy AGPL or GPL-2.0-only code, SD Maid SE icons/docs, or upstream translations.
 - Restricted permissions go only in `app/src/foss/AndroidManifest.xml`.
+
+## Formats and migrations
+
+- Room: explicit migrations only, schemas committed, no destructive fallback (MIG-1).
+- Sidecar, manifest and rules JSON are versioned; never rename stored enum values (MIG-2/3).
 
 ## Git
 

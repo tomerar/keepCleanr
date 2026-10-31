@@ -5,7 +5,7 @@ KeepClear ships **English and Hebrew** from day one. Other languages are welcome
 ## Where strings live
 
 - `core/i18n/src/main/res/values/strings.xml` (English, source of truth) and `values-iw/` (Hebrew; Android maps `he` and `iw`).
-- Plurals in `plurals.xml` (Hebrew uses `one`, `two`, `many`, `other`).
+- Plurals in `plurals.xml` (Hebrew uses `one`, `two`, `other`; also fill `many`, which older Android/CLDR versions use).
 - Store texts in `fastlane/metadata/android/<locale>/`.
 
 ## Workflow (proposed: Hosted Weblate)

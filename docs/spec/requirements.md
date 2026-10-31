@@ -315,3 +315,7 @@ WHEN KeepClear MVP runs on the owner's OnePlus 10T (data of 28.10.2026), THE SYS
 | Q7 | WhatsApp `Sent/` copies without an on-device original: REVIEW (default) or SAFE ("WhatsApp already delivered it")? | REVIEW. |
 | Q8 | Package names: `app.keepclear` (foss) and `app.keepclear.play` (play), or one ID for both? Both signed with the same key you hold (ADR 0009). | Separate IDs. |
 | Q9 | Who holds the signing key backups (password manager + offline USB at home)? | You, two copies. |
+| Q10 | Contact for the Code of Conduct and security reports: private GitHub advisories only (current), or also a dedicated email? | GitHub advisories only. Requires enabling "Private vulnerability reporting" in repo settings. |
+| Q11 | Apply for Hosted Weblate (libre plan) now, or translate in PRs until v1? | PRs until v1. |
+| Q12 | Encrypt backups on the drive (password-based) — Later, or needed for v1? Unencrypted means anyone with the drive sees the photos. | Later; say it plainly in the receipt and PRIVACY.md. |
+| Q13 | Strict mode (re-hash a MOVE original right before trashing it, SEC-4) for files < 1 GB: on by default? Costs one extra read of the phone copy. | On. |
