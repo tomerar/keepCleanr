@@ -50,4 +50,17 @@ class ClassificationSummaryTest {
         areas[ClassificationSummary.Area.JUNK] shouldBe 10
         areas[ClassificationSummary.Area.OTHER] shouldBe 600
     }
+
+    @Test
+    fun `month buckets use ASCII digits on every device locale`() {
+        val saved = java.util.Locale.getDefault()
+        try {
+            for (tag in listOf("ar-EG", "fa-IR", "bn-BD", "he-IL")) {
+                java.util.Locale.setDefault(java.util.Locale.forLanguageTag(tag))
+                item("Pictures/Screenshots/a.png", 100, 1_678_000_000_000).group.bucket shouldBe "2023-03"
+            }
+        } finally {
+            java.util.Locale.setDefault(saved)
+        }
+    }
 }

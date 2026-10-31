@@ -95,7 +95,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // memory and the result is shown as incomplete.
             var runId = if (persist) runCatching { app.scanIndex.startRun() }.getOrNull() else null
             var storageFailed = persist && runId == null
-            val inMemory = mutableListOf<ScanItem>()
+            // Every item of this run, persisted or not: classification uses the whole run even when the index
+            // fell back to memory halfway through (the index is for diffs and history, not the source of truth here).
+            val runItems = mutableListOf<ScanItem>()
             scanner.scan(roots).collect { event ->
                 when (event) {
                     is ScanEvent.Batch -> {
@@ -105,7 +107,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             runId = null
                             storageFailed = true
                         }
-                        if (!written) inMemory += event.items
+                        runItems += event.items
                     }
 
                     is ScanEvent.Progress -> {
@@ -125,9 +127,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         }.isSuccess
                         // If finalising the index failed, the stale-entry cleanup didn't happen: say so.
                         val complete = event.complete && !storageFailed && finished
-                        val items = if (id != null) null else inMemory.toList()
                         _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, complete)) }
-                        classify(items)
+                        classify(runItems.toList())
                     }
 
                     is ScanEvent.Unreadable, is ScanEvent.VolumeLost -> {
@@ -138,9 +139,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun classify(inMemory: List<ScanItem>?) {
+    private suspend fun classify(items: List<ScanItem>) {
         val summary = withContext(Dispatchers.Default) {
-            val items = inMemory ?: app.scanIndex.previous().values.toList()
             val now = System.currentTimeMillis()
             ClassificationSummary.of(items.map { classifier.classify(it, now = now) })
         }

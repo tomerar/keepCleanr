@@ -81,8 +81,10 @@ private fun bucketTitle(bucket: String?): String {
     val locale = LocalConfiguration.current.locales[0]
     return when {
         bucket == null -> stringResource(R.string.bucket_other)
-        bucket.length == 7 -> YearMonth.parse(bucket).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-        else -> bucket
+
+        else -> runCatching {
+            YearMonth.parse(bucket).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+        }.getOrDefault(bucket)
     }
 }
 
@@ -192,29 +194,32 @@ private fun Tile(item: ClassifiedItem, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Thumb(item, 96)
-        if (LocalThumbnailLoader.current == null) {
-            Text(
-                Bidi.isolate(item.item.path.substringAfterLast('/')),
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(4.dp),
-            )
-        }
     }
 }
 
+/** The thumbnail, or the file name when there is none (no loader, unsupported type, or loading failed). */
 @Composable
 private fun Thumb(item: ClassifiedItem, sizeDp: Int) {
-    val loader = LocalThumbnailLoader.current ?: return
+    val loader = LocalThumbnailLoader.current
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
-    val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path) { value = loader.load(item.item, px) }
-    bitmap?.let {
+    val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path, loader) {
+        value = loader?.load(item.item, px)
+    }
+    val image = bitmap
+    if (image != null) {
         Image(
-            it.asImageBitmap(),
+            image.asImageBitmap(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
+        )
+    } else {
+        Text(
+            Bidi.isolate(item.item.path.substringAfterLast('/')),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(4.dp).testTag("tileName"),
         )
     }
 }
