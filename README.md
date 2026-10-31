@@ -20,6 +20,15 @@ Smart storage cleaner for Android. Deletes junk in one tap, explains anything un
 
 🚧 Early development. No release yet. Research and spec live in [`docs/`](docs/) ([requirements](docs/spec/requirements.md), [design](docs/spec/design.md), [plan](docs/spec/tasks.md)).
 
+## Building
+
+Requires JDK 21 and the Android SDK (platform `android-37.0`).
+
+```sh
+./gradlew :app:assembleFossDebug   # F-Droid/GitHub flavor
+./gradlew ciCheck                  # everything CI checks
+```
+
 ## License
 
 [GPL-3.0](LICENSE)

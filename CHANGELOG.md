@@ -5,4 +5,6 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Added
+- M0 foundations: Gradle multi-module skeleton (Kotlin 2.4, AGP 9.5, Compose), `foss`/`play` flavors, placeholder Home in English and Hebrew (RTL), light/dark themes.
+- CI guard rails: manifest policy (no INTERNET, restricted permissions only in `foss`, only the launcher exported, PRIVACY.md in sync), dependency allowlist, en/he string parity, ktlint, Android Lint, Konsist architecture rules, screenshot tests, Gradle dependency verification, SHA-pinned GitHub Actions.
 - Research (`docs/research/`), specification (`docs/spec/`), threat model, privacy policy and ADRs 0001–0009. No app code yet.
