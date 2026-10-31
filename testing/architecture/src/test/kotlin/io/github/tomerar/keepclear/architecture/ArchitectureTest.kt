@@ -23,6 +23,8 @@ class ArchitectureTest {
             "engine/classify",
             "engine/trash",
             "engine/enrich",
+            "engine/move",
+            "backup/target-api",
         )
 
     private val projectScope = Konsist.scopeFromProject()
@@ -61,7 +63,9 @@ class ArchitectureTest {
     /**
      * CLAUDE.md safety rule 3: destructive file APIs only in the choke point's collaborators.
      * Allowed: storage gateway implementations (`core/storage-*`), the trash engine (`engine/trash`),
-     * and test code. `core/safety` itself delegates to [ActionHandler] and never deletes directly.
+     * backup target implementations (`backup/target-*`, which only touch the KeepClear folder on the drive), and
+     * test code. `core/safety` itself delegates to [ActionHandler] and never deletes directly. `engine/move` is
+     * checked by the next rule: it may only delete or rename its own files on the backup target.
      */
     @Test
     fun `destructive APIs only in allowed modules`() {
@@ -77,7 +81,7 @@ class ArchitectureTest {
             "createTrashRequest(",
             "createDeleteRequest(",
         )
-        val allowed = listOf("/core/storage-", "/engine/trash/")
+        val allowed = listOf("/core/storage-", "/engine/trash/", "/backup/target-", "/engine/move/")
         projectScope.files
             .filter { "/src/main/" in it.path }
             .filterNot { file -> allowed.any { it in file.path } || "/build-logic/" in file.path }
@@ -87,6 +91,25 @@ class ArchitectureTest {
                         it.trimStart().startsWith("*")
                 }
                 code.any { line -> destructive.any { it in line } }
+            }
+    }
+
+    /**
+     * SAFETY-5: the MOVE engine never deletes or renames an original. Its only destructive calls are
+     * `target.delete(` / `target.rename(` on its own temp files, damaged copies and manifests on the drive.
+     * Originals are freed later through the executor (M10).
+     */
+    @Test
+    fun `engine move only deletes or renames on the backup target`() {
+        val destructive =
+            Regex("""\.(delete|rename|renameTo)\(|Files\.(move|delete)|deleteRecursively\(|Document\(|Request\(""")
+        val allowedCall = Regex("""\btarget\.(delete|rename)\(""")
+        projectScope.files
+            .filter { "/engine/move/src/main/" in it.path }
+            .assertFalse { file ->
+                file.text.lineSequence()
+                    .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+                    .any { line -> destructive.containsMatchIn(allowedCall.replace(line, "")) }
             }
     }
 
