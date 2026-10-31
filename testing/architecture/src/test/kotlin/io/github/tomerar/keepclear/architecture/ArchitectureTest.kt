@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
  * Pure-JVM modules grow with each milestone; add them to [pureJvmModules].
  */
 class ArchitectureTest {
-    private val pureJvmModules = listOf("core/model", "core/common", "core/storage-api")
+    private val pureJvmModules = listOf("core/model", "core/common", "core/storage-api", "core/hash", "core/safety")
 
     private val projectScope = Konsist.scopeFromProject()
 
@@ -44,5 +44,26 @@ class ArchitectureTest {
         projectScope.functions()
             .filter { fn -> fn.annotations.any { it.name == "Test" } }
             .assertTrue { fn -> fn.hasBlockBody || fn.returnType?.name == "Unit" }
+    }
+
+    /**
+     * CLAUDE.md safety rule 3: destructive file APIs only in the choke point's collaborators.
+     * Allowed: storage gateway implementations (`core/storage-*`), the trash engine (`engine/trash`),
+     * and test code. `core/safety` itself delegates to [ActionHandler] and never deletes directly.
+     */
+    @Test
+    fun `destructive APIs only in allowed modules`() {
+        val destructive = listOf(
+            ".delete(", ".rename(", ".renameTo(", "Files.move(", "Files.delete", "deleteRecursively(",
+            "deleteDocument(", "moveDocument(", "createTrashRequest(", "createDeleteRequest(",
+        )
+        val allowed = listOf("/core/storage-", "/engine/trash/")
+        projectScope.files
+            .filter { "/src/main/" in it.path }
+            .filterNot { file -> allowed.any { it in file.path } || "/build-logic/" in file.path }
+            .assertFalse { file ->
+                val code = file.text.lineSequence().filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+                code.any { line -> destructive.any { it in line } }
+            }
     }
 }

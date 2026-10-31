@@ -34,6 +34,8 @@ rootProject.name = "keepclear"
 include(":app")
 include(":core:model")
 include(":core:storage-api")
+include(":core:hash")
+include(":core:safety")
 include(":core:common")
 include(":core:designsystem")
 include(":core:i18n")
