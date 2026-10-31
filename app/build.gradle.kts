@@ -32,6 +32,9 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":engine:scan"))
     implementation(project(":engine:classify"))
+    implementation(project(":engine:trash"))
+    implementation(project(":core:safety"))
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":core:model"))
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -48,6 +51,7 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    androidTestImplementation(testFixtures(project(":engine:trash")))
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

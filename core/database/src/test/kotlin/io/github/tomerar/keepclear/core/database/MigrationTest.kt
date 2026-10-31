@@ -23,6 +23,8 @@ class MigrationTest {
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
         KeepClearDatabase::class.java,
+        emptyList(),
+        androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory(),
     )
 
     @Test
@@ -35,10 +37,30 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 1, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", 2, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
+            }
+        }
+    }
+
+    @Test
+    fun `1 to 2 adds the trash table and keeps scan rows`() {
+        helper.createDatabase("m12", 1).use { db ->
+            db.execSQL(
+                "INSERT INTO scan_item (path, refKind, refValue, size, mtimeMillis, identity, mime, mediaId, " +
+                    "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
+            )
+        }
+        helper.runMigrationsAndValidate("m12", 2, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT COUNT(*) FROM scan_item").use { c ->
+                c.moveToFirst()
+                c.getInt(0) shouldBe 1
+            }
+            db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
+                c.moveToFirst()
+                c.getInt(0) shouldBe 0
             }
         }
     }

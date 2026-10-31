@@ -33,6 +33,10 @@ data class PlannedOp(
     val expectedSha256: String? = null,
     /** Duplicate group id when this op deletes one copy of a duplicate (SAFETY-8). */
     val duplicateGroup: String? = null,
+    /** Classification rule, recorded in the trash entry for "why was this deleted". */
+    val ruleId: String? = null,
+    /** Verified backup copy for MOVE originals (TRASH-5). */
+    val verifiedCopy: String? = null,
 )
 
 /**

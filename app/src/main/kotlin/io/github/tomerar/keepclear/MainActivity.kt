@@ -24,6 +24,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // SEC-7: ignore touches while another app's overlay covers KeepClear.
+        window.decorView.filterTouchesWhenObscured = true
         setContent {
             KeepClearTheme {
                 val vm: HomeViewModel = viewModel()
@@ -41,6 +43,8 @@ class MainActivity : ComponentActivity() {
                         state = state,
                         onOpen = vm::open,
                         onBack = vm::back,
+                        onRestore = vm::restore,
+                        onPurge = vm::purge,
                         home = {
                             HomeScreen(
                                 state = state,
@@ -58,6 +62,10 @@ class MainActivity : ComponentActivity() {
                                     onScanAgain = vm::scan,
                                     onCancelScan = vm::cancelScan,
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
+                                    onOpenTrash = {
+                                        vm.loadTrash()
+                                        vm.open(Screen.Trash)
+                                    },
                                 ),
                             )
                         },

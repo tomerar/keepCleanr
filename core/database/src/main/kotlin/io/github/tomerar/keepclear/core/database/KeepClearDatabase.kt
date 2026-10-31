@@ -2,23 +2,27 @@
 package io.github.tomerar.keepclear.core.database
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
 /**
  * App database. MIG-1: explicit migrations only; never `fallbackToDestructiveMigration`.
- * Version history: 1 = M3 (scan index, hash cache).
+ * Version history: 1 = M3 (scan index, hash cache); 2 = M6 (trash_entry, auto-migration 1→2).
  */
 @Database(
-    entities = [ScanItemEntity::class, ScanRunEntity::class, HashCacheEntity::class],
-    version = 1,
+    entities = [ScanItemEntity::class, ScanRunEntity::class, HashCacheEntity::class, TrashEntryEntity::class],
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class KeepClearDatabase : RoomDatabase() {
     abstract fun scanDao(): ScanDao
 
     abstract fun hashCacheDao(): HashCacheDao
+
+    abstract fun trashDao(): TrashDao
 
     companion object {
         const val NAME = "keepclear.db"

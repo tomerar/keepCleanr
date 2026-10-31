@@ -89,6 +89,13 @@ Status: **implemented**. Notes: navigation is a small in-memory stack with syste
 ## Phase 2: Clean with a safety net
 
 ### M6: Trash (both backends) + restore
+Status: **implemented** (folder backend). Spec adjustments made while implementing:
+- MVP uses the folder trash for every file it can reach by path; MediaStore trash moves to M11 (ADR 0010, decision B2 in docs/progress.md).
+- Daily purge runs in WorkManager without a new confirmation: it only deletes entries the user confirmed into the trash 30+ days earlier, never within 24 h of elapsed time in the same boot (E-DEL-10).
+- Sidecars are HMAC-signed with an Android Keystore key; after reinstall they are untrusted and restore to `Download/KeepClear Restored/` (SEC-1).
+- `ACCESS_NETWORK_STATE` (added by WorkManager) is removed from the manifest; `RECEIVE_BOOT_COMPLETED` and `WAKE_LOCK` are documented in PRIVACY.md.
+- Destructive confirm buttons enable after 500 ms and the activity filters obscured touches (SEC-7).
+
 - `engine:trash`, `TrashEntry`, `FolderTrash` (rename + sidecar + `.nomedia`), `MediaStoreTrash` (chunks ≤ 2,000; `MANAGE_MEDIA` optional), purge worker, recover-from-sidecars, Trash screen, Undo.
 - Sidecar format v1 with HMAC and `RestorePathValidator` (SEC-1), write-ahead journal (LOW-3).
 - **DoD / tests:** TRASH-1…6, E-DEL-3…15, E-SEC-1…3, E-LOW-3, MIG-2 golden files; kill-point property test (no-loss invariant) for trash/restore/purge; instrumented: createTrashRequest + restore on API 30/34/36, SAF move into tree trash; **D:** trash 50 test files on owner phone, restore, verify OnePlus Gallery behaviour (OPEN: does it show IS_TRASHED items?).

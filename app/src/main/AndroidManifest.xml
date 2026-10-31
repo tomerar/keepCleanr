@@ -13,6 +13,11 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
+    <!-- WorkManager (daily trash purge) would add this; KeepClear has no network in the MVP (ADR 0008). -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
     <application
         android:name=".KeepClearApplication"
         android:allowBackup="false"

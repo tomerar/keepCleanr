@@ -71,4 +71,21 @@
     <string name="risk_MIGHT_BE_MEMORY">אולי זיכרון</string>
     <string name="risk_YOUR_CHATS">הצ\'אטים שלכם</string>
     <string name="risk_UNKNOWN">כדאי להציץ</string>
+    <string name="trash_title">סל המחזור</string>
+    <string name="trash_chip">סל המחזור · %1$s</string>
+    <string name="trash_summary">%1$s · המקום יתפנה כשהפריטים יפוגו, או לרוקן עכשיו.</string>
+    <string name="trash_empty_state">סל המחזור ריק.</string>
+    <string name="trash_frees_on">יתפנה ב-%1$s</string>
+    <string name="trash_restore">לשחזר</string>
+    <string name="trash_restore_all">לשחזר הכול</string>
+    <string name="trash_empty_now">לרוקן את סל המחזור</string>
+    <string name="trash_release_now">לפנות עכשיו (יש עותק שנבדק)</string>
+    <string name="trash_verified_copy">עותק שנבדק נמצא ב-%1$s</string>
+    <string name="trash_restore_to">ישוחזר אל %1$s</string>
+    <string name="trash_confirm_empty_title">למחוק לצמיתות %1$s?</string>
+    <string name="trash_confirm_empty_body">%1$s. אי אפשר לבטל את זה. פריטים שיש להם עותק שנבדק בכונן עדיין שמורים שם; לשאר אין עותק נוסף.</string>
+    <string name="trash_confirm_release_title">לפנות עכשיו %1$s?</string>
+    <string name="trash_confirm_release_body">עותק שנבדק נמצא ב-%1$s. הקובץ בטלפון יימחק לצמיתות.</string>
+    <string name="trash_confirm_delete">למחוק לצמיתות</string>
+    <string name="trash_cancel">ביטול</string>
 </resources>

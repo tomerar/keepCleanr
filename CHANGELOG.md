@@ -5,6 +5,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Added
+- M6: 30-day trash with restore and "Empty now" (second, delayed confirmation), signed sidecars for recovery after reinstall, daily expiry purge, Trash screen; crash-safety property test over 2,000 random kill points.
 - M5: Home shows Clean now / Review / Move to backup totals and where space is; read-only browsing by category, group (month headers, thumbnails) and item, with why / what-happens texts.
 - M4: deterministic classifier with a versioned rule table (WhatsApp variants, Telegram, junk, screenshots, AI images, old-phone folders, camera), keep signals, and English/Hebrew explanations for every rule.
 - M3: storage scan: java.nio file gateway, MediaStore reader, read-only cancellable scanner, Room scan index with schema export and migration harness, media/all-files permission flow with plain-language explainers, scan summary on Home, low-space modes.

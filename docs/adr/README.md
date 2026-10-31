@@ -15,3 +15,4 @@ All ADRs were accepted with the spec on 2026-10-31.
 | [0007](0007-verify-by-hash.md) | MOVE deletes only after per-file SHA-256 verification | Accepted |
 | [0008](0008-no-accessibility-no-network.md) | No AccessibilityService, no INTERNET in v1 | Accepted |
 | [0009](0009-signing-and-release.md) | Signing keys, Play App Signing, versioning, changelog, release checklist | Accepted |
+| [0010](0010-mvp-folder-trash.md) | MVP uses the folder trash for every file it can reach by path (amends 0006) | Proposed |
