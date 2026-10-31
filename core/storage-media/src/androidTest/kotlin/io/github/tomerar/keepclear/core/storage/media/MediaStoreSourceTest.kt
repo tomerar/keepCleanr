@@ -39,7 +39,7 @@ class MediaStoreSourceTest {
     }
 
     @Test
-    fun seededImagesAreFoundWithSizeFavouriteAndTrashState() = runBlocking {
+    fun seededImagesAreFoundWithSizeFavouriteAndTrashState(): Unit = runBlocking {
         val plain = insertImage("kc_plain_${System.nanoTime()}.jpg", 1234)
         val fav = insertImage("kc_fav_${System.nanoTime()}.jpg", 2345)
         val trashed = insertImage("kc_trash_${System.nanoTime()}.jpg", 3456)
@@ -56,9 +56,11 @@ class MediaStoreSourceTest {
     }
 
     @Test
-    fun incrementalQueryReturnsOnlyNewerGenerations() = runBlocking {
+    fun incrementalQueryReturnsOnlyNewerGenerations(): Unit = runBlocking {
         val first = insertImage("kc_gen1_${System.nanoTime()}.jpg", 10)
-        val generation = MediaStoreSource(resolver).query(null).first { it.id == first.lastPathSegment!!.toLong() }.generation
+        val generation = MediaStoreSource(resolver).query(null).first {
+            it.id == first.lastPathSegment!!.toLong()
+        }.generation
         val second = insertImage("kc_gen2_${System.nanoTime()}.jpg", 20)
         val newer = MediaStoreSource(resolver).query(generation).map { it.id }
         assertTrue(second.lastPathSegment!!.toLong() in newer)

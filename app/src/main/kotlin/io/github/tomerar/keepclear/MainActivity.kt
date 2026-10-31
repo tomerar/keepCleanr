@@ -2,7 +2,6 @@
 package io.github.tomerar.keepclear
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -11,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,9 +25,10 @@ class MainActivity : ComponentActivity() {
             KeepClearTheme {
                 val vm: HomeViewModel = viewModel()
                 val state by vm.state.collectAsStateWithLifecycle()
-                val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-                    vm.refresh()
-                }
+                val mediaLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                        vm.refresh()
+                    }
                 LifecycleResumeEffect(Unit) {
                     vm.refresh()
                     onPauseOrDispose { }
@@ -39,7 +40,10 @@ class MainActivity : ComponentActivity() {
                         onRequestMedia = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
                         onRequestAllFiles = {
                             startActivity(
-                                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")),
+                                Intent(
+                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    "package:$packageName".toUri(),
+                                ),
                             )
                         },
                         onScanAgain = vm::scan,

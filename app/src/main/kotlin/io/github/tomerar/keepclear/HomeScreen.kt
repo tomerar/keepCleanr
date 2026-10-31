@@ -69,6 +69,7 @@ fun HomeScreen(
         else -> LayoutDirection.Ltr
     }
     val locale = LocalConfiguration.current.locales[0]
+
     fun size(bytes: Long) = ByteSize.format(bytes, locale)
 
     CompositionLocalProvider(LocalLayoutDirection provides direction) {
@@ -88,7 +89,11 @@ fun HomeScreen(
                 )
                 if (state.totalBytes > 0) {
                     Text(
-                        stringResource(R.string.home_storage_line, size(state.totalBytes - state.freeBytes), size(state.freeBytes)),
+                        stringResource(
+                            R.string.home_storage_line,
+                            size(state.totalBytes - state.freeBytes),
+                            size(state.freeBytes),
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.testTag("storage"),
                     )
@@ -154,23 +159,43 @@ fun HomeScreen(
 @Composable
 private fun ScanCard(state: HomeUiState, actions: HomeActions, size: (Long) -> String) {
     val numbers = NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0])
+
     @Composable
     fun files(n: Int) = pluralStringResource(R.plurals.file_count, n, numbers.format(n))
     Card(modifier = Modifier.fillMaxWidth().testTag("scanCard")) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             when (val scan = state.scan) {
                 is ScanState.Running -> {
-                    Text(stringResource(R.string.scan_running, files(scan.files)), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.scan_running, files(scan.files)),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     TextButton(onClick = actions.onCancelScan) { Text(stringResource(R.string.scan_cancel)) }
                 }
+
                 is ScanState.Done -> {
-                    Text(stringResource(R.string.scan_done, files(scan.files), size(scan.bytes)), style = MaterialTheme.typography.titleMedium)
-                    if (!scan.complete) Text(stringResource(R.string.scan_incomplete), style = MaterialTheme.typography.bodyMedium)
-                    if (state.allFiles != true) Text(stringResource(R.string.media_only_note), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        stringResource(R.string.scan_done, files(scan.files), size(scan.bytes)),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (!scan.complete) {
+                        Text(
+                            stringResource(R.string.scan_incomplete),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (state.allFiles !=
+                        true
+                    ) {
+                        Text(stringResource(R.string.media_only_note), style = MaterialTheme.typography.bodySmall)
+                    }
                     OutlinedButton(onClick = actions.onScanAgain) { Text(stringResource(R.string.scan_again)) }
                 }
-                ScanState.Idle -> OutlinedButton(onClick = actions.onScanAgain) { Text(stringResource(R.string.scan_again)) }
+
+                ScanState.Idle -> {
+                    OutlinedButton(onClick = actions.onScanAgain) { Text(stringResource(R.string.scan_again)) }
+                }
             }
         }
     }
@@ -180,10 +205,16 @@ private fun ScanCard(state: HomeUiState, actions: HomeActions, size: (Long) -> S
 private fun ExplainerCard(explainer: Explainer, onContinue: () -> Unit, onDismiss: () -> Unit) {
     val (title, why, never, without) = when (explainer) {
         Explainer.MEDIA -> listOf(
-            R.string.explainer_media_title, R.string.explainer_media_why, R.string.explainer_media_never, R.string.explainer_media_without,
+            R.string.explainer_media_title,
+            R.string.explainer_media_why,
+            R.string.explainer_media_never,
+            R.string.explainer_media_without,
         )
+
         Explainer.ALL_FILES -> listOf(
-            R.string.explainer_allfiles_title, R.string.explainer_allfiles_why, R.string.explainer_allfiles_never,
+            R.string.explainer_allfiles_title,
+            R.string.explainer_allfiles_why,
+            R.string.explainer_allfiles_never,
             R.string.explainer_allfiles_without,
         )
     }

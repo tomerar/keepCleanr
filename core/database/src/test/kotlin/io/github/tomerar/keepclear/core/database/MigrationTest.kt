@@ -30,7 +30,8 @@ class MigrationTest {
         File("schemas/${KeepClearDatabase::class.java.name}/1.json").exists() shouldBe true
         helper.createDatabase("migration-test", 1).use { db ->
             db.execSQL(
-                "INSERT INTO scan_item (path, refKind, refValue, size, mtimeMillis, identity, mime, mediaId, isFavorite, isTrashed, source, scanRunId) " +
+                "INSERT INTO scan_item (path, refKind, refValue, size, mtimeMillis, identity, mime, mediaId, " +
+                    "isFavorite, isTrashed, source, scanRunId) " +
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }

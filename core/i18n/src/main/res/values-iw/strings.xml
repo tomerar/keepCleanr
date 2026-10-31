@@ -3,7 +3,6 @@
 <!-- Hebrew. Gender-neutral (plural/infinitive), see docs/TRANSLATING.md. -->
 <resources>
     <string name="home_tagline">שומרים את מה שחשוב. מפנים את השאר.</string>
-    <string name="home_status_early">בפיתוח ראשוני. KeepClear עדיין לא מסתכל על קבצים ולא מוחק שום דבר.</string>
     <string name="home_card_safe_title">לנקות עכשיו</string>
     <string name="home_card_safe_body">קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור.</string>
     <string name="home_card_review_title">לבדוק</string>
@@ -46,7 +45,6 @@
     <plurals name="file_count">
         <item quantity="one">קובץ אחד</item>
         <item quantity="two">%s קבצים</item>
-        <item quantity="many">%s קבצים</item>
         <item quantity="other">%s קבצים</item>
     </plurals>
 </resources>

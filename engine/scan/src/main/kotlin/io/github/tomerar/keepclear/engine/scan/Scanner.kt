@@ -78,8 +78,14 @@ class Scanner(
                 for (child in children) {
                     val childPath = child.path as? KPath.Local ?: continue
                     when {
-                        child.isSymlink -> symlinks++
-                        child.isDirectory -> stack += childPath
+                        child.isSymlink -> {
+                            symlinks++
+                        }
+
+                        child.isDirectory -> {
+                            stack += childPath
+                        }
+
                         else -> {
                             val row = mediaByPath[childPath.absolute]
                             walkedPaths += childPath.absolute

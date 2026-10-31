@@ -56,13 +56,17 @@ class HomeScreenTest {
     @Test
     fun `partial media access is labelled (ONB-4)`() {
         show(HomeUiState(mediaAccess = MediaAccess.PARTIAL, scan = ScanState.Done(40, 1_000_000, true)))
-        compose.onNodeWithText("KeepClear sees only the photos you picked. Allow all to get real numbers.").assertIsDisplayed()
+        compose.onNodeWithText(
+            "KeepClear sees only the photos you picked. Allow all to get real numbers.",
+        ).assertIsDisplayed()
     }
 
     @Test
     fun `incomplete scan says so (E-PERM-1)`() {
         show(HomeUiState(mediaAccess = MediaAccess.FULL, scan = ScanState.Done(10, 10, complete = false)))
-        compose.onNodeWithText("Scan stopped because access was removed. These numbers are incomplete.").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Scan stopped because access was removed. These numbers are incomplete.",
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -80,6 +84,8 @@ class HomeScreenTest {
     @Test
     fun `minimal space banner (LOW-2)`() {
         show(HomeUiState(spaceMode = SpaceMode.MINIMAL))
-        compose.onNodeWithText("Less than 100 MB left. KeepClear isn't saving anything until there's more room.").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Less than 100 MB left. KeepClear isn't saving anything until there's more room.",
+        ).assertIsDisplayed()
     }
 }

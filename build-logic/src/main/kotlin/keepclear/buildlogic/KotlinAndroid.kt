@@ -27,7 +27,10 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
         testOptions.unitTests.all { test ->
             test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
             // Robolectric on SDK 36 needs JDK internals (FileDescriptor via SharedSecrets) on JDK 17+.
-            test.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED")
+            test.jvmArgs(
+                "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+            )
             test.environment("LC_ALL", "C.UTF-8")
             // Optional mirror for Robolectric's android-all downloads (set in ~/.gradle/gradle.properties).
             providers.gradleProperty("keepclear.robolectricRepoUrl").orNull?.let {

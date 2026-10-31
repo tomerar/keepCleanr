@@ -74,13 +74,38 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val inMemory = mutableListOf<ScanItem>()
             scanner.scan(roots).collect { event ->
                 when (event) {
-                    is ScanEvent.Batch -> if (runId != null) app.scanIndex.write(runId, event.items) else inMemory += event.items
-                    is ScanEvent.Progress -> _state.update { it.copy(scan = ScanState.Running(event.files, event.bytes)) }
+                    is ScanEvent.Batch -> {
+                        if (runId !=
+                            null
+                        ) {
+                            app.scanIndex.write(runId, event.items)
+                        } else {
+                            inMemory += event.items
+                        }
+                    }
+
+                    is ScanEvent.Progress -> {
+                        _state.update { it.copy(scan = ScanState.Running(event.files, event.bytes)) }
+                    }
+
                     is ScanEvent.Done -> {
-                        if (runId != null) app.scanIndex.finish(runId, event.complete, event.files, event.bytes, event.maxGeneration)
+                        if (runId !=
+                            null
+                        ) {
+                            app.scanIndex.finish(
+                                runId,
+                                event.complete,
+                                event.files,
+                                event.bytes,
+                                event.maxGeneration,
+                            )
+                        }
                         _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, event.complete)) }
                     }
-                    is ScanEvent.Unreadable, is ScanEvent.VolumeLost -> Unit
+
+                    is ScanEvent.Unreadable, is ScanEvent.VolumeLost -> {
+                        // Listed per directory from M5 on; the summary only needs counts.
+                    }
                 }
             }
         }

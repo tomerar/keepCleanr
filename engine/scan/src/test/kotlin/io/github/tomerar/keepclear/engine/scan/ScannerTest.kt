@@ -64,7 +64,10 @@ class ScannerTest {
     @Test
     fun `100k-entry directory streams in bounded batches`(): Unit = runBlocking {
         val f = OwnerDevice.build(hugeDirEntries = 100_000)
-        val batches = Scanner(f.gateway, batchSize = 500).scan(listOf(root)).filterIsInstance<ScanEvent.Batch>().toList()
+        val batches = Scanner(
+            f.gateway,
+            batchSize = 500,
+        ).scan(listOf(root)).filterIsInstance<ScanEvent.Batch>().toList()
         batches.sumOf { it.items.size } shouldBe f.gateway.files(OwnerDevice.ROOT).size
         batches.maxOf { it.items.size } shouldBeLessThanOrEqual 500
     }
@@ -88,13 +91,16 @@ class ScannerTest {
         val events = Scanner(f.gateway).scan(listOf(root)).toList()
         events.filterIsInstance<ScanEvent.Unreadable>().single().path shouldBe "${OwnerDevice.ROOT}/MIUI/ShareMe"
         (events.last() as ScanEvent.Done).complete shouldBe true
-        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.none { "/MIUI/ShareMe/" in it.path } shouldBe true
+        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.none { "/MIUI/ShareMe/" in it.path } shouldBe
+            true
     }
 
     @Test
     fun `permission revoked mid-scan ends it as incomplete (E-PERM-1)`(): Unit = runBlocking {
         val f = OwnerDevice.build()
-        f.gateway.fail(Op.LIST, matches = { it.toString().endsWith("/DCIM/Camera") }) { StorageException.PermissionDenied(it) }
+        f.gateway.fail(Op.LIST, matches = {
+            it.toString().endsWith("/DCIM/Camera")
+        }) { StorageException.PermissionDenied(it) }
         val done = Scanner(f.gateway).scan(listOf(root)).toList().last()
         done.shouldBeInstanceOf<ScanEvent.Done>().complete shouldBe false
     }
@@ -105,7 +111,8 @@ class ScannerTest {
         f.gateway.disconnect(OwnerDevice.CLONE_ROOT)
         val events = Scanner(f.gateway).scan(listOf(clone, root)).toList()
         events.filterIsInstance<ScanEvent.VolumeLost>().single().root shouldBe OwnerDevice.CLONE_ROOT
-        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path } shouldContainAll f.paths(OwnerDevice.Tag.SCREENSHOT)
+        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path } shouldContainAll
+            f.paths(OwnerDevice.Tag.SCREENSHOT)
     }
 
     @Test
@@ -125,8 +132,28 @@ class ScannerTest {
     fun `MediaStore-only mode yields media items (no file access)`(): Unit = runBlocking {
         val fake = FakeStorageGateway()
         val rows = listOf(
-            MediaRow(1, "external_primary", "${OwnerDevice.ROOT}/DCIM/Camera/a.jpg", 10, 1, "image/jpeg", false, false, 5),
-            MediaRow(2, "external_primary", "${OwnerDevice.ROOT}/DCIM/.trashed-1700000000-b.jpg", 20, 1, "image/jpeg", false, true, 6),
+            MediaRow(
+                1,
+                "external_primary",
+                "${OwnerDevice.ROOT}/DCIM/Camera/a.jpg",
+                10,
+                1,
+                "image/jpeg",
+                false,
+                false,
+                5,
+            ),
+            MediaRow(
+                2,
+                "external_primary",
+                "${OwnerDevice.ROOT}/DCIM/.trashed-1700000000-b.jpg",
+                20,
+                1,
+                "image/jpeg",
+                false,
+                true,
+                6,
+            ),
         )
         val items = Scanner(fake, MediaSource { rows }).items()
         items.map { it.ref } shouldBe listOf(KPath.Media("external_primary", 1), KPath.Media("external_primary", 2))

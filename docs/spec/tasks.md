@@ -53,6 +53,13 @@ Status: **implemented**. Spec details settled while implementing:
 ## Phase 1: See (read-only app, safe to give to the owner)
 
 ### M3: Scanner + Room index
+Status: **implemented**. Spec adjustments made while implementing:
+- `FileGateway` is pure JVM (`core:storage-file`, java.nio) and passes the M1 contract suite on a real file system. Rename uses `ATOMIC_MOVE` only, so a cross-volume move fails instead of silently copying.
+- **Dependency injection:** a small manual graph in `KeepClearApplication` instead of Hilt. Hilt is deferred until the graph needs it; Room uses KSP already, so adding Hilt later is mechanical.
+- The MediaStore seeding test runs on the CI emulators at API 30 and 36 (not 34) to keep CI time reasonable; API 34-specific partial access is covered by the Home UI tests.
+- Scans run while the app is open (no background scanning). Without All files access the scan is MediaStore-only, and Home says so.
+- The device check (full scan of the owner's phone ≤ 60 s, totals within 1% of Settings) is waiting for the owner (docs/progress.md).
+
 - `engine:scan` over gateway + MediaStore source port; `core:database` (ScanItem, HashCache); `FileGateway` (foss) and `MediaGateway` read paths; incremental generations.
 - Permissions: READ_MEDIA_* with explainer, partial-access detection (ONB-2/4), all-files on foss (ONB-5).
 - Room schema export + migration test harness from day one (MIG-1).

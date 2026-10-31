@@ -17,7 +17,10 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class ScanIndexTest {
-    private val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), KeepClearDatabase::class.java)
+    private val db = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        KeepClearDatabase::class.java,
+    )
         .allowMainThreadQueries()
         .build()
     private val index = ScanIndex(db) { 1000L }
@@ -32,7 +35,14 @@ class ScanIndexTest {
         val run = index.startRun()
         val items = listOf(
             item("/storage/emulated/0/DCIM/תמונה.jpg"),
-            ScanItem(KPath.Media("external_primary", 42), "/storage/emulated/0/DCIM/b.jpg", 2, 3, mediaId = 42, source = Source.MEDIA_STORE),
+            ScanItem(
+                KPath.Media("external_primary", 42),
+                "/storage/emulated/0/DCIM/b.jpg",
+                2,
+                3,
+                mediaId = 42,
+                source = Source.MEDIA_STORE,
+            ),
             ScanItem(KPath.Saf("content://tree/x", "primary:a:b"), "/storage/emulated/0/a/b", 3, 4),
         )
         index.write(run, items)

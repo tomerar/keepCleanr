@@ -11,7 +11,16 @@ import org.junit.jupiter.api.Test
  * Pure-JVM modules grow with each milestone; add them to [pureJvmModules].
  */
 class ArchitectureTest {
-    private val pureJvmModules = listOf("core/model", "core/common", "core/storage-api", "core/storage-file", "core/hash", "core/safety", "engine/scan")
+    private val pureJvmModules =
+        listOf(
+            "core/model",
+            "core/common",
+            "core/storage-api",
+            "core/storage-file",
+            "core/hash",
+            "core/safety",
+            "engine/scan",
+        )
 
     private val projectScope = Konsist.scopeFromProject()
 

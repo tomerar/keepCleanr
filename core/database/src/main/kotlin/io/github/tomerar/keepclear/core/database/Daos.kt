@@ -13,7 +13,9 @@ interface ScanDao {
     @Insert
     suspend fun insertRun(run: ScanRunEntity): Long
 
-    @Query("UPDATE scan_run SET finishedAt = :finishedAt, complete = :complete, files = :files, bytes = :bytes, mediaGeneration = :generation WHERE id = :id")
+    @Query(
+        "UPDATE scan_run SET finishedAt = :finishedAt, complete = :complete, files = :files, bytes = :bytes, mediaGeneration = :generation WHERE id = :id",
+    )
     suspend fun finishRun(id: Long, finishedAt: Long, complete: Boolean, files: Int, bytes: Long, generation: Long?)
 
     @Query("SELECT * FROM scan_run WHERE complete = 1 ORDER BY id DESC LIMIT 1")

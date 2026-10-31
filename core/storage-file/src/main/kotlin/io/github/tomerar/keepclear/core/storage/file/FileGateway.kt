@@ -77,7 +77,12 @@ class FileGateway : StorageGateway {
         if (!KPath.isValidName(name)) throw StorageException.Io(d, message = "Invalid name '$name'")
         requireDirectory(d)
         val target = nio(d.child(name))
-        Files.newOutputStream(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)
+        Files.newOutputStream(
+            target,
+            StandardOpenOption.CREATE_NEW,
+            StandardOpenOption.WRITE,
+            LinkOption.NOFOLLOW_LINKS,
+        )
     }
 
     override suspend fun mkdir(dir: KPath, name: String): KPath = io(dir) {

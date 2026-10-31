@@ -40,7 +40,10 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
         captureRoboImage("src/test/screenshots/$name.png", roborazziOptions = options) {
             KeepClearTheme(darkTheme = night) { HomeScreen(state = HomeUiState(), showDebugTools = false) }
         }
-        captureRoboImage("src/test/screenshots/${name.replace("home_", "home_scanned_")}.png", roborazziOptions = options) {
+        captureRoboImage(
+            "src/test/screenshots/${name.replace("home_", "home_scanned_")}.png",
+            roborazziOptions = options,
+        ) {
             KeepClearTheme(darkTheme = night) { HomeScreen(state = scanned, showDebugTools = false) }
         }
     }

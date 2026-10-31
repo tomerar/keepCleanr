@@ -4,7 +4,6 @@
 <resources>
     <string name="app_name" translatable="false">KeepClear</string>
     <string name="home_tagline">Keep what matters. Clear the rest.</string>
-    <string name="home_status_early">Early development. KeepClear can\'t look at or delete anything yet.</string>
     <string name="home_card_safe_title">Clean now</string>
     <string name="home_card_safe_body">Junk you won\'t miss, cleaned in one tap. Everything waits 30 days in the trash.</string>
     <string name="home_card_review_title">Review</string>

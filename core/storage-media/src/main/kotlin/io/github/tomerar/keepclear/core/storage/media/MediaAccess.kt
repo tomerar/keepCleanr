@@ -25,25 +25,40 @@ enum class MediaAccess {
                 Manifest.permission.READ_MEDIA_AUDIO,
                 Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
             )
+
             Build.VERSION.SDK_INT >= 33 -> arrayOf(
                 Manifest.permission.READ_MEDIA_IMAGES,
                 Manifest.permission.READ_MEDIA_VIDEO,
                 Manifest.permission.READ_MEDIA_AUDIO,
             )
+
             else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         fun current(context: Context): MediaAccess {
             fun granted(p: String) = context.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
             return when {
-                Build.VERSION.SDK_INT >= 33 ->
+                Build.VERSION.SDK_INT >= 33 -> {
                     when {
-                        granted(Manifest.permission.READ_MEDIA_IMAGES) && granted(Manifest.permission.READ_MEDIA_VIDEO) -> FULL
-                        Build.VERSION.SDK_INT >= 34 && granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> PARTIAL
-                        granted(Manifest.permission.READ_MEDIA_IMAGES) || granted(Manifest.permission.READ_MEDIA_VIDEO) -> PARTIAL
+                        granted(
+                            Manifest.permission.READ_MEDIA_IMAGES,
+                        ) && granted(Manifest.permission.READ_MEDIA_VIDEO) -> FULL
+
+                        Build.VERSION.SDK_INT >= 34 && granted(
+                            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
+                        ) -> PARTIAL
+
+                        granted(
+                            Manifest.permission.READ_MEDIA_IMAGES,
+                        ) || granted(Manifest.permission.READ_MEDIA_VIDEO) -> PARTIAL
+
                         else -> NONE
                     }
-                else -> if (granted(Manifest.permission.READ_EXTERNAL_STORAGE)) FULL else NONE
+                }
+
+                else -> {
+                    if (granted(Manifest.permission.READ_EXTERNAL_STORAGE)) FULL else NONE
+                }
             }
         }
 
