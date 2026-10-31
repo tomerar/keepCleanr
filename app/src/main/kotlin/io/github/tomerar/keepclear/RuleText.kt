@@ -45,6 +45,8 @@ object RuleText {
         "apk_files" to Ids(R.string.group_apk_files, R.string.why_apk_files, R.string.if_deleted_apk_files),
         "old_download" to Ids(R.string.group_old_download, R.string.why_old_download, R.string.if_deleted_old_download),
         "unknown" to Ids(R.string.group_unknown, R.string.why_unknown, R.string.if_deleted_unknown),
+        "pictures_media" to
+            Ids(R.string.group_pictures_media, R.string.why_pictures_media, R.string.if_deleted_pictures_media),
     )
 
     fun of(ruleId: String): Ids = byRule[ruleId] ?: byRule.getValue("unknown")
