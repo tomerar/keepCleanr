@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,12 +23,17 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -132,25 +138,58 @@ fun CategoryListScreen(
     }
 }
 
-/** One group as a thumbnail grid with month headers (REV-2). Delete comes in M8. */
+/**
+ * One group as a thumbnail grid with month headers (REV-2). For SAFE and REVIEW groups the user can
+ * select items or whole months (nothing is pre-selected, SAFETY-10), review the selection in an editable
+ * confirmation (REV-3) and move it to the trash. MOVE groups stay read-only until backup exists (M10).
+ */
 @Composable
-fun GroupScreen(group: GroupSummary, onOpenItem: (ClassifiedItem) -> Unit, onBack: () -> Unit) {
+fun GroupScreen(
+    group: GroupSummary,
+    onOpenItem: (ClassifiedItem) -> Unit,
+    onBack: () -> Unit,
+    onDelete: (List<ClassifiedItem>) -> Unit = {},
+    result: CleanResult? = null,
+    onUndo: (CleanResult) -> Unit = {},
+) {
     val text = RuleText.of(group.ruleId)
+    val selectable = group.category == Category.SAFE || group.category == Category.REVIEW
+    var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
+    val selectedItems = group.items.filter { it.item.path in selected }
     Scaffold(
         bottomBar = {
-            Button(onClick = {
-            }, enabled = false, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("deleteDisabled")) {
-                Text(
-                    stringResource(
-                        if (group.category ==
-                            Category.MOVE
-                        ) {
-                            R.string.move_coming_soon
-                        } else {
-                            R.string.delete_coming_soon
-                        },
-                    ),
-                )
+            when {
+                !selectable -> Button(onClick = {
+                }, enabled = false, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("deleteDisabled")) {
+                    Text(stringResource(R.string.move_coming_soon))
+                }
+
+                else -> Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = { confirming = selectedItems },
+                        enabled = selectedItems.isNotEmpty(),
+                        modifier = Modifier.weight(1f).testTag("deleteSelected"),
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.review_delete,
+                                totalText(
+                                    selectedItems.fold(Total()) { t, i ->
+                                        t +
+                                            i
+                                    },
+                                ),
+                            ),
+                        )
+                    }
+                    OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.testTag("moveInstead")) {
+                        Text(stringResource(R.string.review_move_instead))
+                    }
+                }
             }
         },
     ) { padding ->
@@ -165,6 +204,19 @@ fun GroupScreen(group: GroupSummary, onOpenItem: (ClassifiedItem) -> Unit, onBac
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     BackRow(stringResource(text.group), onBack)
                     Text(totalText(group.total), style = MaterialTheme.typography.bodyLarge)
+                    result?.let { r ->
+                        Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    stringResource(R.string.clean_done, totalText(r.done)),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = {
+                                    onUndo(r)
+                                }, modifier = Modifier.testTag("undo")) { Text(stringResource(R.string.clean_undo)) }
+                            }
+                        }
+                    }
                     Text(stringResource(R.string.label_why), style = MaterialTheme.typography.labelLarge)
                     Text(stringResource(text.why), style = MaterialTheme.typography.bodyMedium)
                     Text(stringResource(R.string.label_if_deleted), style = MaterialTheme.typography.labelLarge)
@@ -173,27 +225,143 @@ fun GroupScreen(group: GroupSummary, onOpenItem: (ClassifiedItem) -> Unit, onBac
             }
             for ((bucket, items) in group.buckets) {
                 item(span = { GridItemSpan(maxLineSpan) }, key = "h_$bucket") {
-                    Text(
-                        bucketTitle(bucket),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp).testTag("bucket_$bucket"),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                    ) {
+                        Text(
+                            bucketTitle(bucket),
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f).testTag("bucket_$bucket"),
+                        )
+                        if (selectable) {
+                            val paths = items.map { it.item.path }.toSet()
+                            val all = selected.containsAll(paths)
+                            TextButton(
+                                onClick = { selected = if (all) selected - paths else selected + paths },
+                                modifier = Modifier.testTag("selectMonth_$bucket"),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        if (all) R.string.review_unselect_month else R.string.review_select_month,
+                                    ),
+                                )
+                            }
+                        }
+                    }
                 }
                 items(items, key = { it.item.path }) { item ->
-                    Tile(item, Modifier.clickable { onOpenItem(item) })
+                    val isSelected = item.item.path in selected
+                    Tile(
+                        item,
+                        selected = isSelected,
+                        modifier = Modifier.clickable {
+                            if (selectable) {
+                                selected = if (isSelected) selected - item.item.path else selected + item.item.path
+                            } else {
+                                onOpenItem(item)
+                            }
+                        },
+                        onPreview = { onOpenItem(item) },
+                    )
                 }
             }
         }
     }
+
+    confirming?.let { list ->
+        EditableConfirm(
+            items = list,
+            onRemove = { removed ->
+                val rest = list - removed
+                confirming = rest.ifEmpty { null }
+                selected = selected - removed.item.path
+            },
+            onConfirm = {
+                confirming = null
+                selected = emptySet()
+                onDelete(list)
+            },
+            onDismiss = { confirming = null },
+        )
+    }
+}
+
+/** REV-3: the user sees and can trim exactly what will move to the trash. */
+@Composable
+private fun EditableConfirm(
+    items: List<ClassifiedItem>,
+    onRemove: (ClassifiedItem) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val total = items.fold(Total()) { t, i -> t + i }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.review_confirm_title, totalText(total))) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.review_confirm_body))
+                LazyColumn(modifier = Modifier.heightIn(max = 240.dp).testTag("confirmList")) {
+                    items(items, key = { it.item.path }) { item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                Bidi.isolate(item.item.path.substringAfterLast('/')),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                onRemove(item)
+                            }, modifier = Modifier.testTag("remove_${item.item.path.substringAfterLast('/')}")) {
+                                Text("✕")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            SafeConfirmButton(
+                stringResource(R.string.clean_confirm_yes),
+                onClick = onConfirm,
+                modifier = Modifier.testTag("confirmDelete"),
+            )
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.trash_cancel)) } },
+    )
 }
 
 @Composable
-private fun Tile(item: ClassifiedItem, modifier: Modifier = Modifier) {
+private fun Tile(
+    item: ClassifiedItem,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    onPreview: () -> Unit = {},
+) {
     Box(
-        modifier = modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).testTag("tile"),
+        modifier = modifier
+            .aspectRatio(1f)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .testTag(if (selected) "tileSelected" else "tile"),
         contentAlignment = Alignment.Center,
     ) {
         Thumb(item, 96)
+        if (selected) {
+            Text(
+                "✓",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+            )
+        }
+        TextButton(
+            onClick = onPreview,
+            modifier = Modifier.align(Alignment.BottomEnd).testTag("preview_${item.item.path.substringAfterLast('/')}"),
+        ) {
+            Text("⤢")
+        }
     }
 }
 

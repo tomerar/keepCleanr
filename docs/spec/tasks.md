@@ -107,6 +107,8 @@ Status: **implemented**. Notes: twins and archive facts come from `engine:enrich
 - **DoD / tests:** SAFE-1…6/8 tests; extracted-zip fixture tests (full/partial/renamed); duplicate pipeline tests (same-size-different-content, NFD names, 0-byte files); crafted-zip tests (SEC-2, E-SEC-4); **D:** on owner's phone ≈ 8 GB SAFE found, cleaned to trash, restore of a sample works, Empty now frees space (Settings shows it).
 
 ### M8: REVIEW actions
+Status: **implemented**. Notes: groups show nothing pre-selected (SAFETY-10); select-by-month, an editable confirm list (remove items before confirming), delete through the executor into the 30-day trash with Undo. "Move instead" is a disabled stub until M10; MOVE groups cannot be deleted from Review. Old-phone leftovers and WhatsApp Private/Sent-without-original use the M4 rules and texts. Device check D8 (owner reviews screenshots/AI images) waits for the owner.
+
 - Multi-select delete with editable confirm sheet (REV-3), "Move instead" handoff stub (REV-4), old-phone leftovers detail, WhatsApp Private/Sent-without-original.
 - **DoD / tests:** UI tests for select-by-month, remove-from-confirm; SAFETY-10 (nothing pre-selected); **D:** owner reviews screenshots/AI images.
 

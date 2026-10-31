@@ -114,8 +114,10 @@ class ReviewScreensTest {
         compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
         compose.onNodeWithTag("group_screenshots").performClick()
         compose.onNodeWithTag("grid").assertIsDisplayed()
-        compose.onNodeWithTag("deleteDisabled").assertIsNotEnabled()
-        compose.onAllNodesWithTag("tile")[0].performClick()
+        compose.onNodeWithTag("deleteSelected").assertIsNotEnabled()
+        compose.onAllNodesWithTag("tile")[0].assertExists()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_0.png"))
+        compose.onNodeWithTag("preview_Screenshot_0.png").performClick()
         compose.onNodeWithTag("preview").assertIsDisplayed()
         compose.onNodeWithTag("preview").performScrollToIndex(3)
         compose.onNodeWithText("Why is this here?").assertExists()
@@ -135,11 +137,12 @@ class ReviewScreensTest {
     }
 
     @Test
-    fun `nothing is selected or selectable in read-only browsing (SAFETY-10)`() {
+    fun `nothing is pre-selected (SAFETY-10)`() {
         showApp(summary())
         compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
         compose.onNodeWithTag("group_screenshots").performClick()
-        compose.onNodeWithText("Select", substring = true).assertDoesNotExist()
+        compose.onAllNodesWithTag("tileSelected").assertCountEquals(0)
+        compose.onNodeWithTag("deleteSelected").assertIsNotEnabled()
     }
 
     @Test

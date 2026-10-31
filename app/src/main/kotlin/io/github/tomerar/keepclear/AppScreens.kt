@@ -54,9 +54,14 @@ fun AppScreens(
             if (group == null) {
                 home()
             } else {
-                GroupScreen(group, onOpenItem = {
-                    onOpen(Screen.Preview(it.item.path, screen.ruleId, screen.category))
-                }, onBack = onBack)
+                GroupScreen(
+                    group,
+                    onOpenItem = { onOpen(Screen.Preview(it.item.path, screen.ruleId, screen.category)) },
+                    onBack = onBack,
+                    onDelete = safeActions.onClean,
+                    result = state.cleanResult,
+                    onUndo = safeActions.onUndo,
+                )
             }
         }
 

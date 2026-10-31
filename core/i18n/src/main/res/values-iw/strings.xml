@@ -59,7 +59,6 @@
     <string name="area_other">אחר</string>
     <string name="label_why">למה זה כאן?</string>
     <string name="label_if_deleted">מה יקרה אם זה יימחק?</string>
-    <string name="delete_coming_soon">מחיקה תגיע בגרסה הבאה</string>
     <string name="move_coming_soon">גיבוי יגיע בגרסה מאוחרת יותר</string>
     <string name="back">חזרה</string>
     <string name="preview_modified">שונה ב-%1$s</string>
@@ -105,4 +104,10 @@
     <string name="trim_confirm_body">אנדרואיד מנקה את זה. אי אפשר לשחזר, והאפליקציות בונות את זה מחדש לפי הצורך. שום דבר לא עובר לסל המחזור של KeepClear.</string>
     <string name="trim_result">אנדרואיד פינה %1$s.</string>
     <string name="trim_external_button">לנקות מטמון חיצוני של אפליקציות</string>
+    <string name="review_delete">למחוק %1$s</string>
+    <string name="review_move_instead">להעביר במקום</string>
+    <string name="review_select_month">לבחור את כל החודש</string>
+    <string name="review_unselect_month">לבטל את בחירת החודש</string>
+    <string name="review_confirm_title">למחוק %1$s?</string>
+    <string name="review_confirm_body">הם יחכו 30 יום בסל המחזור. הקישו ✕ כדי להשאיר מה שתרצו.</string>
 </resources>
