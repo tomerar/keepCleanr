@@ -7,9 +7,6 @@ import android.os.storage.StorageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.tomerar.keepclear.core.model.Category
-import io.github.tomerar.keepclear.core.safety.ActionPlan
-import io.github.tomerar.keepclear.core.safety.OpKind
-import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
@@ -18,7 +15,6 @@ import io.github.tomerar.keepclear.engine.scan.ScanEvent
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.scan.Scanner
 import io.github.tomerar.keepclear.engine.scan.SpaceMode
-import io.github.tomerar.keepclear.engine.trash.TrashEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +22,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 /** Scan state shown on Home (SCAN-1/3, ONB-3/4, LOW-1/2). */
 sealed interface ScanState {
@@ -47,7 +42,6 @@ data class HomeUiState(
     val scan: ScanState = ScanState.Idle,
     /** Classification of the last scan (M5: read-only browsing). */
     val summary: ClassificationSummary? = null,
-    val trash: TrashUi = TrashUi(),
     /** Navigation stack; last is visible. */
     val screens: List<Screen> = listOf(Screen.Home),
 )
@@ -61,8 +55,6 @@ sealed interface Screen {
     data class Group(val ruleId: String, val category: Category) : Screen
 
     data class Preview(val path: String, val ruleId: String, val category: Category) : Screen
-
-    data object Trash : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -89,7 +81,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val after = _state.value
         val gainedAccess = (before.mediaAccess != after.mediaAccess || before.allFiles != after.allFiles)
         if (after.mediaAccess != MediaAccess.NONE && (after.scan == ScanState.Idle || gainedAccess)) scan()
-        if (after.allFiles == true) loadTrash()
     }
 
     fun scan() {
@@ -154,49 +145,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             ClassificationSummary.of(items.map { classifier.classify(it, now = now) })
         }
         _state.update { it.copy(summary = summary) }
-    }
-
-    private var trashRecovered = false
-
-    /** Loads the trash; on the first call per process also recovers it (E-DEL-8/9). */
-    fun loadTrash() {
-        viewModelScope.launch {
-            val manager = app.trashManager
-            if (!trashRecovered) {
-                manager.recover()
-                manager.purgeExpired()
-                trashRecovered = true
-            }
-            val entries = manager.entries().sortedByDescending { it.deletedAt }
-            val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
-                dest != entries.first { it.id == id }.originalPath
-            }
-            _state.update { it.copy(trash = TrashUi(entries, destinations)) }
-        }
-    }
-
-    /** Restore or permanently delete trash entries through the executor (user already confirmed in the UI). */
-    fun restore(entries: List<TrashEntry>) = runTrashPlan(entries, OpKind.RESTORE)
-
-    fun purge(entries: List<TrashEntry>) = runTrashPlan(entries, OpKind.PURGE)
-
-    private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind) {
-        viewModelScope.launch {
-            val ops = entries.mapNotNull { e ->
-                val stat = app.fileGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
-                PlannedOp(stat.path, e.trashedPath, kind, stat.isDirectory, stat.size, stat.mtimeMillis, stat.identity)
-            }
-            if (ops.isNotEmpty()) {
-                val plan = ActionPlan(
-                    UUID.randomUUID().toString(),
-                    ops,
-                    kind.name,
-                ).confirm(System.currentTimeMillis(), app.sessionId)
-                app.executor().run(plan)
-            }
-            loadTrash()
-            if (kind == OpKind.RESTORE) scan()
-        }
     }
 
     fun open(screen: Screen) = _state.update { it.copy(screens = it.screens + screen) }
