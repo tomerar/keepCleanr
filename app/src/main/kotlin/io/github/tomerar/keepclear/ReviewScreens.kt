@@ -96,7 +96,7 @@ private fun bucketTitle(bucket: String?): String {
 }
 
 @Composable
-private fun BackRow(title: String, onBack: () -> Unit) {
+internal fun BackRow(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         TextButton(onClick = onBack, modifier = Modifier.testTag("back")) { Text(stringResource(R.string.back)) }
         Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)

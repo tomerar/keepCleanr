@@ -81,7 +81,9 @@ class ArchitectureTest {
             "createTrashRequest(",
             "createDeleteRequest(",
         )
-        val allowed = listOf("/core/storage-", "/engine/trash/", "/backup/target-", "/engine/move/")
+        // testing/usb-provider: a debug-only fake USB drive working inside app-private storage.
+        val allowed =
+            listOf("/core/storage-", "/engine/trash/", "/backup/target-", "/engine/move/", "/testing/usb-provider/")
         projectScope.files
             .filter { "/src/main/" in it.path }
             .filterNot { file -> allowed.any { it in file.path } || "/build-logic/" in file.path }

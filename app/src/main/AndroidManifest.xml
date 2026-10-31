@@ -13,6 +13,16 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
+    <!-- MOVE (M10): copy and verify run in a dataSync foreground service; progress notification (ONB-10). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- MOVE-16: open Google Photos' own "Free up space" (package visibility for this one app only). -->
+    <queries>
+        <package android:name="com.google.android.apps.photos" />
+    </queries>
+
     <!-- WorkManager (daily trash purge) would add this; KeepClear has no network in the MVP (ADR 0008). -->
     <uses-permission
         android:name="android.permission.ACCESS_NETWORK_STATE"
@@ -37,5 +47,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".MoveService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Notification pause/stop actions: explicit, immutable PendingIntents only (SEC-5). -->
+        <receiver
+            android:name=".MoveControlReceiver"
+            android:exported="false" />
+
+        <!-- MIG-4: after an update, an unfinished backup waits for the user. -->
+        <receiver
+            android:name=".PackageReplacedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

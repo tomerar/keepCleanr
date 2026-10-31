@@ -54,6 +54,9 @@ class KeepClearApplication : Application() {
         onResult = onResult,
     )
 
+    /** MOVE jobs: Room store, the running job, the foreground service (M10). */
+    val moveController by lazy { MoveController(this) }
+
     override fun onCreate() {
         super.onCreate()
         TrashPurgeWorker.schedule(this)

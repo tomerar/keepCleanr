@@ -8,8 +8,11 @@ import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
 import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Copy → hash → place → read back → compare (ADR 0007, MOVE-6/8/11). **Never deletes or changes a
@@ -28,6 +31,8 @@ class MoveEngine(
     private val recentMillis: Long = 2 * 60_000L,
     private val maxAttempts: Int = 3,
     private val onProgress: (MoveFile) -> Unit = {},
+    /** Why the job stopped when its coroutine is cancelled from outside. */
+    private val cancelReason: () -> PauseReason = { PauseReason.PAUSED_BY_USER },
 ) {
     suspend fun run(jobId: String): MoveJob {
         var job = store.job(jobId) ?: error("unknown job $jobId")
@@ -47,6 +52,12 @@ class MoveEngine(
             writeManifest(job)
         } catch (e: Pause) {
             return job.copy(state = JobState.PAUSED, pauseReason = e.reason).also { store.putJob(it) }
+        } catch (e: CancellationException) {
+            // Paused from outside (user, system time limit). The current temp file is removed on resume (E-MOVE-1).
+            withContext(NonCancellable) {
+                store.putJob(job.copy(state = JobState.PAUSED, pauseReason = cancelReason()))
+            }
+            throw e
         }
         val unfinished = store.files(jobId).any {
             it.state !in setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED)

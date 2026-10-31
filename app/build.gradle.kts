@@ -30,6 +30,8 @@ dependencies {
     implementation(project(":core:storage-file"))
     implementation(project(":core:storage-media"))
     implementation(project(":core:database"))
+    implementation(project(":backup:target-saf"))
+    implementation(project(":engine:move"))
     implementation(project(":engine:scan"))
     implementation(project(":engine:classify"))
     implementation(project(":engine:trash"))
@@ -51,6 +53,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Fake USB drive for instrumented MOVE tests; inert until a test enables it. Never in release.
+    debugImplementation(project(":testing:usb-provider"))
 
     androidTestImplementation(testFixtures(project(":engine:trash")))
     androidTestImplementation(libs.androidx.test.runner)

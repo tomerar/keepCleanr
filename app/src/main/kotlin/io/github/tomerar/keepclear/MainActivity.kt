@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.storage.StorageManager
 import android.provider.Settings
@@ -10,14 +12,26 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 
 class MainActivity : ComponentActivity() {
     private val thumbnails by lazy { ThumbnailLoader(contentResolver) }
@@ -35,13 +49,58 @@ class MainActivity : ComponentActivity() {
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                         vm.refresh()
                     }
+                val moveVm: MoveViewModel = viewModel()
+                val move by moveVm.state.collectAsStateWithLifecycle()
+                var pendingItems by remember { mutableStateOf<List<ClassifiedItem>>(emptyList()) }
+                var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
+                var explainNotifications by remember { mutableStateOf(false) }
+                val treeLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+                        if (uri != null) moveVm.onTreePicked(uri, pendingItems)
+                    }
+                val notificationLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                        // ONB-10: the backup runs either way; without the permission progress shows only in the app.
+                        notificationsOff = !granted
+                        moveVm.start()
+                    }
                 val externalCacheLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                         vm.refresh()
                     }
                 LifecycleResumeEffect(Unit) {
                     vm.refresh()
+                    notificationsOff = !MoveNotifications.allowed(this@MainActivity)
                     onPauseOrDispose { }
+                }
+                if (explainNotifications) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            explainNotifications = false
+                            markAskedNotifications()
+                            moveVm.start()
+                        },
+                        title = { Text(stringResource(R.string.move_notif_title)) },
+                        text = { Text(stringResource(R.string.move_notif_body)) },
+                        confirmButton = {
+                            Button(onClick = {
+                                explainNotifications = false
+                                markAskedNotifications()
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    moveVm.start()
+                                }
+                            }) { Text(stringResource(R.string.move_notif_allow)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                explainNotifications = false
+                                markAskedNotifications()
+                                moveVm.start()
+                            }) { Text(stringResource(R.string.move_notif_skip)) }
+                        },
+                    )
                 }
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
@@ -50,6 +109,30 @@ class MainActivity : ComponentActivity() {
                         onBack = vm::back,
                         onRestore = vm::restore,
                         onPurge = vm::purge,
+                        move = move,
+                        notificationsOff = notificationsOff,
+                        moveActions = MoveActions(
+                            onPickTarget = { items ->
+                                pendingItems = items
+                                treeLauncher.launch(null)
+                            },
+                            onStart = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationsOff &&
+                                    !askedNotifications()
+                                ) {
+                                    explainNotifications = true
+                                } else {
+                                    moveVm.start()
+                                }
+                            },
+                            onCancelPick = moveVm::cancelPick,
+                            onPause = moveVm::pause,
+                            onStop = moveVm::stop,
+                            onResume = moveVm::resume,
+                            onFree = moveVm::freeOriginals,
+                            onShare = { id -> move.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt) },
+                            onOpenGooglePhotos = ::openGooglePhotos,
+                        ),
                         safeActions = SafeActions(
                             onClean = vm::clean,
                             onUndo = vm::undo,
@@ -91,5 +174,35 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private val prefs get() = getSharedPreferences("move", MODE_PRIVATE)
+
+    private fun askedNotifications() = prefs.getBoolean("askedNotifications", false)
+
+    private fun markAskedNotifications() = prefs.edit { putBoolean("askedNotifications", true) }
+
+    /** MOVE-16: hand over to Google Photos' own "Free up space"; KeepClear can't see its cloud state. */
+    private fun openGooglePhotos() {
+        packageManager.getLaunchIntentForPackage("com.google.android.apps.photos")?.let(::startActivity)
+    }
+
+    /** MOVE-13: share a receipt as plain text. */
+    private fun shareReceipt(view: JobView) {
+        val r = view.receipt
+        val text = getString(
+            R.string.move_receipt_text,
+            r.targetLabel,
+            r.rootRel,
+            r.verified,
+            ByteSize.format(r.verifiedBytes, resources.configuration.locales[0]),
+            r.total - r.verified,
+        )
+        startActivity(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text),
+                null,
+            ),
+        )
     }
 }

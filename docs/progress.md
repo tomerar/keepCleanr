@@ -15,8 +15,8 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M6 Trash + restore | ✅ merged | [#7](https://github.com/tomerar/keepCleanr/pull/7) | 3 Codex findings fixed (untrusted entries never auto-purge, fallback restore validated, vanished entries dropped). Also: `readNBytes` (API 33+) replaced by `Streams` + Konsist rule; device trash test moved off our PROTECTED `Android/data` folder. Raises decision B2 (ADR 0010). |
 | M7 SAFE cleanup | ✅ merged | [#8](https://github.com/tomerar/keepCleanr/pull/8) | 3 Codex findings fixed: plans use the scan snapshot (SAFETY-6), MediaStore-only items are skipped instead of crashing, a copy that is itself SAFE never counts as a twin witness. |
 | M8 REVIEW actions | ✅ merged | [#9](https://github.com/tomerar/keepCleanr/pull/9) | 2 Codex findings fixed: Undo survives deleting a whole group; confirm rows show thumbnail + folder. |
-| M9 MOVE engine | 🔄 PR open | [#10](https://github.com/tomerar/keepCleanr/pull/10) | Fault tests, kill-point test, `sha256sum -c` test green. Fixed while integrating: a reused file on the drive could be deleted after a failed read-back; an unreadable manifest could be replaced and lose entries; target folders now use ASCII digits on every locale. |
-| M10 SAF target + MOVE UI | ⬜ | | |
+| M9 MOVE engine | ✅ merged | [#10](https://github.com/tomerar/keepCleanr/pull/10) | 4 Codex findings fixed: copy-only targets keep unverified copies, collision names checkpointed before rename, suffixes stay within 255 bytes, crash-safe manifest replace. Also fixed while integrating: reused files never deleted, unreadable manifests kept, ASCII folder names. |
+| M10 SAF target + MOVE UI | 🔄 PR open | [#11](https://github.com/tomerar/keepCleanr/pull/11) | SAF target with marker, Room v3, `dataSync` service, MOVE screen + receipt + free originals via executor; instrumented tests with a fake USB drive (unplug, update mid-job, pause). |
 
 ## Device checks waiting for the owner (D)
 
@@ -34,6 +34,10 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 | D7-2 | M7 | Clean now on the real phone: ≈ 8 GB found? Clean → Trash → Empty now → Settings › Storage shows the space back | waiting for owner |
 | D7-3 | M7 | "Let Android trim caches": how many bytes does it actually free on the 10T? | waiting for owner |
 | D8-1 | M8 | Open Review › Screenshots and AI images on the 10T: are the groups right? Select a month, remove two items in the confirm list, delete, then Undo | waiting for owner |
+| D10-1 | M10 | Move one year of camera media (5–10 GB) to a USB-C drive; unplug mid-copy, plug back in, tap Continue; it finishes | waiting for owner |
+| D10-2 | M10 | On a PC: `sha256sum -c SHA256SUMS` in `KeepClear/<phone>/` passes; what file system is the drive (FAT32 or exFAT)? Files over 4 GB are blocked on every SAF drive for now | waiting for owner |
+| D10-3 | M10 | "Free … from the phone" after the receipt; then restore 10 of those files from the Trash | waiting for owner |
+| D10-4 | M10 | Notifications: deny on first backup → backup still runs, progress shows in the app; allow → progress notification with Pause/Stop works | waiting for owner |
 | D3-3 | M3 | `adb shell ls /storage/emulated/999` and `pm list users`: is there a Parallel-apps user 999, and can KeepClear (all-files) read it? (MSG-3) | waiting for owner |
 
 ## Blockers and decisions needed

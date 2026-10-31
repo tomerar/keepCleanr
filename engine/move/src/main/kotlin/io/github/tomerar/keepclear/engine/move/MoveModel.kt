@@ -21,7 +21,24 @@ enum class FailReason { SOURCE_MISSING, SOURCE_UNREADABLE, TOO_LARGE_FOR_TARGET,
 
 enum class JobState { READY, RUNNING, PAUSED, DONE }
 
-enum class PauseReason { TARGET_DISCONNECTED, TARGET_FULL, ACCESS_LOST, PHONE_LOW_SPACE, CANCELLED }
+/** Stored by name; append only (MIG-2). CANCELLED = the user stopped the job; it can still be resumed. */
+enum class PauseReason {
+    TARGET_DISCONNECTED,
+    TARGET_FULL,
+    ACCESS_LOST,
+    PHONE_LOW_SPACE,
+    CANCELLED,
+    PAUSED_BY_USER,
+
+    /** Android's foreground-service time limit (Android 15+, MOVE-12). */
+    SYSTEM_TIME_LIMIT,
+
+    /** The app was updated or killed mid-job (MIG-4). */
+    INTERRUPTED,
+
+    /** A different drive or folder is attached than the one this job started on (E-MOVE-2). */
+    WRONG_TARGET,
+}
 
 data class MoveJob(
     val id: String,
@@ -32,6 +49,8 @@ data class MoveJob(
     val createdAt: Long,
     val state: JobState = JobState.READY,
     val pauseReason: PauseReason? = null,
+    /** Opaque locator the app uses to reopen the target (a SAF tree URI). Never trusted on its own (E-MOVE-2). */
+    val targetRef: String? = null,
 )
 
 data class MoveFile(
