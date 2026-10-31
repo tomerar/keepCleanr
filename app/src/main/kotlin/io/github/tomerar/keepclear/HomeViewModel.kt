@@ -70,18 +70,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val persist = s.spaceMode.persistScanResults
         scanJob = viewModelScope.launch {
             _state.update { it.copy(scan = ScanState.Running(0, 0)) }
-            val runId = if (persist) app.scanIndex.startRun() else null
+            // LOW-3/LOW-4: a database write failure (e.g. disk full) never crashes the scan; it continues in
+            // memory and the result is shown as incomplete.
+            var runId = if (persist) runCatching { app.scanIndex.startRun() }.getOrNull() else null
+            var storageFailed = persist && runId == null
             val inMemory = mutableListOf<ScanItem>()
             scanner.scan(roots).collect { event ->
                 when (event) {
                     is ScanEvent.Batch -> {
-                        if (runId !=
-                            null
-                        ) {
-                            app.scanIndex.write(runId, event.items)
-                        } else {
-                            inMemory += event.items
+                        val id = runId
+                        val written = id != null && runCatching { app.scanIndex.write(id, event.items) }.isSuccess
+                        if (id != null && !written) {
+                            runId = null
+                            storageFailed = true
                         }
+                        if (!written) inMemory += event.items
                     }
 
                     is ScanEvent.Progress -> {
@@ -89,18 +92,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     is ScanEvent.Done -> {
-                        if (runId !=
-                            null
-                        ) {
-                            app.scanIndex.finish(
-                                runId,
-                                event.complete,
-                                event.files,
-                                event.bytes,
-                                event.maxGeneration,
-                            )
+                        val id = runId
+                        val complete = event.complete && !storageFailed
+                        if (id != null) {
+                            runCatching {
+                                app.scanIndex.finish(id, complete, event.files, event.bytes, event.maxGeneration)
+                            }
                         }
-                        _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, event.complete)) }
+                        _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, complete)) }
                     }
 
                     is ScanEvent.Unreadable, is ScanEvent.VolumeLost -> {

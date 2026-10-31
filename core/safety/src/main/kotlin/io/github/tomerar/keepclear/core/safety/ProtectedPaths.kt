@@ -11,7 +11,10 @@ package io.github.tomerar.keepclear.core.safety
 class ProtectedPaths(
     /** Extra protected roots (canonicalised): active backup target, user exclusions. */
     extraRoots: Collection<String> = emptyList(),
+    /** KeepClear's own package: its `Android/data|media|obb/<pkg>` folders are PROTECTED (SAFETY-3). */
+    ownPackage: String = "io.github.tomerar.keepclear",
 ) {
+    private val ownPackage = ownPackage.lowercase()
     private val extra: List<String> = extraRoots.mapNotNull { CanonicalPath.of(it) }
 
     /** True when [rawPath] itself must never be deleted, moved or overwritten. */
@@ -33,6 +36,10 @@ class ProtectedPaths(
 
         // KeepClear's own trash is only touched by the trash module (PURGE/RESTORE).
         if (TRASH_DIR in segments) return true
+
+        // KeepClear's own app folders.
+        val rel = relativeToVolume(segments)
+        if (rel.size >= 3 && rel[0] == "android" && rel[1] in setOf("data", "media", "obb") && rel[2] == ownPackage) return true
 
         if (extra.any { path == it || path.startsWith("$it/") }) return true
         return false
@@ -68,5 +75,8 @@ class ProtectedPaths(
     companion object {
         /** Trash folder name, lowercase (canonical). */
         const val TRASH_DIR = ".keepcleartrash"
+
+        /** Trash folder name as created on disk. */
+        const val TRASH_FOLDER_NAME = ".KeepClearTrash"
     }
 }

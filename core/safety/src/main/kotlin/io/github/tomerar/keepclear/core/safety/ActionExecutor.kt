@@ -113,7 +113,8 @@ class ActionExecutor(
         if (op.expectedIdentity != null && stat.identity != null && stat.identity != op.expectedIdentity) {
             return OpResult.Skipped(op, SkipReason.IDENTITY_CHANGED)
         }
-        if (!stat.isDirectory && (stat.size != op.expectedSize || stat.mtimeMillis != op.expectedMtime)) {
+        // Directories: a changed mtime means entries were added or removed since confirmation (SAFETY-6).
+        if (stat.mtimeMillis != op.expectedMtime || (!stat.isDirectory && stat.size != op.expectedSize)) {
             return OpResult.Skipped(op, SkipReason.CHANGED)
         }
         if (stat.isDirectory && op.kind != OpKind.PURGE && subtreeHasProtected(stat)) {

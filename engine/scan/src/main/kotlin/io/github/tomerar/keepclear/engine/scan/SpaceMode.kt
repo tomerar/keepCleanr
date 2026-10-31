@@ -5,14 +5,15 @@ package io.github.tomerar.keepclear.engine.scan
 enum class SpaceMode {
     NORMAL,
 
-    /** < 500 MB raw free: no thumbnail disk cache, capped index writes, banner. */
+    /** < 500 MB raw free: no thumbnail disk cache, no index writes (in-memory scan), banner. */
     LIGHT,
 
     /** < 100 MB raw free: in-memory scan only, MOVE start blocked, space-freeing actions first. */
     MINIMAL,
     ;
 
-    val persistScanResults: Boolean get() = this != MINIMAL
+    /** LOW-1: below 500 MB the scan index isn't grown at all (results stay in memory). */
+    val persistScanResults: Boolean get() = this == NORMAL
     val diskThumbnails: Boolean get() = this == NORMAL
     val canStartMove: Boolean get() = this != MINIMAL
 

@@ -106,6 +106,15 @@ class ScannerTest {
     }
 
     @Test
+    fun `unreadable root makes the scan incomplete but other roots are scanned`(): Unit = runBlocking {
+        val f = OwnerDevice.build()
+        f.gateway.revoke(OwnerDevice.CLONE_ROOT)
+        val events = Scanner(f.gateway).scan(listOf(clone, root)).toList()
+        (events.last() as ScanEvent.Done).complete shouldBe false
+        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path } shouldContainAll f.paths(OwnerDevice.Tag.SCREENSHOT)
+    }
+
+    @Test
     fun `lost volume is reported and other roots are still scanned (E-STO-1)`(): Unit = runBlocking {
         val f = OwnerDevice.build()
         f.gateway.disconnect(OwnerDevice.CLONE_ROOT)
@@ -187,6 +196,8 @@ class SpaceModeTest {
         SpaceMode.of(499_999_999) shouldBe SpaceMode.LIGHT
         SpaceMode.of(500_000_000) shouldBe SpaceMode.NORMAL
         SpaceMode.MINIMAL.persistScanResults shouldBe false
+        SpaceMode.LIGHT.persistScanResults shouldBe false
+        SpaceMode.NORMAL.persistScanResults shouldBe true
         SpaceMode.MINIMAL.canStartMove shouldBe false
         SpaceMode.LIGHT.diskThumbnails shouldBe false
         listOf(SpaceMode.NORMAL, SpaceMode.LIGHT) shouldContain SpaceMode.of(1L shl 40)

@@ -39,19 +39,16 @@ enum class MediaAccess {
             fun granted(p: String) = context.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
             return when {
                 Build.VERSION.SDK_INT >= 33 -> {
+                    // Full only when photos, videos and audio are all granted; anything less is labelled partial.
+                    val media = listOf(
+                        Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VIDEO,
+                        Manifest.permission.READ_MEDIA_AUDIO,
+                    ).map { granted(it) }
+                    val selected = Build.VERSION.SDK_INT >= 34 && granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
                     when {
-                        granted(
-                            Manifest.permission.READ_MEDIA_IMAGES,
-                        ) && granted(Manifest.permission.READ_MEDIA_VIDEO) -> FULL
-
-                        Build.VERSION.SDK_INT >= 34 && granted(
-                            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
-                        ) -> PARTIAL
-
-                        granted(
-                            Manifest.permission.READ_MEDIA_IMAGES,
-                        ) || granted(Manifest.permission.READ_MEDIA_VIDEO) -> PARTIAL
-
+                        media.all { it } -> FULL
+                        media.any { it } || selected -> PARTIAL
                         else -> NONE
                     }
                 }
