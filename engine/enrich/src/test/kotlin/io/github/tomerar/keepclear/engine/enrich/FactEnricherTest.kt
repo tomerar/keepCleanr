@@ -62,6 +62,20 @@ class FactEnricherTest {
     }
 
     @Test
+    fun `a copy that is itself SAFE (another app's recycle bin) is not a witness (SAFETY-8)`(): Unit = runBlocking {
+        val g = FakeStorageGateway(caseInsensitive = true)
+        val bytes = ByteArray(2_000) { 4 }
+        g.addFile("$root/.FileManagerRecycler/IMG_9.jpg", bytes)
+        g.addFile("$root/DCIM/.thumbnails/IMG_9.jpg", bytes)
+        g.addFile("$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/IMG_9.jpg", bytes)
+        FactEnricher(g).facts(scan(g)) shouldBe emptyMap()
+        // With a copy that stays (camera), the Sent copy is redundant.
+        g.addFile("$root/DCIM/Camera/IMG_9.jpg", bytes)
+        FactEnricher(g).facts(scan(g)).keys shouldBe
+            setOf("$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/IMG_9.jpg")
+    }
+
+    @Test
     fun `empty files never count as twins`(): Unit = runBlocking {
         val g = FakeStorageGateway(caseInsensitive = true)
         g.addFile("$root/DCIM/empty.jpg", ByteArray(0))

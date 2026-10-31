@@ -214,38 +214,53 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
     fun clean(items: List<ClassifiedItem>) {
         viewModelScope.launch {
-            val ops = items.mapNotNull { c ->
-                val stat = app.fileGateway.stat(c.item.ref) ?: return@mapNotNull null
+            // Only path-addressable files can go to KeepClear's trash in this version (ADR 0010). MediaStore-only
+            // items (no All files access, `play`) are reported as skipped instead of being acted on.
+            val (local, unsupported) = items.partition { it.item.ref is KPath.Local }
+            // SAFETY-6: the plan carries what was scanned and classified, not what is there now; the executor
+            // re-checks size, mtime and identity against it and skips anything that changed since.
+            val ops = local.map { c ->
                 PlannedOp(
-                    stat.path,
+                    c.item.ref,
                     c.item.path,
                     OpKind.TRASH,
-                    stat.isDirectory,
-                    stat.size,
-                    stat.mtimeMillis,
-                    stat.identity,
+                    false,
+                    c.item.size,
+                    c.item.mtimeMillis,
+                    c.item.identity,
                     ruleId = c.ruleId,
                 )
             }
-            if (ops.isEmpty()) return@launch
-            val plan = ActionPlan(
-                UUID.randomUUID().toString(),
-                ops,
-                "clean",
-            ).confirm(System.currentTimeMillis(), app.sessionId)
-            val report = app.executor().run(plan)
-            if (report is ExecutionReport.Ran) {
-                val done = report.done.map { it.op }
-                _state.update {
-                    it.copy(
-                        cleanResult = CleanResult(
-                            done = Total(done.size, done.sumOf { op -> op.expectedSize }),
-                            skipped = report.skipped.size,
-                            failed = report.failed.size,
-                            trashedPaths = done.map { op -> op.displayPath },
-                        ),
-                    )
+            var done = emptyList<PlannedOp>()
+            var skipped = unsupported.size
+            var failed = 0
+            if (ops.isNotEmpty()) {
+                val plan = ActionPlan(
+                    UUID.randomUUID().toString(),
+                    ops,
+                    "clean",
+                ).confirm(System.currentTimeMillis(), app.sessionId)
+                when (val report = app.executor().run(plan)) {
+                    is ExecutionReport.Ran -> {
+                        done = report.done.map { it.op }
+                        skipped += report.skipped.size
+                        failed = report.failed.size
+                    }
+
+                    is ExecutionReport.Rejected -> {
+                        failed = ops.size
+                    }
                 }
+            }
+            _state.update {
+                it.copy(
+                    cleanResult = CleanResult(
+                        done = Total(done.size, done.sumOf { op -> op.expectedSize }),
+                        skipped = skipped,
+                        failed = failed,
+                        trashedPaths = done.map { op -> op.displayPath },
+                    ),
+                )
             }
             loadTrash()
             scan()

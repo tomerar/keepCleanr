@@ -2,11 +2,13 @@
 package io.github.tomerar.keepclear.engine.enrich
 
 import io.github.tomerar.keepclear.core.hash.Sha256
+import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
 import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import io.github.tomerar.keepclear.core.storage.Streams.skipFully
+import io.github.tomerar.keepclear.engine.classify.Classifier
 import io.github.tomerar.keepclear.engine.classify.Fact
 import io.github.tomerar.keepclear.engine.classify.Rules
 import io.github.tomerar.keepclear.engine.scan.ScanItem
@@ -25,13 +27,18 @@ interface HashCache {
  * Second-pass enrichers (design.md §4 step 2), run only on candidate subsets:
  * - **Twins** (SAFE-4): a messenger `Sent/` file is redundant only if a byte-identical copy (size →
  *   head/tail prehash → full SHA-256, never partial hashes for the decision) exists **outside** every
- *   messenger folder. Empty files are ignored.
+ *   messenger folder, in a place that is not itself SAFE to clean. Empty files are ignored.
  * - **Archives** (SAFE-3, SEC-2): a `.zip` is fully extracted when every file entry exists in the sibling
  *   folder (same relative path, size and CRC-32); partial when only some do. Unsafe names → no fact.
  *
  * Read-only; unreadable files simply produce no fact.
  */
-class FactEnricher(private val gateway: StorageGateway, private val hashCache: HashCache? = null) {
+class FactEnricher(
+    private val gateway: StorageGateway,
+    private val hashCache: HashCache? = null,
+    private val now: Long = System.currentTimeMillis(),
+    private val classifier: Classifier = Classifier(),
+) {
     suspend fun facts(items: Collection<ScanItem>): Map<String, Set<Fact>> {
         val result = HashMap<String, MutableSet<Fact>>()
         twins(items).forEach { result.getOrPut(it) { mutableSetOf() } += Fact.HAS_TWIN_OUTSIDE_MESSENGER }
@@ -55,12 +62,16 @@ class FactEnricher(private val gateway: StorageGateway, private val hashCache: H
         return root >= 0 && rel.getOrNull(root + 1) == "media" && rel.dropLast(1).drop(root + 2).contains("sent")
     }
 
+    private fun isRetained(item: ScanItem): Boolean = classifier.classify(item, now = now).category != Category.SAFE
+
     private suspend fun twins(items: Collection<ScanItem>): Set<String> {
         val candidates = items.filter { it.size > 0 && !it.isTrashed && isSentCopy(it.path) }
         if (candidates.isEmpty()) return emptySet()
         val sizes = candidates.map { it.size }.toSet()
+        // A witness must be a copy that stays: never one that is itself SAFE to clean (another app's recycle
+        // bin, junk, thumbnails), or "Clean now" could trash every copy at once (SAFETY-8).
         val originalsBySize = items.filter {
-            it.size in sizes && !it.isTrashed && !isMessenger(it.path)
+            it.size in sizes && !it.isTrashed && !isMessenger(it.path) && isRetained(it)
         }.groupBy { it.size }
         val found = HashSet<String>()
         for (candidate in candidates) {
