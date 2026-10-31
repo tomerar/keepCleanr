@@ -57,8 +57,13 @@ object Rules {
     private const val BIG_VIDEO_BYTES = 100_000_000L
 
     private val waMediaReceived = setOf(
-        "whatsapp images", "whatsapp video", "whatsapp voice notes", "whatsapp video notes",
-        "whatsapp business images", "whatsapp business video", "whatsapp business voice notes",
+        "whatsapp images",
+        "whatsapp video",
+        "whatsapp voice notes",
+        "whatsapp video notes",
+        "whatsapp business images",
+        "whatsapp business video",
+        "whatsapp business voice notes",
         "whatsapp business video notes",
     )
     private val osJunkNames = setOf(".ds_store", "thumbs.db", "desktop.ini", ".directory")
@@ -88,8 +93,13 @@ object Rules {
         Rule("wa_sent_copy", Category.SAFE, RiskChip.COPY_EXISTS) {
             it.waMediaFolder() != null && it.hasSegment("sent") && Fact.HAS_TWIN_OUTSIDE_MESSENGER in it.facts
         },
-        Rule("wa_sent", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.waMediaFolder() != null && it.hasSegment("sent") },
-        Rule("wa_private", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.waMediaFolder() != null && it.hasSegment("private") },
+        Rule("wa_sent", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) {
+            it.waMediaFolder() != null && it.hasSegment("sent")
+        },
+        Rule("wa_private", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) {
+            it.waMediaFolder() != null &&
+                it.hasSegment("private")
+        },
         Rule("wa_received", Category.MOVE, RiskChip.MIGHT_BE_MEMORY, bucket = { it.month() }) {
             it.waMediaFolder() in waMediaReceived
         },
@@ -126,7 +136,10 @@ object Rules {
         Rule("camera", Category.MOVE, RiskChip.MIGHT_BE_MEMORY, bucket = { it.month() }) { it.relStartsWith("dcim") },
         Rule("big_video", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.isVideo() && it.item.size > BIG_VIDEO_BYTES },
         Rule("apk_files", Category.REVIEW, RiskChip.UNKNOWN) { it.extension == "apk" || it.extension == "apks" },
-        Rule("old_download", Category.REVIEW, RiskChip.UNKNOWN) { it.relStartsWith("download") && it.ageMillis > 90 * DAY },
+        Rule("old_download", Category.REVIEW, RiskChip.UNKNOWN) {
+            it.relStartsWith("download") &&
+                it.ageMillis > 90 * DAY
+        },
     )
 
     /** Fallback (CLS-6): we don't know what it is, so the user decides. */

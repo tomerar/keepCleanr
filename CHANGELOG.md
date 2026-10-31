@@ -5,6 +5,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Added
+- M4: deterministic classifier with a versioned rule table (WhatsApp variants, Telegram, junk, screenshots, AI images, old-phone folders, camera), keep signals, and English/Hebrew explanations for every rule.
 - M3: storage scan: java.nio file gateway, MediaStore reader, read-only cancellable scanner, Room scan index with schema export and migration harness, media/all-files permission flow with plain-language explainers, scan summary on Home, low-space modes.
 - M2: safety core: canonical PROTECTED-path matching (all WhatsApp variants, any volume/user root), plan guard, single-choke-point executor with re-checks, strict re-hash and dry-run; SHA-256 module.
 - M1: storage abstraction (`core:storage-api`), fault-injecting in-memory fake with a gateway contract suite, owner-shaped test fixtures.

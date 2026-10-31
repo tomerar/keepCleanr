@@ -23,7 +23,15 @@ class RuleTableTest {
         trashed: Boolean = false,
         mime: String? = null,
     ) = classifier.classify(
-        ScanItem(KPath.Local("$root/$rel"), "$root/$rel", size, mtime, isFavorite = favorite, isTrashed = trashed, mime = mime),
+        ScanItem(
+            KPath.Local("$root/$rel"),
+            "$root/$rel",
+            size,
+            mtime,
+            isFavorite = favorite,
+            isTrashed = trashed,
+            mime = mime,
+        ),
         facts,
         now,
     )
@@ -51,11 +59,27 @@ class RuleTableTest {
             Triple("Download/app.apk", Category.REVIEW, "apk_files"),
             Triple("Documents/report.pdf", Category.REVIEW, "unknown"),
             Triple("WhatsApp/Media/WhatsApp Images/IMG.jpg", Category.REVIEW, "legacy_wa"),
-            Triple("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes/202601/PTT.opus", Category.MOVE, "wa_received"),
+            Triple(
+                "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes/202601/PTT.opus",
+                Category.MOVE,
+                "wa_received",
+            ),
             Triple("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/a.pdf", Category.REVIEW, "wa_other"),
-            Triple("Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Private/a.jpg", Category.REVIEW, "wa_private"),
-            Triple("Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14", Category.PROTECTED, "protected"),
-            Triple("Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Video/v.mp4", Category.MOVE, "wa_received"),
+            Triple(
+                "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Private/a.jpg",
+                Category.REVIEW,
+                "wa_private",
+            ),
+            Triple(
+                "Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
+                Category.PROTECTED,
+                "protected",
+            ),
+            Triple(
+                "Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Video/v.mp4",
+                Category.MOVE,
+                "wa_received",
+            ),
         )
         table.forEach { (rel, cat, rule) ->
             val r = c(rel)

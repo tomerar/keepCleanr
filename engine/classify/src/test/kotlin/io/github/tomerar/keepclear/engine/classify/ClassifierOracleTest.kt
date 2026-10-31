@@ -77,8 +77,12 @@ class ClassifierOracleTest {
             val (category, rule) = expected[tag] ?: continue
             for (path in paths) {
                 val c = classified[path] ?: continue
-                val ok = (c.category == category || (category == Category.SAFE && c.keepSignal && c.category == Category.REVIEW)) &&
-                    (rule == null || c.ruleId == rule)
+                val ok =
+                    (
+                        c.category == category ||
+                            (category == Category.SAFE && c.keepSignal && c.category == Category.REVIEW)
+                    ) &&
+                        (rule == null || c.ruleId == rule)
                 if (!ok) mismatches += "$tag $path -> ${c.category}/${c.ruleId}"
             }
         }
@@ -104,7 +108,11 @@ class ClassifierOracleTest {
                 appendLine("$cat files=${items.size} bytes=${items.sumOf { it.item.size }}")
             }
             classified.values.groupBy { it.ruleId }.toSortedMap().forEach { (rule, items) ->
-                appendLine("rule $rule files=${items.size} ${items.groupingBy { it.category }.eachCount().toSortedMap()}")
+                appendLine(
+                    "rule $rule files=${items.size} ${items.groupingBy {
+                        it.category
+                    }.eachCount().toSortedMap()}",
+                )
             }
         }
         val file = File("src/test/resources/owner-classification-snapshot.txt")
