@@ -11,7 +11,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 
 | Access | Why | Leaves the phone? |
 |---|---|---|
-| Photos and videos (`READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`) | To find screenshots, large videos, duplicates and memories to back up. | No |
+| Photos, videos and audio (`READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`; `READ_MEDIA_VISUAL_USER_SELECTED` for Android 14 "selected photos"; `READ_EXTERNAL_STORAGE` on Android 11–12) | To find screenshots, large videos, duplicates and memories to back up. | No |
 | All files access (`MANAGE_EXTERNAL_STORAGE`, `foss` build only) | To find WhatsApp media, folders from an old phone, other apps' recycle bins and leftover files. | No |
 | Folders you pick (Storage Access Framework) | To read a folder you chose (e.g. WhatsApp media) or write backups to a drive you chose. | Only to the drive or folder you picked |
 | Usage access (`PACKAGE_USAGE_STATS`) | To show how much space each app uses and when it was last opened. | No |

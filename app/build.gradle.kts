@@ -21,24 +21,18 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-    testOptions.unitTests.all { test ->
-        test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
-        // Robolectric on SDK 36 needs JDK internals (FileDescriptor via SharedSecrets) on JDK 17+.
-        test.jvmArgs(
-            "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
-            "--add-opens=java.base/java.io=ALL-UNNAMED",
-        )
-        // Optional mirror for Robolectric's android-all downloads (set in ~/.gradle/gradle.properties).
-        providers.gradleProperty("keepclear.robolectricRepoUrl").orNull?.let {
-            test.systemProperty("robolectric.dependency.repo.url", it)
-        }
-    }
 }
 
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:i18n"))
     implementation(project(":core:common"))
+    implementation(project(":core:storage-file"))
+    implementation(project(":core:storage-media"))
+    implementation(project(":core:database"))
+    implementation(project(":engine:scan"))
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)

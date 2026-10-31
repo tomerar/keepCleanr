@@ -3,7 +3,6 @@
 <!-- Hebrew. Gender-neutral (plural/infinitive), see docs/TRANSLATING.md. -->
 <resources>
     <string name="home_tagline">שומרים את מה שחשוב. מפנים את השאר.</string>
-    <string name="home_status_early">בפיתוח ראשוני. KeepClear עדיין לא מסתכל על קבצים ולא מוחק שום דבר.</string>
     <string name="home_card_safe_title">לנקות עכשיו</string>
     <string name="home_card_safe_body">קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור.</string>
     <string name="home_card_review_title">לבדוק</string>
@@ -13,4 +12,39 @@
     <string name="home_coming_soon">בקרוב</string>
     <string name="home_privacy">בלי פרסומות. בלי מעקב. בלי גישה לאינטרנט.</string>
     <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
+    <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
+    <string name="access_card_title">לראות מה תופס מקום</string>
+    <string name="access_card_body">כדי להסתכל על התמונות, הסרטונים והקבצים, KeepClear צריך את האישור שלכם. הכול נשאר בטלפון.</string>
+    <string name="access_allow">לאשר גישה</string>
+    <string name="explainer_media_title">לראות תמונות וסרטונים</string>
+    <string name="explainer_media_why">כדי למצוא צילומי מסך, סרטונים גדולים ומה אפשר לגבות.</string>
+    <string name="explainer_media_never">שום דבר לא יוצא מהטלפון, אלא אם מעבירים אותו לכונן שבוחרים.</string>
+    <string name="explainer_media_without">בלי זה: רק קבצים זמניים ומטמון של אפליקציות.</string>
+    <string name="explainer_allfiles_title">לראות את כל הקבצים</string>
+    <string name="explainer_allfiles_why">כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות.</string>
+    <string name="explainer_allfiles_never">גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. KeepClear אף פעם לא מוחק בלי לשאול.</string>
+    <string name="explainer_allfiles_without">בלי זה: רק תמונות, סרטונים ושמע.</string>
+    <string name="explainer_label_why">למה</string>
+    <string name="explainer_label_never">מה לעולם לא נעשה</string>
+    <string name="explainer_label_without">בלי זה</string>
+    <string name="explainer_continue">להמשיך למסך של אנדרואיד</string>
+    <string name="explainer_not_now">לא עכשיו</string>
+    <string name="allfiles_card_title">לראות את כל הקבצים</string>
+    <string name="allfiles_card_body">לא חובה. מאפשר ל-KeepClear למצוא מדיה של וואטסאפ, תיקיות מהטלפון הקודם וסלי מחזור.</string>
+    <string name="allfiles_card_button">לאשר גישה לכל הקבצים</string>
+    <string name="partial_banner">KeepClear רואה רק את התמונות שבחרתם. כדי לקבל מספרים אמיתיים, אפשר לתת גישה לכולן.</string>
+    <string name="partial_change">לשנות</string>
+    <string name="media_only_note">רואים רק תמונות, סרטונים ושמע.</string>
+    <string name="scan_running">עדיין סופרים… %1$s עד עכשיו</string>
+    <string name="scan_done">נסרקו %1$s · %2$s</string>
+    <string name="scan_incomplete">הסריקה נעצרה כי הגישה הוסרה. המספרים האלה חלקיים.</string>
+    <string name="scan_again">לסרוק שוב</string>
+    <string name="scan_cancel">ביטול</string>
+    <string name="low_space_light">הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום.</string>
+    <string name="low_space_minimal">נשארו פחות מ-100MB. KeepClear לא שומר כלום עד שיתפנה מקום.</string>
+    <plurals name="file_count">
+        <item quantity="one">קובץ אחד</item>
+        <item quantity="two">%s קבצים</item>
+        <item quantity="other">%s קבצים</item>
+    </plurals>
 </resources>

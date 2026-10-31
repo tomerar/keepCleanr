@@ -27,6 +27,12 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
             add("testImplementation", libs.lib("kotest-assertions"))
             add("testRuntimeOnly", libs.lib("junit5-launcher"))
         }
-        tasks.withType<Test>().configureEach { useJUnitPlatform() }
+        tasks.withType<Test>().configureEach {
+            useJUnitPlatform()
+            // File names are UTF-8 on Android; make JVM tests match even on POSIX-locale machines.
+            environment("LC_ALL", "C.UTF-8")
+            systemProperty("file.encoding", "UTF-8")
+            systemProperty("sun.jnu.encoding", "UTF-8")
+        }
     }
 }
