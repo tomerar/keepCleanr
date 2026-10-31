@@ -133,6 +133,7 @@
     <string name="move_cancel">Cancel</string>
     <string name="move_problem_phone">This folder is on the phone itself. Pick a USB drive or an SD card.</string>
     <string name="move_problem_marker">This folder has a .keepclear-target file that KeepClear didn\'t write. Pick another folder.</string>
+    <string name="move_problem_selection_lost">KeepClear was closed while you were choosing the drive, so the selection was lost. Select what to move again.</string>
     <string name="move_problem_unavailable">KeepClear can\'t open this drive. Check that it\'s plugged in and try again.</string>
     <string name="move_running">Copying to %1$s: %2$s of %3$s checked</string>
     <string name="move_pause">Pause</string>

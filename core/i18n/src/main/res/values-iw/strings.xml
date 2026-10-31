@@ -133,6 +133,7 @@
     <string name="move_cancel">ביטול</string>
     <string name="move_problem_phone">התיקייה הזו נמצאת בטלפון עצמו. צריך לבחור כונן USB או כרטיס SD.</string>
     <string name="move_problem_marker">בתיקייה הזו יש קובץ ‎.keepclear-target‎ ש-KeepClear לא כתב. צריך לבחור תיקייה אחרת.</string>
+    <string name="move_problem_selection_lost">‏KeepClear נסגר בזמן בחירת הכונן, ולכן הבחירה אבדה. צריך לבחור שוב מה להעביר.</string>
     <string name="move_problem_unavailable">‏KeepClear לא מצליח לפתוח את הכונן. כדאי לבדוק שהוא מחובר ולנסות שוב.</string>
     <string name="move_running">מעתיקים אל %1$s: נבדקו %2$s מתוך %3$s</string>
     <string name="move_pause">השהיה</string>

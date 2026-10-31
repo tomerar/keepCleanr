@@ -51,12 +51,11 @@ class MainActivity : ComponentActivity() {
                     }
                 val moveVm: MoveViewModel = viewModel()
                 val move by moveVm.state.collectAsStateWithLifecycle()
-                var pendingItems by remember { mutableStateOf<List<ClassifiedItem>>(emptyList()) }
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
                 val treeLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-                        if (uri != null) moveVm.onTreePicked(uri, pendingItems)
+                        if (uri != null) moveVm.onTreePicked(uri)
                     }
                 val notificationLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -113,7 +112,7 @@ class MainActivity : ComponentActivity() {
                         notificationsOff = notificationsOff,
                         moveActions = MoveActions(
                             onPickTarget = { items ->
-                                pendingItems = items
+                                moveVm.pendingItems = items
                                 treeLauncher.launch(null)
                             },
                             onStart = {

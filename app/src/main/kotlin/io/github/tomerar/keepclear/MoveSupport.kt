@@ -115,7 +115,7 @@ class MoveService : Service() {
                 app.moveController.stopper = null
                 app.moveController.setRunning(null)
                 app.moveController.ticks.value++
-                stopForeground(STOP_FOREGROUND_DETACH)
+                stopForeground(STOP_FOREGROUND_REMOVE) // the result notification replaces the progress one
                 stopSelf()
             }
         }

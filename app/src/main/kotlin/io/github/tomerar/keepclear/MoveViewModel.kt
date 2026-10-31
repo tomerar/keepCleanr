@@ -44,7 +44,14 @@ data class PickedTarget(
     val blocked: Boolean get() = issues.any { it.blocking }
 }
 
-enum class TargetProblem { ON_THIS_PHONE, DAMAGED_MARKER, UNAVAILABLE }
+enum class TargetProblem {
+    ON_THIS_PHONE,
+    DAMAGED_MARKER,
+    UNAVAILABLE,
+
+    /** The app was closed while the folder picker was open; the selection is gone and must be made again. */
+    SELECTION_LOST,
+}
 
 data class JobView(val job: MoveJob, val receipt: Receipt, val canReadBack: Boolean) {
     /** MOVE-9: freeing is offered only once every file is settled and at least one copy is verified. */
@@ -89,8 +96,17 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(jobs = jobs) }
     }
 
-    /** MOVE-2: the user picked a folder or drive; check it and run the pre-flight for [items]. */
-    fun onTreePicked(uri: Uri, items: List<ClassifiedItem>) {
+    /** What the user selected before opening the folder picker; survives configuration changes. */
+    var pendingItems: List<ClassifiedItem> = emptyList()
+
+    /** MOVE-2: the user picked a folder or drive; check it and run the pre-flight for [pendingItems]. */
+    fun onTreePicked(uri: Uri) {
+        val items = pendingItems
+        if (items.isEmpty()) {
+            // Process death while the picker was open: never start an empty or guessed job.
+            fail(TargetProblem.SELECTION_LOST)
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(busy = true, picked = null, problem = null) }
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -147,7 +163,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         val picked = _state.value.picked ?: return
         val target = pickedTarget ?: return
         val uri = pickedUri ?: return
-        if (picked.blocked) return
+        if (picked.blocked || picked.files.isEmpty()) return
         viewModelScope.launch {
             val id = UUID.randomUUID().toString()
             val files = picked.files.map { it.copy(jobId = id) }

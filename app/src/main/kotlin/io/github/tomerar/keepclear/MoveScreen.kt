@@ -169,7 +169,14 @@ fun MoveScreen(
             if (state.jobs.size > 1) {
                 item { Text(stringResource(R.string.move_history), style = MaterialTheme.typography.titleMedium) }
                 items(state.jobs.drop(1), key = { it.job.id }) { view ->
-                    ReceiptCard(view, onFree = { confirmFree = view }, onShare = { actions.onShare(view.job.id) })
+                    // Unfinished older jobs keep their Continue button.
+                    JobCard(
+                        view,
+                        running = state.running == view.job.id,
+                        canResume = !busy,
+                        actions = actions,
+                        onFree = { confirmFree = view },
+                    )
                 }
             }
         }
@@ -235,6 +242,7 @@ private fun ProblemCard(problem: TargetProblem) {
                     TargetProblem.ON_THIS_PHONE -> R.string.move_problem_phone
                     TargetProblem.DAMAGED_MARKER -> R.string.move_problem_marker
                     TargetProblem.UNAVAILABLE -> R.string.move_problem_unavailable
+                    TargetProblem.SELECTION_LOST -> R.string.move_problem_selection_lost
                 },
             ),
             modifier = Modifier.padding(12.dp),

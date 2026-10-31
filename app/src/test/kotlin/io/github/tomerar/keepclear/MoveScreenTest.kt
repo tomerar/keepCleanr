@@ -201,4 +201,23 @@ class MoveScreenTest {
         compose.onNodeWithTag("startCopy").assertIsEnabled()
         compose.onNodeWithTag("preflight").assertExists()
     }
+
+    @Test
+    fun `an unfinished older job in history keeps its Continue button`() {
+        val done = JobView(job.copy(id = "j2", createdAt = 2), receipt(), true)
+        val paused = JobView(
+            job.copy(state = JobState.PAUSED, pauseReason = PauseReason.PAUSED_BY_USER),
+            receipt(pending = 2),
+            true,
+        )
+        show(MoveUiState(jobs = listOf(done, paused)))
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("resume"))
+        compose.onNodeWithTag("resume").assertIsEnabled()
+    }
+
+    @Test
+    fun `a lost selection after the picker says so`() {
+        show(MoveUiState(problem = TargetProblem.SELECTION_LOST))
+        compose.onNodeWithTag("targetProblem").assertExists()
+    }
 }

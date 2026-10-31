@@ -164,7 +164,9 @@ class SafBackupTarget(
                     guardWrite(rel) {
                         out.flush()
                         // MOVE-6: the bytes must be on the medium before the copy is read back and trusted.
-                        out.fd.sync()
+                        // Pipe-backed providers (cloud apps) can't fsync; they are copy-only or read back
+                        // with a warning (MOVE-14), so only real files must sync.
+                        if (isRegularFile(out.fd)) out.fd.sync()
                     }
                 } finally {
                     runCatching { out.close() }
@@ -173,6 +175,9 @@ class SafBackupTarget(
             }
         }
     }
+
+    private fun isRegularFile(fd: java.io.FileDescriptor): Boolean =
+        runCatching { android.system.OsConstants.S_ISREG(android.system.Os.fstat(fd).st_mode) }.getOrDefault(true)
 
     private inline fun guardWrite(rel: String, block: () -> Unit) {
         try {
