@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- English source strings. Hebrew lives in values-iw; CI checks key parity (I18N-1). -->
+<resources>
+    <string name="app_name" translatable="false">KeepClear</string>
+    <string name="home_tagline">Keep what matters. Clear the rest.</string>
+    <string name="home_status_early">Early development. KeepClear can\'t look at or delete anything yet.</string>
+    <string name="home_card_safe_title">Clean now</string>
+    <string name="home_card_safe_body">Junk you won\'t miss, cleaned in one tap. Everything waits 30 days in the trash.</string>
+    <string name="home_card_review_title">Review</string>
+    <string name="home_card_review_body">Things that might matter, explained in plain words. You decide.</string>
+    <string name="home_card_move_title">Move to backup</string>
+    <string name="home_card_move_body">Your memories go to your own drive and are checked before anything is deleted.</string>
+    <string name="home_coming_soon">Coming soon</string>
+    <string name="home_privacy">No ads. No tracking. No internet access.</string>
+    <string name="debug_toggle_rtl">Flip layout direction (debug)</string>
+</resources>

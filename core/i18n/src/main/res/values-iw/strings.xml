@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Hebrew. Gender-neutral (plural/infinitive), see docs/TRANSLATING.md. -->
+<resources>
+    <string name="home_tagline">שומרים את מה שחשוב. מפנים את השאר.</string>
+    <string name="home_status_early">בפיתוח ראשוני. KeepClear עדיין לא מסתכל על קבצים ולא מוחק שום דבר.</string>
+    <string name="home_card_safe_title">לנקות עכשיו</string>
+    <string name="home_card_safe_body">קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור.</string>
+    <string name="home_card_review_title">לבדוק</string>
+    <string name="home_card_review_body">דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם.</string>
+    <string name="home_card_move_title">להעביר לגיבוי</string>
+    <string name="home_card_move_body">הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק.</string>
+    <string name="home_coming_soon">בקרוב</string>
+    <string name="home_privacy">בלי פרסומות. בלי מעקב. בלי גישה לאינטרנט.</string>
+    <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
+</resources>
