@@ -14,8 +14,8 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M5 Home + Review browsing | ✅ merged | [#6](https://github.com/tomerar/keepCleanr/pull/6) | 3 Codex findings fixed before merge (whole-run classification, file-name fallback, ASCII month keys). |
 | M6 Trash + restore | ✅ merged | [#7](https://github.com/tomerar/keepCleanr/pull/7) | 3 Codex findings fixed (untrusted entries never auto-purge, fallback restore validated, vanished entries dropped). Also: `readNBytes` (API 33+) replaced by `Streams` + Konsist rule; device trash test moved off our PROTECTED `Android/data` folder. Raises decision B2 (ADR 0010). |
 | M7 SAFE cleanup | ✅ merged | [#8](https://github.com/tomerar/keepCleanr/pull/8) | 3 Codex findings fixed: plans use the scan snapshot (SAFETY-6), MediaStore-only items are skipped instead of crashing, a copy that is itself SAFE never counts as a twin witness. |
-| M8 REVIEW actions | 🔄 PR open | [#9](https://github.com/tomerar/keepCleanr/pull/9) | Multi-select, select-by-month, editable confirm, delete → trash + Undo; nothing pre-selected. |
-| M9 MOVE engine | 🔄 ready locally on M8 | | Fault tests, kill-point test, `sha256sum -c` test green. Fixed in the draft: a reused file on the drive could be deleted after a failed read-back; an unreadable manifest could be replaced and lose entries. |
+| M8 REVIEW actions | ✅ merged | [#9](https://github.com/tomerar/keepCleanr/pull/9) | 2 Codex findings fixed: Undo survives deleting a whole group; confirm rows show thumbnail + folder. |
+| M9 MOVE engine | 🔄 PR open | [#10](https://github.com/tomerar/keepCleanr/pull/10) | Fault tests, kill-point test, `sha256sum -c` test green. Fixed while integrating: a reused file on the drive could be deleted after a failed read-back; an unreadable manifest could be replaced and lose entries; target folders now use ASCII digits on every locale. |
 | M10 SAF target + MOVE UI | ⬜ | | |
 
 ## Device checks waiting for the owner (D)

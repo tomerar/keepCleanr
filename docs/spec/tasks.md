@@ -119,6 +119,8 @@ Status: **implemented**. Notes: groups show nothing pre-selected (SAFETY-10); se
 ## Phase 3: Move memories (the core)
 
 ### M9: MOVE engine (JVM)
+Status: **implemented**. Notes: `backup:target-api` (`BackupTarget`, `GatewayBackupTarget`, FAT32/exFAT name and size rules) and `engine:move` (planner, per-file state machine PENDING → COPYING → COPIED → PLACED → VERIFIED, temp + rename, SHA-256 while copying, read-back verify, `SHA256SUMS` + JSONL manifest merged per device folder, resume). The engine never deletes or renames an original: a Konsist rule allows only `target.delete/rename` in `engine:move`. Files already on the drive are reused only when the hash matches and are never deleted, even if a later read-back fails. An existing manifest that can't be read whole is kept, and the job writes `<name>-<jobId>` instead. The job store is in memory here; the Room store and the originals plan through the executor come in M10. Preflight (space with margin, FAT32 4 GiB limit, renamed names, battery) takes the readings as inputs; M10 reads them from Android.
+
 - `backup:target-api`, `engine:move`: selection spec, preflight (space, FAT32, names, collisions, path length, battery), state machine, temp+rename, SHA-256 during copy, read-back verify, manifest + SHA256SUMS, resume.
 - **DoD / tests:** E-MOVE-1…13, 18…22 against `FakeTarget` with faults (disconnect at random byte, ENOSPC, bit-flip on read-back, case-insensitive FS, FAT32 limit); kill-point property test (no-loss invariant); manifest round-trip + `sha256sum -c` compatibility test (generate, then verify with a reference implementation); hostile manifest/marker tests (SEC-3, E-SEC-5/6); manifest records original paths (MOVE-18).
 
