@@ -35,6 +35,9 @@ object ManifestPolicy {
     val debugOnlyExports = setOf(
         "androidx.compose.ui.tooling.PreviewActivity",
         "androidx.activity.ComponentActivity",
+        // M10 test double (testing:usb-provider, debugImplementation): guarded by MANAGE_DOCUMENTS, which only
+        // the system holds, and inert until an instrumented test enables it.
+        "io.github.tomerar.keepclear.testing.usb.FakeUsbProvider",
     )
 
     fun check(

@@ -37,7 +37,7 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 2, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -53,12 +53,33 @@ class MigrationTest {
                     "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("m12", 2, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m12", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
             }
             db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
+                c.moveToFirst()
+                c.getInt(0) shouldBe 0
+            }
+        }
+    }
+
+    @Test
+    fun `2 to 3 adds the move tables and keeps trash rows`() {
+        helper.createDatabase("m23", 2).use { db ->
+            db.execSQL(
+                "INSERT INTO trash_entry (id, originalPath, trashedPath, volumeRoot, size, mtimeMillis, sha256, " +
+                    "ruleId, reason, deletedAt, expiresAt, deletedAtElapsed, bootId, state, trusted, verifiedCopy) " +
+                    "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
+            )
+        }
+        helper.runMigrationsAndValidate("m23", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
+                c.moveToFirst()
+                c.getInt(0) shouldBe 1
+            }
+            db.query("SELECT COUNT(*) FROM move_file").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 0
             }

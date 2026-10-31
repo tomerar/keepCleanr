@@ -14,6 +14,9 @@ fun AppScreens(
     onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
     onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
     safeActions: SafeActions = SafeActions(),
+    move: MoveUiState = MoveUiState(),
+    moveActions: MoveActions = MoveActions(),
+    notificationsOff: Boolean = false,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -37,6 +40,26 @@ fun AppScreens(
                     onClearExternalCaches = safeActions.onClearExternalCaches,
                     onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
                     onOpenTrash = safeActions.onOpenTrash,
+                    onBack = onBack,
+                )
+
+                screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> MoveScreen(
+                    summary = summary,
+                    state = move,
+                    now = System.currentTimeMillis(),
+                    notificationsOff = notificationsOff,
+                    actions = MoveActions(
+                        onPickTarget = moveActions.onPickTarget,
+                        onStart = moveActions.onStart,
+                        onCancelPick = moveActions.onCancelPick,
+                        onPause = moveActions.onPause,
+                        onStop = moveActions.onStop,
+                        onResume = moveActions.onResume,
+                        onFree = moveActions.onFree,
+                        onShare = moveActions.onShare,
+                        onOpenGooglePhotos = moveActions.onOpenGooglePhotos,
+                        onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
+                    ),
                     onBack = onBack,
                 )
 

@@ -10,6 +10,8 @@ import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
@@ -199,6 +201,37 @@ class MoveEngineTest {
             rig.fake.readAllBytes("$sums-job1").toString(Charsets.UTF_8).lines().first().length shouldBe 64 + 2 +
                 "Camera/2021/01/IMG_20210100_120000.jpg".length
         }
+
+    @Test
+    fun `pausing from outside records the reason and the job resumes to the end (MOVE-12)`(): Unit = runBlocking {
+        val rig = Rig()
+        val id = rig.newJob()
+        var verified = 0
+        val run = launch(kotlinx.coroutines.Dispatchers.Default) {
+            MoveEngine(
+                rig.fake,
+                rig.target,
+                rig.store,
+                clock = { rig.now },
+                onProgress = {
+                    if (it.state == MoveFileState.VERIFIED &&
+                        ++verified == 2
+                    ) {
+                        this.coroutineContext.job.cancel()
+                    }
+                },
+                cancelReason = { PauseReason.SYSTEM_TIME_LIMIT },
+            ).run(id)
+        }
+        run.join()
+        run.isCancelled shouldBe true
+        val paused = rig.store.job(id)!!
+        paused.state shouldBe JobState.PAUSED
+        paused.pauseReason shouldBe PauseReason.SYSTEM_TIME_LIMIT
+        rig.engine().run(id).state shouldBe JobState.DONE
+        rig.verifiedTargets().size shouldBe 6
+        rig.assertCopiesMatchSources()
+    }
 
     @Test
     fun `a target that can't be read back keeps every copy, unverified (MOVE-14)`(): Unit = runBlocking {
