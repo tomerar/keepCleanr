@@ -20,6 +20,7 @@ class ArchitectureTest {
             "core/hash",
             "core/safety",
             "engine/scan",
+            "engine/classify",
         )
 
     private val projectScope = Konsist.scopeFromProject()

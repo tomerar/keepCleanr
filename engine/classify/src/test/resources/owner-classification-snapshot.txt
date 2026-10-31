@@ -1,0 +1,30 @@
+rulesVersion=1
+SAFE files=35 bytes=122771629
+REVIEW files=103 bytes=104613636
+MOVE files=230 bytes=1278496811
+PROTECTED files=9 bytes=1251315000
+rule ai_images files=5 {REVIEW=5}
+rule call_recordings files=4 {REVIEW=4}
+rule camera files=105 {MOVE=105}
+rule legacy_wa files=20 {REVIEW=20}
+rule lost_dir files=1 {SAFE=1}
+rule old_download files=7 {REVIEW=7}
+rule old_phone files=12 {REVIEW=12}
+rule other_app_bin files=8 {SAFE=7, REVIEW=1}
+rule protected files=9 {PROTECTED=9}
+rule screenshots files=23 {REVIEW=23}
+rule telegram_docs files=1 {REVIEW=1}
+rule telegram_legacy files=1 {REVIEW=1}
+rule telegram_saved files=3 {MOVE=3}
+rule temp_files files=1 {SAFE=1}
+rule thumbnails files=3 {SAFE=3}
+rule unknown files=3 {REVIEW=3}
+rule wa_other files=3 {REVIEW=3}
+rule wa_private files=5 {REVIEW=5}
+rule wa_received files=122 {MOVE=122}
+rule wa_sent files=11 {REVIEW=11}
+rule wa_sent_copy files=22 {SAFE=22}
+rule wa_status_fresh files=1 {REVIEW=1}
+rule wa_status_old files=5 {REVIEW=5}
+rule zip_extracted files=1 {SAFE=1}
+rule zip_partial files=1 {REVIEW=1}
