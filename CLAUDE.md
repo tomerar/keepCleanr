@@ -16,7 +16,7 @@ Work only on the current milestone in `tasks.md`. If the spec is wrong or incomp
 
 ## Status
 
-Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). Implementing **Foundations: M0 → M1 → M2**, one PR per milestone; stop after each milestone for the owner's OK.
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11); device checks and open decisions are tracked in `docs/progress.md`. Next: v1 milestones per `tasks.md`, one PR per milestone, after the owner's OK.
 
 ## Identity
 
