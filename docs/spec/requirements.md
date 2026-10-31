@@ -231,6 +231,9 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | PRIV-2 | MVP | THE SYSTEM SHALL NOT declare the INTERNET permission in MVP; when network targets arrive, network code is confined to target modules and contacts only user-entered hosts. | Merged-manifest check; lint rule. |
 | PRIV-3 | MVP | THE SYSTEM SHALL use no fear language, no fake numbers, no "boost/speed/battery/virus" claims; all numbers are measured. | Copy review checklist ([07](../research/07-competitor-ux.md) §4). |
 | PRIV-4 | v1 | THE SYSTEM SHALL offer an optional local debug log export (user-initiated, redacted paths option) for bug reports. | — |
+| PRIV-5 | MVP | THE SYSTEM SHALL have a public privacy policy at `docs/PRIVACY.md` (URL: https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md), linked from Settings › About and every store listing, in English with a Hebrew summary. | Link present in About (UI test). Play Console privacy-policy URL field set. |
+| PRIV-6 | MVP | THE SYSTEM SHALL keep PRIVACY.md in sync with the manifest: every permission in the merged `foss` and `play` manifests SHALL appear in its permissions table. | CI check parses merged manifests and fails if a permission is missing from PRIVACY.md. |
+| PRIV-7 | MVP | Play Data safety form SHALL declare "No data collected, no data shared", consistent with PRIVACY.md. | Release checklist item (ADR 0009). |
 
 ---
 
