@@ -182,6 +182,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind) {
         viewModelScope.launch {
+            // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
+            app.trashManager.forgetMissing(entries)
             val ops = entries.mapNotNull { e ->
                 val stat = app.fileGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
                 PlannedOp(stat.path, e.trashedPath, kind, stat.isDirectory, stat.size, stat.mtimeMillis, stat.identity)

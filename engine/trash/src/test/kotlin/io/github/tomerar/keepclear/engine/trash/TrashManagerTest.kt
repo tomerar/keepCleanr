@@ -183,10 +183,12 @@ class TrashManagerTest {
         fake.addFile(sidecarPath.absolute, Sidecar.encode(evil, signer))
         manager().recover()
         val rebuilt = index.all().single()
-        manager().restoreDestination(rebuilt) shouldBe "$root/Download/KeepClear Restored/msgstore.db.crypt14"
+        // A PROTECTED name is refused even in the fallback folder; the file in our trash gives the name instead.
+        manager().restoreDestination(rebuilt) shouldBe "$root/Download/KeepClear Restored/IMG_1.jpg"
         run(op(rebuilt.trashedPath, OpKind.RESTORE))
         fake.exists("$root/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14") shouldBe false
-        fake.readAllBytes("$root/Download/KeepClear Restored/msgstore.db.crypt14") shouldBe bytes
+        fake.exists("$root/Download/KeepClear Restored/msgstore.db.crypt14") shouldBe false
+        fake.readAllBytes("$root/Download/KeepClear Restored/IMG_1.jpg") shouldBe bytes
     }
 
     @Test
@@ -251,6 +253,54 @@ class TrashManagerTest {
         val restoreOp = op(entry.trashedPath, OpKind.RESTORE)
         fake.delete(KPath.Local(entry.trashedPath))
         shouldThrow<StorageException.NotFound> { trash.perform(restoreOp, fake) }
+        index.all().shouldBeEmpty()
+    }
+
+    @Test
+    fun `an untrusted recovered entry with a forged expiry is never purged automatically (SEC-1)`(): Unit =
+        runBlocking {
+            val entry = trashOne()
+            index.entries.clear()
+            val sidecarPath = KPath.Local(entry.trashedPath).parent!!.parent!!.child("${entry.id}.json")
+            val forged = Sidecar(
+                id = entry.id,
+                originalPath = photo,
+                trashedName = "IMG_1.jpg",
+                size = 5000,
+                mtimeMillis = 10,
+                reason = "TRASH",
+                deletedAt = 0,
+                expiresAt = 0,
+            )
+            fake.delete(sidecarPath)
+            fake.addFile(sidecarPath.absolute, Sidecar.encode(forged, FakeSigner("attacker")))
+            val m = manager()
+            m.recover().untrusted shouldBe 1
+            clock.wall += 400L * 86_400_000L
+            clock.elapsed += 400L * 86_400_000L
+            m.purgeExpired() shouldBe 0
+            fake.exists(entry.trashedPath) shouldBe true
+            index.all().single().trusted shouldBe false
+        }
+
+    @Test
+    fun `an unsafe fallback destination stops the restore (SEC-1)`(): Unit = runBlocking {
+        val entry = trashOne()
+        // Download/ is a symlink elsewhere; the original location is protected, so the fallback is used.
+        fake.addSymlink("$root/Download", "$root/Android/media/com.whatsapp/WhatsApp/Databases")
+        val tampered = entry.copy(originalPath = "$root/Android/media/com.whatsapp/WhatsApp/Databases/x.crypt14")
+        index.put(tampered)
+        val report = run(op(entry.trashedPath, OpKind.RESTORE))
+        report.done.shouldBeEmpty()
+        fake.exists(entry.trashedPath) shouldBe true
+        index.all().single().id shouldBe entry.id
+    }
+
+    @Test
+    fun `forgetMissing drops entries whose file vanished after recovery (TRASH-6)`(): Unit = runBlocking {
+        val entry = trashOne()
+        fake.delete(KPath.Local(entry.trashedPath))
+        trash.forgetMissing(index.all()) shouldBe 1
         index.all().shouldBeEmpty()
     }
 }

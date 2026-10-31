@@ -97,11 +97,19 @@ class TrashManager(
     suspend fun restoreDestination(entry: TrashEntry): String {
         val original = entry.originalPath
         val ok = entry.trusted && validator.check(original, entry.volumeRoot, gateway) == null
-        return if (ok) original else fallbackDestination(entry)
+        if (ok) return original
+        val candidates = fallbackCandidates(entry)
+        return candidates.firstOrNull { validator.check(it, entry.volumeRoot, gateway) == null } ?: candidates.first()
     }
 
-    private fun fallbackDestination(entry: TrashEntry): String =
-        "${entry.volumeRoot}/Download/KeepClear Restored/${safeName(entry.originalPath.substringAfterLast('/'))}"
+    /**
+     * `Download/KeepClear Restored/<name>`, named after the original, or else after the file in our trash (an
+     * untrusted sidecar may name a PROTECTED file such as `msgstore.db.crypt14`).
+     */
+    private fun fallbackCandidates(entry: TrashEntry): List<String> =
+        listOf(entry.originalPath.substringAfterLast('/'), entry.trashedPath.substringAfterLast('/'))
+            .map { "${entry.volumeRoot}/Download/KeepClear Restored/${safeName(it)}" }
+            .distinct()
 
     private suspend fun restore(entry: TrashEntry) {
         val trashed = KPath.Local(entry.trashedPath)
@@ -110,9 +118,10 @@ class TrashManager(
             forget(entry) // TRASH-6: the trashed file is gone; drop the entry, report missing
             throw StorageException.NotFound(trashed)
         }
-        var destination = KPath.Local(restoreDestination(entry))
+        val destination = KPath.Local(restoreDestination(entry))
+        // SEC-1: whatever was chosen, original or fallback, must pass validation (e.g. no symlinked Download/).
         if (validator.check(destination.absolute, entry.volumeRoot, gateway) != null) {
-            destination = KPath.Local(fallbackDestination(entry))
+            throw StorageException.Unsupported(destination, "unsafe restore destination")
         }
         val parent = mkdirs(destination.parent!!, entry.volumeRoot)
         val name = freeName(parent, destination.name)
@@ -131,6 +140,22 @@ class TrashManager(
     }
 
     /**
+     * TRASH-6: drops entries whose trashed file has gone (deleted by another app or the user), on volumes that
+     * are present. Returns how many were dropped, so the UI can say so instead of silently doing nothing.
+     */
+    suspend fun forgetMissing(entries: List<TrashEntry>): Int {
+        var dropped = 0
+        for (entry in entries) {
+            if (volumeMissing(entry.volumeRoot)) continue
+            if (gateway.stat(KPath.Local(entry.trashedPath)) == null) {
+                forget(entry)
+                dropped++
+            }
+        }
+        return dropped
+    }
+
+    /**
      * TRASH-2: permanently deletes ACTIVE entries past their expiry. Pre-consented by the original
      * confirmation ("waits 30 days"); never touches entries trashed less than 24 h ago in this boot,
      * so a clock jump can't empty the trash early (E-DEL-10). Volumes that are missing are skipped
@@ -141,6 +166,9 @@ class TrashManager(
         var bytes = 0L
         for (entry in index.all()) {
             if (entry.state != TrashState.ACTIVE || now < entry.expiresAt) continue
+            // SEC-1: an untrusted (unauthenticated) recovered entry's expiry is attacker-controlled. Such entries
+            // are never purged automatically; only the user's explicit "Empty now" removes them.
+            if (!entry.trusted) continue
             val sameBoot = entry.bootId == clock.bootId()
             if (sameBoot &&
                 clock.elapsedMillis() - entry.deletedAtElapsed < TrashPolicy.MIN_ELAPSED_BEFORE_PURGE
