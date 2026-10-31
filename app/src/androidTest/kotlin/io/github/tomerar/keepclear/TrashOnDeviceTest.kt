@@ -21,14 +21,15 @@ import java.io.File
 
 /**
  * M6 on a real device file system and the real Android Keystore: trash, recover from the signed
- * sidecar after losing the index, then restore byte-exact. Uses the app's own external files dir.
+ * sidecar after losing the index, then restore byte-exact. Uses the app's internal files dir as the volume.
  */
 @RunWith(AndroidJUnit4::class)
 class TrashOnDeviceTest {
     @Test
     fun trashRecoverRestore(): Unit = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val volume = File(context.getExternalFilesDir(null), "trash-test-${System.nanoTime()}").apply {
+        // Not getExternalFilesDir(): Android/data/<our package> is PROTECTED (SAFETY-3), so restore there is refused.
+        val volume = File(context.filesDir, "trash-test-${System.nanoTime()}").apply {
             mkdirs()
         }.canonicalPath
         val photo = File(volume, "DCIM/תמונה.jpg").apply {

@@ -8,6 +8,7 @@ import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
+import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import kotlinx.coroutines.flow.toList
 import java.time.Instant
 import java.time.ZoneOffset
@@ -232,7 +233,7 @@ class TrashManager(
                 for (file in gateway.list(dayDir.path).toList().filter { it.isFile && it.name.endsWith(".json") }) {
                     val id = file.name.removeSuffix(".json")
                     if (!isUuid(id) || index.get(id) != null) continue
-                    val bytes = gateway.openRead(file.path).use { it.readNBytes(Sidecar.MAX_BYTES + 1) }
+                    val bytes = gateway.openRead(file.path).use { it.readUpTo(Sidecar.MAX_BYTES + 1) }
                     val decoded = Sidecar.decode(bytes, signer) as? Sidecar.Companion.Decoded.Ok ?: continue
                     val s = decoded.sidecar
                     if (s.id != id || !KPath.isValidName(s.trashedName)) continue
