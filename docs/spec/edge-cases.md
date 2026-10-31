@@ -105,3 +105,20 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-UX-2 | Trash would hold most of the freed space | Completion screen shows "Moved to trash: 14 GB. Space returns on 30 Nov or tap Empty now." |
 | E-UX-3 | User taps "Empty now" on a MOVE item without a verified copy | Second confirmation is stronger: type-free but explicit "This is the only copy." |
 | E-UX-4 | User picks Google Drive as target | Explain no read-back; copy allowed, delete disabled. |
+
+---
+
+## 7. Security (E-SEC) — see [threat-model.md](threat-model.md)
+
+| ID | Trigger | Behaviour | Test |
+|---|---|---|---|
+| E-SEC-1 | Sidecar `originalPath` uses `../`, an absolute path elsewhere, or points into WhatsApp `Databases/` | `RestorePathValidator` rejects; entry shown as "can't restore to that location" with option to restore into `Download/KeepClear Restored/`. Nothing is written outside allowed roots. | U (fuzz) |
+| E-SEC-2 | Sidecar MAC missing/invalid (reinstall, edited by another app) | Entry becomes *untrusted-recovered*; restore needs explicit confirmation showing the destination. | U |
+| E-SEC-3 | Sidecar oversized (> 64 KiB), malformed, unknown version | Ignored with a log line; the trashed file is listed as "unknown item" for manual review. | U |
+| E-SEC-4 | Archive with `../` / absolute / backslash / NUL entry names, or > 100k entries | Never SAFE (→ REVIEW "unusual archive"); nothing extracted. | U (crafted zips) |
+| E-SEC-5 | Manifest on drive with paths escaping `KeepClear/` or invalid hashes | Lines rejected; restore offers only valid entries; MOVE deletion unaffected (uses Room). | U |
+| E-SEC-6 | Marker file copied to a different drive | Resume refused (tree/volume identity differs). | U |
+| E-SEC-7 | File swapped for a symlink or a different file between plan and action | Skipped (identity changed); symlinks moved as links, never followed. | U (fake gateway) |
+| E-SEC-8 | Another app sends an intent to our service/receiver | Not exported → `SecurityException` in the sender; no action. | Robolectric |
+| E-SEC-9 | PROTECTED path written as `whatsapp/DATABASES`, NFD, with zero-width chars, or under `/storage/emulated/999/` | Still PROTECTED. | U (table) |
+| E-SEC-10 | Overlay app covers the confirm sheet | Touches ignored; hint "Something is covering the screen". | UI |

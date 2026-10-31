@@ -39,7 +39,7 @@ These are non-negotiable. Each has a dedicated automated test.
 |---|---|
 | SAFETY-1 | THE SYSTEM SHALL NOT delete, move or overwrite any user file without an explicit user confirmation for that action in the current session. Scheduled or background deletion of user files is not allowed. |
 | SAFETY-2 | THE SYSTEM SHALL route every user-file deletion through the Trash (ADR 0006). The only permanent deletions are: Trash purge after retention, "Empty now" with a second confirmation, and system-managed cache clearing (SAFETY-7). |
-| SAFETY-3 | THE SYSTEM SHALL enforce a PROTECTED denylist at the single delete/move choke point (not only at scan time). Minimum list: `**/WhatsApp/Databases/**`, `**/WhatsApp/Backups/**`, `*.crypt*`, `msgstore*`, `wa.db*`, `**/.KeepClearTrash/**` (except by the trash module), the active backup target, `Android/data/<own package>`, and any path in user exclusions. IF a delete request targets a PROTECTED path, THEN THE SYSTEM SHALL refuse it, log it, and surface an internal error (a bug, never a user-facing choice). |
+| SAFETY-3 | THE SYSTEM SHALL enforce a PROTECTED denylist at the single delete/move choke point (not only at scan time). Minimum list: `**/WhatsApp/Databases/**`, `**/WhatsApp/Backups/**`, `*.crypt*`, `msgstore*`, `wa.db*`, `**/.KeepClearTrash/**` (except by the trash module), the active backup target, `Android/data/<own package>`, and any path in user exclusions. Matching is canonical and case-insensitive on every volume and user root (SEC-6); messenger-specific PROTECTED paths are listed in §4a. IF a delete request targets a PROTECTED path, THEN THE SYSTEM SHALL refuse it, log it, and surface an internal error (a bug, never a user-facing choice). |
 | SAFETY-4 | THE SYSTEM SHALL show, before every destructive confirmation, the exact file count and exact byte total of what will be affected, and where it will go (Trash / permanently). |
 | SAFETY-5 | THE SYSTEM SHALL NOT delete an original as part of MOVE unless that exact file has a Verified copy (L3) on the target, and its size and modification time are unchanged since it was hashed. |
 | SAFETY-6 | IF any item's state changed between scan and action (size, mtime, existence, ownership), THEN THE SYSTEM SHALL skip that item, report it as "changed, skipped", and never act on stale data. |
@@ -195,6 +195,24 @@ These are non-negotiable. Each has a dedicated automated test.
 | PRIV-2 | MVP | THE SYSTEM SHALL NOT declare the INTERNET permission in MVP; when network targets arrive, network code is confined to target modules and contacts only user-entered hosts. | Merged-manifest check; lint rule. |
 | PRIV-3 | MVP | THE SYSTEM SHALL use no fear language, no fake numbers, no "boost/speed/battery/virus" claims; all numbers are measured. | Copy review checklist ([07](../research/07-competitor-ux.md) §4). |
 | PRIV-4 | v1 | THE SYSTEM SHALL offer an optional local debug log export (user-initiated, redacted paths option) for bug reports. | — |
+
+---
+
+## 10a. Security (SEC)
+
+Threats and rationale: [threat-model.md](threat-model.md).
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---|---|---|
+| SEC-1 | MVP | THE SYSTEM SHALL treat trash sidecar JSON as untrusted: Room is the source of truth; sidecars are read only by `recover()`, carry an HMAC (Keystore key), and every restore destination (trusted or not) passes `RestorePathValidator` (no `..`/separators/NUL in names, canonical destination inside the same volume, outside `.KeepClearTrash`, not PROTECTED, no symlinked ancestors, never overwrite). IF a sidecar's MAC is missing or invalid, THEN THE SYSTEM SHALL mark the entry *untrusted-recovered* and restore it only after explicit confirmation, by default into `Download/KeepClear Restored/`. | E-SEC-1…3 fuzz tests. |
+| SEC-2 | MVP | THE SYSTEM SHALL never extract archives; archive inspection reads only the central directory, rejects entries that are absolute or contain `..`/NUL/drive letters, requires name + size + CRC-32 match for SAFE, and caps entries (100k) and directory size (4 MiB). | E-SEC-4. |
+| SEC-3 | MVP | THE SYSTEM SHALL never base a deletion on a backup manifest; manifests and target markers are parsed strictly and every path is validated as relative and inside `KeepClear/`. | E-SEC-5, E-SEC-6. |
+| SEC-4 | MVP | THE SYSTEM SHALL move/trash paths with no-follow semantics, refuse actions on symlinked directories, and re-check size, mtime and inode/generation immediately before each action. WHERE strict mode is on, THE SYSTEM SHALL re-hash a MOVE original before trashing it. | E-SEC-7. |
+| SEC-5 | MVP | THE SYSTEM SHALL export no component except the launcher activity, use explicit immutable PendingIntents, and never perform a destructive action from intent extras. Debug-only flags (dry-run) SHALL NOT exist in release builds. | E-SEC-8; merged-manifest CI check. |
+| SEC-6 | MVP | THE SYSTEM SHALL match PROTECTED paths and exclusions on the canonical path, case-insensitively, after NFC normalisation and removal of zero-width/bidi control characters, on every volume and user root (`/storage/emulated/<n>/`, SD cards). | E-SEC-9 table test. |
+| SEC-7 | MVP | THE SYSTEM SHALL ignore touches on destructive confirm buttons while the window is obscured by an overlay, and enable those buttons only 500 ms after the sheet appears. | E-SEC-10 UI test. |
+| SEC-8 | MVP | THE SYSTEM SHALL build with Gradle dependency verification, pinned versions and SHA-pinned CI actions. | CI fails on an unverified artifact. |
+| SEC-9 | v1 | WHERE Shizuku/root helpers are used, THE SYSTEM SHALL accept binder calls only from its own UID and expose only narrow operations (no generic shell from UI input). | Unit test on the service. |
 
 ---
 
