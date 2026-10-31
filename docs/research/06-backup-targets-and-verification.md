@@ -115,6 +115,7 @@ None needed: framework SAF + `DocumentFile` (AndroidX, Apache-2.0). `DocumentFil
 ### 3.4 Syncthing interplay
 - Official syncthing-android was discontinued (last release Dec 2024); fork moved from Catfriend1 to researchxxl with a contested handover (https://forum.syncthing.net/t/discontinuing-syncthing-android/23002?page=2, https://forum.syncthing.net/t/does-anyone-know-why-syncthing-fork-is-no-longer-available-on-github/25661?page=2).
 - Syncthing exposes `GET /rest/db/completion?folder=&device=` → `completion`, `needBytes`, `needItems` for a remote device (https://docs.syncthing.net/rest/db-completion-get.html). Theoretically KeepClear could treat "remote device 100% complete for DCIM folder" as backup proof. But: needs the Syncthing API key (user copy/paste), localhost HTTP (INTERNET permission), and **Syncthing is sync, not backup: deleting on phone propagates the delete to the PC** unless the folder is "Send Only" on phone + "Receive Only"/versioning on PC. Moving = deleting = data loss risk.
+- **Correction (from [03-other-oss](03-other-oss.md)):** a PC folder set to "Receive Only" still applies deletes coming from the phone. Only File Versioning (e.g. trash-can versioning) or the `ignoreDelete` advanced option protects the PC copy. The completion API also reports no content hash, so it cannot give L3 verification.
 - Verdict: **Avoid as a MOVE target.** Optional later: detect Syncthing and warn ("this folder is synced; deleting here deletes there").
 
 ---
