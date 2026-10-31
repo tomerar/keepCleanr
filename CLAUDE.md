@@ -65,7 +65,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - JDK 21, Android SDK with platform `android-37.0`. `./gradlew ciCheck` runs what CI runs (except emulator tests).
 - `./gradlew -p build-logic test` tests the policy checkers.
 - Screenshots: `./gradlew :app:recordRoborazziFossDebug` to re-record after an intended UI change; CI verifies them.
-- New dependency: add it to `gradle/libs.versions.toml`, then refresh `gradle/verification-metadata.xml` with `./gradlew --write-verification-metadata sha256 ciCheck` and review the diff. Runtime deps must pass the allowlist (PRIV-1).
+- New dependency: add it to `gradle/libs.versions.toml`, then refresh `gradle/verification-metadata.xml` with `./gradlew --write-verification-metadata sha256 ciCheck`, then run `scripts/verification-extras.py` (re-adds macOS/Windows aapt2 checksums) and review the diff. Runtime deps must pass the allowlist (PRIV-1).
 
 ## Git
 

@@ -25,7 +25,7 @@ class BidiTest {
     }
 
     @Test
-    fun `isolate always has exactly one opening and one closing mark`() = runBlocking {
+    fun `isolate always has exactly one opening and one closing mark`(): Unit = runBlocking {
         checkAll(Arb.string(0..40)) { s ->
             val out = Bidi.isolate(s)
             out.count { it == Bidi.FSI } shouldBe 1

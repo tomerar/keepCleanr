@@ -38,4 +38,11 @@ class ArchitectureTest {
             .filterNot { it.path.contains("/build-logic/") || it.path.contains("/testing/architecture/") }
             .assertFalse { file -> file.imports.any { imp -> forbidden.any { imp.name.startsWith(it) } } }
     }
+
+    @Test
+    fun `test functions return Unit, otherwise JUnit 5 silently skips them`() {
+        projectScope.functions()
+            .filter { fn -> fn.annotations.any { it.name == "Test" } }
+            .assertTrue { fn -> fn.hasBlockBody || fn.returnType?.name == "Unit" }
+    }
 }
