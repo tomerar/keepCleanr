@@ -47,4 +47,28 @@
         <item quantity="two">%s קבצים</item>
         <item quantity="other">%s קבצים</item>
     </plurals>
+    <string name="home_total_safe_body">קבצים מיותרים שלא יחסרו לכם. הכול מחכה 30 יום בסל המחזור.</string>
+    <string name="home_total_review_body">צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. ההחלטה שלכם.</string>
+    <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
+    <string name="total_value">%1$s · %2$s</string>
+    <string name="action_look">לעיון</string>
+    <string name="areas_title">איפה המקום שלכם</string>
+    <string name="area_camera">מצלמה</string>
+    <string name="area_whatsapp">וואטסאפ</string>
+    <string name="area_junk">קבצים מיותרים</string>
+    <string name="area_other">אחר</string>
+    <string name="label_why">למה זה כאן?</string>
+    <string name="label_if_deleted">מה יקרה אם זה יימחק?</string>
+    <string name="delete_coming_soon">מחיקה תגיע בגרסה הבאה</string>
+    <string name="move_coming_soon">גיבוי יגיע בגרסה מאוחרת יותר</string>
+    <string name="back">חזרה</string>
+    <string name="preview_modified">שונה ב-%1$s</string>
+    <string name="keep_signal_note">מועדף או שהשתנה לאחרונה, ולכן צריך את ההחלטה שלכם.</string>
+    <string name="bucket_other">אחר</string>
+    <string name="risk_REGENERATES">נבנה מחדש לבד</string>
+    <string name="risk_COPY_EXISTS">יש עותק</string>
+    <string name="risk_ALREADY_DELETED">כבר נמחק</string>
+    <string name="risk_MIGHT_BE_MEMORY">אולי זיכרון</string>
+    <string name="risk_YOUR_CHATS">הצ\'אטים שלכם</string>
+    <string name="risk_UNKNOWN">כדאי להציץ</string>
 </resources>

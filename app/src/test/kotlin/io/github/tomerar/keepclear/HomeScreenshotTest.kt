@@ -48,6 +48,38 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
         }
     }
 
+    @Test
+    fun reviewScreens() {
+        RuntimeEnvironment.setQualifiers("+$locale-${if (night) "night" else "notnight"}")
+        val classifier = io.github.tomerar.keepclear.engine.classify.Classifier()
+        val root = "/storage/emulated/0"
+        val items = listOf(
+            "Pictures/Screenshots/Screenshot_2023-03-01.png" to 1_677_700_000_000L,
+            "Pictures/Screenshots/צילום מסך 2023.png" to 1_677_800_000_000L,
+            "Pictures/Screenshots/Screenshot_2023-11-02 (עותק).png" to 1_698_900_000_000L,
+            "Documents/תמונה של אמא 🎂.jpg" to 1_600_000_000_000L,
+            "DCIM/Camera/IMG_20190101_120000.jpg" to 1_546_344_000_000L,
+        ).map { (rel, t) ->
+            classifier.classify(
+                io.github.tomerar.keepclear.engine.scan.ScanItem(
+                    io.github.tomerar.keepclear.core.storage.KPath.Local("$root/$rel"), "$root/$rel", 1_234_567, t,
+                ),
+                now = 1_800_000_000_000L,
+            )
+        }
+        val summary = io.github.tomerar.keepclear.engine.classify.ClassificationSummary.of(items)
+        val suffix = "${locale}_${if (night) "dark" else "light"}_api${Build.VERSION.SDK_INT}"
+        val options = RoborazziOptions(compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.005f))
+        captureRoboImage("src/test/screenshots/review_list_$suffix.png", roborazziOptions = options) {
+            KeepClearTheme(darkTheme = night) { CategoryListScreen(summary, io.github.tomerar.keepclear.core.model.Category.REVIEW, {}, {}) }
+        }
+        captureRoboImage("src/test/screenshots/review_group_$suffix.png", roborazziOptions = options) {
+            KeepClearTheme(darkTheme = night) {
+                GroupScreen(summary.group("screenshots", io.github.tomerar.keepclear.core.model.Category.REVIEW)!!, {}, {})
+            }
+        }
+    }
+
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}-night={1}")

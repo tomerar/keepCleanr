@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
+import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.scan.SpaceMode
 import java.text.NumberFormat
@@ -43,6 +45,7 @@ import java.text.NumberFormat
 enum class Explainer { MEDIA, ALL_FILES }
 
 class HomeActions(
+    val onOpenCategory: (io.github.tomerar.keepclear.core.model.Category) -> Unit = {},
     val onRequestMedia: () -> Unit = {},
     val onRequestAllFiles: () -> Unit = {},
     val onScanAgain: () -> Unit = {},
@@ -144,9 +147,17 @@ fun HomeScreen(
                     }
                 }
 
-                CategoryCard(R.string.home_card_safe_title, R.string.home_card_safe_body)
-                CategoryCard(R.string.home_card_review_title, R.string.home_card_review_body)
-                CategoryCard(R.string.home_card_move_title, R.string.home_card_move_body)
+                val summary = state.summary
+                if (summary == null) {
+                    CategoryCard(R.string.home_card_safe_title, R.string.home_card_safe_body)
+                    CategoryCard(R.string.home_card_review_title, R.string.home_card_review_body)
+                    CategoryCard(R.string.home_card_move_title, R.string.home_card_move_body)
+                } else {
+                    TotalCard(Category.SAFE, summary, R.string.home_total_safe_body, actions.onOpenCategory)
+                    TotalCard(Category.REVIEW, summary, R.string.home_total_review_body, actions.onOpenCategory)
+                    TotalCard(Category.MOVE, summary, R.string.home_total_move_body, actions.onOpenCategory)
+                    Areas(summary)
+                }
                 Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
                 if (showDebugTools) {
                     TextButton(onClick = { forceFlip = !forceFlip }) { Text(stringResource(R.string.debug_toggle_rtl)) }
@@ -265,6 +276,38 @@ private fun Banner(text: String, action: String? = null, onAction: () -> Unit = 
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text, style = MaterialTheme.typography.bodyMedium)
             if (action != null) TextButton(onClick = onAction) { Text(action) }
+        }
+    }
+}
+
+/** SCAN-2: the three action totals, each opening its read-only list. Never counts PROTECTED. */
+@Composable
+private fun TotalCard(category: Category, summary: ClassificationSummary, body: Int, onOpen: (Category) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().testTag("total_$category")) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(categoryTitle(category), style = MaterialTheme.typography.titleMedium)
+            Text(totalText(summary.total(category)), style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = { onOpen(category) }, modifier = Modifier.testTag("open_$category")) {
+                Text(stringResource(R.string.action_look))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Areas(summary: ClassificationSummary) {
+    val locale = LocalConfiguration.current.locales[0]
+    val labels = mapOf(
+        ClassificationSummary.Area.CAMERA to R.string.area_camera,
+        ClassificationSummary.Area.WHATSAPP to R.string.area_whatsapp,
+        ClassificationSummary.Area.JUNK to R.string.area_junk,
+        ClassificationSummary.Area.OTHER to R.string.area_other,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.testTag("areas")) {
+        Text(stringResource(R.string.areas_title), style = MaterialTheme.typography.titleSmall)
+        summary.areas().forEach { (area, bytes) ->
+            Text("${stringResource(labels.getValue(area))}: ${ByteSize.format(bytes, locale)}", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

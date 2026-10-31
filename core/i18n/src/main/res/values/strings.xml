@@ -47,4 +47,28 @@
         <item quantity="one">%s file</item>
         <item quantity="other">%s files</item>
     </plurals>
+    <string name="home_total_safe_body">Junk you won\'t miss. Everything waits 30 days in the trash.</string>
+    <string name="home_total_review_body">Screenshots, big videos, old-phone folders. You decide.</string>
+    <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
+    <string name="total_value">%1$s · %2$s</string>
+    <string name="action_look">Look</string>
+    <string name="areas_title">Where your space is</string>
+    <string name="area_camera">Camera</string>
+    <string name="area_whatsapp">WhatsApp</string>
+    <string name="area_junk">Junk</string>
+    <string name="area_other">Other</string>
+    <string name="label_why">Why is this here?</string>
+    <string name="label_if_deleted">What happens if it\'s deleted?</string>
+    <string name="delete_coming_soon">Deleting arrives in the next version</string>
+    <string name="move_coming_soon">Backing up arrives in a later version</string>
+    <string name="back">Back</string>
+    <string name="preview_modified">Changed %1$s</string>
+    <string name="keep_signal_note">A favourite or recently changed, so it needs your review.</string>
+    <string name="bucket_other">Other</string>
+    <string name="risk_REGENERATES">Rebuilt automatically</string>
+    <string name="risk_COPY_EXISTS">Copy exists</string>
+    <string name="risk_ALREADY_DELETED">Already deleted</string>
+    <string name="risk_MIGHT_BE_MEMORY">Might be a memory</string>
+    <string name="risk_YOUR_CHATS">Your chats</string>
+    <string name="risk_UNKNOWN">Look first</string>
 </resources>
