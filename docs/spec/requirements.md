@@ -275,6 +275,7 @@ Threats and rationale: [threat-model.md](threat-model.md).
 | NFR-4 | MVP | Every destructive code path has unit tests with a fake file system and an instrumented test on a real device/emulator. |
 | NFR-5 | MVP | Crash-free: no data loss on process death at any point (property tests with random kill points in copy/trash/restore). |
 | NFR-6 | v1 | Reproducible `foss` build; F-Droid-ready metadata. |
+| NFR-7 | MVP | Releases follow [ADR 0009](../adr/0009-signing-and-release.md): one app signing key with documented custody, SemVer + monotonic versionCode, CHANGELOG + fastlane changelogs (en, he), published APK SHA-256 and certificate fingerprint. |
 
 ---
 
@@ -299,3 +300,5 @@ WHEN KeepClear MVP runs on the owner's OnePlus 10T (data of 28.10.2026), THE SYS
 | Q5 | Default MOVE age: older than 12 months? | 12 months, favourites excluded. |
 | Q6 | App name/package: `KeepClear` with package `app.keepclear`? (repo is named `keepCleanr`.) | Ask before M0. |
 | Q7 | WhatsApp `Sent/` copies without an on-device original: REVIEW (default) or SAFE ("WhatsApp already delivered it")? | REVIEW. |
+| Q8 | Package names: `app.keepclear` (foss) and `app.keepclear.play` (play), or one ID for both? Both signed with the same key you hold (ADR 0009). | Separate IDs. |
+| Q9 | Who holds the signing key backups (password manager + offline USB at home)? | You, two copies. |

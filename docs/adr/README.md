@@ -14,3 +14,4 @@ All ADRs are **Proposed** until the owner approves the spec phase.
 | [0006](0006-own-trash.md) | Own 30-day trash; never permanent-delete user files directly | Proposed |
 | [0007](0007-verify-by-hash.md) | MOVE deletes only after per-file SHA-256 verification | Proposed |
 | [0008](0008-no-accessibility-no-network.md) | No AccessibilityService, no INTERNET in v1 | Proposed |
+| [0009](0009-signing-and-release.md) | Signing keys, Play App Signing, versioning, changelog, release checklist | Proposed |
