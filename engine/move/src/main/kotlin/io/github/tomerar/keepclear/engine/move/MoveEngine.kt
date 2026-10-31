@@ -35,7 +35,8 @@ class MoveEngine(
         val now = clock()
         val (recent, normal) = store.files(jobId).filter {
             it.state != MoveFileState.VERIFIED &&
-                it.state != MoveFileState.FAILED
+                it.state != MoveFileState.FAILED &&
+                it.state != MoveFileState.COPIED_UNVERIFIED
         }
             .partition { now - it.sourceMtime in 0 until recentMillis }
         try {
@@ -47,7 +48,9 @@ class MoveEngine(
         } catch (e: Pause) {
             return job.copy(state = JobState.PAUSED, pauseReason = e.reason).also { store.putJob(it) }
         }
-        val unfinished = store.files(jobId).any { it.state !in setOf(MoveFileState.VERIFIED, MoveFileState.FAILED) }
+        val unfinished = store.files(jobId).any {
+            it.state !in setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED)
+        }
         return job.copy(state = if (unfinished) JobState.READY else JobState.DONE).also { store.putJob(it) }
     }
 
@@ -65,7 +68,7 @@ class MoveEngine(
                 MoveFileState.PENDING, MoveFileState.COPYING, MoveFileState.SRC_CHANGED -> copy(file)
                 MoveFileState.COPIED -> place(file)
                 MoveFileState.PLACED -> verify(file)
-                MoveFileState.VERIFIED, MoveFileState.FAILED -> return
+                MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED -> return
             }
             if (file.state == MoveFileState.SRC_CHANGED && file.attempts >= maxAttempts) return
         }
@@ -113,13 +116,23 @@ class MoveEngine(
     private suspend fun place(start: MoveFile): MoveFile {
         var file = start
         val existing = guarded { target.stat(file.relTarget) }
+        if (guarded { target.stat(file.tempRel) } == null) {
+            // Killed between the rename and the PLACED checkpoint: the copy is already at relTarget (the chosen
+            // name is checkpointed before renaming). Verify it, but never delete it, in case it isn't ours.
+            return if (existing != null && existing.size == file.sourceSize) {
+                put(file.copy(state = MoveFileState.PLACED, reusedExisting = true))
+            } else {
+                put(file.copy(state = MoveFileState.PENDING))
+            }
+        }
         if (existing != null) {
             // E-MOVE-9/10: identical content already there → reuse; otherwise never overwrite, pick a free name.
             if (existing.size == file.sourceSize && readBackHash(file.relTarget) == file.sourceSha256) {
                 runCatching { target.delete(file.tempRel) }
                 return put(file.copy(state = MoveFileState.PLACED, reusedExisting = true))
             }
-            file = file.copy(relTarget = freeName(file.relTarget), nameChanged = true)
+            // Checkpoint the new name before renaming, so a crash right after the rename can be resumed.
+            file = put(file.copy(relTarget = freeName(file.relTarget), nameChanged = true))
         }
         guarded { target.rename(file.tempRel, file.relTarget) }
         return put(file.copy(state = MoveFileState.PLACED))
@@ -127,6 +140,14 @@ class MoveEngine(
 
     private suspend fun verify(file: MoveFile): MoveFile {
         val stat = guarded { target.stat(file.relTarget) }
+        if (!target.caps.canReadBack) {
+            // MOVE-14: the copy stays, but it can't be checked, so it never counts as verified.
+            return if (stat != null && stat.size == file.sourceSize) {
+                put(file.copy(state = MoveFileState.COPIED_UNVERIFIED))
+            } else {
+                put(file.copy(state = MoveFileState.PENDING, attempts = file.attempts + 1))
+            }
+        }
         val hash = if (stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
         if (hash != null && hash == file.sourceSha256) {
             return put(file.copy(state = MoveFileState.VERIFIED, verifiedAt = clock(), failReason = null))
@@ -169,8 +190,13 @@ class MoveEngine(
         val dir = rel.substringBeforeLast('/')
         val name = rel.substringAfterLast('/')
         var n = 2
+        val maxChars = target.caps.maxPathChars?.let { it - dir.length - 1 } ?: Int.MAX_VALUE
         while (true) {
-            val candidate = "$dir/${io.github.tomerar.keepclear.backup.TargetNames.withSuffix(name, n++)}"
+            val candidate = "$dir/${io.github.tomerar.keepclear.backup.TargetNames.withSuffix(
+                name,
+                n++,
+                maxChars = maxChars,
+            )}"
             if (guarded { target.stat(candidate) } == null) return candidate
         }
     }
@@ -200,7 +226,10 @@ class MoveEngine(
 
     /** MOVE-8: manifest + `sha256sum -c` file, written after the files verify, via temp + rename. */
     private suspend fun writeManifest(job: MoveJob) {
-        val verified = store.files(job.id).filter { it.state == MoveFileState.VERIFIED }
+        // Unverified copies are listed too: the hash is what was sent, so `sha256sum -c` can check them later.
+        val verified = store.files(job.id).filter {
+            it.state == MoveFileState.VERIFIED || it.state == MoveFileState.COPIED_UNVERIFIED
+        }
         if (verified.isEmpty()) return
         writeMerged(job, Manifest.SUMS) { existing -> Manifest.mergeSums(existing, verified, job.rootRel) }
         writeMerged(job, Manifest.JSONL) { existing -> Manifest.mergeJsonl(existing, verified, job.rootRel) }
@@ -229,14 +258,17 @@ class MoveEngine(
         data object Unusable : Existing
     }
 
+    /** Reads [rel], or the previous version kept by an interrupted [replace]. */
     private suspend fun readWhole(rel: String): Existing = try {
-        val stat = target.stat(rel)
+        val current = target.stat(rel)
+        val name = if (current == null && target.stat(old(rel)) != null) old(rel) else rel
+        val stat = if (name == rel) current else target.stat(name)
         when {
             stat == null -> Existing.None
 
             stat.size > Manifest.MAX_BYTES -> Existing.Unusable
 
-            else -> target.openRead(rel).use { input ->
+            else -> target.openRead(name).use { input ->
                 val bytes = input.readUpTo(Manifest.MAX_BYTES + 1)
                 if (bytes.size > Manifest.MAX_BYTES) {
                     Existing.Unusable
@@ -250,37 +282,30 @@ class MoveEngine(
         Existing.Unusable
     }
 
+    private fun old(rel: String) = "$rel.kc-old"
+
+    /**
+     * Crash-safe replace: write the temp file, move the current version aside, install the temp file, then drop
+     * the old one. At every point either [rel] or `<rel>.kc-old` holds a complete manifest ([readWhole] reads it).
+     */
     private suspend fun replace(rel: String, text: String) {
         val temp = "$rel.kc-tmp"
         guarded {
             if (target.stat(temp) != null) target.delete(temp)
             target.create(temp).use { it.write(text.toByteArray(Charsets.UTF_8)) }
-            if (target.stat(rel) != null) target.delete(rel)
+            if (target.stat(rel) != null) {
+                if (target.stat(old(rel)) != null) target.delete(old(rel))
+                target.rename(rel, old(rel))
+            }
             target.rename(temp, rel)
+            if (target.stat(old(rel)) != null) target.delete(old(rel))
         }
     }
 
     // --------------------------------------------------------------------------------- results
 
-    suspend fun receipt(jobId: String): Receipt {
-        val job = store.job(jobId) ?: error("unknown job $jobId")
-        val files = store.files(jobId)
-        val verified = files.filter { it.state == MoveFileState.VERIFIED }
-        return Receipt(
-            jobId = jobId,
-            targetLabel = job.targetLabel,
-            rootRel = job.rootRel,
-            verified = verified.size,
-            verifiedBytes = verified.sumOf { it.sourceSize },
-            failed = files.filter { it.state == MoveFileState.FAILED }.groupingBy { it.failReason!! }.eachCount(),
-            changed = files.count { it.state == MoveFileState.SRC_CHANGED },
-            pending = files.count {
-                it.state !in
-                    setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.SRC_CHANGED)
-            },
-            namesChanged = files.count { it.nameChanged },
-        )
-    }
+    suspend fun receipt(jobId: String): Receipt =
+        Receipt.of(store.job(jobId) ?: error("unknown job $jobId"), store.files(jobId))
 
     /**
      * MOVE-9/10: the plan the receipt's "Free from phone" button confirms. Only L3-verified files whose

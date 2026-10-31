@@ -97,4 +97,29 @@ class MovePlannerTest {
             java.util.Locale.setDefault(saved)
         }
     }
+
+    @Test
+    fun `collision suffixes keep names within 255 bytes and the path limit`() {
+        val long = "א".repeat(125) + ".jpg" // 254 bytes in UTF-8
+        (TargetNames.withSuffix(long, 2).toByteArray(Charsets.UTF_8).size <= 255) shouldBe true
+        TargetNames.withSuffix(long, 2).endsWith(" (2).jpg") shouldBe true
+        val files = MovePlanner.plan(
+            "j",
+            listOf(item(long, mtime = 1_678_000_000_000), item(long.uppercase(), mtime = 1_678_000_100_000)),
+            "Phone",
+            "Camera",
+            caps,
+        )
+        files.forEach { (it.relTarget.substringAfterLast('/').toByteArray(Charsets.UTF_8).size <= 255) shouldBe true }
+        files.map { it.relTarget }.toSet().size shouldBe 2
+        val smb = TargetCaps(canReadBack = true, maxPathChars = 60)
+        val short = MovePlanner.plan(
+            "j",
+            listOf(item("a".repeat(40) + ".jpg"), item("A".repeat(40) + ".jpg", mtime = 1_678_000_100_000)),
+            "Phone",
+            "Camera",
+            smb,
+        )
+        short.forEach { (it.relTarget.length <= 60) shouldBe true }
+    }
 }

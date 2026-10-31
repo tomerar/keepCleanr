@@ -12,7 +12,13 @@ import java.io.InputStream
 const val PHONE = "/storage/emulated/0"
 const val USB = "/storage/USB-1"
 
-class Rig(caps: TargetCaps = TargetCaps(canReadBack = true), files: Int = 6, targetCapacity: Long = Long.MAX_VALUE) {
+class Rig(
+    caps: TargetCaps = TargetCaps(canReadBack = true),
+    files: Int = 6,
+    targetCapacity: Long = Long.MAX_VALUE,
+    /** False: the target refuses every read (a cloud provider that only uploads). */
+    readable: Boolean = true,
+) {
     val fake = FakeStorageGateway(caseInsensitive = true, volumeRoots = listOf(PHONE, USB)).apply {
         mkdirs(USB)
         setCapacity(USB, targetCapacity)
@@ -29,6 +35,12 @@ class Rig(caps: TargetCaps = TargetCaps(canReadBack = true), files: Int = 6, tar
         caps,
     ) {
         override suspend fun openRead(rel: String): InputStream {
+            if (!readable) {
+                throw io.github.tomerar.keepclear.core.storage.StorageException.Unsupported(
+                    KPath.Local("$USB/$rel"),
+                    "no reads",
+                )
+            }
             val real = fake.openRead(KPath.Local("$USB/$rel"))
             if (corruptReads <= 0 || rel.endsWith("SHA256SUMS") || rel.endsWith(".jsonl")) return real
             if (skipReads > 0) {

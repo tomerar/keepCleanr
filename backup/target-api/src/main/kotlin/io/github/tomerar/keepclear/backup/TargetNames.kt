@@ -47,9 +47,19 @@ object TargetNames {
         return if (caseSensitive) nfc else nfc.lowercase()
     }
 
-    /** "name (2).ext" for the [n]-th collision. */
-    fun withSuffix(name: String, n: Int): String {
+    /**
+     * "name (2).ext" for the [n]-th collision. The stem is shortened so the result stays within [maxBytes]
+     * UTF-8 bytes and [maxChars] characters (a long name plus its suffix must still be a legal component).
+     */
+    fun withSuffix(name: String, n: Int, maxBytes: Int = MAX_COMPONENT_BYTES, maxChars: Int = Int.MAX_VALUE): String {
         val dot = name.lastIndexOf('.').takeIf { it > 0 }
-        return if (dot == null) "$name ($n)" else "${name.substring(0, dot)} ($n)${name.substring(dot)}"
+        var stem = if (dot == null) name else name.substring(0, dot)
+        val ext = if (dot == null) "" else name.substring(dot)
+        val suffix = " ($n)"
+
+        fun fits(candidate: String) =
+            candidate.toByteArray(Charsets.UTF_8).size <= maxBytes && candidate.length <= maxChars
+        while (!fits(stem + suffix + ext) && stem.isNotEmpty()) stem = stem.dropLast(1)
+        return stem + suffix + ext
     }
 }

@@ -199,4 +199,60 @@ class MoveEngineTest {
             rig.fake.readAllBytes("$sums-job1").toString(Charsets.UTF_8).lines().first().length shouldBe 64 + 2 +
                 "Camera/2021/01/IMG_20210100_120000.jpg".length
         }
+
+    @Test
+    fun `a target that can't be read back keeps every copy, unverified (MOVE-14)`(): Unit = runBlocking {
+        val rig = Rig(caps = TargetCaps(canReadBack = false), readable = false)
+        rig.engine().run(rig.newJob()).state shouldBe JobState.DONE
+        val files = rig.store.files("job1")
+        files.map { it.state }.toSet() shouldBe setOf(MoveFileState.COPIED_UNVERIFIED)
+        files.forEach { rig.fake.readAllBytes("$USB/${it.relTarget}") shouldBe rig.fake.readAllBytes(it.sourcePath) }
+        rig.engine().originalsPlan("job1").shouldBeEmpty()
+        val receipt = rig.engine().receipt("job1")
+        receipt.verified shouldBe 0
+        receipt.unverified shouldBe 6
+        receipt.complete shouldBe true
+    }
+
+    @Test
+    fun `a crash right after renaming to a collision name resumes (checkpointed name)`(): Unit = runBlocking {
+        val rig = Rig(files = 1)
+        val planned = "$USB/KeepClear/OnePlus 10T/Camera/2021/01/IMG_20210100_120000.jpg"
+        val foreign = "not the same".toByteArray()
+        rig.fake.addFile(planned, foreign)
+        val id = rig.newJob()
+        var killed = false
+        val crashing = object : MoveJobStore by rig.store {
+            override suspend fun putFile(file: MoveFile) {
+                if (file.state == MoveFileState.PLACED && !killed) {
+                    killed = true
+                    throw IllegalStateException("process killed")
+                }
+                rig.store.putFile(file)
+            }
+        }
+        runCatching { MoveEngine(rig.fake, rig.target, crashing, clock = { rig.now }).run(id) }.isFailure shouldBe true
+        rig.engine().run(id).state shouldBe JobState.DONE
+        rig.fake.readAllBytes(planned) shouldBe foreign
+        val file = rig.store.files(id).single()
+        file.state shouldBe MoveFileState.VERIFIED
+        file.relTarget.endsWith("IMG_20210100_120000 (2).jpg") shouldBe true
+        rig.assertCopiesMatchSources()
+    }
+
+    @Test
+    fun `an interrupted manifest replace keeps earlier entries`(): Unit = runBlocking {
+        val rig = Rig(files = 1)
+        val sums = "$USB/KeepClear/OnePlus 10T/SHA256SUMS"
+        val earlier = "${"a".repeat(64)}  Camera/2020/01/earlier.jpg\n"
+        // As if a previous job was killed after moving the old manifest aside, before installing the new one.
+        rig.fake.addFile("$sums.kc-old", earlier.toByteArray())
+        rig.fake.addFile("$sums.kc-tmp", "partial".toByteArray())
+        rig.engine().run(rig.newJob()).state shouldBe JobState.DONE
+        val text = rig.fake.readAllBytes(sums).toString(Charsets.UTF_8)
+        text.lines().filter { it.isNotBlank() }.size shouldBe 2
+        (earlier.trim() in text) shouldBe true
+        rig.fake.exists("$sums.kc-old") shouldBe false
+        rig.fake.exists("$sums.kc-tmp") shouldBe false
+    }
 }

@@ -36,8 +36,9 @@ object MovePlanner {
             }
             var candidate = name
             var n = 2
+            val maxChars = caps.maxPathChars?.let { it - dir.length - 1 } ?: Int.MAX_VALUE
             while (!used.add(TargetNames.key("$dir/$candidate", caps.caseSensitive))) {
-                candidate = TargetNames.withSuffix(name, n++)
+                candidate = TargetNames.withSuffix(name, n++, maxChars = maxChars)
             }
             MoveFile(
                 jobId = jobId,
