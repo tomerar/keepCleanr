@@ -76,6 +76,8 @@ Status: **implemented**. Spec adjustments made while implementing:
 - **DoD / tests:** table tests per rule (positive + negative fixtures), including E-CLS-1…7; string-completeness for every rule's why/if-deleted; owner-fixture snapshot test: category totals match expected numbers.
 
 ### M5: Home + Review browsing (read-only)
+Status: **implemented**. Notes: navigation is a small in-memory stack with system back (no navigation library yet); thumbnails use MediaStore `loadThumbnail` / `ThumbnailUtils` with a memory-only cache (no image library; LOW-1 no disk cache); rule texts are looked up through a typed `RuleText` map. The 2k-item grid has a functional scroll test; frame-time benchmarking is a device check (D5-1).
+
 - Light/dark themes (UI-1) and the screenshot matrix (UI-3).
 - Home cards (SAFE/REVIEW/MOVE totals, breakdown), Review hub, bucket grid with month grouping and preview, item "Why" sheets. No delete buttons yet (disabled with "coming soon").
 - **DoD / tests:** Compose UI tests; screenshot tests en/he (RTL) incl. mixed-direction filenames; 2k-item grid scroll benchmark; **D:** owner confirms buckets match his ADB measurements (2,324 screenshots, 526 AI images, 81 big videos/14.85 GB, WhatsApp breakdown, Databases not listed anywhere).

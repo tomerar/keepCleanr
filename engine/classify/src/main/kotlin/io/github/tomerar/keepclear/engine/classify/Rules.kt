@@ -6,6 +6,7 @@ import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 
 /** Everything a rule may look at. [rel] is the canonical (lowercase) path relative to its volume root. */
 class RuleInput(val item: ScanItem, val canonical: String, val rel: List<String>, val facts: Set<Fact>, val now: Long) {
@@ -22,7 +23,8 @@ class RuleInput(val item: ScanItem, val canonical: String, val rel: List<String>
     val whatsAppRoot: Int get() = rel.indexOfFirst { it == "whatsapp" || it == "whatsapp business" }
 
     fun month(): String = Instant.ofEpochMilli(item.mtimeMillis).atZone(ZoneOffset.UTC).let {
-        "%04d-%02d".format(it.year, it.monthValue)
+        // Locale.ROOT: bucket keys are ISO "yyyy-MM" with ASCII digits on every device locale.
+        "%04d-%02d".format(Locale.ROOT, it.year, it.monthValue)
     }
 
     fun year(): String = Instant.ofEpochMilli(item.mtimeMillis).atZone(ZoneOffset.UTC).year.toString()

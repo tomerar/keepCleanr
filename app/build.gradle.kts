@@ -31,6 +31,8 @@ dependencies {
     implementation(project(":core:storage-media"))
     implementation(project(":core:database"))
     implementation(project(":engine:scan"))
+    implementation(project(":engine:classify"))
+    implementation(project(":core:model"))
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)

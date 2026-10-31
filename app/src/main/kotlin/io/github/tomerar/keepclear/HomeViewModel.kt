@@ -6,17 +6,22 @@ import android.os.StatFs
 import android.os.storage.StorageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
+import io.github.tomerar.keepclear.engine.classify.Classifier
 import io.github.tomerar.keepclear.engine.scan.ScanEvent
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.scan.Scanner
 import io.github.tomerar.keepclear.engine.scan.SpaceMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Scan state shown on Home (SCAN-1/3, ONB-3/4, LOW-1/2). */
 sealed interface ScanState {
@@ -35,13 +40,29 @@ data class HomeUiState(
     val allFiles: Boolean? = null,
     val spaceMode: SpaceMode = SpaceMode.NORMAL,
     val scan: ScanState = ScanState.Idle,
+    /** Classification of the last scan (M5: read-only browsing). */
+    val summary: ClassificationSummary? = null,
+    /** Navigation stack; last is visible. */
+    val screens: List<Screen> = listOf(Screen.Home),
 )
+
+/** Simple in-memory navigation (no navigation library needed yet). */
+sealed interface Screen {
+    data object Home : Screen
+
+    data class CategoryList(val category: Category) : Screen
+
+    data class Group(val ruleId: String, val category: Category) : Screen
+
+    data class Preview(val path: String, val ruleId: String, val category: Category) : Screen
+}
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as KeepClearApplication
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state
     private var scanJob: Job? = null
+    private val classifier = Classifier()
 
     /** Called on every resume: permissions and free space can change outside the app. */
     fun refresh() {
@@ -74,7 +95,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // memory and the result is shown as incomplete.
             var runId = if (persist) runCatching { app.scanIndex.startRun() }.getOrNull() else null
             var storageFailed = persist && runId == null
-            val inMemory = mutableListOf<ScanItem>()
+            // Every item of this run, persisted or not: classification uses the whole run even when the index
+            // fell back to memory halfway through (the index is for diffs and history, not the source of truth here).
+            val runItems = mutableListOf<ScanItem>()
             scanner.scan(roots).collect { event ->
                 when (event) {
                     is ScanEvent.Batch -> {
@@ -84,7 +107,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             runId = null
                             storageFailed = true
                         }
-                        if (!written) inMemory += event.items
+                        runItems += event.items
                     }
 
                     is ScanEvent.Progress -> {
@@ -105,6 +128,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         // If finalising the index failed, the stale-entry cleanup didn't happen: say so.
                         val complete = event.complete && !storageFailed && finished
                         _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, complete)) }
+                        classify(runItems.toList())
                     }
 
                     is ScanEvent.Unreadable, is ScanEvent.VolumeLost -> {
@@ -114,6 +138,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    private suspend fun classify(items: List<ScanItem>) {
+        val summary = withContext(Dispatchers.Default) {
+            val now = System.currentTimeMillis()
+            ClassificationSummary.of(items.map { classifier.classify(it, now = now) })
+        }
+        _state.update { it.copy(summary = summary) }
+    }
+
+    fun open(screen: Screen) = _state.update { it.copy(screens = it.screens + screen) }
+
+    fun back() = _state.update { if (it.screens.size > 1) it.copy(screens = it.screens.dropLast(1)) else it }
 
     fun cancelScan() {
         scanJob?.cancel()

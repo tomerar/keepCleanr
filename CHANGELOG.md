@@ -5,6 +5,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Added
+- M5: Home shows Clean now / Review / Move to backup totals and where space is; read-only browsing by category, group (month headers, thumbnails) and item, with why / what-happens texts.
 - M4: deterministic classifier with a versioned rule table (WhatsApp variants, Telegram, junk, screenshots, AI images, old-phone folders, camera), keep signals, and English/Hebrew explanations for every rule.
 - M3: storage scan: java.nio file gateway, MediaStore reader, read-only cancellable scanner, Room scan index with schema export and migration harness, media/all-files permission flow with plain-language explainers, scan summary on Home, low-space modes.
 - M2: safety core: canonical PROTECTED-path matching (all WhatsApp variants, any volume/user root), plan guard, single-choke-point executor with re-checks, strict re-hash and dry-run; SHA-256 module.
