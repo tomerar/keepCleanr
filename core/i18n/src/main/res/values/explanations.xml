@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<!-- Classification explanations (CLS-2): group_, why_ and if_deleted_ per rule id. Safety-critical: review before release (docs/TRANSLATING.md). -->
-<resources>
+<!-- Classification explanations (CLS-2): group_, why_ and if_deleted_ per rule id. Safety-critical: review before release (docs/TRANSLATING.md). Referenced by rule id (RuleText), so Lint cannot see every use. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
     <string name="group_protected">Your chats</string>
     <string name="why_protected">WhatsApp chat history and its backups.</string>
     <string name="if_deleted_protected">KeepClear never deletes these.</string>
