@@ -1,8 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -11,13 +19,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
@@ -44,22 +45,36 @@ class ReviewScreensTest {
 
     private fun summary(screenshots: Int = 3): ClassificationSummary {
         val c = Classifier()
+
         fun item(rel: String, size: Long, mtime: Long) =
             c.classify(ScanItem(KPath.Local("$root/$rel"), "$root/$rel", size, mtime), now = now)
-        val items = (0 until screenshots).map { item("Pictures/Screenshots/Screenshot_$it.png", 1_000_000L + it, 1_678_000_000_000 + it * 86_400_000L) } +
-            listOf(
-                item("DCIM/Camera/IMG_1.jpg", 4_000_000, 1_600_000_000_000),
-                item("Documents/תמונה של אמא 🎂.jpg", 2_000_000, 1_600_000_000_000),
-                item("Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14", 450_000_000, 1_600_000_000_000),
-            )
+        val items =
+            (0 until screenshots).map {
+                item(
+                    "Pictures/Screenshots/Screenshot_$it.png",
+                    1_000_000L + it,
+                    1_678_000_000_000 + it * 86_400_000L,
+                )
+            } +
+                listOf(
+                    item("DCIM/Camera/IMG_1.jpg", 4_000_000, 1_600_000_000_000),
+                    item("Documents/תמונה של אמא 🎂.jpg", 2_000_000, 1_600_000_000_000),
+                    item(
+                        "Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
+                        450_000_000,
+                        1_600_000_000_000,
+                    ),
+                )
         return ClassificationSummary.of(items)
     }
 
     private fun showApp(summary: ClassificationSummary) {
         compose.setContent {
-            var state by mutableStateOf(
-                HomeUiState(mediaAccess = MediaAccess.FULL, scan = ScanState.Done(10, 10, true), summary = summary),
-            )
+            var state by remember {
+                mutableStateOf(
+                    HomeUiState(mediaAccess = MediaAccess.FULL, scan = ScanState.Done(10, 10, true), summary = summary),
+                )
+            }
             KeepClearTheme {
                 AppScreens(
                     state = state,
@@ -69,7 +84,10 @@ class ReviewScreensTest {
                         HomeScreen(
                             state = state,
                             showDebugTools = false,
-                            actions = HomeActions(onOpenCategory = { state = state.copy(screens = state.screens + Screen.CategoryList(it)) }),
+                            actions = HomeActions(onOpenCategory = {
+                                state =
+                                    state.copy(screens = state.screens + Screen.CategoryList(it))
+                            }),
                         )
                     },
                 )

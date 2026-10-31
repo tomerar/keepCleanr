@@ -32,12 +32,18 @@ class ThumbnailLoader(private val resolver: ContentResolver) {
                 val ext = item.path.substringAfterLast('.', "").lowercase()
                 when {
                     item.mediaId != null -> resolver.loadThumbnail(
-                        ContentUris.withAppendedId(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), item.mediaId!!),
+                        ContentUris.withAppendedId(
+                            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                            item.mediaId!!,
+                        ),
                         size,
                         null,
                     )
+
                     ext in imageExtensions -> ThumbnailUtils.createImageThumbnail(File(item.path), size, null)
+
                     ext in videoExtensions -> ThumbnailUtils.createVideoThumbnail(File(item.path), size, null)
+
                     else -> null
                 }
             }.getOrNull()

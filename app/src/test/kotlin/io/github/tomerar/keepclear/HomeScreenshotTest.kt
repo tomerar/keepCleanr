@@ -62,7 +62,10 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
         ).map { (rel, t) ->
             classifier.classify(
                 io.github.tomerar.keepclear.engine.scan.ScanItem(
-                    io.github.tomerar.keepclear.core.storage.KPath.Local("$root/$rel"), "$root/$rel", 1_234_567, t,
+                    io.github.tomerar.keepclear.core.storage.KPath.Local("$root/$rel"),
+                    "$root/$rel",
+                    1_234_567,
+                    t,
                 ),
                 now = 1_800_000_000_000L,
             )
@@ -71,11 +74,14 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
         val suffix = "${locale}_${if (night) "dark" else "light"}_api${Build.VERSION.SDK_INT}"
         val options = RoborazziOptions(compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.005f))
         captureRoboImage("src/test/screenshots/review_list_$suffix.png", roborazziOptions = options) {
-            KeepClearTheme(darkTheme = night) { CategoryListScreen(summary, io.github.tomerar.keepclear.core.model.Category.REVIEW, {}, {}) }
+            KeepClearTheme(darkTheme = night) {
+                CategoryListScreen(summary, io.github.tomerar.keepclear.core.model.Category.REVIEW, {}, {})
+            }
         }
         captureRoboImage("src/test/screenshots/review_group_$suffix.png", roborazziOptions = options) {
             KeepClearTheme(darkTheme = night) {
-                GroupScreen(summary.group("screenshots", io.github.tomerar.keepclear.core.model.Category.REVIEW)!!, {}, {})
+                GroupScreen(summary.group("screenshots", io.github.tomerar.keepclear.core.model.Category.REVIEW)!!, {
+                }, {})
             }
         }
     }

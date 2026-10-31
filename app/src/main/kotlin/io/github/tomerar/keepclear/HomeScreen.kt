@@ -36,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
-import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.scan.SpaceMode
 import java.text.NumberFormat
 
@@ -307,7 +307,10 @@ private fun Areas(summary: ClassificationSummary) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.testTag("areas")) {
         Text(stringResource(R.string.areas_title), style = MaterialTheme.typography.titleSmall)
         summary.areas().forEach { (area, bytes) ->
-            Text("${stringResource(labels.getValue(area))}: ${ByteSize.format(bytes, locale)}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "${stringResource(labels.getValue(area))}: ${ByteSize.format(bytes, locale)}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }

@@ -42,24 +42,24 @@ class MainActivity : ComponentActivity() {
                         onOpen = vm::open,
                         onBack = vm::back,
                         home = {
-                HomeScreen(
-                    state = state,
-                    showDebugTools = BuildConfig.DEBUG,
-                    actions = HomeActions(
-                        onRequestMedia = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
-                        onRequestAllFiles = {
-                            startActivity(
-                                Intent(
-                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                    "package:$packageName".toUri(),
+                            HomeScreen(
+                                state = state,
+                                showDebugTools = BuildConfig.DEBUG,
+                                actions = HomeActions(
+                                    onRequestMedia = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
+                                    onRequestAllFiles = {
+                                        startActivity(
+                                            Intent(
+                                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                                "package:$packageName".toUri(),
+                                            ),
+                                        )
+                                    },
+                                    onScanAgain = vm::scan,
+                                    onCancelScan = vm::cancelScan,
+                                    onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                 ),
                             )
-                        },
-                        onScanAgain = vm::scan,
-                        onCancelScan = vm::cancelScan,
-                        onOpenCategory = { vm.open(Screen.CategoryList(it)) },
-                    ),
-                )
                         },
                     )
                 }

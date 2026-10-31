@@ -67,7 +67,12 @@ fun categoryTitle(category: Category): String = stringResource(
 @Composable
 fun totalText(total: Total): String {
     val locale = LocalConfiguration.current.locales[0]
-    val count = pluralStringResource(R.plurals.file_count, total.files, NumberFormat.getIntegerInstance(locale).format(total.files))
+    val count =
+        pluralStringResource(
+            R.plurals.file_count,
+            total.files,
+            NumberFormat.getIntegerInstance(locale).format(total.files),
+        )
     return stringResource(R.string.total_value, ByteSize.format(total.bytes, locale), Bidi.isolate(count))
 }
 
@@ -91,7 +96,12 @@ private fun BackRow(title: String, onBack: () -> Unit) {
 
 /** All groups of one category, largest first (REV-1). Nothing is selected or selectable yet. */
 @Composable
-fun CategoryListScreen(summary: ClassificationSummary, category: Category, onOpenGroup: (String) -> Unit, onBack: () -> Unit) {
+fun CategoryListScreen(
+    summary: ClassificationSummary,
+    category: Category,
+    onOpenGroup: (String) -> Unit,
+    onBack: () -> Unit,
+) {
     Scaffold { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("categoryList"),
@@ -104,7 +114,11 @@ fun CategoryListScreen(summary: ClassificationSummary, category: Category, onOpe
             }
             items(summary.groups(category), key = { it.ruleId }) { group ->
                 val text = RuleText.of(group.ruleId)
-                Card(modifier = Modifier.fillMaxWidth().clickable { onOpenGroup(group.ruleId) }.testTag("group_${group.ruleId}")) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        onOpenGroup(group.ruleId)
+                    }.testTag("group_${group.ruleId}"),
+                ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(text.group), style = MaterialTheme.typography.titleMedium)
                         Text(totalText(group.total), style = MaterialTheme.typography.bodyMedium)
@@ -122,8 +136,19 @@ fun GroupScreen(group: GroupSummary, onOpenItem: (ClassifiedItem) -> Unit, onBac
     val text = RuleText.of(group.ruleId)
     Scaffold(
         bottomBar = {
-            Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("deleteDisabled")) {
-                Text(stringResource(if (group.category == Category.MOVE) R.string.move_coming_soon else R.string.delete_coming_soon))
+            Button(onClick = {
+            }, enabled = false, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("deleteDisabled")) {
+                Text(
+                    stringResource(
+                        if (group.category ==
+                            Category.MOVE
+                        ) {
+                            R.string.move_coming_soon
+                        } else {
+                            R.string.delete_coming_soon
+                        },
+                    ),
+                )
             }
         },
     ) { padding ->
@@ -185,7 +210,12 @@ private fun Thumb(item: ClassifiedItem, sizeDp: Int) {
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
     val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path) { value = loader.load(item.item, px) }
     bitmap?.let {
-        Image(it.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Image(
+            it.asImageBitmap(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
@@ -204,16 +234,29 @@ fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit) {
         ) {
             item { BackRow(stringResource(text.group), onBack) }
             item {
-                Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().aspectRatio(
+                        1f,
+                    ).background(MaterialTheme.colorScheme.surfaceVariant),
+                ) {
                     Thumb(item, 360)
                 }
             }
             item {
-                Text(Bidi.isolateLtr(item.item.path), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("path"))
+                Text(
+                    Bidi.isolateLtr(item.item.path),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("path"),
+                )
                 Text(ByteSize.format(item.item.size, locale), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.preview_modified, date), style = MaterialTheme.typography.bodyMedium)
                 AssistChip(onClick = {}, enabled = false, label = { Text(riskText(item)) })
-                if (item.keepSignal) Text(stringResource(R.string.keep_signal_note), style = MaterialTheme.typography.bodyMedium)
+                if (item.keepSignal) {
+                    Text(
+                        stringResource(R.string.keep_signal_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
             item {
                 Text(stringResource(R.string.label_why), style = MaterialTheme.typography.labelLarge)
