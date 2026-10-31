@@ -1,0 +1,40 @@
+name: Rule proposal (junk / folder / messenger)
+description: Teach KeepClear about a folder or file type
+labels: ["rules", "needs-triage"]
+body:
+  - type: input
+    id: app
+    attributes:
+      label: App and version that creates these files (if known)
+  - type: textarea
+    id: match
+    attributes:
+      label: Paths that SHOULD match
+      description: One per line, e.g. Android/media/com.example/Cache/abc.tmp
+    validations:
+      required: true
+  - type: textarea
+    id: nomatch
+    attributes:
+      label: Paths that must NOT match
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Proposed category
+      options: ["REVIEW (default)", "SAFE (needs evidence it's regenerable or duplicated)", "MOVE (memories)", "PROTECTED (must never be deleted)"]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Device, Android version, `adb shell ls -la` output, what happens after deleting.
+    validations:
+      required: true
+  - type: textarea
+    id: texts
+    attributes:
+      label: Explanation texts (English, Hebrew if you can)
+      description: "Why is this here?" and "What happens if I delete it?"

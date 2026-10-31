@@ -1,0 +1,17 @@
+# Label definitions. Applied by a label-sync workflow once the owner approves it.
+- { name: bug, color: d73a4a, description: Something isn't working }
+- { name: data-safety, color: b60205, description: Could lose, move or expose user data. Highest priority }
+- { name: security, color: b60205, description: Security hardening (report vulnerabilities privately) }
+- { name: enhancement, color: a2eeef, description: New feature or request }
+- { name: rules, color: 5319e7, description: Junk/folder/messenger classification rules }
+- { name: i18n, color: 0e8a16, description: Translations, RTL, Hebrew copy }
+- { name: ux, color: fbca04, description: Screens, copy, accessibility }
+- { name: spec, color: 1d76db, description: docs/spec, ADRs, research }
+- { name: flavor-play, color: c5def5, description: Google Play build only }
+- { name: flavor-foss, color: c5def5, description: F-Droid / GitHub build only }
+- { name: device-specific, color: f9d0c4, description: OEM / device behaviour (Samsung, Xiaomi, OnePlus, Pixel) }
+- { name: needs-triage, color: ededed, description: Not yet reviewed }
+- { name: needs-device-test, color: ededed, description: Must be confirmed on a real device }
+- { name: good first issue, color: 7057ff, description: Good for newcomers }
+- { name: help wanted, color: 008672, description: Extra attention is needed }
+- { name: wontfix, color: ffffff, description: Will not be worked on }

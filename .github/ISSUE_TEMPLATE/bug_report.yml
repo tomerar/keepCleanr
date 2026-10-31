@@ -1,0 +1,48 @@
+name: Bug report
+description: Something doesn't work as described
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security problem?** Don't file it here. See SECURITY.md.
+        **Lost data?** Check KeepClear's Trash first; files stay there for 30 days.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: data
+    attributes:
+      label: Did KeepClear delete, move or change a file it shouldn't have?
+      options: ["No", "Yes", "Not sure"]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: KeepClear version and flavor
+      placeholder: "0.1.0 foss (GitHub) / play"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: "OnePlus 10T, OxygenOS 15 (Android 15)"
+    validations:
+      required: true
+  - type: dropdown
+    id: access
+    attributes:
+      label: Access level
+      multiple: true
+      options: ["Basic", "All files access", "Shizuku", "Root"]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Settings › About › Export debug log (paths can be redacted).

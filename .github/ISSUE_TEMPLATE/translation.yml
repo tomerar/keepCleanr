@@ -1,0 +1,17 @@
+name: Translation issue
+description: Wrong, unclear or missing translation
+labels: ["i18n"]
+body:
+  - type: input
+    id: lang
+    attributes:
+      label: Language
+      placeholder: Hebrew
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the app, current text, suggested text
+    validations:
+      required: true

@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an idea
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fits KeepClear's principles
+      options:
+        - label: Works without ads, analytics or tracking
+        - label: Keeps every deletion recoverable (30-day trash)

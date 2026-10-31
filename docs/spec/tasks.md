@@ -18,7 +18,7 @@ Rules for every milestone:
 - Compose app with Home placeholder in en + he; per-app language; RTL toggle in debug.
 - CI (GitHub Actions): assemble `fossDebug` + `playDebug`, unit tests, detekt/ktlint, Konsist architecture tests, **merged-manifest check** (no `MANAGE_EXTERNAL_STORAGE`/`QUERY_ALL_PACKAGES` in `play`; no `INTERNET` anywhere), **string parity en↔he**, dependency allowlist.
 - SPDX headers, `THIRD_PARTY.md`.
-- **DoD / tests:** CI green; a deliberately added `INTERNET` permission in a test branch fails CI; a missing he string fails CI; Konsist rule "engines must not import android.*" passes; app launches on API 30 and 36 emulators in both languages, light and dark (screenshot test, UI-3); merged manifest exports only the launcher (SEC-5); Gradle dependency verification on (SEC-8); PRIVACY.md permission-sync check (PRIV-6); community files present (CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, issue/PR templates, labels) — see §"Community".
+- **DoD / tests:** CI green; a deliberately added `INTERNET` permission in a test branch fails CI; a missing he string fails CI; Konsist rule "engines must not import android.*" passes; app launches on API 30 and 36 emulators in both languages, light and dark (screenshot test, UI-3); merged manifest exports only the launcher (SEC-5); Gradle dependency verification on (SEC-8); PRIVACY.md permission-sync check (PRIV-6); label-sync workflow for `.github/labels.yml` added (community files themselves already exist, see §"Community").
 
 ### M1: Storage abstraction + fake file system
 - `core:storage-api` (`KPath`, `StorageGateway`, `Stat`, capabilities), `FakeStorageGateway` with fault injection (ENOSPC, disconnect, slow, EACCES, file-changes-during-read, kill points).
@@ -115,7 +115,7 @@ Each device run records: device, OS build, flavor, checklist results and through
 
 ## Community
 
-Delivered in M0 (no app code): `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`, `.github/labels.yml`, `docs/TRANSLATING.md` (Weblate workflow). Label sync and Weblate hookup are applied once the owner approves (they change GitHub/Weblate settings).
+Added in the spec phase (no app code): `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`, `.github/labels.yml`, `docs/TRANSLATING.md` (Weblate workflow). Label sync and Weblate hookup are applied once the owner approves (they change GitHub/Weblate settings).
 
 ## Later
 Similar photos (dHash + BK-tree), WebDAV/Nextcloud `X-Hash`, Immich checksum target, PC companion, root tier, video squeeze.
