@@ -59,7 +59,6 @@
     <string name="area_other">Other</string>
     <string name="label_why">Why is this here?</string>
     <string name="label_if_deleted">What happens if it\'s deleted?</string>
-    <string name="delete_coming_soon">Deleting arrives in the next version</string>
     <string name="move_coming_soon">Backing up arrives in a later version</string>
     <string name="back">Back</string>
     <string name="preview_modified">Changed %1$s</string>
@@ -105,4 +104,10 @@
     <string name="trim_confirm_body">Cleared by Android. This can\'t be restored, and apps rebuild it as needed. Nothing goes to KeepClear\'s trash.</string>
     <string name="trim_result">Android freed %1$s.</string>
     <string name="trim_external_button">Clear apps\' external caches</string>
+    <string name="review_delete">Delete %1$s</string>
+    <string name="review_move_instead">Move instead</string>
+    <string name="review_select_month">Select month</string>
+    <string name="review_unselect_month">Unselect month</string>
+    <string name="review_confirm_title">Delete %1$s?</string>
+    <string name="review_confirm_body">They\'ll wait in the trash for 30 days. Tap ✕ to keep any of them.</string>
 </resources>

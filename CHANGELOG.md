@@ -5,6 +5,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Added
+- M8: Review actions: multi-select (nothing pre-selected, select a whole month), editable confirm list, delete to trash with Undo; "Move instead" placeholder.
 - M7: "Clean now": byte-identical WhatsApp Sent copies, fully extracted archives and junk are found; pre-selected SAFE groups move to the trash after one confirmation, with Undo; Android cache trim with a measured result; foss-only external cache clear.
 - M6: 30-day trash with restore and "Empty now" (second, delayed confirmation), signed sidecars for recovery after reinstall, daily expiry purge, Trash screen; crash-safety property test over 2,000 random kill points.
 - M5: Home shows Clean now / Review / Move to backup totals and where space is; read-only browsing by category, group (month headers, thumbnails) and item, with why / what-happens texts.
