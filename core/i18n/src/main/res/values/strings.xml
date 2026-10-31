@@ -88,4 +88,21 @@
     <string name="trash_confirm_release_body">A checked copy is on %1$s. The file on the phone is deleted permanently.</string>
     <string name="trash_confirm_delete">Delete permanently</string>
     <string name="trash_cancel">Cancel</string>
+    <string name="clean_title">Clean now</string>
+    <string name="clean_selected">Selected: %1$s</string>
+    <string name="clean_button">Clean %1$s</string>
+    <string name="clean_confirm_title">Clean %1$s?</string>
+    <string name="clean_confirm_body">%1$s. They\'ll wait in KeepClear\'s trash for 30 days, so you can restore anything.</string>
+    <string name="clean_confirm_yes">Move to trash</string>
+    <string name="clean_done">Done. %1$s moved to trash.</string>
+    <string name="clean_done_space">Space returns when the trash empties, or empty it now.</string>
+    <string name="clean_skipped">%1$s changed since the scan, so we left them alone.</string>
+    <string name="clean_undo">Undo</string>
+    <string name="clean_open_trash">Open trash</string>
+    <string name="trim_title">Let Android trim app caches</string>
+    <string name="trim_body">Android deletes temporary app data that apps rebuild on their own.</string>
+    <string name="trim_button">Trim caches</string>
+    <string name="trim_confirm_body">Cleared by Android. This can\'t be restored, and apps rebuild it as needed. Nothing goes to KeepClear\'s trash.</string>
+    <string name="trim_result">Android freed %1$s.</string>
+    <string name="trim_external_button">Clear apps\' external caches</string>
 </resources>

@@ -12,8 +12,8 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M3 Scanner + Room | ✅ merged | [#4](https://github.com/tomerar/keepCleanr/pull/4) | Device checks D3-1…3 waiting for owner. |
 | M4 Classifier + rules | ✅ merged | [#5](https://github.com/tomerar/keepCleanr/pull/5) | Also fixes 13 verified Codex review findings from #2–#5. Raises decision B1. |
 | M5 Home + Review browsing | ✅ merged | [#6](https://github.com/tomerar/keepCleanr/pull/6) | 3 Codex findings fixed before merge (whole-run classification, file-name fallback, ASCII month keys). |
-| M6 Trash + restore | 🔄 PR open | [#7](https://github.com/tomerar/keepCleanr/pull/7) | Engine + Room + UI; 2,000-crash kill-point test green (and shown to fail on an unsafe order). Raises decision B2 (ADR 0010). |
-| M7 SAFE cleanup | 🔄 ready locally on M6 | | End-to-end test on owner fixture (clean + undo byte-exact). |
+| M6 Trash + restore | ✅ merged | [#7](https://github.com/tomerar/keepCleanr/pull/7) | 3 Codex findings fixed (untrusted entries never auto-purge, fallback restore validated, vanished entries dropped). Also: `readNBytes` (API 33+) replaced by `Streams` + Konsist rule; device trash test moved off our PROTECTED `Android/data` folder. Raises decision B2 (ADR 0010). |
+| M7 SAFE cleanup | 🔄 PR open | [#8](https://github.com/tomerar/keepCleanr/pull/8) | End-to-end test on owner fixture (clean + undo byte-exact). |
 | M8 REVIEW actions | 🔄 ready locally on M7 | | Multi-select, select-by-month, editable confirm, delete → trash + Undo; nothing pre-selected. |
 | M9 MOVE engine | 🔄 ready locally on M8 | | Fault tests, kill-point test, `sha256sum -c` test green. Fixed in the draft: a reused file on the drive could be deleted after a failed read-back; an unreadable manifest could be replaced and lose entries. |
 | M10 SAF target + MOVE UI | ⬜ | | |

@@ -8,12 +8,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.ActionPlan
+import io.github.tomerar.keepclear.core.safety.ExecutionReport
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
+import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Classifier
+import io.github.tomerar.keepclear.engine.classify.Total
+import io.github.tomerar.keepclear.engine.enrich.FactEnricher
 import io.github.tomerar.keepclear.engine.scan.ScanEvent
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.scan.Scanner
@@ -48,6 +52,9 @@ data class HomeUiState(
     /** Classification of the last scan (M5: read-only browsing). */
     val summary: ClassificationSummary? = null,
     val trash: TrashUi = TrashUi(),
+    val cleanResult: CleanResult? = null,
+    /** Bytes Android freed in the last cache trim (measured, SAFE-5). */
+    val trimResult: Long? = null,
     /** Navigation stack; last is visible. */
     val screens: List<Screen> = listOf(Screen.Home),
 )
@@ -151,7 +158,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun classify(items: List<ScanItem>) {
         val summary = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
-            ClassificationSummary.of(items.map { classifier.classify(it, now = now) })
+            // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
+            val facts = runCatching { FactEnricher(app.fileGateway).facts(items.filter { it.ref is KPath.Local }) }
+                .getOrDefault(emptyMap())
+            ClassificationSummary.of(items.map { classifier.classify(it, facts[it.path].orEmpty(), now) })
         }
         _state.update { it.copy(summary = summary) }
     }
@@ -198,6 +208,73 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             loadTrash()
             if (kind == OpKind.RESTORE) scan()
+        }
+    }
+
+    /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
+    fun clean(items: List<ClassifiedItem>) {
+        viewModelScope.launch {
+            val ops = items.mapNotNull { c ->
+                val stat = app.fileGateway.stat(c.item.ref) ?: return@mapNotNull null
+                PlannedOp(
+                    stat.path,
+                    c.item.path,
+                    OpKind.TRASH,
+                    stat.isDirectory,
+                    stat.size,
+                    stat.mtimeMillis,
+                    stat.identity,
+                    ruleId = c.ruleId,
+                )
+            }
+            if (ops.isEmpty()) return@launch
+            val plan = ActionPlan(
+                UUID.randomUUID().toString(),
+                ops,
+                "clean",
+            ).confirm(System.currentTimeMillis(), app.sessionId)
+            val report = app.executor().run(plan)
+            if (report is ExecutionReport.Ran) {
+                val done = report.done.map { it.op }
+                _state.update {
+                    it.copy(
+                        cleanResult = CleanResult(
+                            done = Total(done.size, done.sumOf { op -> op.expectedSize }),
+                            skipped = report.skipped.size,
+                            failed = report.failed.size,
+                            trashedPaths = done.map { op -> op.displayPath },
+                        ),
+                    )
+                }
+            }
+            loadTrash()
+            scan()
+        }
+    }
+
+    /** E-DEL-15: Undo restores everything the last clean moved to the trash. */
+    fun undo(result: CleanResult) {
+        viewModelScope.launch {
+            val paths = result.trashedPaths.toSet()
+            val entries = app.trashManager.entries().filter { it.originalPath in paths }
+            _state.update { it.copy(cleanResult = null) }
+            restore(entries)
+        }
+    }
+
+    /** SAFE-5: ask Android to trim other apps' caches; report the measured difference only. */
+    fun trimCaches() {
+        viewModelScope.launch {
+            val freed = withContext(Dispatchers.IO) {
+                val sm = app.getSystemService(StorageManager::class.java)
+                val before = StatFs(app.filesDir.absolutePath).availableBytes
+                runCatching {
+                    sm.allocateBytes(StorageManager.UUID_DEFAULT, sm.getAllocatableBytes(StorageManager.UUID_DEFAULT))
+                }
+                (StatFs(app.filesDir.absolutePath).availableBytes - before).coerceAtLeast(0)
+            }
+            _state.update { it.copy(trimResult = freed) }
+            refresh()
         }
     }
 
