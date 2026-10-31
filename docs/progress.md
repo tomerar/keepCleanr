@@ -9,13 +9,13 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M0 Skeleton + guard rails | ✅ merged | [#1](https://github.com/tomerar/keepCleanr/pull/1) | CI green incl. emulator smoke tests API 30 + 36. Found and fixed: JUnit 5 silently skipped non-Unit tests (Konsist rule added); verification metadata must be written from a fresh Gradle home. |
 | M1 Storage abstraction + fake FS | ✅ merged | [#2](https://github.com/tomerar/keepCleanr/pull/2) | Contract suite + owner-shaped fixtures. |
 | M2 Safety core | ✅ merged | [#3](https://github.com/tomerar/keepCleanr/pull/3) | 10k-plan property test, verified to fail when the guard is removed. |
-| M3 Scanner + Room | 🔄 CI running | [#4](https://github.com/tomerar/keepCleanr/pull/4) | Local ciCheck green. Device check D3-1 waiting for owner. |
-| M4 Classifier + rules | 🔄 implemented locally | | Oracle + snapshot tests green; waits for M3 merge. Raises decision B1. |
-| M5 Home + Review browsing | ⬜ | | |
-| M6 Trash + restore | ⬜ | | |
-| M7 SAFE cleanup | ⬜ | | |
+| M3 Scanner + Room | ✅ merged | [#4](https://github.com/tomerar/keepCleanr/pull/4) | Device checks D3-1…3 waiting for owner. |
+| M4 Classifier + rules | 🔄 verifying for PR | | Oracle + snapshot tests green. Raises decision B1. |
+| M5 Home + Review browsing | 🔄 implemented locally | | Navigation, totals, grid with month headers, screenshots en/he. |
+| M6 Trash + restore | 🔄 implemented locally | | Engine + Room + UI; 2,000-crash kill-point test green (and shown to fail on an unsafe order). Raises decision B2 (ADR 0010). |
+| M7 SAFE cleanup | 🔄 drafted | | Twin/archive enricher drafted. |
 | M8 REVIEW actions | ⬜ | | |
-| M9 MOVE engine | ⬜ | | |
+| M9 MOVE engine | 🔄 drafted | | Engine, planner, manifest and tests drafted. |
 | M10 SAF target + MOVE UI | ⬜ | | |
 
 ## Device checks waiting for the owner (D)
@@ -33,6 +33,7 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 
 | # | Type | Question | What I did meanwhile |
 |---|---|---|---|
+| B2 | Decision (ADR 0010, amends ADR 0006) | MVP trash: put **every** file KeepClear can reach by path (including camera media) into its own `.KeepClearTrash` folder, instead of MediaStore's trash for indexed media. Simpler and fully crash-tested; trashed photos disappear from the gallery until restored, and other galleries' "Recently deleted" won't list them. MediaStore trash comes with the `play` flavor (M11). OK? | Implemented as proposed (ADR 0010 status "Proposed"). Still a 30-day trash; nothing permanent changed. |
 | B1 | Decision (CLS-5) | Keep signals: today every SAFE item that is a favourite **or modified in the last 30 days** becomes REVIEW. That is the safe reading of CLS-5, but it means WhatsApp statuses older than 24 h are never SAFE (they are always < 30 days old), and other apps' recent recycle-bin items need review too. Should regenerable junk (thumbnails, statuses, temp files) and already-deleted bin items stay SAFE despite being recent? | Kept the conservative behaviour (nothing becomes SAFE that the spec doesn't clearly allow). Visible in `engine/classify/src/test/resources/owner-classification-snapshot.txt`. |
 
 ## Notes for resuming
@@ -41,4 +42,6 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 - Android SDK at `/opt/android-sdk` (platform `android-37.0`, build-tools 37.0.0); `local.properties` is git-ignored.
 - Write `gradle/verification-metadata.xml` with `--no-configuration-cache` after deleting `.gradle/`, `build-logic/.gradle`, `build-logic/build` (otherwise the included build's plugin classpath isn't re-resolved and CI fails), then run `scripts/verification-extras.py`.
 - Local worktrees `/home/user/kc-m2`, `/home/user/kc-m3` hold later milestones (branches `m2-local`, `m3-local`); they are rebased onto `main` when their turn comes.
+- Never run two Gradle builds at once in this sandbox (15 GB RAM): the daemon gets killed. Stop daemons with `./gradlew --stop` and kill leftover `java` PIDs by number (pattern-based `pkill` also kills the shell).
+- `git reset --hard` is blocked by the sandbox policy; after a squash-merge, `git merge origin/main` into the working branch and continue (the PR diff stays correct).
 - After a milestone PR merges, the working branch `ccr-61f4d668-lr2wsd` is reset onto the new `main` for the next milestone.
