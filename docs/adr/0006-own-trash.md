@@ -1,6 +1,6 @@
 # ADR 0006: 30-day trash for every user-file deletion; honest space accounting
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 The product promise: every deletion goes to a 30-day trash first. Research shows:
@@ -16,7 +16,7 @@ The product promise: every deletion goes to a 30-day trash first. Research shows
 - Retention 30 days by default. Purge runs in a daily WorkManager job and on app open.
 - **Honest accounting**: trash bytes are shown as "will be freed on <date>", never as "freed". Every trash screen has **Empty now** (per item, per group, all), which requires a second explicit confirmation.
 - **Exceptions, stated in the UI**: (a) app caches cleared by Android (`allocateBytes`, Shizuku `freeStorageAndNotify`, `ACTION_CLEAR_APP_CACHE`) cannot be trashed; they are regenerable and labelled "cleared by Android, cannot be restored, the app rebuilds it". (b) Files already in another app's recycle bin are emptied by deep link to that app or, with all-files, moved into our trash.
-- **MOVE**: originals deleted after verified backup also go to the trash. The trash entry links to the verified copy, and offers "Release now: a verified copy is on <target>" (see open question Q1 in [requirements](../spec/requirements.md)).
+- **MOVE**: originals deleted after verified backup also go to the trash. The trash entry links to the verified copy, and offers a prominent **"Release now (verified copy exists)"** button (owner decision Q1, [requirements §14](../spec/requirements.md)). Retention is 30 days for every category (Q2).
 
 ## Consequences
 - Restore is instant (rename back). Undo works even after app restart.

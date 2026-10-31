@@ -1,6 +1,6 @@
 # KeepClear: Threat model
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Scope: the MVP and v1 designs in [design.md](design.md). Requirements added here are `SEC-*` in [requirements.md](requirements.md) §10a. Edge-case tests are `E-SEC-*` in [edge-cases.md](edge-cases.md) §7.
 
 ## 1. What we protect
@@ -67,7 +67,7 @@ Out of scope: a fully compromised OS or root-level malware (it can already do an
 **Mitigations:**
 - Re-check before acting (SAFETY-6): size, mtime, and where available inode (File gateway) or MediaStore `GENERATION_MODIFIED`.
 - Trash is a **rename of the path**, with no-follow semantics (`Files.move(..., NOFOLLOW_LINKS)` / `DocumentsContract.moveDocument`). Swapping in a symlink moves the link, not its target.
-- Optional strict mode (default on for MOVE deletes of < 1 GB per file, configurable): re-hash immediately before trashing.
+- **Strict mode, on by default for all files** (owner decision Q13): every MOVE original is re-hashed immediately before trashing; any mismatch → skipped. Same-size, forged-mtime swaps are therefore caught for MOVE deletes.
 - Accepted residual risk: an app with all-files access can delete files itself; KeepClear doesn't defend against it, but never makes it worse. Every action stays recoverable from trash.
 
 ### T5. Exported components and intents

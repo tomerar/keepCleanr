@@ -228,7 +228,7 @@ Sources: https://developer.android.com/developer-verification , https://android-
 
 Impact on KeepClear:
 - F-Droid normally signs with **its own key** -> the app would be attributed to F-Droid, not us. Reproducible builds keep **our** key on F-Droid/IzzyOnDroid/GitHub, so one registration covers all non-Play channels.
-- Register `app.keepclear` (placeholder ID) + FOSS signing key in Android Developer Console before global enforcement (2027). Play-signed build is auto-registered via Play Console.
+- Register `io.github.tomerar.keepclear` (decided ID, was placeholder `app.keepclear`) + FOSS signing key in Android Developer Console before global enforcement (2027). Play-signed build is auto-registered via Play Console.
 - Expect users outside Play to need ADB or the advanced flow if we don't register; document both.
 
 ---

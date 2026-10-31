@@ -1,6 +1,6 @@
 # KeepClear: Implementation plan
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Milestones are small, ordered, and each ends in something testable. Requirement IDs refer to [requirements.md](requirements.md); edge-case IDs to [edge-cases.md](edge-cases.md).
 
 Rules for every milestone:

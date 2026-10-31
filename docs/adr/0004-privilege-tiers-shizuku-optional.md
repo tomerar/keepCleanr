@@ -1,6 +1,6 @@
 # ADR 0004: Privilege tiers; Shizuku and root strictly optional
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 What KeepClear can see and delete depends on access level ([04-android-apis](../research/04-android-apis.md), [01-sdmaid-se](../research/01-sdmaid-se.md)):

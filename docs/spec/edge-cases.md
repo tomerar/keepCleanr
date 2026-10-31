@@ -1,6 +1,6 @@
 # KeepClear: Edge cases
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Each case: **trigger → required behaviour → test**. IDs are referenced from [tasks.md](tasks.md). The global invariant behind all of them:
 
 > **No-loss invariant.** At every instant, every user file KeepClear has touched is in exactly one of these places: its original path, the KeepClear/MediaStore trash (with a sidecar or MediaStore row), or a backup target where it is L3-verified *and* the original is still in trash. Property tests assert this after random kill points.

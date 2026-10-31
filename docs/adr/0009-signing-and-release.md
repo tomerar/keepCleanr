@@ -1,6 +1,6 @@
 # ADR 0009: Signing, keys, versioning and release
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 - Android only updates an app if the new APK is signed with the same key (or a rotated key in the v3 lineage). Losing the key means users can never get updates.
@@ -14,8 +14,9 @@ Status: Proposed · Date: 2026-10-31
 ### Keys
 - **One app signing key** (RSA 4096, validity ≥ 30 years) generated offline by the owner. It signs every `foss` release (GitHub Releases, IzzyOnDroid, F-Droid via reproducible builds).
 - For Play, enrol in Play App Signing with **"use my own key"** (upload the same app signing key via Google's PEPK tool), plus a **separate upload key**. All channels then carry the same signature, and a lost upload key can be reset by Google.
-- **Custody:**
-  - The keystore and its password live in two places: an encrypted entry in the owner's password manager, and an encrypted offline copy (age/GPG on a USB drive kept at home).
+- **Custody (owner decision Q9):** the owner holds the key.
+  - The keystore and its password live in two places: an encrypted entry in the owner's password manager, and an encrypted copy on a USB drive kept at home.
+  - The owner checks both copies once a year (open the keystore, compare the certificate fingerprint with the one in the README) and after any device/password-manager change.
   - The key is never in the repo, never in CI logs, and never on a shared machine.
 - **Signing location:**
   - MVP: the owner signs releases locally with a documented script.
@@ -24,7 +25,7 @@ Status: Proposed · Date: 2026-10-31
 - **Developer verification:** register the package name(s) and the key fingerprint before the 2027 global rollout.
 
 ### Package names
-- Proposed `app.keepclear` (`foss`) and `app.keepclear.play` (`play`). Different IDs prevent a Play update from silently removing all-files features from a `foss` install, at the cost of the two being installable side by side. **Open: owner decides (Q6, Q8).**
+- **One applicationId for both flavors: `io.github.tomerar.keepclear`** (owner decisions Q6, Q8), as SD Maid SE does. With the same signing key, users can move between channels without reinstalling; a `play` install replacing `foss` loses all-files features, which the app detects and explains.
 
 ### Versioning
 - **SemVer** `MAJOR.MINOR.PATCH`; `0.x` until v1. MVP = `0.1.0`.
@@ -45,7 +46,7 @@ Status: Proposed · Date: 2026-10-31
 7. Play: AAB to internal track first; Data safety and permission declarations re-checked (PRIV-7).
 
 ## Consequences
-- Users can move between GitHub, IzzyOnDroid and F-Droid builds without reinstalling. Play builds share the signature but have a different package name (if Q8 is accepted).
+- Users can move between GitHub, IzzyOnDroid and F-Droid builds without reinstalling. Play builds share the signature and the applicationId.
 - The owner carries the key-custody responsibility; losing both key copies ends updates. This is the single biggest operational risk and is called out in CONTRIBUTING.md (maintainers section).
 
 ## Alternatives

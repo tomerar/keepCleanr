@@ -1,6 +1,6 @@
 # ADR 0008: No AccessibilityService and no INTERNET permission in v1
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 SD Maid SE clears other apps' caches without root by automating Settings taps via AccessibilityService, with per-ROM label tables (~18 ROMs). Play says cleaners are not accessibility tools (extra disclosure, declaration, video); Android 13+ "restricted settings" block it for sideloaded installs; Android 17 Advanced Protection blocks it entirely ([05](../research/05-play-policy-and-flavors.md), [01](../research/01-sdmaid-se.md)). The owner's payoff is small (3.85 GB cache, regenerated within days).

@@ -1,6 +1,6 @@
 # KeepClear: Design
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Implements: [requirements.md](requirements.md). Decisions: [ADRs](../adr/). Evidence: [research](../research/).
 
 ---

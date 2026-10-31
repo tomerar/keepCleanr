@@ -16,7 +16,11 @@ Work only on the current milestone in `tasks.md`. If the spec is wrong or incomp
 
 ## Status
 
-Spec phase. **No app code until the owner approves the spec.**
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). Implementing **Foundations: M0 → M1 → M2**, one PR per milestone; stop after each milestone for the owner's OK.
+
+## Identity
+
+- App name **KeepClear**, applicationId **`io.github.tomerar.keepclear`** for both flavors, one signing key (ADR 0009).
 
 ## Stack
 
@@ -31,7 +35,7 @@ Spec phase. **No app code until the owner approves the spec.**
 2. **Every user-file deletion goes to the 30-day trash** (`engine:trash`). Permanent deletion happens only through purge, "Empty now" with a second confirmation, or system cache trimming that is labelled as such.
 3. **One choke point**: only `ActionExecutor` in `core:safety` (plus the trash and storage implementations) may call `File.delete`, `DocumentsContract.deleteDocument`, `ContentResolver.delete`, `MediaStore.create*Request`, or rename user files. Konsist enforces this.
 4. **PROTECTED paths are enforced at the choke point**: WhatsApp `Databases/`, `Backups/`, `*.crypt*`, `msgstore*`, our trash, the active backup target, and user exclusions.
-5. **MOVE deletes an original only after an L3 (SHA-256 read-back) verification** and a size/mtime re-check right before deleting (ADR 0007).
+5. **MOVE deletes an original only after an L3 (SHA-256 read-back) verification**, a size/mtime re-check and a re-hash of the original right before deleting (strict mode, on by default; ADR 0007).
 6. **Re-check before acting**: if an item changed since the scan, skip it and report it.
 7. **Never pre-select** REVIEW or MOVE items. Duplicate groups always keep at least one copy.
 8. Destructive code ships **with its tests in the same PR**: unit tests on `FakeStorageGateway` plus kill-point property tests for the no-loss invariant.

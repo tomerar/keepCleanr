@@ -1,6 +1,6 @@
 # ADR 0003: minSdk 30 (Android 11), targetSdk 36, compileSdk 37
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 Every core primitive KeepClear relies on starts at API 30: `MediaStore.createTrashRequest`/`createDeleteRequest`, `IS_TRASHED`, MediaStore generations, `MANAGE_EXTERNAL_STORAGE`, `ACTION_CLEAR_APP_CACHE`, `QUERY_ALL_PACKAGES` ([04-android-apis §9](../research/04-android-apis.md)). Supporting API 29 or lower means a second storage model (legacy external storage, no system trash, no all-files access). Play requires targetSdk 36 since 2026-08-31. SD Maid SE uses minSdk 26 because it carries 10 years of legacy; we have none. The owner's device runs Android 15.

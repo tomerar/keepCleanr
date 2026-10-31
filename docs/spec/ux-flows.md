@@ -1,6 +1,6 @@
 # KeepClear: MVP UX flows
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Implements: [requirements.md](requirements.md). Evidence: [07-competitor-ux](../research/07-competitor-ux.md).
 
 ## 0. UX rules (apply to every screen)
@@ -205,6 +205,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 > Every file was read back from the drive and matched the original exactly (SHA-256 check).
 > 3 files weren't copied (over 4 GB for this drive). They stay on your phone.
 > You can check this backup on a computer too: `SHA256SUMS` is on the drive.
+> The copy on the drive is not encrypted. Anyone with this drive can open these files, so keep it somewhere safe.
 > To get files back later, open `KeepClear/…` on the drive with any file manager or computer (in-app "Restore from backup" comes in v1).
 > `[Free 58.0 GB from phone]` `[Keep them for now]`
 
@@ -213,6 +214,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 > כל קובץ נקרא בחזרה מהכונן ונמצא זהה לגמרי למקור (בדיקת SHA-256).
 > ‏3 קבצים לא הועתקו (גדולים מ-4GB לכונן הזה). הם נשארים בטלפון.
 > אפשר לבדוק את הגיבוי גם במחשב: הקובץ `SHA256SUMS` נמצא בכונן.
+> העותק בכונן לא מוצפן. כל מי שמחזיק בכונן יכול לפתוח את הקבצים, אז כדאי לשמור אותו במקום בטוח.
 > כדי להחזיר קבצים בעתיד, פותחים את `KeepClear/…` בכונן בכל מנהל קבצים או מחשב (שחזור מתוך האפליקציה יגיע ב-v1).
 > `[לפנות 58.0GB מהטלפון]` `[להשאיר בינתיים]`
 
@@ -224,7 +226,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 > They'll wait in KeepClear's trash for 30 days, and that space returns when the trash empties. **Need the space now?** Since every file has a checked copy, you can release it right away.
 > `[Move to trash (safest)]` `[Free the space now]` `[Cancel]`
 
-(Final wording depends on owner answer Q1 in [requirements.md](requirements.md) §14.)
+Decided (Q1): "Move to trash" is the default action; "Free the space now" is the prominent release button. Hebrew: `[להעביר לסל המחזור (הכי בטוח)]` `[לפנות את המקום עכשיו]` `[ביטול]`. Before trashing, every original is re-hashed (strict mode, Q13); progress shows "Checking each photo one last time…" / "בודקים כל תמונה פעם אחרונה…".
 
 ---
 

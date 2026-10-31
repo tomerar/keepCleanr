@@ -1,6 +1,6 @@
 # KeepClear: Requirements
 
-Status: **Draft for owner approval** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
 Inputs: [research 01–07](../research/), owner's measured device data (OnePlus 10T, Android 15, 240 GB, 93% full).
 
 ## 0. How to read this
@@ -179,7 +179,7 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | MOVE-6 | MVP | THE SYSTEM SHALL copy each file to a temp name, compute SHA-256 during the copy, flush, rename to the final name, then read the target file back and compare SHA-256. | L3 verification ([ADR 0007](../adr/0007-verify-by-hash.md)). |
 | MOVE-7 | MVP | THE SYSTEM SHALL preserve the source folder structure under `KeepClear/<device name>/<source>/<YYYY>/<MM>/` on the target (configurable), keep original filenames where legal, and record any rename in the manifest. | — |
 | MOVE-8 | MVP | THE SYSTEM SHALL write `keepclear-manifest.jsonl` and `SHA256SUMS` to the target **after** all files in a batch verify. | `sha256sum -c SHA256SUMS` passes on a PC (documented in receipt). |
-| MOVE-9 | MVP | WHEN verification finishes, THE SYSTEM SHALL show a **receipt**: target name, N files / X GB copied, N verified by SHA-256, N skipped with reasons, and only then a "Delete N originals from phone (X GB)" button. | Button absent or disabled if any selected file is not L3-verified; partial: "Delete the N verified files". |
+| MOVE-9 | MVP | WHEN verification finishes, THE SYSTEM SHALL show a **receipt**: target name, N files / X GB copied, N verified by SHA-256, N skipped with reasons, and only then a "Delete N originals from phone (X GB)" button. | Button absent or disabled if any selected file is not L3-verified; partial: "Delete the N verified files". Receipt also warns the drive copy is not encrypted (Q12). |
 | MOVE-10 | MVP | WHEN the user confirms deletion, THE SYSTEM SHALL re-check each original's size + mtime against the hashed values and target presence, then trash the originals (ADR 0006), linking each trash entry to its verified copy. | Changed files skipped (SAFETY-6). |
 | MOVE-11 | MVP | THE SYSTEM SHALL run copy/verify as a resumable job (Room-persisted per-file state) that survives app kill, reboot, cable unplug and permission loss, resuming at the first unverified file. | Kill-and-resume test; unplug test on device. |
 | MOVE-12 | MVP | WHILE a MOVE job runs, THE SYSTEM SHALL show a foreground notification with progress, ETA, pause and cancel, and SHALL use a `dataSync` foreground service (local targets) or user-initiated data transfer job (network targets, API 34+), handling the Android 15 6 h/24 h FGS limit by checkpointing. | — |
@@ -188,6 +188,7 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | MOVE-15 | v1 | THE SYSTEM SHALL be able to re-verify an existing backup (re-read target, compare to manifest) on demand. | — |
 | MOVE-16 | MVP | THE SYSTEM SHALL tell the truth about Google Photos: "KeepClear can't see what's in Google Photos. If you use it, check there, or use its own Free up space." with a deep link. | No claims of Google Photos backup status ([06](../research/06-backup-targets-and-verification.md) §5). |
 | MOVE-17 | v1 | WHEN the user connects a target that holds a KeepClear backup and taps "Restore from backup", THE SYSTEM SHALL list backed-up items from the manifest (by source and month, with thumbnails read from the target), copy selected files back to their original relative location (validated by `RestorePathValidator`, SEC-1/SEC-3) or `Pictures/KeepClear Restored/`, verify each copy by SHA-256 against the manifest **and** the target file, never overwrite, and re-index them in MediaStore. | Round-trip test: MOVE → delete → restore → bytes identical; hostile manifest rejected (E-SEC-5). |
+| MOVE-19 | Later | WHERE the user opts in, THE SYSTEM SHALL encrypt backups on the target with a user password (format and recovery to be specified; must stay verifiable with a documented tool). | — |
 | MOVE-18 | MVP | THE SYSTEM SHALL state in every MOVE receipt how to get files back: "Your files are on <target> in `KeepClear/…`. To bring them back, open them with any file manager or computer. In-app restore is coming." (v1: "…or tap Restore from backup."). The manifest SHALL record each file's original path to make manual and in-app restore possible. | Receipt UI test; manifest schema test. |
 
 ---
@@ -199,10 +200,10 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---|---|---|
 | TRASH-1 | MVP | THE SYSTEM SHALL move deleted user files into Trash: MediaStore trash for indexed media, `.KeepClearTrash/` same-volume rename for everything else, with one unified Trash screen. | Both backends tested; same UI. |
-| TRASH-2 | MVP | THE SYSTEM SHALL keep trashed items 30 days (configurable 7–60), then purge them in a daily job and on app open. | Clock-skew tolerant (use stored deadline + monotonic checks). |
+| TRASH-2 | MVP | THE SYSTEM SHALL keep trashed items 30 days (configurable 7–60), then purge them in a daily job and on app open. The same 30-day default applies to every category (owner decision Q2). | Clock-skew tolerant (use stored deadline + monotonic checks). |
 | TRASH-3 | MVP | THE SYSTEM SHALL restore any item to its original path (or a "Restored" folder if the path is taken/unavailable), with original name and mtime. | Restore after app restart, after reboot. |
 | TRASH-4 | MVP | THE SYSTEM SHALL show trash size as "Takes X GB until <date>" and offer **Empty now** (all / group / item) with a second confirmation. | Home totals never count trashed bytes as free. |
-| TRASH-5 | MVP | WHEN an item in trash has a verified backup, THE SYSTEM SHALL show "Verified copy on <target>" and allow releasing it early with one confirmation. | — |
+| TRASH-5 | MVP | WHEN an item in trash has a verified backup, THE SYSTEM SHALL show "Verified copy on <target>" and SHALL show a prominent **"Release now (verified copy exists)"** button (owner decision Q1) that releases it early with one confirmation. | — |
 | TRASH-6 | MVP | IF a trashed file is missing or modified when purge or restore runs, THEN THE SYSTEM SHALL report it and drop the index entry without error loops. | — |
 | TRASH-7 | v1 | WHEN the user starts uninstalling KeepClear (Settings entry) THE SYSTEM SHALL warn if trash is non-empty and offer restore-all or empty-all. | Note: we cannot intercept system uninstall; mention in About + notifications. |
 
@@ -246,7 +247,7 @@ Threats and rationale: [threat-model.md](threat-model.md).
 | SEC-1 | MVP | THE SYSTEM SHALL treat trash sidecar JSON as untrusted: Room is the source of truth; sidecars are read only by `recover()`, carry an HMAC (Keystore key), and every restore destination (trusted or not) passes `RestorePathValidator` (no `..`/separators/NUL in names, canonical destination inside the same volume, outside `.KeepClearTrash`, not PROTECTED, no symlinked ancestors, never overwrite). IF a sidecar's MAC is missing or invalid, THEN THE SYSTEM SHALL mark the entry *untrusted-recovered* and restore it only after explicit confirmation, by default into `Download/KeepClear Restored/`. | E-SEC-1…3 fuzz tests. |
 | SEC-2 | MVP | THE SYSTEM SHALL never extract archives; archive inspection reads only the central directory, rejects entries that are absolute or contain `..`/NUL/drive letters, requires name + size + CRC-32 match for SAFE, and caps entries (100k) and directory size (4 MiB). | E-SEC-4. |
 | SEC-3 | MVP | THE SYSTEM SHALL never base a deletion on a backup manifest; manifests and target markers are parsed strictly and every path is validated as relative and inside `KeepClear/`. | E-SEC-5, E-SEC-6. |
-| SEC-4 | MVP | THE SYSTEM SHALL move/trash paths with no-follow semantics, refuse actions on symlinked directories, and re-check size, mtime and inode/generation immediately before each action. WHERE strict mode is on, THE SYSTEM SHALL re-hash a MOVE original before trashing it. | E-SEC-7. |
+| SEC-4 | MVP | THE SYSTEM SHALL move/trash paths with no-follow semantics, refuse actions on symlinked directories, and re-check size, mtime and inode/generation immediately before each action. THE SYSTEM SHALL re-hash every MOVE original (SHA-256) immediately before trashing it and skip it if the hash differs from the verified copy (**strict mode, on by default for all files**, owner decision Q13; can be turned off in Settings with a warning). | E-SEC-7; strict-mode test: original modified with same size+mtime → skipped. |
 | SEC-5 | MVP | THE SYSTEM SHALL export no component except the launcher activity, use explicit immutable PendingIntents, and never perform a destructive action from intent extras. Debug-only flags (dry-run) SHALL NOT exist in release builds. | E-SEC-8; merged-manifest CI check. |
 | SEC-6 | MVP | THE SYSTEM SHALL match PROTECTED paths and exclusions on the canonical path, case-insensitively, after NFC normalisation and removal of zero-width/bidi control characters, on every volume and user root (`/storage/emulated/<n>/`, SD cards). | E-SEC-9 table test. |
 | SEC-7 | MVP | THE SYSTEM SHALL ignore touches on destructive confirm buttons while the window is obscured by an overlay, and enable those buttons only 500 ms after the sheet appears. | E-SEC-10 UI test. |
@@ -302,20 +303,22 @@ WHEN KeepClear MVP runs on the owner's OnePlus 10T (data of 28.10.2026), THE SYS
 
 ---
 
-## 14. Open questions for the owner
+## 14. Owner decisions (closed questions)
 
-| # | Question | Default if no answer |
+Decided by the owner on 2026-10-31; the spec and ADRs above reflect these answers.
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | MOVE originals: keep them in trash 30 days (space not freed for a month), or release immediately once L3-verified ("the backup *is* the undo")? | Trash, with a prominent one-tap "Release now (verified copy exists)". |
-| Q2 | SAFE junk that's regenerable (thumbnails, statuses, temp): 30-day trash too, or a shorter 7-day retention? | 30 days, same as everything (simplest promise). |
-| Q3 | MVP flavor: build `foss` (all-files) first for your phone, `play` backend (SAF/MediaStore-only) in v1? | Yes: foss first, play in v1; flavor scaffolding from day one. |
-| Q4 | First backup target: USB-C drive/SD (MVP) then SMB on home PC (v1)? Do you have a USB-C drive ≥ 128 GB (exFAT) and/or a Windows PC with a shared folder? | USB-C drive first. |
-| Q5 | Default MOVE age: older than 12 months? | 12 months, favourites excluded. |
-| Q6 | App name/package: `KeepClear` with package `app.keepclear`? (repo is named `keepCleanr`.) | Ask before M0. |
-| Q7 | WhatsApp `Sent/` copies without an on-device original: REVIEW (default) or SAFE ("WhatsApp already delivered it")? | REVIEW. |
-| Q8 | Package names: `app.keepclear` (foss) and `app.keepclear.play` (play), or one ID for both? Both signed with the same key you hold (ADR 0009). | Separate IDs. |
-| Q9 | Who holds the signing key backups (password manager + offline USB at home)? | You, two copies. |
-| Q10 | Contact for the Code of Conduct and security reports: private GitHub advisories only (current), or also a dedicated email? | GitHub advisories only. Requires enabling "Private vulnerability reporting" in repo settings. |
-| Q11 | Apply for Hosted Weblate (libre plan) now, or translate in PRs until v1? | PRs until v1. |
-| Q12 | Encrypt backups on the drive (password-based) — Later, or needed for v1? Unencrypted means anyone with the drive sees the photos. | Later; say it plainly in the receipt and PRIVACY.md. |
-| Q13 | Strict mode (re-hash a MOVE original right before trashing it, SEC-4) for files < 1 GB: on by default? Costs one extra read of the phone copy. | On. |
+| Q1 | MOVE originals: trash or release immediately? | Trash for 30 days, with a prominent **"Release now (verified copy exists)"** button (TRASH-5, ADR 0006). |
+| Q2 | Retention for regenerable SAFE junk? | **30 days for everything**, plus "Empty now" (TRASH-2/4). No per-category retention. |
+| Q3 | Flavor order | `foss` first; `play` in v1 (M11); flavor scaffolding from M0 (ADR 0005). |
+| Q4 | First backup target | USB-C drive / SD card first (MVP), SMB in v1 (M13). **Still open:** whether the owner has a USB-C drive ≥ 128 GB (the answer template was not filled in). Needed by M10. |
+| Q5 | Default MOVE age | Older than 12 months, favourites excluded (MOVE-1). |
+| Q6 | Name and package | App name **KeepClear**, applicationId **`io.github.tomerar.keepclear`**. The owner will rename the repo to `keepclear`; repository links get updated after the rename. |
+| Q7 | WhatsApp `Sent/` without on-device original | REVIEW (CLS-4). |
+| Q8 | One or two applicationIds | **One applicationId for both flavors** (as SD Maid SE), same signing key (ADR 0005, ADR 0009). |
+| Q9 | Signing key custody | Owner holds it: password manager + encrypted USB at home (ADR 0009, no secrets in the repo). |
+| Q10 | Security/CoC contact | GitHub private vulnerability reporting (owner enables it in repo settings). |
+| Q11 | Translations | Via PRs until v1; Hosted Weblate later ([TRANSLATING.md](../TRANSLATING.md)). |
+| Q12 | Backup encryption | Not in v1. Optional encryption is **Later** (MOVE-19). The receipt warns that the drive is unencrypted (MOVE-9). |
+| Q13 | Strict mode | **On by default for all files**: re-hash every MOVE original right before trashing it (SEC-4, ADR 0007). |

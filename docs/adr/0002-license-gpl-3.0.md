@@ -1,6 +1,6 @@
 # ADR 0002: License GPL-3.0-or-later
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 The repo already ships the GPL-3.0 text. The richest prior art is GPL-3.0 (SD Maid SE, WhatsAppCleaner, CleanSweep) or GPL-3.0-or-later (AppManager/AppManagerNG). Permissive code (Clearo MIT, Shizuku-API Apache-2.0/MIT, smbj Apache-2.0) can be combined into a GPL-3.0 work. A user-trust product benefits from a strong copyleft: forks must stay open, so "KeepClear with trackers" cannot be closed-source.

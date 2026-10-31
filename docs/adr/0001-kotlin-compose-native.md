@@ -1,6 +1,6 @@
 # ADR 0001: Native Kotlin + Jetpack Compose, not Flutter
 
-Status: Proposed · Date: 2026-10-31
+Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Context
 KeepClear's hard parts are platform-level: MediaStore trash/delete requests, SAF trees (`Android/media/com.whatsapp`), `StorageStatsManager`/`UsageStatsManager`, user-initiated data transfer jobs / foreground services, Shizuku AIDL user services, and fast file I/O with hashing. The UI is comparatively simple lists, cards and dialogs, but must be RTL-correct (Hebrew).
