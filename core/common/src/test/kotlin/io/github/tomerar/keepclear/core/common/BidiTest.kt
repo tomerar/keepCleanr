@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package io.github.tomerar.keepclear.core.common
+
+import io.kotest.matchers.shouldBe
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.string
+import io.kotest.property.checkAll
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Test
+
+class BidiTest {
+    @Test
+    fun `isolates a Hebrew file name`() {
+        Bidi.isolate("תמונה של אמא 🎂.jpg") shouldBe "⁨תמונה של אמא 🎂.jpg⁩"
+    }
+
+    @Test
+    fun `paths are isolated left to right`() {
+        Bidi.isolateLtr("DCIM/Camera/IMG_1.jpg") shouldBe "⁦DCIM/Camera/IMG_1.jpg⁩"
+    }
+
+    @Test
+    fun `stray controls are removed so isolates stay balanced`() {
+        Bidi.isolate("a‮b⁩c") shouldBe "⁨abc⁩"
+    }
+
+    @Test
+    fun `isolate always has exactly one opening and one closing mark`(): Unit = runBlocking {
+        checkAll(Arb.string(0..40)) { s ->
+            val out = Bidi.isolate(s)
+            out.count { it == Bidi.FSI } shouldBe 1
+            out.count { it == Bidi.PDI } shouldBe 1
+            out.first() shouldBe Bidi.FSI
+            out.last() shouldBe Bidi.PDI
+        }
+    }
+}

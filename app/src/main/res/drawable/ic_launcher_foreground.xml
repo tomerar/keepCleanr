@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Placeholder mark: a check inside a circle. Our own artwork (ADR 0002). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30a24,24 0,1 0,0.01 0zM54,34a20,20 0,1 1,-0.01 0z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,54l7,7 14,-14 3,3 -17,17 -10,-10z" />
+</vector>

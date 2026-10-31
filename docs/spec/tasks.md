@@ -14,6 +14,14 @@ Rules for every milestone:
 ## Phase 0: Foundations (no user-visible deletion)
 
 ### M0: Project skeleton and guard rails
+Status: **implemented** (PR for M0). Spec adjustments made while implementing:
+- Modules are created when a milestone needs them, not as empty shells: M0 has `app`, `core:model`, `core:common`, `core:designsystem`, `core:i18n`, `testing:architecture` (+ `build-logic`). The full layout stays in design.md §2.
+- Static analysis: Android Lint (warnings as errors) + ktlint via Spotless. detekt is deferred (not needed for M0; revisit if Lint/ktlint miss something).
+- Robolectric/Compose UI tests use JUnit 4 (Robolectric runner); pure-JVM modules use JUnit 5 + Kotest.
+- The exported-component check (SEC-5) allows two debug-only tooling activities (Compose preview, ui-test-manifest) in **debug** variants only; release variants are strict.
+- Policy checks run per variant: `check<Variant>ManifestPolicy` (INTERNET, restricted permissions in `play`, accessibility service, exported components, PRIVACY.md sync) and `check<Variant>DependencyAllowlist`.
+- In-app language picker for API 30–32 is deferred to Settings (M-later); M0 uses the system locale and Android 13+ per-app language via `locales_config.xml`.
+
 - Gradle multi-module skeleton per [design.md §2](design.md) (empty modules for later ones), version catalog, `build-logic` convention plugins, flavors `foss`/`play`, minSdk 30/target 36/compile 37.
 - Compose app with Home placeholder in en + he; per-app language; RTL toggle in debug.
 - CI (GitHub Actions): assemble `fossDebug` + `playDebug`, unit tests, detekt/ktlint, Konsist architecture tests, **merged-manifest check** (no `MANAGE_EXTERNAL_STORAGE`/`QUERY_ALL_PACKAGES` in `play`; no `INTERNET` anywhere), **string parity en↔he**, dependency allowlist.
