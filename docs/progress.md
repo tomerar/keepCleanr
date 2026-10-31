@@ -16,7 +16,7 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M7 SAFE cleanup | ✅ merged | [#8](https://github.com/tomerar/keepCleanr/pull/8) | 3 Codex findings fixed: plans use the scan snapshot (SAFETY-6), MediaStore-only items are skipped instead of crashing, a copy that is itself SAFE never counts as a twin witness. |
 | M8 REVIEW actions | ✅ merged | [#9](https://github.com/tomerar/keepCleanr/pull/9) | 2 Codex findings fixed: Undo survives deleting a whole group; confirm rows show thumbnail + folder. |
 | M9 MOVE engine | ✅ merged | [#10](https://github.com/tomerar/keepCleanr/pull/10) | 4 Codex findings fixed: copy-only targets keep unverified copies, collision names checkpointed before rename, suffixes stay within 255 bytes, crash-safe manifest replace. Also fixed while integrating: reused files never deleted, unreadable manifests kept, ASCII folder names. |
-| M10 SAF target + MOVE UI | 🔄 PR open | [#11](https://github.com/tomerar/keepCleanr/pull/11) | SAF target with marker, Room v3, `dataSync` service, MOVE screen + receipt + free originals via executor; instrumented tests with a fake USB drive (unplug, update mid-job, pause). |
+| M10 SAF target + MOVE UI | ✅ merged | [#11](https://github.com/tomerar/keepCleanr/pull/11) | 4 Codex findings fixed (no fsync on pipes, selection kept across recreation, Continue for older jobs, progress notification removed); device tests fixed for a start/await race. |
 
 ## Device checks waiting for the owner (D)
 
@@ -44,6 +44,7 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 
 | # | Type | Question | What I did meanwhile |
 |---|---|---|---|
+| Q4 | Open question (requirements §14) | Which USB-C drive for backups (≥ 128 GB, exFAT preferred so videos over 4 GB fit)? Needed for device check D10-1. | Nothing blocked in code: every SAF drive is treated as FAT32 (files > 4 GB are blocked with a message, never truncated) until D10-2 confirms the format. |
 | B2 | Decision (ADR 0010, amends ADR 0006) | MVP trash: put **every** file KeepClear can reach by path (including camera media) into its own `.KeepClearTrash` folder, instead of MediaStore's trash for indexed media. Simpler and fully crash-tested; trashed photos disappear from the gallery until restored, and other galleries' "Recently deleted" won't list them. MediaStore trash comes with the `play` flavor (M11). OK? | Implemented as proposed (ADR 0010 status "Proposed"). Still a 30-day trash; nothing permanent changed. |
 | B1 | Decision (CLS-5) | Keep signals: today every SAFE item that is a favourite **or modified in the last 30 days** becomes REVIEW. That is the safe reading of CLS-5, but it means WhatsApp statuses older than 24 h are never SAFE (they are always < 30 days old), and other apps' recent recycle-bin items need review too. Should regenerable junk (thumbnails, statuses, temp files) and already-deleted bin items stay SAFE despite being recent? | Kept the conservative behaviour (nothing becomes SAFE that the spec doesn't clearly allow). Visible in `engine/classify/src/test/resources/owner-classification-snapshot.txt`. |
 
@@ -52,7 +53,8 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 - Local builds in the sandbox use a Maven Central mirror via `~/.gradle/init.d/mirror.gradle.kts` and `keepclear.robolectricRepoUrl` in `~/.gradle/gradle.properties` (Central returns HTTP 429 here). Not part of the repo; CI uses normal repositories.
 - Android SDK at `/opt/android-sdk` (platform `android-37.0`, build-tools 37.0.0); `local.properties` is git-ignored.
 - Write `gradle/verification-metadata.xml` with `--no-configuration-cache` after deleting `.gradle/`, `build-logic/.gradle`, `build-logic/build` (otherwise the included build's plugin classpath isn't re-resolved and CI fails), then run `scripts/verification-extras.py`.
-- Later milestones are prepared in the local worktree `/home/user/kc-int` as a chain: `m6-int` → `m7-int2` → `m8-int2` → `m9-int`. Each PR takes the tree of its branch (`git diff --binary HEAD <branch> | git apply --index`) and keeps `main`'s `docs/progress.md`.
+- MVP milestones M0–M10 are merged. Next per tasks.md: M11+ (v1: `play` flavor with MediaStore trash, SMB target, restore from backup). Nothing is in progress.
+- Lessons from the overnight run: always `git add -A` before committing new files; pure-JVM modules aren't linted for Android API levels (Konsist now forbids `readNBytes`/`skipNBytes`/`transferTo`); every PR gets a Codex review a minute after opening, so read the threads before merging.
 - **Merge gate (since #5):** CI green on the head commit **and** every Codex review thread answered (fixed, or explained). PRs #2–#4 were merged before their review threads were read; all their findings were verified and fixed in #5, with replies on each thread.
 - Never run two Gradle builds at once in this sandbox (15 GB RAM): the daemon gets killed. Stop daemons with `./gradlew --stop` and kill leftover `java` PIDs by number (pattern-based `pkill` also kills the shell).
 - `git reset --hard` is blocked by the sandbox policy; after a squash-merge, `git merge origin/main` into the working branch and continue (the PR diff stays correct).
