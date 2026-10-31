@@ -82,14 +82,20 @@ class MoveJobOnDeviceTest {
         return id
     }
 
+    private var startTick = 0L
+
+    /** Starts the service; [awaitEnd] then waits for this run to end, not for a state left by an earlier run. */
+    private fun start(id: String) {
+        startTick = app.moveController.ticks.value
+        app.moveController.start(context, id)
+    }
+
     private suspend fun awaitEnd(id: String): MoveJob = withTimeout(120_000) {
         while (true) {
             val job = app.moveController.store.job(id)!!
-            if (app.moveController.running.value == null && job.state != JobState.RUNNING &&
-                job.state != JobState.READY
-            ) {
-                return@withTimeout job
-            }
+            // The service bumps `ticks` after clearing `running` when it ends.
+            val ended = app.moveController.ticks.value > startTick && app.moveController.running.value == null
+            if (ended && job.state != JobState.RUNNING && job.state != JobState.READY) return@withTimeout job
             delay(200)
         }
         @Suppress("UNREACHABLE_CODE")
@@ -112,7 +118,7 @@ class MoveJobOnDeviceTest {
     @Test
     fun serviceCopiesAndVerifiesWithOrWithoutNotifications(): Unit = runBlocking {
         val id = newJob(4)
-        app.moveController.start(context, id)
+        start(id)
         val job = awaitEnd(id)
         assertEquals(JobState.DONE, job.state)
         assertAllVerifiedAndOriginalsKept(id)
@@ -141,7 +147,7 @@ class MoveJobOnDeviceTest {
         }
         assertEquals(PauseReason.INTERRUPTED, store.job(id)!!.pauseReason)
 
-        app.moveController.start(context, id)
+        start(id)
         val job = awaitEnd(id)
         assertEquals(JobState.DONE, job.state)
         assertAllVerifiedAndOriginalsKept(id)
@@ -153,13 +159,13 @@ class MoveJobOnDeviceTest {
     fun unpluggingPausesAndTheSameDriveResumes(): Unit = runBlocking {
         val id = newJob(4)
         FakeUsbProvider.ejectOnCreate = FakeUsbProvider.creates + 6
-        app.moveController.start(context, id)
+        start(id)
         val paused = awaitEnd(id)
         assertEquals(JobState.PAUSED, paused.state)
         assertEquals(PauseReason.TARGET_DISCONNECTED, paused.pauseReason)
         FakeUsbProvider.ejected = false
         FakeUsbProvider.ejectOnCreate = 0
-        app.moveController.start(context, id)
+        start(id)
         assertEquals(JobState.DONE, awaitEnd(id).state)
         assertAllVerifiedAndOriginalsKept(id)
     }
@@ -168,7 +174,7 @@ class MoveJobOnDeviceTest {
     fun pauseFromTheNotificationThenContinue(): Unit = runBlocking {
         val id = newJob(6)
         FakeUsbProvider.createDelayMs = 300
-        app.moveController.start(context, id)
+        start(id)
         withTimeout(60_000) {
             while (app.moveController.store.files(id).none { it.state == MoveFileState.VERIFIED }) delay(50)
         }
@@ -182,7 +188,7 @@ class MoveJobOnDeviceTest {
         assertEquals(PauseReason.PAUSED_BY_USER, paused.pauseReason)
         assertTrue(app.moveController.store.files(id).any { it.state != MoveFileState.VERIFIED })
         FakeUsbProvider.createDelayMs = 0
-        app.moveController.start(context, id)
+        start(id)
         assertEquals(JobState.DONE, awaitEnd(id).state)
         assertAllVerifiedAndOriginalsKept(id)
     }
