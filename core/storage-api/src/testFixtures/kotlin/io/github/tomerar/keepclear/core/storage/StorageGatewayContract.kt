@@ -176,7 +176,15 @@ abstract class StorageGatewayContract {
     fun `symlinks are never followed by stat, rename or delete`(): Unit = runBlocking {
         val (g, root) = newGateway()
         val target = g.write(root, "real.txt", "real".toByteArray())
-        if (!createSymlink(g, root, "link", (target as? KPath.Local)?.absolute ?: return@runBlocking)) return@runBlocking
+        if (!createSymlink(
+                g,
+                root,
+                "link",
+                (target as? KPath.Local)?.absolute ?: return@runBlocking,
+            )
+        ) {
+            return@runBlocking
+        }
         val link = child(g, root, "link")
         g.stat(link)!!.kind shouldBe Stat.Kind.SYMLINK
         val moved = g.rename(link, root, "link2")

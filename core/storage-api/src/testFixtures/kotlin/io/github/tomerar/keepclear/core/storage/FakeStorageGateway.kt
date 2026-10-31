@@ -23,7 +23,6 @@ class FakeStorageGateway(
     volumeRoots: List<String> = listOf("/storage/emulated/0"),
     private val clock: () -> Long = { 1_700_000_000_000L },
 ) : StorageGateway {
-
     enum class Op { LIST, STAT, OPEN_READ, READ, CREATE, WRITE, MKDIR, RENAME, DELETE }
 
     sealed interface Content {
@@ -336,6 +335,7 @@ class FakeStorageGateway(
     private fun moveSubtree(from: KPath.Local, to: KPath.Local, node: Node) {
         // Collect the subtree (parents first), detach it deepest-first, then re-insert under [to].
         val entries = mutableListOf<Pair<String, Node>>()
+
         fun collect(p: KPath.Local, rel: String, n: Node) {
             entries += rel to n
             children[key(p.absolute)]?.values?.toList().orEmpty().forEach { childName ->
@@ -344,6 +344,7 @@ class FakeStorageGateway(
             }
         }
         collect(from, "", node)
+
         fun under(base: KPath.Local, rel: String) = if (rel.isEmpty()) base else KPath.Local("${base.absolute}/$rel")
         entries.asReversed().forEach { (rel, _) -> removeEntry(under(from, rel)) }
         entries.forEach { (rel, n) ->
@@ -359,14 +360,26 @@ class FakeStorageGateway(
 
     private fun statOf(path: KPath.Local, node: Node): Stat = when (node) {
         is Node.Dir -> Stat(path, node.name, Stat.Kind.DIRECTORY, 0, node.mtime, "inode:${node.inode}")
+
         is Node.File -> Stat(path, node.name, Stat.Kind.FILE, node.content.size, node.mtime, "inode:${node.inode}")
-        is Node.Link -> Stat(path, node.name, Stat.Kind.SYMLINK, node.target.length.toLong(), node.mtime, "inode:${node.inode}")
+
+        is Node.Link -> Stat(
+            path,
+            node.name,
+            Stat.Kind.SYMLINK,
+            node.target.length.toLong(),
+            node.mtime,
+            "inode:${node.inode}",
+        )
     }
 
     private fun resolveFollowing(p: KPath.Local, depth: Int = 0): Node? {
         if (depth > 8) return null
         return when (val node = nodes[key(p.absolute)]) {
-            is Node.Link -> runCatching { KPath.Local(node.target) }.getOrNull()?.let { resolveFollowing(it, depth + 1) }
+            is Node.Link -> runCatching {
+                KPath.Local(node.target)
+            }.getOrNull()?.let { resolveFollowing(it, depth + 1) }
+
             else -> node
         }
     }
@@ -449,7 +462,13 @@ class FakeStorageGateway(
             synchronized(lock) {
                 volumeOf(path.absolute)?.let { if (it.root in disconnected) throw StorageException.Disconnected(path) }
             }
-            val allowed = if (fault != null) minOf(len.toLong(), fault.afterBytes - read).toInt().coerceAtLeast(1) else len
+            val allowed = if (fault !=
+                null
+            ) {
+                minOf(len.toLong(), fault.afterBytes - read).toInt().coerceAtLeast(1)
+            } else {
+                len
+            }
             val n = delegate.read(b, off, allowed)
             if (n > 0) {
                 read += n
