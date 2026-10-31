@@ -53,6 +53,7 @@ Every permission request is preceded by a bottom sheet with the same structure:
 | Photos & videos (READ_MEDIA_*) | **See your photos and videos.** To find screenshots, big videos and what can be backed up. Nothing leaves your phone unless you move it to a drive you choose. Without it: only junk and app caches. | **לראות תמונות וסרטונים.** כדי למצוא צילומי מסך, סרטונים גדולים ומה אפשר לגבות. שום דבר לא יוצא מהטלפון, אלא אם מעבירים אותו לכונן שבוחרים. בלי זה: רק קבצים זמניים ומטמון של אפליקציות. |
 | All files (foss) | **See all your files.** Finds WhatsApp media, folders left from your old phone, and other apps' recycle bins. Android still keeps other apps' private data closed. Without it: you can give access folder by folder. | **לראות את כל הקבצים.** כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות. גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. בלי זה: אפשר לתת גישה תיקייה אחרי תיקייה. |
 | WhatsApp folder (SAF, play) | **Let KeepClear see WhatsApp's media folder.** On the next screen, tap **Use this folder** at the bottom. We only read photos, videos and voice notes. Your chats and backups are never touched. | **לתת ל-KeepClear לראות את תיקיית המדיה של וואטסאפ.** במסך הבא, הקישו על **שימוש בתיקייה הזו** למטה. אנחנו קוראים רק תמונות, סרטונים והודעות קוליות. הצ'אטים והגיבויים לא נוגעים בהם אף פעם. |
+| Notifications (API 33+, at first MOVE) | **Get told about your backup.** Progress while it runs, and a note when it's done or needs you (e.g. the drive was unplugged). Without it: the backup still runs; you'll see progress only inside KeepClear. | **לקבל עדכונים על הגיבוי.** התקדמות בזמן שהוא רץ, והודעה כשהוא מסתיים או כשצריך אתכם (למשל כשהכונן נותק). בלי זה: הגיבוי עדיין רץ, ואת ההתקדמות רואים רק בתוך KeepClear. |
 | Usage access | **See app sizes and when you last used them.** To show apps you haven't opened in months. Read on this phone only. | **לראות כמה מקום כל אפליקציה תופסת ומתי השתמשו בה.** כדי להראות אפליקציות שלא נפתחו כבר חודשים. המידע נקרא רק בטלפון. |
 
 Returning from system settings re-checks state on `onResume` and shows a ✓ toast or, if still denied, the "Without it" line.
@@ -204,6 +205,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 > Every file was read back from the drive and matched the original exactly (SHA-256 check).
 > 3 files weren't copied (over 4 GB for this drive). They stay on your phone.
 > You can check this backup on a computer too: `SHA256SUMS` is on the drive.
+> To get files back later, open `KeepClear/…` on the drive with any file manager or computer (in-app "Restore from backup" comes in v1).
 > `[Free 58.0 GB from phone]` `[Keep them for now]`
 
 > **הגיבוי נבדק ✓**
@@ -211,6 +213,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 > כל קובץ נקרא בחזרה מהכונן ונמצא זהה לגמרי למקור (בדיקת SHA-256).
 > ‏3 קבצים לא הועתקו (גדולים מ-4GB לכונן הזה). הם נשארים בטלפון.
 > אפשר לבדוק את הגיבוי גם במחשב: הקובץ `SHA256SUMS` נמצא בכונן.
+> כדי להחזיר קבצים בעתיד, פותחים את `KeepClear/…` בכונן בכל מנהל קבצים או מחשב (שחזור מתוך האפליקציה יגיע ב-v1).
 > `[לפנות 58.0GB מהטלפון]` `[להשאיר בינתיים]`
 
 "Keep them for now" saves the receipt; Home's MOVE card then shows "58 GB backed up and checked. Ready to free."
@@ -259,6 +262,12 @@ Space returns as items expire, or empty now.
 - About: version, license GPL-3.0, source link, "KeepClear has no internet permission", trash survives uninstall note, credits (SD Maid SE rules data etc.).
 
 ---
+
+## 8a. Themes and screen sizes (UI-1…3)
+
+- Light/dark follow the system; Settings › Appearance offers System / Light / Dark and "Use wallpaper colours" (Android 12+).
+- Destructive buttons keep a fixed, high-contrast colour in both themes; risk chips use icon + text, never colour alone.
+- Medium/expanded widths: Review hub (list) beside the bucket grid (detail); Trash list beside item detail; MOVE steps stay single-column, centred, max 600 dp.
 
 ## 9. Empty and error states
 

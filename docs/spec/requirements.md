@@ -65,6 +65,7 @@ These are non-negotiable. Each has a dedicated automated test.
 | ONB-7 | MVP | B / both | THE SYSTEM SHALL request Usage Access (`PACKAGE_USAGE_STATS`) only when the user opens Apps, explaining it is used to read app sizes and last-used dates on the device only. | — |
 | ONB-8 | v1 | S / both | THE SYSTEM SHALL offer an optional "Advanced access" sheet that detects Shizuku (installed / running / permission) and root, explains each in plain language, lists what each unlocks, and has a "Re-check" button. It SHALL warn that root-based setups can trip banking apps. | Pattern from AppManagerNG ([02](../research/02-reference-apps.md) §5). |
 | ONB-9 | MVP | B / both | IF a permission is revoked while the app runs or a job is in progress, THEN THE SYSTEM SHALL pause affected jobs safely (no partial deletes), show what stopped and why, and resume after re-grant. | See [edge-cases.md](edge-cases.md) E-PERM-*. |
+| ONB-10 | MVP | B / both | WHEN the user starts the first MOVE job on API 33+, THE SYSTEM SHALL explain and request `POST_NOTIFICATIONS` ("So you can see backup progress and get told when it's done or needs you"). IF it is denied, THEN THE SYSTEM SHALL still run the job (foreground services don't need the permission; Android shows them in Task Manager but not in the notification drawer, [docs](https://developer.android.com/develop/ui/views/notifications/notification-permission)), show progress in the app, warn once "You won't see progress outside KeepClear", and show any pause/finish result on next app open. | Instrumented test with permission denied: job completes, result shown on reopen. |
 
 ---
 
@@ -186,6 +187,8 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | MOVE-14 | MVP | IF the target cannot be read back (e.g. Google Drive via SAF, cloud providers that upload asynchronously), THEN THE SYSTEM SHALL allow copying but SHALL NOT offer deletion of originals, explaining why. | Detect by provider authority allowlist; unknown providers default to read-back attempt + warning. |
 | MOVE-15 | v1 | THE SYSTEM SHALL be able to re-verify an existing backup (re-read target, compare to manifest) on demand. | — |
 | MOVE-16 | MVP | THE SYSTEM SHALL tell the truth about Google Photos: "KeepClear can't see what's in Google Photos. If you use it, check there, or use its own Free up space." with a deep link. | No claims of Google Photos backup status ([06](../research/06-backup-targets-and-verification.md) §5). |
+| MOVE-17 | v1 | WHEN the user connects a target that holds a KeepClear backup and taps "Restore from backup", THE SYSTEM SHALL list backed-up items from the manifest (by source and month, with thumbnails read from the target), copy selected files back to their original relative location (validated by `RestorePathValidator`, SEC-1/SEC-3) or `Pictures/KeepClear Restored/`, verify each copy by SHA-256 against the manifest **and** the target file, never overwrite, and re-index them in MediaStore. | Round-trip test: MOVE → delete → restore → bytes identical; hostile manifest rejected (E-SEC-5). |
+| MOVE-18 | MVP | THE SYSTEM SHALL state in every MOVE receipt how to get files back: "Your files are on <target> in `KeepClear/…`. To bring them back, open them with any file manager or computer. In-app restore is coming." (v1: "…or tap Restore from backup."). The manifest SHALL record each file's original path to make manual and in-app restore possible. | Receipt UI test; manifest schema test. |
 
 ---
 
@@ -214,6 +217,9 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | I18N-3 | MVP | THE SYSTEM SHALL format sizes, counts and dates with locale-aware formatters (decimal GB, `Formatter.formatShortFileSize` semantics documented), using plurals resources for counts. | Native-speaker review of Hebrew copy before v1. |
 | I18N-4 | MVP | THE SYSTEM SHALL use gender-neutral Hebrew phrasing (imperative plural / infinitive) where possible. | Copy review checklist. |
 | A11Y-1 | v1 | THE SYSTEM SHALL support TalkBack labels for all actions, 200% font scale without truncating numbers, and 48 dp touch targets. | Accessibility scanner clean. |
+| UI-1 | MVP | THE SYSTEM SHALL support light and dark themes (follow system by default, manual override in Settings), with WCAG AA contrast (4.5:1 text) in both, and Material You dynamic colour on Android 12+ as an option that never lowers contrast of destructive/warning elements. | Screenshot tests light/dark; contrast check on theme tokens. |
+| UI-2 | v1 | THE SYSTEM SHALL adapt to window size classes: compact (phone), medium (foldable unfolded, small tablet), expanded (tablet/landscape) using list-detail layouts on medium/expanded; no locked orientation; fold/unfold and multi-window keep selection and running plans (E-LIFE-2). | Screenshot tests at 360×800, 673×841 (foldable), 1280×800 dp; config-change UI test. |
+| UI-3 | MVP | THE SYSTEM SHALL run screenshot tests for the matrix {en, he} × {light, dark} × {compact, medium} × {font 100%, 200%} on Home, SAFE confirm, Review grid, MOVE receipt and Trash. | CI screenshot job (Roborazzi/Paparazzi). |
 
 ---
 

@@ -92,6 +92,9 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-LIFE-1 | Process death on any screen | State restored from Room/SavedState; no plan executes twice (plan id idempotency). | U, I |
 | E-LIFE-2 | Configuration change (rotation, language switch to Hebrew mid-flow) | No lost selection; layout flips; plan unchanged. | UI test |
 | E-LIFE-3 | OEM battery killer stops FGS (OnePlus) | Job resumable; if killed twice, show a one-time tip about battery optimisation. | D |
+| E-NOTIF-1 | Notification permission denied before a MOVE job | Job runs; no drawer notification; in-app progress; result on next open (ONB-10). | I |
+| E-NOTIF-2 | User blocks KeepClear's notification channel mid-job | Same as E-NOTIF-1; job not cancelled. | I |
+| E-LIFE-4 | Fold/unfold or enter multi-window during a confirm sheet or MOVE | Selection and plan preserved; layout switches (UI-2). | UI |
 
 ## 5. Classification correctness
 
