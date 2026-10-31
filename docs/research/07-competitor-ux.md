@@ -168,6 +168,8 @@ Sourced from aggregators and press, which have low authority. All items are **[U
 
 ## 6. UI copy examples (English / Hebrew)
 
+> **Note (spec phase):** final copy lives in [ux-flows.md](../spec/ux-flows.md). Two examples below are superseded: the MOVE receipt must say files were checked by SHA-256 content hash, not "count and size" ([ADR 0007](../adr/0007-verify-by-hash.md)); and Android *does* let any app ask the system to trim other apps' caches via `StorageManager.allocateBytes` ([04](04-android-apis.md)), so the "Platform limit" text applies only to clearing one specific app's cache.
+
 The Hebrew is written natively (spoken-modern register, gender-neutral where possible through infinitive or plural forms), not translated word for word.
 
 ### 6.1 Buttons and labels
