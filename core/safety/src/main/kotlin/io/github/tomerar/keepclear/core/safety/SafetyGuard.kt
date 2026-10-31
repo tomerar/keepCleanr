@@ -8,7 +8,6 @@ import io.github.tomerar.keepclear.core.hash.Sha256
  * a plan that reaches the guard with a PROTECTED op is a bug, never a user choice (SAFETY-3).
  */
 class SafetyGuard(private val protectedPaths: ProtectedPaths) {
-
     sealed interface Verdict {
         data object Accepted : Verdict
 

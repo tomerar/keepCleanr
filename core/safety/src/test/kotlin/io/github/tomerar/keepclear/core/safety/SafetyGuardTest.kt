@@ -10,8 +10,13 @@ import org.junit.jupiter.api.Test
 class SafetyGuardTest {
     private val guard = SafetyGuard(ProtectedPaths())
 
-    private fun op(path: String, kind: OpKind = OpKind.TRASH, dir: Boolean = false, sha: String? = null, group: String? = null) =
-        PlannedOp(KPath.Local(path), path, kind, dir, 10, 1, expectedSha256 = sha, duplicateGroup = group)
+    private fun op(
+        path: String,
+        kind: OpKind = OpKind.TRASH,
+        dir: Boolean = false,
+        sha: String? = null,
+        group: String? = null,
+    ) = PlannedOp(KPath.Local(path), path, kind, dir, 10, 1, expectedSha256 = sha, duplicateGroup = group)
 
     private val photo = "$ROOT/DCIM/Camera/IMG_1.jpg"
 
@@ -48,7 +53,10 @@ class SafetyGuardTest {
 
     @Test
     fun `MOVE original needs a valid SHA-256 (SAFETY-5)`() {
-        guard.check(plan(op(photo, OpKind.MOVE_DELETE_ORIGINAL)), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        guard.check(
+            plan(op(photo, OpKind.MOVE_DELETE_ORIGINAL)),
+            SESSION,
+        ).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
         guard.check(plan(op(photo, OpKind.MOVE_DELETE_ORIGINAL, sha = "XYZ")), SESSION)
             .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
         guard.check(plan(op(photo, OpKind.MOVE_DELETE_ORIGINAL, sha = "a".repeat(64))), SESSION) shouldBe
@@ -67,6 +75,7 @@ class SafetyGuardTest {
     @Test
     fun `purge only inside the trash`() {
         guard.check(plan(op(photo, OpKind.PURGE)), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
-        guard.check(plan(op("$ROOT/.KeepClearTrash/1/x.jpg", OpKind.PURGE)), SESSION) shouldBe SafetyGuard.Verdict.Accepted
+        guard.check(plan(op("$ROOT/.KeepClearTrash/1/x.jpg", OpKind.PURGE)), SESSION) shouldBe
+            SafetyGuard.Verdict.Accepted
     }
 }

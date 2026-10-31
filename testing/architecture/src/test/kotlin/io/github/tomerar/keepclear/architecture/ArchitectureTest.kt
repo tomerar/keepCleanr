@@ -54,15 +54,26 @@ class ArchitectureTest {
     @Test
     fun `destructive APIs only in allowed modules`() {
         val destructive = listOf(
-            ".delete(", ".rename(", ".renameTo(", "Files.move(", "Files.delete", "deleteRecursively(",
-            "deleteDocument(", "moveDocument(", "createTrashRequest(", "createDeleteRequest(",
+            ".delete(",
+            ".rename(",
+            ".renameTo(",
+            "Files.move(",
+            "Files.delete",
+            "deleteRecursively(",
+            "deleteDocument(",
+            "moveDocument(",
+            "createTrashRequest(",
+            "createDeleteRequest(",
         )
         val allowed = listOf("/core/storage-", "/engine/trash/")
         projectScope.files
             .filter { "/src/main/" in it.path }
             .filterNot { file -> allowed.any { it in file.path } || "/build-logic/" in file.path }
             .assertFalse { file ->
-                val code = file.text.lineSequence().filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+                val code = file.text.lineSequence().filterNot {
+                    it.trimStart().startsWith("//") ||
+                        it.trimStart().startsWith("*")
+                }
                 code.any { line -> destructive.any { it in line } }
             }
     }

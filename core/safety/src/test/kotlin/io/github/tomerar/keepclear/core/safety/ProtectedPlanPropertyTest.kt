@@ -40,7 +40,11 @@ class ProtectedPlanPropertyTest {
         for (op in handler.performed) {
             check(!protectedPaths.isProtected(op.displayPath)) { "handler got PROTECTED ${op.displayPath}" }
             if (op.isDirectory) {
-                check(protectedFiles.none { it.startsWith(op.displayPath + "/") }) { "dir with protected inside: ${op.displayPath}" }
+                check(
+                    protectedFiles.none {
+                        it.startsWith(op.displayPath + "/")
+                    },
+                ) { "dir with protected inside: ${op.displayPath}" }
             }
         }
         check(handler.performed.isNotEmpty()) { "property test exercised nothing" }
@@ -53,7 +57,8 @@ class ProtectedPlanPropertyTest {
             val handler = ActionHandler { op, _ ->
                 if (failInHandler && random.nextBoolean()) throw StorageException.NoSpace(op.ref)
             }
-            val executor = ActionExecutor(fixture.gateway, SafetyGuard(protectedPaths), protectedPaths, handler, SESSION)
+            val executor =
+                ActionExecutor(fixture.gateway, SafetyGuard(protectedPaths), protectedPaths, handler, SESSION)
             val ops = (0 until 5).map { files[random.nextInt(files.size)] }.distinct()
                 .filterNot { protectedPaths.isProtected(it) }.map { fixture.gateway.op(it) }
             if (ops.isNotEmpty()) executor.run(plan(*ops.toTypedArray()))

@@ -22,7 +22,12 @@ class RecordingHandler(private val moveToTrash: Boolean = false) : ActionHandler
     }
 }
 
-suspend fun StorageGateway.op(path: String, kind: OpKind = OpKind.TRASH, sha: String? = null, group: String? = null): PlannedOp {
+suspend fun StorageGateway.op(
+    path: String,
+    kind: OpKind = OpKind.TRASH,
+    sha: String? = null,
+    group: String? = null,
+): PlannedOp {
     val stat = stat(KPath.Local(path)) ?: error("missing $path")
     return PlannedOp(
         ref = stat.path,
@@ -38,4 +43,9 @@ suspend fun StorageGateway.op(path: String, kind: OpKind = OpKind.TRASH, sha: St
 }
 
 fun plan(vararg ops: PlannedOp, groups: Map<String, Int> = emptyMap(), session: String = SESSION) =
-    ActionPlan(id = "p", ops = ops.toList(), reason = "test", duplicateGroupSizes = groups).confirm(now = 1, session = session)
+    ActionPlan(
+        id = "p",
+        ops = ops.toList(),
+        reason = "test",
+        duplicateGroupSizes = groups,
+    ).confirm(now = 1, session = session)

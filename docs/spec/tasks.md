@@ -36,6 +36,14 @@ Status: **implemented**. Notes: the fake and the contract suite live in `core:st
 - **DoD / tests:** fake passes a gateway contract test suite (the same suite will later run against `FileGateway` and `SafGateway` instrumented); fixture generator deterministic by seed.
 
 ### M2: Safety core (guard + executor + dry-run)
+Status: **implemented**. Spec details settled while implementing:
+- `PlannedOp` carries `displayPath` (used for PROTECTED matching even for SAF/MediaStore refs) and `isDirectory`.
+- A plan is valid only in the session it was confirmed in (`sessionId`), which implements SAFETY-1 "current session" and MIG-5.
+- Directory ops: the executor walks the subtree and refuses if anything inside is PROTECTED **or a symlink** (SkipReason `CONTAINS_PROTECTED`).
+- After a `PermissionDenied` or `Disconnected` failure the remaining ops are not attempted (`STOPPED`, E-PERM-2).
+- Strict mode re-hashes `MOVE_DELETE_ORIGINAL` ops by default (Q13).
+- The executor never deletes itself; it calls an `ActionHandler` (the trash, M6). Konsist allows destructive file APIs only in `core/storage-*` and `engine/trash`.
+
 - `core:safety`: `ProtectedPaths`, `SafetyGuard`, `ActionPlan`, `ActionExecutor` (stat re-check, per-op results), dry-run `RecordingGateway`.
 - Konsist rule: destructive APIs only in allowed modules.
 - **DoD / tests:** SAFETY-1/3/6/8/9 tests; property test: 10k random plans over the fixture tree never touch PROTECTED paths (E-DEL-2); unconfirmed plan rejected; changed-file skipped (E-DEL-1); last-copy-of-duplicate rejected; canonical, case-insensitive, NFC PROTECTED matching incl. WhatsApp Business and `/storage/emulated/999/` (SEC-6, MSG-2, E-SEC-9); symlink/identity swap skipped (SEC-4, E-SEC-7); ENOSPC fault injection never crashes (LOW-4).
