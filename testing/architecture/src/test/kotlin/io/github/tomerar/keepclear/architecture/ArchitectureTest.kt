@@ -22,6 +22,7 @@ class ArchitectureTest {
             "engine/scan",
             "engine/classify",
             "engine/trash",
+            "engine/enrich",
         )
 
     private val projectScope = Konsist.scopeFromProject()

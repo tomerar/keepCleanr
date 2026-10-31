@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.storage.StorageManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,6 +35,10 @@ class MainActivity : ComponentActivity() {
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                         vm.refresh()
                     }
+                val externalCacheLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                        vm.refresh()
+                    }
                 LifecycleResumeEffect(Unit) {
                     vm.refresh()
                     onPauseOrDispose { }
@@ -45,6 +50,19 @@ class MainActivity : ComponentActivity() {
                         onBack = vm::back,
                         onRestore = vm::restore,
                         onPurge = vm::purge,
+                        safeActions = SafeActions(
+                            onClean = vm::clean,
+                            onUndo = vm::undo,
+                            onTrim = vm::trimCaches,
+                            // SAFE-6 (foss with All files access): Android's own one-dialog external cache clear.
+                            onClearExternalCaches = {
+                                externalCacheLauncher.launch(Intent(StorageManager.ACTION_CLEAR_APP_CACHE))
+                            },
+                            onOpenTrash = {
+                                vm.loadTrash()
+                                vm.open(Screen.Trash)
+                            },
+                        ),
                         home = {
                             HomeScreen(
                                 state = state,

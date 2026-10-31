@@ -88,4 +88,21 @@
     <string name="trash_confirm_release_body">עותק שנבדק נמצא ב-%1$s. הקובץ בטלפון יימחק לצמיתות.</string>
     <string name="trash_confirm_delete">למחוק לצמיתות</string>
     <string name="trash_cancel">ביטול</string>
+    <string name="clean_title">לנקות עכשיו</string>
+    <string name="clean_selected">נבחרו: %1$s</string>
+    <string name="clean_button">לנקות %1$s</string>
+    <string name="clean_confirm_title">לנקות %1$s?</string>
+    <string name="clean_confirm_body">%1$s. הם יחכו 30 יום בסל המחזור של KeepClear, וכל דבר אפשר לשחזר.</string>
+    <string name="clean_confirm_yes">להעביר לסל המחזור</string>
+    <string name="clean_done">בוצע. %1$s הועברו לסל המחזור.</string>
+    <string name="clean_done_space">המקום יתפנה כשסל המחזור יתרוקן, או שאפשר לרוקן אותו עכשיו.</string>
+    <string name="clean_skipped">%1$s השתנו מאז הסריקה, אז לא נגענו בהם.</string>
+    <string name="clean_undo">ביטול</string>
+    <string name="clean_open_trash">לסל המחזור</string>
+    <string name="trim_title">לתת לאנדרואיד לנקות מטמון</string>
+    <string name="trim_body">אנדרואיד מוחק נתונים זמניים של אפליקציות, והן בונות אותם מחדש בעצמן.</string>
+    <string name="trim_button">לנקות מטמון</string>
+    <string name="trim_confirm_body">אנדרואיד מנקה את זה. אי אפשר לשחזר, והאפליקציות בונות את זה מחדש לפי הצורך. שום דבר לא עובר לסל המחזור של KeepClear.</string>
+    <string name="trim_result">אנדרואיד פינה %1$s.</string>
+    <string name="trim_external_button">לנקות מטמון חיצוני של אפליקציות</string>
 </resources>

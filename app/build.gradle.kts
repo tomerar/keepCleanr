@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":engine:scan"))
     implementation(project(":engine:classify"))
     implementation(project(":engine:trash"))
+    implementation(project(":engine:enrich"))
     implementation(project(":core:safety"))
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":core:model"))

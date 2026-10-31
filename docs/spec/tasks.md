@@ -101,6 +101,8 @@ Status: **implemented** (folder backend). Spec adjustments made while implementi
 - **DoD / tests:** TRASH-1…6, E-DEL-3…15, E-SEC-1…3, E-LOW-3, MIG-2 golden files; kill-point property test (no-loss invariant) for trash/restore/purge; instrumented: createTrashRequest + restore on API 30/34/36, SAF move into tree trash; **D:** trash 50 test files on owner phone, restore, verify OnePlus Gallery behaviour (OPEN: does it show IS_TRASHED items?).
 
 ### M7: SAFE cleanup end-to-end
+Status: **implemented**. Notes: twins and archive facts come from `engine:enrich` (size → head/tail prehash → full SHA-256; zip central directory only, never extracted). An end-to-end JVM test runs scan → facts → classify → executor → trash on the owner fixture and undoes it byte-exact. Cache trim reports the measured free-space difference only. Device checks D7-1…3 (OnePlus recycle-bin path, ≈ 8 GB SAFE, Empty now frees space) wait for the owner.
+
 - Junk filters, WhatsApp `.Statuses`, other apps' recycle bins card (OnePlus path verified on device), extracted-zip detection, Sent duplicates via full SHA-256, Android cache trim (`allocateBytes`, measured), foss `ACTION_CLEAR_APP_CACHE`. Confirm sheet → executor → trash → result screen.
 - **DoD / tests:** SAFE-1…6/8 tests; extracted-zip fixture tests (full/partial/renamed); duplicate pipeline tests (same-size-different-content, NFD names, 0-byte files); crafted-zip tests (SEC-2, E-SEC-4); **D:** on owner's phone ≈ 8 GB SAFE found, cleaned to trash, restore of a sample works, Empty now frees space (Settings shows it).
 

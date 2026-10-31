@@ -71,3 +71,9 @@ jobs:
           target: google_apis
           disable-animations: true
           script: ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest
+      - name: Show failed instrumented tests
+        if: failure()
+        run: |
+          find . -path '*outputs/androidTest-results*' -name '*.xml' -print0 \
+            | xargs -0 -r grep -l '<failure' \
+            | while read -r f; do echo "== $f"; sed -n '/<failure/,/<\/failure>/p' "$f" | head -80; done

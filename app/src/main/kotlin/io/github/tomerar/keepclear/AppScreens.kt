@@ -13,6 +13,7 @@ fun AppScreens(
     home: @Composable () -> Unit,
     onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
     onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
+    safeActions: SafeActions = SafeActions(),
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -22,12 +23,29 @@ fun AppScreens(
         }
 
         is Screen.CategoryList -> {
-            if (summary == null) {
-                home()
-            } else {
-                CategoryListScreen(summary, screen.category, onOpenGroup = {
-                    onOpen(Screen.Group(it, screen.category))
-                }, onBack = onBack)
+            when {
+                summary == null -> home()
+
+                screen.category == io.github.tomerar.keepclear.core.model.Category.SAFE -> SafeScreen(
+                    summary = summary,
+                    result = state.cleanResult,
+                    trimResult = state.trimResult,
+                    showExternalCacheClear = state.allFiles == true,
+                    onClean = safeActions.onClean,
+                    onUndo = safeActions.onUndo,
+                    onTrim = safeActions.onTrim,
+                    onClearExternalCaches = safeActions.onClearExternalCaches,
+                    onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
+                    onOpenTrash = safeActions.onOpenTrash,
+                    onBack = onBack,
+                )
+
+                else -> CategoryListScreen(
+                    summary,
+                    screen.category,
+                    onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
+                    onBack = onBack,
+                )
             }
         }
 
@@ -54,3 +72,11 @@ fun AppScreens(
         }
     }
 }
+
+class SafeActions(
+    val onClean: (List<io.github.tomerar.keepclear.engine.classify.ClassifiedItem>) -> Unit = {},
+    val onUndo: (CleanResult) -> Unit = {},
+    val onTrim: () -> Unit = {},
+    val onClearExternalCaches: () -> Unit = {},
+    val onOpenTrash: () -> Unit = {},
+)
