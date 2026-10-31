@@ -69,7 +69,11 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-STO-7 | Private space / work profile (Android 15) | Out of scope; documented "KeepClear only sees your main profile". | Doc |
 | E-STO-8 | Multiple users | Same as above. | Doc |
 | E-STO-9 | Owner's legacy `/sdcard/WhatsApp` *and* scoped `Android/media/com.whatsapp` both exist | Both shown; legacy is REVIEW "old folder from before 2022"; its `Databases/` is still PROTECTED. | U |
-| E-STO-10 | WhatsApp Business (`com.whatsapp.w4b`) present | Same rules applied to its tree. | U |
+| E-STO-10 | WhatsApp Business (`com.whatsapp.w4b`) present | Same rules applied to its tree (MSG-1); its `Databases/`/`Backups/` PROTECTED (MSG-2). Items labelled "WhatsApp Business". | U (w4b fixture) |
+| E-MSG-1 | Both WhatsApp and WhatsApp Business, plus a cloned WhatsApp under `/storage/emulated/999/` | Three separate groups; PROTECTED applies in all three; totals never double-count. | U (fixture with 3 roots) |
+| E-MSG-2 | Cloned-app storage not readable | Info card, no error, no guessed numbers (MSG-3). | U |
+| E-MSG-3 | Telegram media only in `Android/data` (no Shizuku) | Telegram card shows "Telegram keeps its files where Android doesn't let other apps look" + deep link; no numbers invented. | U |
+| E-MSG-4 | Same photo in WhatsApp `Sent/` and Telegram `Pictures/Telegram` and Camera | Hash twins; Camera is canonical; the other two may be SAFE (WhatsApp Sent) or REVIEW (Telegram saved copy, user explicitly saved it). | U |
 
 ## 4. Permissions and lifecycle
 

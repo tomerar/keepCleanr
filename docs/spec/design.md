@@ -140,6 +140,12 @@ Initial rule table (MVP) — maps the owner's data:
 | bins | known recycle-bin paths, MediaStore `IS_TRASHED` | SAFE | Already deleted, waiting in another app's bin. |
 | thumbs/tmp/os | `.thumbnails`, `LOST.DIR`, `*.tmp`, `.DS_Store`, … | SAFE | Rebuilt automatically. |
 | unknown | anything else large | REVIEW | We don't know what this is; here's what's inside. |
+| wa.*.variants | Same WhatsApp rules for `com.whatsapp.w4b` ("WhatsApp Business …" folders), legacy roots and `/storage/emulated/<n>/` clone roots (MSG-1…3) | as WhatsApp | Labelled per variant. |
+| tg.saved | `Pictures/Telegram`, `Movies/Telegram` | MOVE | Photos and videos you saved from Telegram. |
+| tg.docs | `Download/Telegram`, `Music/Telegram` | REVIEW | Files you saved from Telegram. |
+| tg.legacy | `/sdcard/Telegram/**` | REVIEW | Old Telegram folder. |
+
+Messenger layouts live in `core:rules/messengers.json` (package, roots, folder map, PROTECTED globs, `verified` flag); see requirements §4a.
 
 ### 3.3 Action plans and the guard
 

@@ -22,7 +22,7 @@ Rules for every milestone:
 
 ### M1: Storage abstraction + fake file system
 - `core:storage-api` (`KPath`, `StorageGateway`, `Stat`, capabilities), `FakeStorageGateway` with fault injection (ENOSPC, disconnect, slow, EACCES, file-changes-during-read, kill points).
-- `testing:fixtures`: owner-shaped synthetic tree generator (Camera 10k files 2019–2026, WhatsApp layout incl. Databases/Backups/Sent/Private/.Statuses, MIUI, legacy WhatsApp, zips + extracted folders, screenshots, ChatGPT images, Hebrew/emoji/NFD names, 100k-entry dir, symlink loop).
+- `testing:fixtures`: owner-shaped synthetic tree generator (Camera 10k files 2019–2026, WhatsApp layout incl. Databases/Backups/Sent/Private/.Statuses, WhatsApp Business (`com.whatsapp.w4b`), a clone root `/storage/emulated/999/`, Telegram shared-storage folders, MIUI, legacy WhatsApp, zips + extracted folders, screenshots, ChatGPT images, Hebrew/emoji/NFD names, 100k-entry dir, symlink loop).
 - **DoD / tests:** fake passes a gateway contract test suite (the same suite will later run against `FileGateway` and `SafGateway` instrumented); fixture generator deterministic by seed.
 
 ### M2: Safety core (guard + executor + dry-run)

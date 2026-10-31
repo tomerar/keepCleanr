@@ -100,6 +100,22 @@ These are non-negotiable. Each has a dedicated automated test.
 
 ---
 
+## 4a. Messengers, business variants and app clones (MSG)
+
+**User story:** My WhatsApp Business, cloned "Parallel apps" and Telegram also fill my phone; they must get the same care, and their chat databases must be just as untouchable.
+
+Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per app variant with package, roots (scoped + legacy), media folder map, PROTECTED globs, and a `verified` flag. Entries with `verified=false` ship disabled until a device test confirms the layout.
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---|---|---|
+| MSG-1 | MVP | THE SYSTEM SHALL apply the WhatsApp rules (CLS-4) to **WhatsApp Business** (`com.whatsapp.w4b`): roots `Android/media/com.whatsapp.w4b/WhatsApp Business/` and legacy `/sdcard/WhatsApp Business/`; media folders `Media/WhatsApp Business Images|Video|Audio|Documents|Voice Notes|Video Notes|Animated Gifs|Stickers|Profile Photos`, with `Sent/` and `Private/` subfolders and `.Statuses`. Folder names are **[UNVERIFIED]** until checked on a device. | Fixture tree for w4b; table tests mirror the WhatsApp ones. |
+| MSG-2 | MVP | THE SYSTEM SHALL treat as PROTECTED, for every WhatsApp variant and root (scoped, legacy, any user root): `**/WhatsApp*/Databases/**`, `**/WhatsApp*/Backups/**`, `**/*.crypt*`, `**/msgstore*`, `**/wa.db*`, `**/axolotl.db*`, `**/chatsettings*.db*`. | E-SEC-9 and E-MSG-1 tests. |
+| MSG-3 | v1 | THE SYSTEM SHALL detect cloned-app profiles ("Parallel apps" on OnePlus/OxygenOS, "Dual apps" on Xiaomi/HyperOS), which reportedly run as Android user 999 with storage at `/storage/emulated/999/` ([XDA](https://www.xda-developers.com/add-any-app-oxygenos-parallel-apps-space-oneplus-phones), [Xiaomi FAQ](https://www.mi.com/global/support/faq/details/KA-484739/), path **[UNVERIFIED]**). WHERE that storage is readable (all-files/Shizuku), THE SYSTEM SHALL apply the same messenger rules under it and label items "Cloned WhatsApp". WHERE it is not readable, THE SYSTEM SHALL say "KeepClear can't see your cloned apps' files" and link to the system clone settings. | Device test: `adb shell pm list users`, `ls /storage/emulated/999` on OnePlus and Xiaomi. Fixture with a `999` root. |
+| MSG-4 | v1 | THE SYSTEM SHALL support **Telegram** (`org.telegram.messenger`, plus `org.telegram.messenger.web`, `org.thunderdog.challegram` as unverified entries): (a) media saved to shared storage (`Pictures/Telegram`, `Movies/Telegram`, `Music/Telegram`, `Download/Telegram`) → MOVE for images/video, REVIEW for documents/music; (b) legacy `/sdcard/Telegram/` → REVIEW "old Telegram folder"; (c) the main cache in `Android/data/org.telegram.messenger/files/Telegram/` (reported in [Telegram bug tracker](https://bugs.telegram.org/c/11028/63), **[UNVERIFIED]** on current versions) is invisible without Shizuku → explain and deep-link to Telegram's own *Settings › Data and Storage › Storage Usage*; WHERE Shizuku is available, its cache is SAFE ("Telegram re-downloads it from the cloud", except secret chats → REVIEW). | Fixtures for (a)(b); Shizuku path tested in M14. |
+| MSG-5 | Later | THE SYSTEM SHALL add other messengers (Signal, Viber, Messenger, WeChat) as `verified=false` entries, enabled only after a device check. Signal keeps media in app-private storage, so only files the user saved to the gallery are visible **[UNVERIFIED]**. | — |
+| MSG-6 | MVP | THE SYSTEM SHALL never treat a messenger's media folder as SAFE as a whole; only files proven redundant (hash twin, expired status) are SAFE. | CLS table tests. |
+
+---
 ## 5. SAFE cleanup (SAFE)
 
 **User story:** WHEN something is clearly junk, I want it gone in one tap, without a lecture, but still recoverable.
