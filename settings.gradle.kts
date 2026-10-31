@@ -33,7 +33,9 @@ rootProject.name = "keepclear"
 // Modules exist only once a milestone needs them (docs/spec/tasks.md); design.md §2 lists the full layout.
 include(":app")
 include(":core:model")
+include(":core:storage-api")
 include(":core:common")
 include(":core:designsystem")
 include(":core:i18n")
 include(":testing:architecture")
+include(":testing:fixtures")
