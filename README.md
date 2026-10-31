@@ -18,7 +18,7 @@ Smart storage cleaner for Android. Deletes junk in one tap, explains anything un
 
 ## Status
 
-🚧 Early development. No release yet.
+🚧 Early development. No release yet. Research and spec live in [`docs/`](docs/) ([requirements](docs/spec/requirements.md), [design](docs/spec/design.md), [plan](docs/spec/tasks.md)).
 
 ## License
 
