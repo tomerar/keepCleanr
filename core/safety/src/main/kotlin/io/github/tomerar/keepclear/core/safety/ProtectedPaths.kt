@@ -39,7 +39,11 @@ class ProtectedPaths(
 
         // KeepClear's own app folders.
         val rel = relativeToVolume(segments)
-        if (rel.size >= 3 && rel[0] == "android" && rel[1] in setOf("data", "media", "obb") && rel[2] == ownPackage) return true
+        if (rel.size >= 3 && rel[0] == "android" && rel[1] in setOf("data", "media", "obb") &&
+            rel[2] == ownPackage
+        ) {
+            return true
+        }
 
         if (extra.any { path == it || path.startsWith("$it/") }) return true
         return false

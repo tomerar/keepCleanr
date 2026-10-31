@@ -111,7 +111,8 @@ class ScannerTest {
         f.gateway.revoke(OwnerDevice.CLONE_ROOT)
         val events = Scanner(f.gateway).scan(listOf(clone, root)).toList()
         (events.last() as ScanEvent.Done).complete shouldBe false
-        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path } shouldContainAll f.paths(OwnerDevice.Tag.SCREENSHOT)
+        events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path } shouldContainAll
+            f.paths(OwnerDevice.Tag.SCREENSHOT)
     }
 
     @Test

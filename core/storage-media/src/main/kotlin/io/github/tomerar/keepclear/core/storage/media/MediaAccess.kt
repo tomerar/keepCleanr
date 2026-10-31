@@ -45,7 +45,8 @@ enum class MediaAccess {
                         Manifest.permission.READ_MEDIA_VIDEO,
                         Manifest.permission.READ_MEDIA_AUDIO,
                     ).map { granted(it) }
-                    val selected = Build.VERSION.SDK_INT >= 34 && granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                    val selected =
+                        Build.VERSION.SDK_INT >= 34 && granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
                     when {
                         media.all { it } -> FULL
                         media.any { it } || selected -> PARTIAL

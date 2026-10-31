@@ -123,7 +123,9 @@ class FakeStorageGatewayTest {
     fun `moving a directory into itself is refused even with different case`(): Unit = runBlocking {
         val fake = FakeStorageGateway(caseInsensitive = true)
         fake.addFile("$root/A/f", size = 1)
-        shouldThrow<StorageException.Unsupported> { fake.rename(KPath.Local("$root/A"), KPath.Local("$root/a"), "nested") }
+        shouldThrow<StorageException.Unsupported> {
+            fake.rename(KPath.Local("$root/A"), KPath.Local("$root/a"), "nested")
+        }
         fake.exists("$root/A/f") shouldBe true
     }
 

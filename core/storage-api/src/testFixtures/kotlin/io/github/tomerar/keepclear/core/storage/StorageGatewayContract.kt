@@ -198,7 +198,15 @@ abstract class StorageGatewayContract {
     fun `reading through a symlink is refused`(): Unit = runBlocking {
         val (g, root) = newGateway()
         val target = g.write(root, "real.txt", "real".toByteArray())
-        if (!createSymlink(g, root, "link", (target as? KPath.Local)?.absolute ?: return@runBlocking)) return@runBlocking
+        if (!createSymlink(
+                g,
+                root,
+                "link",
+                (target as? KPath.Local)?.absolute ?: return@runBlocking,
+            )
+        ) {
+            return@runBlocking
+        }
         shouldThrow<StorageException> { g.openRead(child(g, root, "link")) }
     }
 }
