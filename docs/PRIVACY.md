@@ -18,6 +18,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | List of apps (`QUERY_ALL_PACKAGES` in `foss`; launcher apps only in `play`) | To match folders and caches to the apps that own them. | No |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`) | To keep a backup running while the screen is off. | No |
+| Background jobs (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, added by Android's WorkManager) | To empty trash items once their 30 days are over, also after a restart. | No |
 | Media management (`MANAGE_MEDIA`, optional) | To move items to the trash without an extra Android confirmation each time. | No |
 
 All of these are optional. KeepClear explains each one before Android asks you, and works with less if you say no.

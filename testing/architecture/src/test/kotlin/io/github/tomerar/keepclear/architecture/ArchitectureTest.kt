@@ -21,6 +21,7 @@ class ArchitectureTest {
             "core/safety",
             "engine/scan",
             "engine/classify",
+            "engine/trash",
         )
 
     private val projectScope = Konsist.scopeFromProject()
@@ -86,5 +87,17 @@ class ArchitectureTest {
                 }
                 code.any { line -> destructive.any { it in line } }
             }
+    }
+
+    /**
+     * minSdk 30: `InputStream.readNBytes(int)` is API 33+, `skipNBytes` API 34+, `transferTo` API 33+. Android
+     * Lint doesn't see pure-JVM modules, so production code uses `core.storage.Streams` instead.
+     */
+    @Test
+    fun `no JDK stream methods missing on Android 11 and 12`() {
+        val missing = listOf(".readNBytes(", ".skipNBytes(", ".transferTo(")
+        projectScope.files
+            .filter { "/src/main/" in it.path && !it.path.endsWith("/Streams.kt") }
+            .assertFalse { file -> missing.any { it in file.text } }
     }
 }

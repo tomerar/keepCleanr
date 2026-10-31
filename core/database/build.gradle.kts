@@ -18,7 +18,8 @@ room {
 
 dependencies {
     api(project(":engine:scan"))
-    implementation(libs.androidx.room.runtime)
+    api(project(":engine:trash"))
+    api(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
@@ -27,4 +28,5 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotlinx.coroutines.core)
 }

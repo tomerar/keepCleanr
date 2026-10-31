@@ -22,7 +22,11 @@ object ManifestPolicy {
     )
 
     /** Exported components are allowed only when guarded by one of these system permissions. */
-    val allowedGuardPermissions = setOf("android.permission.DUMP")
+    val allowedGuardPermissions = setOf(
+        "android.permission.DUMP",
+        // Only the system's JobScheduler can bind (WorkManager's SystemJobService).
+        "android.permission.BIND_JOB_SERVICE",
+    )
 
     /**
      * Debug-only tooling activities injected by `debugImplementation` dependencies (Compose preview and

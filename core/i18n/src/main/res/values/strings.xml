@@ -71,4 +71,21 @@
     <string name="risk_MIGHT_BE_MEMORY">Might be a memory</string>
     <string name="risk_YOUR_CHATS">Your chats</string>
     <string name="risk_UNKNOWN">Look first</string>
+    <string name="trash_title">Trash</string>
+    <string name="trash_chip">Trash · %1$s</string>
+    <string name="trash_summary">%1$s · space returns as items expire, or empty now.</string>
+    <string name="trash_empty_state">The trash is empty.</string>
+    <string name="trash_frees_on">Freed on %1$s</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_restore_all">Restore all</string>
+    <string name="trash_empty_now">Empty trash now</string>
+    <string name="trash_release_now">Release now (verified copy exists)</string>
+    <string name="trash_verified_copy">Checked copy on %1$s</string>
+    <string name="trash_restore_to">Will be restored to %1$s</string>
+    <string name="trash_confirm_empty_title">Delete %1$s permanently?</string>
+    <string name="trash_confirm_empty_body">%1$s. This can\'t be undone. Items with a checked copy on a drive are still safe there; the rest has no other copy.</string>
+    <string name="trash_confirm_release_title">Free %1$s now?</string>
+    <string name="trash_confirm_release_body">A checked copy is on %1$s. The file on the phone is deleted permanently.</string>
+    <string name="trash_confirm_delete">Delete permanently</string>
+    <string name="trash_cancel">Cancel</string>
 </resources>

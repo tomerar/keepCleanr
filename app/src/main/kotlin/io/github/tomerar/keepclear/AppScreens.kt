@@ -6,7 +6,14 @@ import androidx.compose.runtime.Composable
 
 /** Shows the top of the navigation stack; system back pops it. */
 @Composable
-fun AppScreens(state: HomeUiState, onOpen: (Screen) -> Unit, onBack: () -> Unit, home: @Composable () -> Unit) {
+fun AppScreens(
+    state: HomeUiState,
+    onOpen: (Screen) -> Unit,
+    onBack: () -> Unit,
+    home: @Composable () -> Unit,
+    onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
+    onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
+) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
     when (val screen = state.screens.last()) {
@@ -33,6 +40,10 @@ fun AppScreens(state: HomeUiState, onOpen: (Screen) -> Unit, onBack: () -> Unit,
                     onOpen(Screen.Preview(it.item.path, screen.ruleId, screen.category))
                 }, onBack = onBack)
             }
+        }
+
+        Screen.Trash -> {
+            TrashScreen(state.trash, onRestore, onPurge, onBack)
         }
 
         is Screen.Preview -> {

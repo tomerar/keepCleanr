@@ -96,4 +96,11 @@ class ManifestPolicyTest {
         assertEquals(emptyList<String>(), check(manifest(components = launcher + extra), debuggable = true))
         assertEquals(1, check(manifest(components = launcher + extra), debuggable = false).size)
     }
+
+    @Test
+    fun `WorkManager job service guarded by BIND_JOB_SERVICE is allowed`() {
+        val extra = """<service android:name="androidx.work.impl.background.systemjob.SystemJobService"
+            android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE"/>"""
+        assertEquals(emptyList<String>(), check(manifest(components = launcher + extra)))
+    }
 }

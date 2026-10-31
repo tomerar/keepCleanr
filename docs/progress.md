@@ -11,11 +11,11 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M2 Safety core | ✅ merged | [#3](https://github.com/tomerar/keepCleanr/pull/3) | 10k-plan property test, verified to fail when the guard is removed. |
 | M3 Scanner + Room | ✅ merged | [#4](https://github.com/tomerar/keepCleanr/pull/4) | Device checks D3-1…3 waiting for owner. |
 | M4 Classifier + rules | ✅ merged | [#5](https://github.com/tomerar/keepCleanr/pull/5) | Also fixes 13 verified Codex review findings from #2–#5. Raises decision B1. |
-| M5 Home + Review browsing | 🔄 CI running | [#6](https://github.com/tomerar/keepCleanr/pull/6) | Local ciCheck green. |
-| M6 Trash + restore | 🔄 integrated locally on M5 | | Engine + Room + UI; 2,000-crash kill-point test green (and shown to fail on an unsafe order). Raises decision B2 (ADR 0010). |
-| M7 SAFE cleanup | 🔄 implemented locally on M6 | | End-to-end test on owner fixture (clean + undo byte-exact). |
-| M8 REVIEW actions | ⬜ | | |
-| M9 MOVE engine | 🔄 drafted | | Engine, planner, manifest and tests drafted. |
+| M5 Home + Review browsing | ✅ merged | [#6](https://github.com/tomerar/keepCleanr/pull/6) | 3 Codex findings fixed before merge (whole-run classification, file-name fallback, ASCII month keys). |
+| M6 Trash + restore | 🔄 PR open | [#7](https://github.com/tomerar/keepCleanr/pull/7) | Engine + Room + UI; 2,000-crash kill-point test green (and shown to fail on an unsafe order). Raises decision B2 (ADR 0010). |
+| M7 SAFE cleanup | 🔄 ready locally on M6 | | End-to-end test on owner fixture (clean + undo byte-exact). |
+| M8 REVIEW actions | 🔄 ready locally on M7 | | Multi-select, select-by-month, editable confirm, delete → trash + Undo; nothing pre-selected. |
+| M9 MOVE engine | 🔄 ready locally on M8 | | Fault tests, kill-point test, `sha256sum -c` test green. Fixed in the draft: a reused file on the drive could be deleted after a failed read-back; an unreadable manifest could be replaced and lose entries. |
 | M10 SAF target + MOVE UI | ⬜ | | |
 
 ## Device checks waiting for the owner (D)
@@ -33,6 +33,7 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 | D7-1 | M7 | Is the OnePlus File Manager bin at `/sdcard/.FileManagerRecycler`? (`adb shell ls -la /sdcard/`) | waiting for owner |
 | D7-2 | M7 | Clean now on the real phone: ≈ 8 GB found? Clean → Trash → Empty now → Settings › Storage shows the space back | waiting for owner |
 | D7-3 | M7 | "Let Android trim caches": how many bytes does it actually free on the 10T? | waiting for owner |
+| D8-1 | M8 | Open Review › Screenshots and AI images on the 10T: are the groups right? Select a month, remove two items in the confirm list, delete, then Undo | waiting for owner |
 | D3-3 | M3 | `adb shell ls /storage/emulated/999` and `pm list users`: is there a Parallel-apps user 999, and can KeepClear (all-files) read it? (MSG-3) | waiting for owner |
 
 ## Blockers and decisions needed
@@ -47,7 +48,7 @@ Run on the OnePlus 10T; record results in `docs/device-reports/`.
 - Local builds in the sandbox use a Maven Central mirror via `~/.gradle/init.d/mirror.gradle.kts` and `keepclear.robolectricRepoUrl` in `~/.gradle/gradle.properties` (Central returns HTTP 429 here). Not part of the repo; CI uses normal repositories.
 - Android SDK at `/opt/android-sdk` (platform `android-37.0`, build-tools 37.0.0); `local.properties` is git-ignored.
 - Write `gradle/verification-metadata.xml` with `--no-configuration-cache` after deleting `.gradle/`, `build-logic/.gradle`, `build-logic/build` (otherwise the included build's plugin classpath isn't re-resolved and CI fails), then run `scripts/verification-extras.py`.
-- Local worktrees `/home/user/kc-m2`, `/home/user/kc-m3` hold later milestones (branches `m2-local`, `m3-local`); they are rebased onto `main` when their turn comes.
+- Later milestones are prepared in the local worktree `/home/user/kc-int` as a chain: `m6-int` → `m7-int2` → `m8-int2` → `m9-int`. Each PR takes the tree of its branch (`git diff --binary HEAD <branch> | git apply --index`) and keeps `main`'s `docs/progress.md`.
 - **Merge gate (since #5):** CI green on the head commit **and** every Codex review thread answered (fixed, or explained). PRs #2–#4 were merged before their review threads were read; all their findings were verified and fixed in #5, with replies on each thread.
 - Never run two Gradle builds at once in this sandbox (15 GB RAM): the daemon gets killed. Stop daemons with `./gradlew --stop` and kill leftover `java` PIDs by number (pattern-based `pkill` also kills the shell).
 - `git reset --hard` is blocked by the sandbox policy; after a squash-merge, `git merge origin/main` into the working branch and continue (the PR diff stays correct).

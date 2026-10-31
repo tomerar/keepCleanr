@@ -45,6 +45,7 @@ import java.text.NumberFormat
 enum class Explainer { MEDIA, ALL_FILES }
 
 class HomeActions(
+    val onOpenTrash: () -> Unit = {},
     val onOpenCategory: (io.github.tomerar.keepclear.core.model.Category) -> Unit = {},
     val onRequestMedia: () -> Unit = {},
     val onRequestAllFiles: () -> Unit = {},
@@ -84,7 +85,20 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (state.trash.entries.isNotEmpty()) {
+                        AssistChip(
+                            onClick = actions.onOpenTrash,
+                            label = { Text(stringResource(R.string.trash_chip, size(state.trash.bytes))) },
+                            modifier = Modifier.testTag("trashChip"),
+                        )
+                    }
+                }
                 Text(
                     stringResource(R.string.home_tagline),
                     style = MaterialTheme.typography.titleMedium,

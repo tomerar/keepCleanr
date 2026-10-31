@@ -22,6 +22,9 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
             xmlReport = true
             // Third-party lint jars (e.g. androidx.lifecycle) compiled against older lint APIs; not our code.
             informational += "ObsoleteLintCustomCheck"
+            // "A newer version is available" depends on what was published upstream today, so CI could turn red
+            // without any change here. Updates are deliberate (verification metadata + allowlist, PRIV-1).
+            informational += setOf("NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion")
         }
         testOptions.unitTests.isIncludeAndroidResources = true
         testOptions.unitTests.all { test ->
