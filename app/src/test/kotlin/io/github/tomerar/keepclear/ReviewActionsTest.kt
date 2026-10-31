@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
@@ -17,6 +19,7 @@ import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Classifier
+import io.github.tomerar.keepclear.engine.classify.Total
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -100,5 +103,48 @@ class ReviewActionsTest {
         compose.onNodeWithTag("deleteDisabled").assertIsNotEnabled()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("bucket_2023-03"))
         compose.onNodeWithTag("selectMonth_2023-03").assertDoesNotExist()
+    }
+
+    @Test
+    fun `same file names in the confirmation show their folders (REV-3)`() {
+        val c = Classifier()
+
+        fun i(dir: String) = c.classify(
+            ScanItem(KPath.Local("/storage/emulated/0/$dir/x.png"), "/storage/emulated/0/$dir/x.png", 1000, march),
+            now = now,
+        )
+        compose.setContent {
+            val group = ClassificationSummary.of(listOf(i("Pictures/Screenshots"), i("DCIM/Screenshots")))
+                .group("screenshots", Category.REVIEW)!!
+            KeepClearTheme { GroupScreen(group, onOpenItem = {}, onBack = {}, onDelete = { deleted = it }) }
+        }
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("selectMonth_2023-03"))
+        compose.onNodeWithTag("selectMonth_2023-03").performClick()
+        compose.onNodeWithTag("deleteSelected").performClick()
+        val folders = compose.onAllNodesWithTag("confirmFolder").fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.Text].joinToString { t -> t.text } }
+        assertEquals(2, folders.toSet().size)
+    }
+
+    @Test
+    fun `deleting a whole group keeps the result and Undo visible`() {
+        val result = CleanResult(Total(3, 3000), 0, 0, listOf("/a"))
+        compose.setContent {
+            KeepClearTheme {
+                AppScreens(
+                    state = HomeUiState(
+                        summary = ClassificationSummary.of(emptyList()),
+                        screens = listOf(Screen.Home, Screen.Group("screenshots", Category.REVIEW)),
+                        cleanResult = result,
+                    ),
+                    onOpen = {},
+                    onBack = {},
+                    home = { androidx.compose.material3.Text("home", Modifier.testTag("homeScreen")) },
+                )
+            }
+        }
+        compose.onNodeWithTag("deleteResult").assertExists()
+        compose.onNodeWithTag("undo").assertExists()
+        compose.onNodeWithTag("homeScreen").assertDoesNotExist()
     }
 }

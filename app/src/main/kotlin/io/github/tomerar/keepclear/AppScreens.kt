@@ -50,7 +50,17 @@ fun AppScreens(
         }
 
         is Screen.Group -> {
+            // After deleting a whole group the rescan drops it; keep showing it (empty) while the result and its
+            // Undo are there.
             val group = summary?.group(screen.ruleId, screen.category)
+                ?: state.cleanResult?.let {
+                    io.github.tomerar.keepclear.engine.classify.GroupSummary(
+                        screen.ruleId,
+                        screen.category,
+                        io.github.tomerar.keepclear.engine.classify.Total(),
+                        emptyList(),
+                    )
+                }
             if (group == null) {
                 home()
             } else {

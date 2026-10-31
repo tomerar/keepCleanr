@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -304,13 +305,26 @@ private fun EditableConfirm(
                 Text(stringResource(R.string.review_confirm_body))
                 LazyColumn(modifier = Modifier.heightIn(max = 240.dp).testTag("confirmList")) {
                     items(items, key = { it.item.path }) { item ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                Bidi.isolate(item.item.path.substringAfterLast('/')),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
+                        // REV-3: a thumbnail and the folder, so files with the same name can be told apart.
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("confirmRow")) {
+                            Box(
+                                modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center,
+                            ) { Thumb(item, 48, showName = false) }
+                            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+                                Text(
+                                    Bidi.isolate(item.item.path.substringAfterLast('/')),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    Bidi.isolateLtr(item.item.path.substringBeforeLast('/')),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.StartEllipsis,
+                                    modifier = Modifier.testTag("confirmFolder"),
+                                )
+                            }
                             TextButton(onClick = {
                                 onRemove(item)
                             }, modifier = Modifier.testTag("remove_${item.item.path.substringAfterLast('/')}")) {
@@ -367,7 +381,7 @@ private fun Tile(
 
 /** The thumbnail, or the file name when there is none (no loader, unsupported type, or loading failed). */
 @Composable
-private fun Thumb(item: ClassifiedItem, sizeDp: Int) {
+private fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
     val loader = LocalThumbnailLoader.current
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
     val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path, loader) {
@@ -381,7 +395,7 @@ private fun Thumb(item: ClassifiedItem, sizeDp: Int) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
-    } else {
+    } else if (showName) {
         Text(
             Bidi.isolate(item.item.path.substringAfterLast('/')),
             style = MaterialTheme.typography.labelSmall,
