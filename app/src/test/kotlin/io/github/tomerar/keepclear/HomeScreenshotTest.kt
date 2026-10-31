@@ -20,6 +20,14 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [30, 36], qualifiers = "w360dp-h800dp-xxhdpi")
 class HomeScreenshotTest(private val locale: String, private val night: Boolean) {
+    private val scanned = HomeUiState(
+        totalBytes = 240_000_000_000,
+        freeBytes = 16_800_000_000,
+        mediaAccess = io.github.tomerar.keepclear.core.storage.media.MediaAccess.FULL,
+        allFiles = false,
+        scan = ScanState.Done(files = 10_472, bytes = 75_200_000_000, complete = true),
+    )
+
     @Test
     fun home() {
         RuntimeEnvironment.setQualifiers("+$locale-${if (night) "night" else "notnight"}")
@@ -30,7 +38,10 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
             compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.005f),
         )
         captureRoboImage("src/test/screenshots/$name.png", roborazziOptions = options) {
-            KeepClearTheme(darkTheme = night) { HomeScreen(showDebugTools = false) }
+            KeepClearTheme(darkTheme = night) { HomeScreen(state = HomeUiState(), showDebugTools = false) }
+        }
+        captureRoboImage("src/test/screenshots/${name.replace("home_", "home_scanned_")}.png", roborazziOptions = options) {
+            KeepClearTheme(darkTheme = night) { HomeScreen(state = scanned, showDebugTools = false) }
         }
     }
 

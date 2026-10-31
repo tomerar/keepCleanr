@@ -63,11 +63,11 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Instrumented tests (en)
+      - name: Instrumented tests (launch smoke test, MediaStore seeding)
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api }}
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: ./gradlew :app:connectedFossDebugAndroidTest
+          script: ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest
