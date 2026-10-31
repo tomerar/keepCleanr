@@ -218,11 +218,12 @@ class FakeStorageGateway(
         val p = local(path)
         guard(Op.OPEN_READ, p)
         val content = synchronized(lock) {
-            when (val node = resolveFollowing(p)) {
+            // Never follow symlinks (StorageGateway contract), same as FileGateway.
+            when (val node = nodes[key(p.absolute)]) {
                 null -> throw StorageException.NotFound(p)
                 is Node.Dir -> throw StorageException.IsADirectory(p)
                 is Node.File -> node.content
-                is Node.Link -> throw StorageException.NotFound(p)
+                is Node.Link -> throw StorageException.Unsupported(p, "symlink")
             }
         }
         val readFault = synchronized(lock) { takeFault(Op.READ, p) }
@@ -272,7 +273,9 @@ class FakeStorageGateway(
             if (volumeOf(from.absolute)?.root != volumeOf(to.absolute)?.root) {
                 throw StorageException.Unsupported(from, "cross-volume rename")
             }
-            if (node is Node.Dir && (to.isInside(from) || to == from)) {
+            val fromKey = key(from.absolute)
+            val toKey = key(to.absolute)
+            if (node is Node.Dir && (toKey == fromKey || toKey.startsWith("$fromKey/"))) {
                 throw StorageException.Unsupported(from, "move into itself")
             }
             if (nodes.containsKey(key(to.absolute))) throw StorageException.AlreadyExists(to)
@@ -371,17 +374,6 @@ class FakeStorageGateway(
             node.mtime,
             "inode:${node.inode}",
         )
-    }
-
-    private fun resolveFollowing(p: KPath.Local, depth: Int = 0): Node? {
-        if (depth > 8) return null
-        return when (val node = nodes[key(p.absolute)]) {
-            is Node.Link -> runCatching {
-                KPath.Local(node.target)
-            }.getOrNull()?.let { resolveFollowing(it, depth + 1) }
-
-            else -> node
-        }
     }
 
     private fun volume(root: String) = volumes[root] ?: error("Unknown volume $root")

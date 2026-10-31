@@ -371,7 +371,8 @@ object OwnerDevice {
             val out = ByteArrayOutputStream()
             ZipOutputStream(out).use { zip ->
                 members.forEach { (name, data) ->
-                    zip.putNextEntry(ZipEntry(name))
+                    // Fixed timestamp: archive bytes must not depend on when the fixture is built.
+                    zip.putNextEntry(ZipEntry(name).apply { time = ZIP_TIME })
                     zip.write(data)
                     zip.closeEntry()
                 }
@@ -380,6 +381,7 @@ object OwnerDevice {
         }
     }
 
+    private const val ZIP_TIME = 1_700_000_000_000L
     private const val HOUR = 3_600_000L
     private const val DAY = 24 * HOUR
 }

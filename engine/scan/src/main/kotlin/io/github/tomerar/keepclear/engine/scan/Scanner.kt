@@ -38,6 +38,7 @@ class Scanner(
         val restricted = mutableListOf<String>()
         val batch = ArrayList<ScanItem>(batchSize)
         val walkedPaths = HashSet<String>()
+        var incomplete = false
 
         suspend fun flush() {
             if (batch.isNotEmpty()) {
@@ -63,7 +64,11 @@ class Scanner(
                 } catch (e: StorageException.PermissionDenied) {
                     flush()
                     emit(ScanEvent.Unreadable(dir.absolute, "permission denied"))
-                    if (dir == root) continue
+                    if (dir == root) {
+                        // A whole root is unreadable: keep scanning other roots, but never call this complete.
+                        incomplete = true
+                        continue
+                    }
                     emit(ScanEvent.Done(false, files, bytes, symlinks, restricted, maxGeneration))
                     return@flow
                 } catch (e: StorageException.Disconnected) {
@@ -131,7 +136,7 @@ class Scanner(
             if (batch.size >= batchSize) flush()
         }
         flush()
-        emit(ScanEvent.Done(true, files, bytes, symlinks, restricted, maxGeneration))
+        emit(ScanEvent.Done(!incomplete, files, bytes, symlinks, restricted, maxGeneration))
     }
 
     private fun isRestrictedAppDir(root: KPath.Local, dir: KPath.Local): Boolean {

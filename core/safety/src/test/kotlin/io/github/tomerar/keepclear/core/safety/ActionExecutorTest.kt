@@ -98,6 +98,18 @@ class ActionExecutorTest {
     }
 
     @Test
+    fun `directory that changed after confirmation is skipped (SAFETY-6)`(): Unit = runBlocking {
+        var now = 100L
+        val g = FakeStorageGateway(caseInsensitive = true, clock = { now++ })
+        g.mkdirs("$ROOT/Download/empty")
+        val dirOp = g.op("$ROOT/Download/empty")
+        g.addFile("$ROOT/Download/empty/new.pdf", size = 5)
+        val ex = ActionExecutor(g, SafetyGuard(protectedPaths), protectedPaths, handler, SESSION)
+        ran(ex.run(plan(dirOp))).skipped.single().reason shouldBe SkipReason.CHANGED
+        g.exists("$ROOT/Download/empty/new.pdf") shouldBe true
+    }
+
+    @Test
     fun `directory containing a symlink is refused`(): Unit = runBlocking {
         val dir = "$ROOT/Download/links"
         fake.addSymlink("$dir/l", "$ROOT/DCIM")

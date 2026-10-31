@@ -66,6 +66,12 @@ Status: **implemented**. Spec adjustments made while implementing:
 - **DoD / tests:** SCAN-3/5/6 unit tests on fixtures (cancel leaves no state; Hebrew/NFD names; symlink loop; 100k dir streams with bounded memory); instrumented MediaStore seeding test on API 30/34/36; **D:** full scan of owner's phone ≤ 60 s, totals within 1% of Settings › Storage; light/minimal modes (LOW-1/2, E-LOW-1/4).
 
 ### M4: Classifier + rules + explanations
+Status: **implemented**. Spec adjustments made while implementing:
+- Rules are a versioned Kotlin table (`Rules.all`, `RULES_VERSION`), not JSON yet; JSON comes with community rule files. PROTECTED is decided by `core:safety` before any rule runs.
+- Facts from second-pass enrichers (`HAS_TWIN_OUTSIDE_MESSENGER`, archive extraction) are inputs; M7 computes them. Until then WhatsApp `Sent/` copies classify as REVIEW.
+- Camera videos > 100 MB stay MOVE (camera rule); the REVIEW "Large videos" bucket is for non-camera videos.
+- CLS-5 is applied conservatively: every SAFE item that is a favourite or modified in the last 30 days becomes REVIEW, including regenerable junk and other apps' bins. Open decision B1 in docs/progress.md.
+
 - `core:rules` JSON + loader, `engine:classify`, explanation keys and he/en strings, risk chips. SAFE seeds from SD Maid SE filters (attributed).
 - **DoD / tests:** table tests per rule (positive + negative fixtures), including E-CLS-1…7; string-completeness for every rule's why/if-deleted; owner-fixture snapshot test: category totals match expected numbers.
 

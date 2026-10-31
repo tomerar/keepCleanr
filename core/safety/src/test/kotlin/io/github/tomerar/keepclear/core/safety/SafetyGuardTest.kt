@@ -77,5 +77,8 @@ class SafetyGuardTest {
         guard.check(plan(op(photo, OpKind.PURGE)), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
         guard.check(plan(op("$ROOT/.KeepClearTrash/1/x.jpg", OpKind.PURGE)), SESSION) shouldBe
             SafetyGuard.Verdict.Accepted
+        // A look-alike folder whose name only normalises to the trash is not the trash.
+        guard.check(plan(op("$ROOT/Download/.KeepClear\u200BTrash/photo.jpg", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
     }
 }

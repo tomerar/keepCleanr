@@ -28,9 +28,7 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
                 } else if (op.isDirectory && protectedPaths.isProtectedContainer(op.displayPath)) {
                     reasons += "Directory op on a protected container (SAFETY-3): ${op.displayPath}"
                 }
-            } else if (CanonicalPath.of(op.displayPath)?.split('/')?.contains(ProtectedPaths.TRASH_DIR) != true &&
-                op.kind == OpKind.PURGE
-            ) {
+            } else if (op.kind == OpKind.PURGE && !isInsideTrash(op.displayPath)) {
                 reasons += "PURGE outside the trash (SAFETY-2): ${op.displayPath}"
             }
             if (op.kind == OpKind.MOVE_DELETE_ORIGINAL) {
@@ -49,5 +47,14 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
             }
         }
         return if (reasons.isEmpty()) Verdict.Accepted else Verdict.Rejected(reasons)
+    }
+
+    /**
+     * Allowlist check for permanent deletion: the raw path (no lossy normalisation, so `.KeepClear\u200BTrash`
+     * is not the trash) must contain the trash folder segment and be a clean absolute path.
+     */
+    private fun isInsideTrash(rawPath: String): Boolean {
+        if (CanonicalPath.of(rawPath) == null) return false
+        return rawPath.split('/').dropLast(1).any { it.equals(ProtectedPaths.TRASH_FOLDER_NAME, ignoreCase = true) }
     }
 }

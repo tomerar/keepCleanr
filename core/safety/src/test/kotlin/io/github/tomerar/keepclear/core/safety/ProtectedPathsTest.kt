@@ -31,6 +31,10 @@ class ProtectedPathsTest {
         "/storage/emulated/0/Download/wa.db",
         "/storage/emulated/0/Download/axolotl.db",
         "/storage/emulated/0/Download/chatsettingsbackup.db.crypt14",
+        // KeepClear's own app folders (SAFETY-3)
+        "/storage/emulated/0/Android/data/io.github.tomerar.keepclear/files/state.json",
+        "/storage/emulated/0/Android/media/io.github.tomerar.keepclear/x",
+        "/storage/emulated/0/android/DATA/IO.GITHUB.TOMERAR.KEEPCLEAR",
         // our trash and exclusions
         "/storage/emulated/0/.KeepClearTrash/20261031/abc/IMG.jpg",
         "/storage/emulated/0/Keep Forever/a.jpg",
