@@ -279,6 +279,19 @@ Threats and rationale: [threat-model.md](threat-model.md).
 
 ---
 
+## 12a. Upgrades and migrations (MIG)
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---|---|---|
+| MIG-1 | MVP | THE SYSTEM SHALL export Room schemas to `core/database/schemas/` (committed), provide an explicit `Migration` for every schema version bump, and SHALL NOT use destructive fallback migrations. | `MigrationTestHelper` tests migrate from **every** released schema to the current one with seeded trash/MOVE rows and assert no row loss; lint/Konsist forbids `fallbackToDestructiveMigration`. |
+| MIG-2 | MVP | THE SYSTEM SHALL version the trash sidecar format (`"v": 1`) and the backup manifest format (`"v": 1` header line). Readers SHALL accept every earlier version; an unknown newer version is treated as untrusted-recovered, read-only (SEC-1). | Golden-file tests for each version in `testing/fixtures/formats/`. |
+| MIG-3 | MVP | THE SYSTEM SHALL version the rules data (`schemaVersion`, `rulesVersion`). A rules change that moves anything toward SAFE SHALL come with a CHANGELOG entry and updated classification snapshot tests; rules never move anything into or out of PROTECTED without a test proving the PROTECTED set only grows. | Snapshot test over the owner fixture; PROTECTED-monotonic test. |
+| MIG-4 | MVP | WHEN the app is updated during a MOVE job, THE SYSTEM SHALL resume from Room state after the update: a non-exported receiver for `MY_PACKAGE_REPLACED` posts "Backup paused by an app update. Tap to continue."; file states (stored as stable strings) resume per the state machine. | Instrumented test: install a newer build mid-job → resume completes; no file re-trashed or lost. |
+| MIG-5 | MVP | WHEN the app restarts (update, crash, reboot) with a confirmed but unfinished `ActionPlan`, THE SYSTEM SHALL NOT continue deleting automatically; remaining ops need a new confirmation (SAFETY-1 "current session"). Copy/verify may resume automatically; deletion may not. | Kill-during-plan test → remaining ops pending, UI asks again. |
+| MIG-6 | v1 | THE SYSTEM SHALL keep restoring from older trash entries and older backups after an update, including entries created by any earlier released version. | Fixtures from each release kept in `testing/fixtures/releases/`. |
+
+---
+
 ## 13. Owner's device as acceptance scenario (MVP)
 
 WHEN KeepClear MVP runs on the owner's OnePlus 10T (data of 28.10.2026), THE SYSTEM SHALL, with Basic + All-files (foss):

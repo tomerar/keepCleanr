@@ -95,6 +95,10 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-NOTIF-1 | Notification permission denied before a MOVE job | Job runs; no drawer notification; in-app progress; result on next open (ONB-10). | I |
 | E-NOTIF-2 | User blocks KeepClear's notification channel mid-job | Same as E-NOTIF-1; job not cancelled. | I |
 | E-LIFE-4 | Fold/unfold or enter multi-window during a confirm sheet or MOVE | Selection and plan preserved; layout switches (UI-2). | UI |
+| E-MIG-1 | App updated while MOVE copies | Process killed by installer; on next launch (or MY_PACKAGE_REPLACED) job resumes from Room (MIG-4). | I |
+| E-MIG-2 | App updated while an `ActionPlan` is half-executed | Finished ops stay done; remaining ops wait for a new confirmation (MIG-5). | U, I |
+| E-MIG-3 | Downgrade (user installs older APK) | Room refuses newer schema → app shows "This version is older than your data. Install the latest version." No data wiped. | I |
+| E-MIG-4 | Trash sidecar written by a newer app version | Read as untrusted-recovered, never dropped (MIG-2). | U |
 
 ## 5. Classification correctness
 

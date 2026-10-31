@@ -37,6 +37,7 @@ Rules for every milestone:
 ### M3: Scanner + Room index
 - `engine:scan` over gateway + MediaStore source port; `core:database` (ScanItem, HashCache); `FileGateway` (foss) and `MediaGateway` read paths; incremental generations.
 - Permissions: READ_MEDIA_* with explainer, partial-access detection (ONB-2/4), all-files on foss (ONB-5).
+- Room schema export + migration test harness from day one (MIG-1).
 - **DoD / tests:** SCAN-3/5/6 unit tests on fixtures (cancel leaves no state; Hebrew/NFD names; symlink loop; 100k dir streams with bounded memory); instrumented MediaStore seeding test on API 30/34/36; **D:** full scan of owner's phone ≤ 60 s, totals within 1% of Settings › Storage.
 
 ### M4: Classifier + rules + explanations
@@ -55,7 +56,8 @@ Rules for every milestone:
 
 ### M6: Trash (both backends) + restore
 - `engine:trash`, `TrashEntry`, `FolderTrash` (rename + sidecar + `.nomedia`), `MediaStoreTrash` (chunks ≤ 2,000; `MANAGE_MEDIA` optional), purge worker, recover-from-sidecars, Trash screen, Undo.
-- **DoD / tests:** TRASH-1…6, E-DEL-3…15 unit tests; kill-point property test (no-loss invariant) for trash/restore/purge; instrumented: createTrashRequest + restore on API 30/34/36, SAF move into tree trash; **D:** trash 50 test files on owner phone, restore, verify OnePlus Gallery behaviour (OPEN: does it show IS_TRASHED items?).
+- Sidecar format v1 with HMAC and `RestorePathValidator` (SEC-1), write-ahead journal (LOW-3).
+- **DoD / tests:** TRASH-1…6, E-DEL-3…15, E-SEC-1…3, E-LOW-3, MIG-2 golden files; kill-point property test (no-loss invariant) for trash/restore/purge; instrumented: createTrashRequest + restore on API 30/34/36, SAF move into tree trash; **D:** trash 50 test files on owner phone, restore, verify OnePlus Gallery behaviour (OPEN: does it show IS_TRASHED items?).
 
 ### M7: SAFE cleanup end-to-end
 - Junk filters, WhatsApp `.Statuses`, other apps' recycle bins card (OnePlus path verified on device), extracted-zip detection, Sent duplicates via full SHA-256, Android cache trim (`allocateBytes`, measured), foss `ACTION_CLEAR_APP_CACHE`. Confirm sheet → executor → trash → result screen.

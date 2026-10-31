@@ -294,6 +294,18 @@ OEM background killing (OnePlus) is mitigated by FGS for long work and by resuma
 
 `SpaceProbe` (`StatFs` + `getAllocatableBytes`) publishes `SpaceMode = NORMAL | LIGHT (<500 MB) | MINIMAL (<100 MB)` as a `StateFlow`, re-sampled on resume, before each job step and every 30 s during jobs. Components subscribe: Coil disk cache off in LIGHT+, scan persistence off in MINIMAL, MOVE start gated at 100 MB. All destructive ops are write-ahead (journal row + sidecar first), so a failed journal write means the file was never touched (LOW-3).
 
+## 9b. Versioned formats and migrations (MIG-*)
+
+| Artifact | Version field | Policy |
+|---|---|---|
+| Room DB | `@Database(version)` + exported schema JSON | Explicit migrations only; tested from every released version |
+| Trash sidecar | `"v"` | Read all old versions; unknown newer → untrusted, read-only |
+| Backup manifest | header line `{"v":1,"app":"KeepClear","created":…}` | Same as sidecar; `SHA256SUMS` format fixed (GNU coreutils) |
+| Rules JSON | `schemaVersion`, `rulesVersion` | Snapshot-tested; PROTECTED set only grows |
+| Job/plan state | enum names stored as strings | Never renamed; new states appended |
+
+Updates kill the process: copy/verify resumes from Room; deletions never resume without re-confirmation (MIG-5).
+
 ## 10. Security & privacy
 
 - No `INTERNET` in MVP manifest. No analytics/crash SDKs. `allowBackup=false` for app DB (receipts/index are local; trash survives via sidecars).
