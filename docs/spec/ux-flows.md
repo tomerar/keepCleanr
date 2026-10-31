@@ -267,4 +267,6 @@ Space returns as items expire, or empty now.
 | Tiny junk | Only 120 MB of real junk. Most of your space is photos and videos — Move to backup can help. | רק 120MB של קבצים מיותרים באמת. רוב המקום תפוס בתמונות ובסרטונים, ושם "העברה לגיבוי" יכולה לעזור. |
 | Partial media access | KeepClear sees only 40 photos you picked. Allow all to get real numbers. `[Change]` | KeepClear רואה רק 40 תמונות שבחרתם. כדי לקבל מספרים אמיתיים, אפשר לתת גישה לכולן. `[לשנות]` |
 | Permission removed mid-job | Paused: access to your photos was removed. Nothing was deleted. `[Allow again]` | הושהה: הגישה לתמונות הוסרה. שום דבר לא נמחק. `[לאשר שוב]` |
+| Almost full (light mode) | Your phone is almost full. KeepClear is using as little space as possible. | הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום. |
+| Very full (minimal mode) | Less than 100 MB left. Start with these, they free space without needing any: | נשארו פחות מ-100MB. כדאי להתחיל מאלה, הם מפנים מקום בלי לצרוך מקום: |
 | Some items skipped | 3 files changed since the scan, so we left them alone. | ‏3 קבצים השתנו מאז הסריקה, אז לא נגענו בהם. |

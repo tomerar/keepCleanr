@@ -290,6 +290,10 @@ OEM background killing (OnePlus) is mitigated by FGS for long work and by resuma
 
 ---
 
+## 9a. Low-space modes (LOW-*)
+
+`SpaceProbe` (`StatFs` + `getAllocatableBytes`) publishes `SpaceMode = NORMAL | LIGHT (<500 MB) | MINIMAL (<100 MB)` as a `StateFlow`, re-sampled on resume, before each job step and every 30 s during jobs. Components subscribe: Coil disk cache off in LIGHT+, scan persistence off in MINIMAL, MOVE start gated at 100 MB. All destructive ops are write-ahead (journal row + sidecar first), so a failed journal write means the file was never touched (LOW-3).
+
 ## 10. Security & privacy
 
 - No `INTERNET` in MVP manifest. No analytics/crash SDKs. `allowBackup=false` for app DB (receipts/index are local; trash survives via sidecars).

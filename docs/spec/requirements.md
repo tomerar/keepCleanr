@@ -82,6 +82,20 @@ These are non-negotiable. Each has a dedicated automated test.
 | SCAN-6 | MVP | THE SYSTEM SHALL handle any Unicode filename (Hebrew, emoji, RTL marks, NFC/NFD), very deep trees, symlink loops, and folders with 100k+ entries without crashing or blocking the UI. | Fixture tests; see edge cases. |
 | SCAN-7 | v1 | THE SYSTEM SHALL show a storage history (free space over time, bytes freed by KeepClear) computed only on the device. | — |
 
+### 3a. Nearly-full device (LOW)
+
+**User story:** My phone is so full that apps fail. KeepClear must still open, must not make it worse, and must point me to what frees space without needing any.
+
+Free space is measured with `StorageManager.getAllocatableBytes(UUID_DEFAULT)` (what the system could give us after trimming caches) and `StatFs` (raw free).
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---|---|---|
+| LOW-1 | MVP | WHILE raw free space < 500 MB, THE SYSTEM SHALL run in **light mode**: thumbnail disk cache off (memory only), scan index writes batched and capped, no storage-history samples, and a banner "Your phone is almost full. KeepClear is using as little space as possible." | Fake `SpaceProbe` test: no thumbnail files written; DB growth ≤ 5 MB during scan. |
+| LOW-2 | MVP | WHILE raw free space < 100 MB, THE SYSTEM SHALL run in **minimal mode**: only actions that free space without writing user data are offered first ("Let Android trim caches", "Empty other apps' bins", "Empty KeepClear trash"), scan runs without persisting results (in memory), and MOVE start is blocked until ≥ 100 MB is free ("We need 100 MB on the phone to keep track of the backup safely"). | UI test per mode; MOVE start disabled with explanation. |
+| LOW-3 | MVP | THE SYSTEM SHALL write the trash index entry and sidecar (**write-ahead**) before moving any file into trash. IF that write fails (e.g. `SQLiteFullException`, `ENOSPC`), THEN THE SYSTEM SHALL abort that op before touching the file and report "Not enough space to do this safely". | Fault-injection test: ENOSPC on journal write → file untouched. |
+| LOW-4 | MVP | THE SYSTEM SHALL never crash on `SQLiteFullException`/`ENOSPC`; it degrades to read-only with a clear message. | Fuzzed ENOSPC at random points; no crash, no-loss invariant holds. |
+| LOW-5 | MVP | THE SYSTEM SHALL keep its own footprint small: app data (DB + caches) ≤ 50 MB for the owner-scale dataset, shown in Settings with "Clear KeepClear's cache". | Measured in M5 device check. |
+
 ---
 
 ## 4. Classification & explanations (CLS)

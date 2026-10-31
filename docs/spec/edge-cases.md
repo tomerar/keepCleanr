@@ -16,7 +16,7 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-MOVE-1 | Backup interrupted (app killed, OOM, reboot) mid-file | Temp file (`.kc-tmp-<uuid>`) on target is deleted on resume; file restarts from 0. Files already VERIFIED are not re-copied. Nothing on the phone was deleted (deletion only happens after the receipt). | U (kill at every state), I |
 | E-MOVE-2 | USB cable / OTG drive unplugged mid-copy | IOException → job PAUSED("Drive disconnected"), notification "Reconnect the drive to continue". On reconnect the same SAF tree URI is re-validated (persisted permission + marker file `KeepClear/.keepclear-target-id`); if the user plugs a *different* drive, refuse to resume into it. | U, D |
 | E-MOVE-3 | Target runs out of space mid-batch | Pre-flight should prevent it; if it still happens (other writers), stop at the current file, delete its temp, report "Drive full after N files (X GB). Free space on the drive or pick another." Already-verified files remain deletable. | U |
-| E-MOVE-4 | **Phone** runs low on space during backup | Copy needs no phone space (stream), but Room/WAL and thumbnails do: keep a 200 MB reserve; if `getAllocatableBytes` < reserve, pause and offer "Let Android trim caches" (SAFE-5). | U |
+| E-MOVE-4 | **Phone** runs low on space during backup | Copy needs no phone space (stream), but Room/WAL and thumbnails do: keep a 100 MB reserve (LOW-2); if raw free space < reserve, pause and offer "Let Android trim caches" (SAFE-5). | U |
 | E-MOVE-5 | Source file changed after hashing but before delete (edited, re-saved by Gallery) | At delete time size+mtime differ → SRC_CHANGED, skipped, re-queued; receipt shows "1 file changed since backup — backed up again or kept". | U |
 | E-MOVE-6 | Source changed *during* copy (WhatsApp still downloading a video) | `stat` after copy differs from before → discard and retry later; files with mtime < 2 min ago are deferred to the end of the job. | U |
 | E-MOVE-7 | Read-back hash mismatch (bad cable, flaky card, FUSE bug) | Re-copy up to 2×; still mismatching → FAILED("Copy on drive is damaged"), never deletable; suggest another drive. | U (corrupting fake) |
@@ -68,6 +68,10 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-STO-6 | Files with no read permission / FUSE errors | Counted as "couldn't read N files"; never classified SAFE. | U |
 | E-STO-7 | Private space / work profile (Android 15) | Out of scope; documented "KeepClear only sees your main profile". | Doc |
 | E-STO-8 | Multiple users | Same as above. | Doc |
+| E-LOW-1 | Phone has 40 MB free on launch | Minimal mode (LOW-2); app opens; first card is "Let Android trim caches"; no DB writes until space ≥ 100 MB. | U, I |
+| E-LOW-2 | Space drops below 100 MB during a MOVE job | Job pauses after the current file; checkpoint written from the reserved budget; message "Phone almost full, paused". | U |
+| E-LOW-3 | `ENOSPC` while writing a trash sidecar | Op aborted before the rename (LOW-3); file untouched. | U |
+| E-LOW-4 | `SQLiteFullException` mid-scan | Scan stops, partial results shown as incomplete, no crash. | U |
 | E-STO-9 | Owner's legacy `/sdcard/WhatsApp` *and* scoped `Android/media/com.whatsapp` both exist | Both shown; legacy is REVIEW "old folder from before 2022"; its `Databases/` is still PROTECTED. | U |
 | E-STO-10 | WhatsApp Business (`com.whatsapp.w4b`) present | Same rules applied to its tree (MSG-1); its `Databases/`/`Backups/` PROTECTED (MSG-2). Items labelled "WhatsApp Business". | U (w4b fixture) |
 | E-MSG-1 | Both WhatsApp and WhatsApp Business, plus a cloned WhatsApp under `/storage/emulated/999/` | Three separate groups; PROTECTED applies in all three; totals never double-count. | U (fixture with 3 roots) |
