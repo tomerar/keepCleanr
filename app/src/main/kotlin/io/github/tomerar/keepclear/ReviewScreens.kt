@@ -170,6 +170,7 @@ fun GroupScreen(
         group.ruleId != io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
+    var swiping by rememberSaveable { mutableStateOf(false) }
     val selectedItems = group.items.filter { it.item.path in selected }
     Scaffold(
         bottomBar = {
@@ -221,6 +222,12 @@ fun GroupScreen(
                             stringResource(R.string.review_long_press_hint),
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
+                        if (group.items.size > 1) {
+                            TextButton(onClick = { swiping = true }, modifier = Modifier.testTag("startSwipe")) {
+                                Text(stringResource(R.string.swipe_start))
+                            }
+                        }
                     }
                     result?.let { r ->
                         Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
@@ -295,6 +302,17 @@ fun GroupScreen(
         }
     }
 
+    if (swiping) {
+        SwipeReview(
+            items = group.items,
+            onDone = { list ->
+                swiping = false
+                selected = list.map { it.item.path }.toSet()
+                if (list.isNotEmpty()) confirming = list
+            },
+            onClose = { swiping = false },
+        )
+    }
     confirming?.let { list ->
         EditableConfirm(
             items = list,
@@ -440,7 +458,7 @@ private fun Tile(
 
 /** The thumbnail, or the file name when there is none (no loader, unsupported type, or loading failed). */
 @Composable
-private fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
+internal fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
     val loader = LocalThumbnailLoader.current
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
     val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path, loader) {
