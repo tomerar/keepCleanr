@@ -87,7 +87,10 @@
     <string name="last_copy_title">זה העותק האחרון</string>
     <string name="last_copy_confirm">למחוק גם את העותק האחרון</string>
     <string name="last_copy_keep">להשאיר</string>
+<<<<<<< HEAD
     <string name="obscured_touch_hint">משהו מכסה את המסך, ולכן הלחיצה לא נקלטה. אפשר לסגור בועות או חלונות של אפליקציות אחרות ולנסות שוב.</string>
+=======
+>>>>>>> origin/main
     <string name="trash_restore">לשחזר</string>
     <string name="trash_restore_all">לשחזר הכול</string>
     <string name="trash_empty_now">לרוקן את סל המחזור</string>

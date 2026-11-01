@@ -186,11 +186,17 @@ class SafeActions(
     val onClearExternalCaches: () -> Unit = {},
     val onOpenTrash: () -> Unit = {},
     /** Owner decision 1.2: put a changed trashed item into a separate folder, after a confirm. */
+<<<<<<< HEAD
     val onRestoreChanged: (
         io.github.tomerar.keepclear.engine.trash.TrashEntry,
         io.github.tomerar.keepclear.core.safety.Confirmation,
     ) -> Unit = { _, _ -> },
     /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
     val onConfirmLastCopy: (io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = {},
+=======
+    val onRestoreChanged: (io.github.tomerar.keepclear.engine.trash.TrashEntry) -> Unit = {},
+    /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
+    val onConfirmLastCopy: () -> Unit = {},
+>>>>>>> origin/main
     val onDismissLastCopy: () -> Unit = {},
 )

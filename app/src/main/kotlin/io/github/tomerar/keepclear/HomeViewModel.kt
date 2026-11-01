@@ -213,22 +213,65 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+<<<<<<< HEAD
     /**
      * Restore or permanently delete trash entries through the executor. [confirmation] is the user's tap in the
      * Trash UI, made from the entries' original paths (review PR B).
      */
     fun restore(entries: List<TrashEntry>, confirmation: Confirmation) {
+=======
+    /** Restore or permanently delete trash entries through the executor (user already confirmed in the UI). */
+    fun restore(entries: List<TrashEntry>) {
+>>>>>>> origin/main
         viewModelScope.launch {
             // Owner decision 1.2: a changed item is never put back in place; it is marked and offered separately.
             val changed = entries.filter { app.trashManager.isChanged(it, fullCheck = true) }
             changedFound += changed.map { it.id }
+<<<<<<< HEAD
             runTrashPlan(entries - changed.toSet(), OpKind.RESTORE, confirmation)
+        }
+    }
+=======
+            runTrashPlan(entries - changed.toSet(), OpKind.RESTORE)
         }
     }
 
     /** Ids found changed while restoring (content check), kept so the Trash keeps showing them. */
     private val changedFound = mutableSetOf<String>()
 
+    /** Owner decision 1.2: restore a changed item into `KeepClear/Restored-changed/` (user confirmed). */
+    fun restoreChanged(entry: TrashEntry) = runTrashPlan(listOf(entry), OpKind.RESTORE_CHANGED)
+
+    /** Duplicate-group sizes of the plan the held-back items came from (SAFETY-8 still applies to them). */
+    private var lastCopyGroupSizes: Map<String, Int> = emptyMap()
+
+    /** Owner decision 1.3: the user confirmed these are the last copies; trash them. */
+    fun confirmLastCopies() {
+        val ops = _state.value.lastCopy ?: return
+        _state.update { it.copy(lastCopy = null) }
+        viewModelScope.launch {
+            val plan = lastCopyPlan(UUID.randomUUID().toString(), ops, lastCopyGroupSizes)
+                .confirm(System.currentTimeMillis(), app.sessionId)
+            val report = app.executor().run(plan)
+            if (report is ExecutionReport.Rejected) {
+                _state.update {
+                    it.copy(
+                        cleanResult = CleanResult(Total(), skipped = 0, failed = ops.size, trashedPaths = emptyList()),
+                    )
+                }
+            }
+            loadTrash()
+            scan()
+        }
+    }
+
+    fun dismissLastCopies() = _state.update { it.copy(lastCopy = null) }
+>>>>>>> origin/main
+
+    /** Ids found changed while restoring (content check), kept so the Trash keeps showing them. */
+    private val changedFound = mutableSetOf<String>()
+
+<<<<<<< HEAD
     /** Owner decision 1.2: restore a changed item into `KeepClear/Restored-changed/` (user confirmed). */
     fun restoreChanged(entry: TrashEntry, confirmation: Confirmation) =
         runTrashPlan(listOf(entry), OpKind.RESTORE_CHANGED, confirmation)
@@ -261,6 +304,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun purge(entries: List<TrashEntry>, confirmation: Confirmation) = runTrashPlan(entries, OpKind.PURGE, confirmation)
 
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind, confirmation: Confirmation) {
+=======
+    private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind) {
+>>>>>>> origin/main
         if (entries.isEmpty()) {
             loadTrash()
             return

@@ -23,6 +23,7 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
         val shown = plan.confirmedPaths
         if (plan.confirmedAt != null && shown == null) reasons += "Plan has no confirmation of what was shown (PR B)"
         for (op in plan.ops) {
+<<<<<<< HEAD
             // Review PR B: every op must be one the user saw in the confirmation, and a path ref must be the path
             // that was shown (no "show A, delete B").
             if (shown != null && op.confirmKey !in shown) {
@@ -32,6 +33,8 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
             if (ref is io.github.tomerar.keepclear.core.storage.KPath.Local && ref.absolute != op.displayPath) {
                 reasons += "Op target differs from what is shown: ${op.displayPath}"
             }
+=======
+>>>>>>> origin/main
             val trashOnly = op.kind == OpKind.PURGE || op.kind == OpKind.RESTORE || op.kind == OpKind.RESTORE_CHANGED
             if (!trashOnly) {
                 if (protectedPaths.isProtected(op.displayPath)) {

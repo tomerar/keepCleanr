@@ -53,6 +53,7 @@ data class PlannedOp(
      * deleted because this one existed, so deleting it too leaves no copy outside the trash.
      */
     val lastCopyConfirmed: Boolean = false,
+<<<<<<< HEAD
     /**
      * What the user saw for this item in the confirmation, when it differs from [displayPath] (e.g. a trashed
      * item is shown by its original path). The guard matches the [Confirmation] against this.
@@ -73,6 +74,9 @@ class Confirmation private constructor(val at: Long, val paths: Set<String>) {
         fun of(shownPaths: Collection<String>, at: Long): Confirmation = Confirmation(at, shownPaths.toSet())
     }
 }
+=======
+)
+>>>>>>> origin/main
 
 /** A file that must still be there, unchanged in size, for an op to proceed (H2, SAFETY-8). */
 data class Witness(val ref: KPath, val path: String, val size: Long)
