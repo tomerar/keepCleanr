@@ -68,7 +68,8 @@ class GrantedFolderTrashTest {
     private suspend fun run(manager: TrashManager, path: String, kind: OpKind): ExecutionReport {
         val s = mount.stat(KPath.Local(path))!!
         val op = PlannedOp(s.path, path, kind, s.isDirectory, s.size, s.mtimeMillis)
-        val executor = ActionExecutor(mount, SafetyGuard(protectedPaths), protectedPaths, manager, "s")
+        val guard = SafetyGuard(protectedPaths, grantedTrashRoots = listOf(point))
+        val executor = ActionExecutor(mount, guard, protectedPaths, manager, "s")
         return executor.run(ActionPlan("p", listOf(op), "t").confirm(1, "s"))
     }
 
@@ -86,6 +87,18 @@ class GrantedFolderTrashTest {
         assertEquals(1, (run(manager, entry.trashedPath, OpKind.RESTORE) as ExecutionReport.Ran).done.size)
         assertArrayEquals(bytes, File(drive, "Media/WhatsApp Images/Sent/IMG-1.jpg").readBytes())
         assertTrue(index.all().isEmpty())
+    }
+
+    @Test
+    fun emptyNowDeletesFromTheGrantedFoldersTrash(): Unit = runBlocking {
+        val manager = manager()
+        val sent = "$point/Media/WhatsApp Images/Sent/IMG-1.jpg"
+        assertEquals(1, (run(manager, sent, OpKind.TRASH) as ExecutionReport.Ran).done.size)
+        val entry = index.all().single()
+        // PR #23 review: the guard must accept the granted folder's own trash, or "Empty now" deletes nothing.
+        assertEquals(1, (run(manager, entry.trashedPath, OpKind.PURGE) as ExecutionReport.Ran).done.size)
+        assertTrue(index.all().isEmpty())
+        assertFalse(File(drive, entry.trashedPath.removePrefix("$point/")).exists())
     }
 
     @Test

@@ -45,12 +45,17 @@ class KeepClearApplication : Application() {
 
     val safGateway by lazy { SafGateway(contentResolver) }
 
-    fun refreshGrantedFolders() {
-        if (BuildConfig.FLAVOR == "foss" && MediaAccess.hasAllFiles()) {
-            grantedFolders = emptyMap()
-            return
-        }
-        grantedFolders = contentResolver.persistedUriPermissions
+    /**
+     * Every granted WhatsApp folder, in any access mode. These stay trash volumes even after All files access is
+     * turned on (then the file gateway reaches them), so items trashed earlier are never orphaned (PR #23 review).
+     */
+    @Volatile
+    var grantedFolderRoots: Set<String> = emptySet()
+        private set
+
+    /** Re-reads the persisted folder grants: at start (also for the background purge) and on every resume. */
+    fun refreshGrantedFolders(allFiles: Boolean = BuildConfig.FLAVOR == "foss" && MediaAccess.hasAllFiles()) {
+        val found = contentResolver.persistedUriPermissions
             .filter { it.isReadPermission && it.isWritePermission }
             .mapNotNull { permission ->
                 val uri = permission.uri
@@ -61,7 +66,10 @@ class KeepClearApplication : Application() {
                 point to mountCache.getOrPut(uri.toString()) {
                     SafTreeMount(safGateway, KPath.Saf(uri.toString(), id), point)
                 }
-            }.toMap()
+            }
+        val split = GrantedFolderSplit.of(found.toMap(), allFiles)
+        grantedFolderRoots = split.trashRoots
+        grantedFolders = split.mounts
     }
 
     /** Every file path goes through here: the phone's files, or a granted folder's documents (M12b). */
@@ -86,7 +94,7 @@ class KeepClearApplication : Application() {
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
             // M12b: a granted folder keeps its own trash inside it (documents can't move out of it).
-            grantedRoots = { grantedFolders.keys.toList() },
+            grantedRoots = { grantedFolderRoots.toList() },
             // E-DEL-10: a refused purge run is logged (no file paths).
             onClockJump = { j ->
                 android.util.Log.w(
@@ -138,7 +146,8 @@ class KeepClearApplication : Application() {
         return ActionExecutor(
             // M12: MediaStore rows are re-checked through MediaStore and go to Android's trash with its consent.
             gateway = actionGateway,
-            guard = SafetyGuard(guarded),
+            // M12b: a granted folder's own trash may be emptied (only directly inside that folder).
+            guard = SafetyGuard(guarded, grantedTrashRoots = grantedFolderRoots),
             protectedPaths = guarded,
             handler = io.github.tomerar.keepclear.core.storage.media.MediaConsentHandler(trashManager, mediaRequests),
             currentSession = sessionId,
@@ -156,6 +165,19 @@ class KeepClearApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Before any trash work, also in a process WorkManager starts for the daily purge (PR #23 review).
+        runCatching { refreshGrantedFolders() }
         TrashPurgeWorker.schedule(this)
+    }
+}
+
+/**
+ * M12b: every granted folder is a trash volume in any access mode, but it is mounted (routed through SAF) only
+ * without All files access; with it, the phone's own file gateway reaches the folder directly (PR #23 review).
+ */
+data class GrantedFolderSplit<T>(val trashRoots: Set<String>, val mounts: Map<String, T>) {
+    companion object {
+        fun <T> of(found: Map<String, T>, allFiles: Boolean) =
+            GrantedFolderSplit(found.keys, if (allFiles) emptyMap() else found)
     }
 }

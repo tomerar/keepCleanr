@@ -7,7 +7,15 @@ import io.github.tomerar.keepclear.core.hash.Sha256
  * Plan-level checks before anything runs (design.md §3.3). Any violation rejects the **whole plan**:
  * a plan that reaches the guard with a PROTECTED op is a bug, never a user choice (SAFETY-3).
  */
-class SafetyGuard(private val protectedPaths: ProtectedPaths) {
+class SafetyGuard(
+    private val protectedPaths: ProtectedPaths,
+    /**
+     * M12b: folders the user granted (e.g. WhatsApp's folder), each with its own trash directly inside it
+     * (`<folder>/.KeepClearTrash`). Only these exact folders count; a `.KeepClearTrash` anywhere else is not the
+     * trash.
+     */
+    private val grantedTrashRoots: Collection<String> = emptyList(),
+) {
     sealed interface Verdict {
         data object Accepted : Verdict
 
@@ -71,7 +79,23 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
      * so `.KeepClear\u200BTrash` is not the trash), and the target must be strictly inside it.
      * Symlinked folders inside the trash are refused by `TrashManager` on the real file system.
      */
-    private fun isInsideTrash(rawPath: String): Boolean {
+    private fun isInsideTrash(rawPath: String): Boolean = isInsideVolumeTrash(rawPath) || isInsideGrantedTrash(rawPath)
+
+    /** Strictly inside `<granted folder>/.KeepClearTrash/`, for an explicitly granted folder only (M12b). */
+    private fun isInsideGrantedTrash(rawPath: String): Boolean {
+        val canonical = CanonicalPath.of(rawPath) ?: return false
+        val raw = rawPath.split('/').filter { it.isNotEmpty() }
+        if (raw.size != canonical.split('/').drop(1).size) return false
+        return grantedTrashRoots.any { root ->
+            val rootCanonical = CanonicalPath.of(root) ?: return@any false
+            val prefix = "$rootCanonical/${ProtectedPaths.TRASH_DIR}/"
+            val index = rootCanonical.split('/').drop(1).size
+            canonical.startsWith(prefix) && canonical.length > prefix.length &&
+                raw[index].equals(ProtectedPaths.TRASH_FOLDER_NAME, ignoreCase = true)
+        }
+    }
+
+    private fun isInsideVolumeTrash(rawPath: String): Boolean {
         val canonical = CanonicalPath.of(rawPath) ?: return false
         val segs = canonical.split('/').drop(1)
         val trashIndex = when {
