@@ -135,6 +135,8 @@ data class MoveUiState(
     val busy: Boolean = false,
     val freeResult: FreeResult? = null,
     val check: BackupCheck? = null,
+    /** MOVE-17: the "Restore from a backup" flow, null when closed. */
+    val restore: RestoreStep? = null,
 )
 
 class MoveViewModel(application: Application) : AndroidViewModel(application) {
@@ -199,6 +201,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
     /** MOVE-2: the user picked a folder or drive; check it and run the pre-flight for [pendingItems]. */
     fun onTreePicked(uri: Uri) {
+        if (_state.value.restore == RestoreStep.Pick) {
+            viewModelScope.launch {
+                val label = withContext(Dispatchers.IO) { treeLabel(uri) }
+                restoreFrom(withContext(Dispatchers.IO) { OpenedTarget.of(app.openTarget(uri, label)) })
+            }
+            return
+        }
         val items = pendingItems
         if (items.isEmpty()) {
             // Process death while the picker was open: never start an empty or guessed job.
@@ -219,6 +228,14 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      * KeepClear could open it; otherwise the form says why (refused, or nothing answered).
      */
     fun onNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation) {
+        if (_state.value.restore == RestoreStep.Pick) {
+            viewModelScope.launch {
+                val check = withContext(Dispatchers.IO) { app.openNetworkDrive(location, location.host) }
+                if (check is OpenedTarget.Ok) withContext(Dispatchers.IO) { app.networkDrives.save(location) }
+                restoreFrom(check)
+            }
+            return
+        }
         val items = pendingItems
         if (items.isEmpty()) {
             fail(TargetProblem.SELECTION_LOST)
@@ -332,6 +349,99 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun releasePicked() {
         pickedTarget?.useTarget { }
         pickedTarget = null
+    }
+
+    // ------------------------------------------------------------------ MOVE-17: restore from a backup
+
+    private var restoreEngine: io.github.tomerar.keepclear.engine.restore.RestoreEngine? = null
+    private var restoreEntries: List<io.github.tomerar.keepclear.engine.restore.BackupEntry> = emptyList()
+
+    /**
+     * Starts "Restore from a backup". Files go back where they were, so the app needs to write by path: All files
+     * access (decided conservatively for the `play` build, progress.md C10). Restoring only adds files, so it also
+     * runs in trial mode (C11).
+     */
+    fun beginRestore() {
+        val canWrite = BuildConfig.FLAVOR == "foss" &&
+            io.github.tomerar.keepclear.core.storage.media.MediaAccess.hasAllFiles()
+        _state.update {
+            it.copy(restore = if (canWrite) RestoreStep.Pick else RestoreStep.NeedsAllFiles, problem = null)
+        }
+    }
+
+    /** The opened backup place; released when the flow closes (a network drive's connection, PR #25 lesson). */
+    private var restoreTarget: io.github.tomerar.keepclear.backup.BackupTarget? = null
+
+    fun closeRestore() {
+        restoreTarget?.let { t -> viewModelScope.launch { withContext(Dispatchers.IO) { t.useTarget { } } } }
+        restoreTarget = null
+        restoreEngine = null
+        restoreEntries = emptyList()
+        _state.update { it.copy(restore = null) }
+    }
+
+    private suspend fun restoreFrom(check: OpenedTarget) {
+        if (check !is OpenedTarget.Ok) {
+            closeRestore()
+            fail(
+                when (check) {
+                    OpenedTarget.Refused -> TargetProblem.REFUSED
+                    OpenedTarget.DamagedMarker -> TargetProblem.DAMAGED_MARKER
+                    else -> TargetProblem.UNAVAILABLE
+                },
+            )
+            return
+        }
+        val engine = io.github.tomerar.keepclear.engine.restore.RestoreEngine(
+            check.target,
+            app.localGateway,
+            app.protectedPaths,
+            android.os.Environment.getExternalStorageDirectory().absolutePath,
+        )
+        restoreTarget?.useTarget { }
+        restoreEngine = engine
+        restoreTarget = check.target
+        val roots = withContext(Dispatchers.IO) { engine.backups() }
+        when (roots.size) {
+            0 -> _state.update { it.copy(restore = RestoreStep.NoBackup) }
+            1 -> chooseBackup(roots.single())
+            else -> _state.update { it.copy(restore = RestoreStep.Backups(roots)) }
+        }
+    }
+
+    fun chooseBackup(rootRel: String) {
+        val engine = restoreEngine ?: return
+        viewModelScope.launch {
+            val entries = withContext(Dispatchers.IO) { engine.catalog(rootRel) }.orEmpty()
+            restoreEntries = entries
+            if (entries.isEmpty()) {
+                _state.update { it.copy(restore = RestoreStep.NoBackup) }
+                return@launch
+            }
+            val groups = entries.groupBy { "${it.group}|${it.month}" }.map { (_, list) ->
+                RestoreGroup(list.first().group, list.first().month, list.size, list.sumOf { it.line.size })
+            }.sortedWith(compareBy({ it.group }, { it.month }))
+            _state.update { it.copy(restore = RestoreStep.Catalog(rootRel, groups)) }
+        }
+    }
+
+    fun runRestore(keys: Set<String>) {
+        val engine = restoreEngine ?: return
+        val chosen = restoreEntries.filter { "${it.group}|${it.month}" in keys }
+        if (chosen.isEmpty()) return
+        viewModelScope.launch {
+            _state.update { it.copy(restore = RestoreStep.Running(0, chosen.size)) }
+            val report = withContext(Dispatchers.IO) {
+                engine.restore(chosen) { done ->
+                    _state.update { it.copy(restore = RestoreStep.Running(done, chosen.size)) }
+                }
+            }
+            // Let the gallery and other apps see the files again (MOVE-17 "re-index in MediaStore").
+            if (report.restored.isNotEmpty()) {
+                android.media.MediaScannerConnection.scanFile(app, report.restored.toTypedArray(), null, null)
+            }
+            _state.update { it.copy(restore = RestoreStep.Done(report)) }
+        }
     }
 
     fun pause() = controller.pause(PauseReason.PAUSED_BY_USER)

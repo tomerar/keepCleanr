@@ -24,6 +24,7 @@ class ArchitectureTest {
             "engine/trash",
             "engine/enrich",
             "engine/move",
+            "engine/restore",
             "backup/target-api",
         )
 
@@ -83,7 +84,14 @@ class ArchitectureTest {
         )
         // testing/usb-provider: a debug-only fake USB drive working inside app-private storage.
         val allowed =
-            listOf("/core/storage-", "/engine/trash/", "/backup/target-", "/engine/move/", "/testing/usb-provider/")
+            listOf(
+                "/core/storage-",
+                "/engine/trash/",
+                "/backup/target-",
+                "/engine/move/",
+                "/engine/restore/",
+                "/testing/usb-provider/",
+            )
         projectScope.files
             .filter { "/src/main/" in it.path }
             .filterNot { file -> allowed.any { it in file.path } || "/build-logic/" in file.path }
@@ -124,6 +132,24 @@ class ArchitectureTest {
         val allowedCall = Regex("""\btarget\.(delete|rename)\(""")
         projectScope.files
             .filter { "/engine/move/src/main/" in it.path }
+            .assertFalse { file ->
+                file.text.lineSequence()
+                    .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+                    .any { line -> destructive.containsMatchIn(allowedCall.replace(line, "")) }
+            }
+    }
+
+    /**
+     * MOVE-17: restoring from a backup only adds files to the phone. Its only destructive calls are deleting its
+     * own temporary file after a failed copy and renaming that temporary file to its final name.
+     */
+    @Test
+    fun `engine restore only touches its own temp file`() {
+        val destructive =
+            Regex("""\.(delete|rename|renameTo)\(|Files\.(move|delete)|deleteRecursively\(|Document\(|Request\(""")
+        val allowedCall = Regex("""\bphone\.(delete\(tempPath\)|rename\(temp, )""")
+        projectScope.files
+            .filter { "/engine/restore/src/main/" in it.path }
             .assertFalse { file ->
                 file.text.lineSequence()
                     .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }

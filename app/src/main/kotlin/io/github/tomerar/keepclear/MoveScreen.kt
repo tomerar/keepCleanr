@@ -77,6 +77,8 @@ class MoveActions(
     /** Whether a USB drive or memory card is mounted now (checked before Android's folder picker). */
     val hasRemovableDrive: () -> Boolean = { true },
     val onOpenTrash: () -> Unit = {},
+    /** MOVE-17: "Restore from a backup". */
+    val restore: RestoreActions = RestoreActions(),
 ) {
     /** The same actions with [open] for "Show group": nothing else can be lost on the way. */
     fun withOpenGroup(open: (String) -> Unit) = MoveActions(
@@ -96,6 +98,7 @@ class MoveActions(
         onOpenGroup = open,
         hasRemovableDrive = hasRemovableDrive,
         onOpenTrash = onOpenTrash,
+        restore = restore,
     )
 }
 
@@ -209,6 +212,14 @@ fun MoveScreen(
                 ) { Text(stringResource(R.string.move_pick_target)) }
             }
             item { PhotosNote(actions.onOpenGooglePhotos) }
+            // MOVE-17: bring files back from a backup (a drive, folder or network drive).
+            item {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = actions.restore.onStart,
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth().testTag("restoreStart"),
+                ) { Text(stringResource(R.string.restore_start)) }
+            }
             if (state.jobs.size > 1) {
                 item { Text(stringResource(R.string.move_history), style = MaterialTheme.typography.titleMedium) }
                 items(state.jobs.drop(1), key = { it.job.id }) { view ->
@@ -243,6 +254,7 @@ fun MoveScreen(
             onDismiss = { guide = false },
         )
     }
+    RestoreDialogs(state.restore, actions.restore)
     if (network) {
         NetworkDriveDialog(
             saved = remember { actions.savedNetworkDrive() },
@@ -756,7 +768,7 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
 
 /** M15: where the network drive is. Only a plain address is accepted (ADR 0011: only to the address typed). */
 @Composable
-private fun NetworkDriveDialog(
+internal fun NetworkDriveDialog(
     saved: io.github.tomerar.keepclear.backup.smb.SmbLocation?,
     onConnect: (io.github.tomerar.keepclear.backup.smb.SmbLocation) -> Unit,
     onDismiss: () -> Unit,
