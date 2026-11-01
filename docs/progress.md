@@ -66,7 +66,7 @@ None open. Decided by the owner on 2026-11-01 (recorded in requirements §14):
 | B2 | ADR 0010 accepted for `foss`; TRASH-7 wording says trashed files stay in `.KeepClearTrash` and take space after uninstall. |
 | Q4 | 256 GB+ USB-C drive, exFAT. Drive-format detection implemented: the 4 GB limit applies only to FAT32 or an unreadable format. |
 
-Proposed, waiting for the owner: [ADR 0011](adr/0011-network-and-cloud-targets.md) (network and cloud targets, priority SMB → Google Drive → Nextcloud → Dropbox; OneDrive Later) and [ADR 0012](adr/0012-foss-accessibility-cache-cleaner.md) (Accessibility cache cleaner: recommendation is no for v1).
+Accepted on 2026-11-01: [ADR 0011](adr/0011-network-and-cloud-targets.md) with Google Drive first (Drive after a sign-in spike → SMB → Nextcloud → Dropbox; if the spike fails, SMB first and the owner is told; honest Google-account space check) and [ADR 0012](adr/0012-foss-accessibility-cache-cleaner.md) (no Accessibility cleaner in v1; guided per-app list instead).
 
 ## Notes for resuming
 

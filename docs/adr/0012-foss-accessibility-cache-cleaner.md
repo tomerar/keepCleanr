@@ -1,6 +1,6 @@
 # ADR 0012: Accessibility "Clear cache" automation: foss only, "Later", behind gates
 
-Status: Proposed (needs owner decision) · Date: 2026-11-01
+Status: Accepted (owner, 2026-11-01): no Accessibility cleaner in v1; the guided per-app list ships instead · Date: 2026-11-01
 Relates to: [ADR 0008](0008-no-accessibility-no-network.md) (stays in force), [ADR 0004](0004-privilege-tiers-shizuku-optional.md), [ADR 0005](0005-flavors-play-foss.md)
 
 ## Context
