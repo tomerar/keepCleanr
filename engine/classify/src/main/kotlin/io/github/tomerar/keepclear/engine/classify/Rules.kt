@@ -191,10 +191,17 @@ object Rules {
 object AppContent {
     const val RULE_ID = "app_content"
 
-    /** Package name of an `Android/media/<pkg>/…` or `Android/data/<pkg>/…` path, or null. */
+    /**
+     * Package name of an `Android/media/<pkg>/…` or `Android/data/<pkg>/…` path, or null. Taken from the path
+     * as written, not the lower-cased canonical form: package names are case-sensitive for PackageManager.
+     */
     fun packageOf(path: String): String? {
-        val rel = Rules.relativeSegments(path)?.second ?: return null
-        return if (rel.size >= 4 && rel[0] == "android" && rel[1] in setOf("media", "data")) rel[2] else null
+        val raw = path.split('/').filter { it.isNotEmpty() }
+        val i = raw.indices.firstOrNull { idx ->
+            raw[idx].equals("android", ignoreCase = true) &&
+                raw.getOrNull(idx + 1)?.lowercase() in setOf("media", "data")
+        } ?: return null
+        return raw.getOrNull(i + 2)?.takeIf { raw.size > i + 3 }
     }
 
     fun byApp(items: List<ClassifiedItem>): List<Pair<String, Total>> =

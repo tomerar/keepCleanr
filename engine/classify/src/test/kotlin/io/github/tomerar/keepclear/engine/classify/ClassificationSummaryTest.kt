@@ -86,4 +86,11 @@ class ClassificationSummaryTest {
         AppContent.byApp(items).map { it.first to it.second.bytes } shouldBe
             listOf("org.telegram.messenger" to 900L, "com.spotify.music" to 600L)
     }
+
+    @Test
+    fun `the app's package keeps its case, PackageManager needs it exactly (SAFE-9)`() {
+        AppContent.packageOf("/storage/emulated/0/Android/media/com.Example.Player/downloads/a.bin") shouldBe
+            "com.Example.Player"
+        AppContent.packageOf("/storage/emulated/0/DCIM/a.jpg") shouldBe null
+    }
 }
