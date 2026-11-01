@@ -97,6 +97,22 @@ class ArchitectureTest {
     }
 
     /**
+     * ADR 0011 (amends ADR 0008): network code lives only in backup target modules (`backup/target-*`, later a
+     * shared `backup/net`). Nothing else opens sockets, HTTP connections or SMB sessions.
+     */
+    @Test
+    fun `network APIs only in backup target modules`() {
+        val network = Regex(
+            """import (java\.net\.(Socket|ServerSocket|URL|HttpURLConnection|DatagramSocket)|javax\.net\.|""" +
+                """okhttp3\.|com\.hierynomus\.|android\.net\.http|java\.net\.http\.)""",
+        )
+        projectScope.files
+            .filter { "/src/main/" in it.path }
+            .filterNot { "/backup/target-" in it.path || "/backup/net/" in it.path || "/build-logic/" in it.path }
+            .assertFalse { file -> network.containsMatchIn(file.text) }
+    }
+
+    /**
      * SAFETY-5: the MOVE engine never deletes or renames an original. Its only destructive calls are
      * `target.delete(` / `target.rename(` on its own temp files, damaged copies and manifests on the drive.
      * Originals are freed later through the executor (M10).
