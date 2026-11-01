@@ -82,6 +82,16 @@ object MovePlanner {
         }
     }
 
+    /** "primary" for `/storage/emulated/<user>/…`, the UUID for `/storage/<uuid>/…`, else null. */
+    fun volumeOf(path: String): String? {
+        val segs = path.split('/').filter { it.isNotEmpty() }
+        return when {
+            segs.size < 2 || segs[0] != "storage" -> null
+            segs[1] == "emulated" || segs[1] == "self" -> "primary"
+            else -> segs[1]
+        }
+    }
+
     suspend fun preflight(
         files: List<MoveFile>,
         target: BackupTarget,
@@ -90,7 +100,9 @@ object MovePlanner {
         charging: Boolean,
     ): List<Issue> {
         val issues = mutableListOf<Issue>()
-        if (target.id in sourceVolumeIds) issues += Issue.TargetIsSource
+        // H3: compare volumes, not ids; the source volumes come from the files themselves too.
+        val sources = sourceVolumeIds + files.mapNotNull { volumeOf(it.sourcePath) }
+        if (target.volumeId != null && target.volumeId in sources) issues += Issue.TargetIsSource
         val tooLarge = target.caps.maxFileSize?.let { max -> files.filter { it.sourceSize > max } }.orEmpty()
         if (tooLarge.isNotEmpty()) issues += Issue.TooLargeForTarget(tooLarge)
         val needed = files.filterNot { it in tooLarge }.sumOf { it.sourceSize }

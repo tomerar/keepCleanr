@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.engine.trash
 
+import io.github.tomerar.keepclear.core.hash.Sha256
 import io.github.tomerar.keepclear.core.safety.ActionHandler
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
@@ -34,6 +35,8 @@ class TrashManager(
     /** Volume roots that may hold a trash, e.g. `/storage/emulated/0`, `/storage/1234-ABCD`. */
     private val volumeRoots: List<String>,
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    /** Called when a purge run is refused because the wall clock jumped (E-DEL-10). */
+    private val onClockJump: (ClockJump) -> Unit = {},
 ) : ActionHandler {
     private val validator = RestorePathValidator(protectedPaths)
 
@@ -69,6 +72,7 @@ class TrashManager(
             expiresAt = now + TrashPolicy.RETENTION_MILLIS,
             deletedAtElapsed = clock.elapsedMillis(),
             bootId = clock.bootId(),
+            deletedAtUptime = clock.uptimeMillis(),
             state = TrashState.PENDING,
             verifiedCopy = op.verifiedCopy,
         )
@@ -119,6 +123,17 @@ class TrashManager(
             forget(entry) // TRASH-6: the trashed file is gone; drop the entry, report missing
             throw StorageException.NotFound(trashed)
         }
+        // T1.6: the file in the trash must still be the file that was trashed (size, and content when known);
+        // otherwise something swapped it and it isn't put back anywhere.
+        if (trashedStat.isFile) {
+            if (trashedStat.size != entry.size) {
+                throw StorageException.Unsupported(trashed, "changed in the trash: size differs from the record")
+            }
+            val sha = entry.sha256
+            if (sha != null && gateway.openRead(trashed).use { Sha256.of(it) } != sha) {
+                throw StorageException.Unsupported(trashed, "changed in the trash: content differs from the record")
+            }
+        }
         val destination = KPath.Local(restoreDestination(entry))
         // SEC-1: whatever was chosen, original or fallback, must pass validation (e.g. no symlinked Download/).
         if (validator.check(destination.absolute, entry.volumeRoot, gateway) != null) {
@@ -136,6 +151,9 @@ class TrashManager(
         val trashed = KPath.Local(entry.trashedPath)
         val root = trashRoot(entry.volumeRoot, create = false)
         require(trashed.isInside(root)) { "purge outside the trash: $trashed" } // defence in depth
+        // Canonical containment: the trash and every folder between it and the item must be real folders. A
+        // symlink would make the OS resolve the path somewhere else (review Low).
+        requireRealFolders(root, trashed)
         gateway.stat(trashed)?.let { deleteTreeInsideTrash(it.path as KPath.Local, root) }
         forget(entry)
     }
@@ -158,19 +176,32 @@ class TrashManager(
 
     /**
      * TRASH-2: permanently deletes ACTIVE entries past their expiry. Pre-consented by the original
-     * confirmation ("waits 30 days"); never touches entries trashed less than 24 h ago in this boot,
-     * so a clock jump can't empty the trash early (E-DEL-10). Volumes that are missing are skipped
-     * (E-STO-2). Returns the bytes purged.
+     * confirmation ("waits 30 days"). Clock safety (E-DEL-10, M2): an entry is purged only when **both** the wall
+     * clock and the persisted uptime say 30 days have passed, so setting the clock forward, with or without a
+     * reboot, can't empty the trash early. A run in which the wall clock jumped against the uptime is refused
+     * as a whole and reported through [onClockJump]. Volumes that are missing are skipped (E-STO-2).
+     * Returns the bytes purged.
      */
     suspend fun purgeExpired(): Long {
         val now = clock.wallMillis()
+        val uptime = clock.uptimeMillis()
+        val boot = clock.bootId()
+        val jump = clock.lastMark()?.let { jumpSince(it, now, uptime, boot) }
+        clock.saveMark(ClockMark(now, uptime, boot))
+        if (jump != null) {
+            onClockJump(jump)
+            return 0
+        }
         var bytes = 0L
-        for (entry in index.all()) {
-            if (entry.state != TrashState.ACTIVE || now < entry.expiresAt) continue
+        for (stored in index.all()) {
+            if (stored.state != TrashState.ACTIVE) continue
+            val entry = withUptime(stored, now, uptime)
+            if (now < entry.expiresAt) continue
             // SEC-1: an untrusted (unauthenticated) recovered entry's expiry is attacker-controlled. Such entries
             // are never purged automatically; only the user's explicit "Empty now" removes them.
             if (!entry.trusted) continue
-            val sameBoot = entry.bootId == clock.bootId()
+            if (uptime - entry.deletedAtUptime!! < TrashPolicy.RETENTION_MILLIS) continue
+            val sameBoot = entry.bootId == boot
             if (sameBoot &&
                 clock.elapsedMillis() - entry.deletedAtElapsed < TrashPolicy.MIN_ELAPSED_BEFORE_PURGE
             ) {
@@ -185,6 +216,30 @@ class TrashManager(
             }
         }
         return bytes
+    }
+
+    private fun jumpSince(mark: ClockMark, now: Long, uptime: Long, boot: String): ClockJump? {
+        val dWall = now - mark.wallMillis
+        val dUp = uptime - mark.uptimeMillis
+        val sameBoot = mark.bootId == boot
+        val backwards = dWall < -TrashPolicy.CLOCK_JUMP_TOLERANCE || dUp < 0
+        // Across a reboot the phone may have been off, so only a jump within one boot is suspicious going forward.
+        val forward = sameBoot && dWall > dUp + TrashPolicy.CLOCK_JUMP_TOLERANCE
+        return if (backwards || forward) ClockJump(dWall, dUp, sameBoot) else null
+    }
+
+    /**
+     * Entries without [TrashEntry.deletedAtUptime] (rebuilt from a sidecar, or from an older version) get one now:
+     * the wall-clock age, capped so that at least [TrashPolicy.MIN_ELAPSED_BEFORE_PURGE] of real time still has to
+     * pass. Stored, so the wait can't be reset by a later clock change.
+     */
+    private suspend fun withUptime(entry: TrashEntry, now: Long, uptime: Long): TrashEntry {
+        if (entry.deletedAtUptime != null) return entry
+        val credited = (now - entry.deletedAt).coerceIn(
+            0,
+            TrashPolicy.RETENTION_MILLIS - TrashPolicy.MIN_ELAPSED_BEFORE_PURGE,
+        )
+        return entry.copy(deletedAtUptime = uptime - credited).also { index.put(it) }
     }
 
     // ----------------------------------------------------------------------------------- recover
@@ -268,6 +323,18 @@ class TrashManager(
             if (emptyDir) gateway.delete(entryDir)
         }
         index.remove(entry.id)
+    }
+
+    private suspend fun requireRealFolders(root: KPath.Local, path: KPath.Local) {
+        var dir = path.parent
+        while (dir != null) {
+            val stat = gateway.stat(dir)
+            if (stat != null && !stat.isDirectory) {
+                throw StorageException.Unsupported(dir, "not a real folder inside the trash")
+            }
+            if (dir == root) return
+            dir = dir.parent
+        }
     }
 
     private suspend fun deleteTreeInsideTrash(path: KPath.Local, root: KPath.Local) {

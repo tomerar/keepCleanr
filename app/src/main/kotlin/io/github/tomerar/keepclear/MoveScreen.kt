@@ -59,6 +59,9 @@ class MoveActions(
     val onStop: () -> Unit = {},
     val onResume: (String) -> Unit = {},
     val onFree: (String) -> Unit = {},
+    /** H1 / MOVE-15: the second, uncached check before freeing. */
+    val onCheck: (String) -> Unit = {},
+    val onCancelCheck: () -> Unit = {},
     val onShare: (String) -> Unit = {},
     val onOpenGooglePhotos: () -> Unit = {},
     val onOpenGroup: (String) -> Unit = {},
@@ -110,6 +113,10 @@ fun MoveScreen(
             }
             state.problem?.let { problem -> item { ProblemCard(problem) } }
             state.freeResult?.let { r -> item { FreeResultCard(r) } }
+            state.check?.let { check ->
+                val label = state.jobs.firstOrNull { it.job.id == check.jobId }?.job?.targetLabel.orEmpty()
+                item { CheckCard(check, label, actions) }
+            }
             state.jobs.firstOrNull()?.let { latest ->
                 item {
                     JobCard(
@@ -306,7 +313,12 @@ private fun JobCard(view: JobView, running: Boolean, canResume: Boolean, actions
         }
 
         view.job.state == JobState.DONE -> {
-            ReceiptCard(view, onFree = onFree, onShare = { actions.onShare(view.job.id) })
+            ReceiptCard(
+                view,
+                onFree = onFree,
+                onShare = { actions.onShare(view.job.id) },
+                onCheck = { actions.onCheck(view.job.id) },
+            )
         }
 
         else -> {
@@ -335,12 +347,13 @@ private fun pauseText(reason: PauseReason?, label: String): String = when (reaso
     PauseReason.SYSTEM_TIME_LIMIT -> stringResource(R.string.move_paused_time)
     PauseReason.INTERRUPTED -> stringResource(R.string.move_paused_interrupted)
     PauseReason.WRONG_TARGET -> stringResource(R.string.move_paused_wrong, Bidi.isolate(label))
+    PauseReason.UNEXPECTED_ERROR -> stringResource(R.string.move_paused_unexpected)
     PauseReason.PAUSED_BY_USER, null -> stringResource(R.string.move_paused_user)
 }
 
 /** MOVE-9 / MOVE-18 / Q12: what was copied and checked, what wasn't and why, and how to get files back. */
 @Composable
-fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit) {
+fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck: () -> Unit = {}) {
     val r = view.receipt
     Card(Modifier.fillMaxWidth().testTag("receipt")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -377,9 +390,16 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("unencrypted"),
             )
+            if (view.needsCheck) {
+                // H1: a read right after copying may come from the phone's memory; one more uncached check first.
+                Text(stringResource(R.string.move_check_needed), modifier = Modifier.testTag("checkNeeded"))
+                Button(onClick = onCheck, modifier = Modifier.fillMaxWidth().testTag("checkBackup")) {
+                    Text(stringResource(R.string.move_check_button))
+                }
+            }
             when {
                 view.canFree -> Button(onClick = onFree, modifier = Modifier.fillMaxWidth().testTag("freeOriginals")) {
-                    Text(stringResource(R.string.move_free_button, totalText(Total(r.verified, r.verifiedBytes))))
+                    Text(stringResource(R.string.move_free_button, totalText(Total(r.confirmed, r.confirmedBytes))))
                 }
 
                 !view.canReadBack -> Text(
@@ -389,6 +409,70 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit) {
             }
             TextButton(onClick = onShare, modifier = Modifier.testTag("shareReceipt")) {
                 Text(stringResource(R.string.move_share))
+            }
+        }
+    }
+}
+
+/** H1 / MOVE-15: the steps of "Check backup". */
+@Composable
+private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
+    val drive = Bidi.isolate(label)
+    Card(Modifier.fillMaxWidth().testTag("checkCard")) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            when (check) {
+                is BackupCheck.Unplug -> {
+                    Text(
+                        stringResource(R.string.move_check_unplug, drive),
+                        modifier = Modifier.testTag("checkUnplug"),
+                    )
+                }
+
+                is BackupCheck.PlugBack -> {
+                    Text(
+                        stringResource(R.string.move_check_plug_back, drive),
+                        modifier = Modifier.testTag("checkPlugBack"),
+                    )
+                }
+
+                is BackupCheck.Checking -> {
+                    Text(stringResource(R.string.move_check_checking))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+
+                is BackupCheck.Done -> {
+                    Text(
+                        stringResource(R.string.move_check_ok, countText(check.result.ok)),
+                        modifier = Modifier.testTag("checkOk"),
+                    )
+                    val bad = check.result.damaged + check.result.missing
+                    if (bad > 0) {
+                        Text(
+                            stringResource(R.string.move_check_bad, countText(bad)),
+                            modifier = Modifier.testTag("checkBad"),
+                        )
+                    }
+                }
+
+                is BackupCheck.TimedOut -> {
+                    Text(
+                        stringResource(R.string.move_check_timeout),
+                        modifier = Modifier.testTag("checkTimeout"),
+                    )
+                }
+
+                is BackupCheck.Interrupted -> {
+                    Text(
+                        stringResource(R.string.move_check_interrupted),
+                        modifier = Modifier.testTag("checkInterrupted"),
+                    )
+                }
+            }
+            if (check is BackupCheck.Unplug || check is BackupCheck.PlugBack) {
+                Text(stringResource(R.string.move_check_why), style = MaterialTheme.typography.bodySmall)
+            }
+            TextButton(onClick = actions.onCancelCheck, modifier = Modifier.testTag("checkClose")) {
+                Text(stringResource(R.string.move_check_close))
             }
         }
     }

@@ -32,6 +32,7 @@ class SafBackupTarget(
     override val id: String,
     override val label: String,
     override val caps: TargetCaps,
+    override val volumeId: String? = null,
 ) : BackupTarget {
     private val rootDocId: String = DocumentsContract.getTreeDocumentId(treeUri)
 

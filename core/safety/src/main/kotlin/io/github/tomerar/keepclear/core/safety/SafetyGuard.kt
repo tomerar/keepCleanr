@@ -50,11 +50,23 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
     }
 
     /**
-     * Allowlist check for permanent deletion: the raw path (no lossy normalisation, so `.KeepClear\u200BTrash`
-     * is not the trash) must contain the trash folder segment and be a clean absolute path.
+     * Allowlist check for permanent deletion. Canonical, not lexical: the trash folder must sit directly at a
+     * volume root (`/storage/emulated/<user>/` or `/storage/<uuid>/`), so a user folder such as
+     * `DCIM/.KeepClearTrash` is not the trash; the raw segment must also match exactly (no lossy normalisation,
+     * so `.KeepClear\u200BTrash` is not the trash), and the target must be strictly inside it.
+     * Symlinked folders inside the trash are refused by `TrashManager` on the real file system.
      */
     private fun isInsideTrash(rawPath: String): Boolean {
-        if (CanonicalPath.of(rawPath) == null) return false
-        return rawPath.split('/').dropLast(1).any { it.equals(ProtectedPaths.TRASH_FOLDER_NAME, ignoreCase = true) }
+        val canonical = CanonicalPath.of(rawPath) ?: return false
+        val segs = canonical.split('/').drop(1)
+        val trashIndex = when {
+            segs.size > 2 && segs[0] == "storage" && segs[1] == "emulated" -> 3
+            segs.size > 1 && segs[0] == "storage" && segs[1] != "emulated" && segs[1] != "self" -> 2
+            else -> return false
+        }
+        if (segs.size <= trashIndex + 1) return false // the trash folder itself, or above it
+        if (segs[trashIndex] != ProtectedPaths.TRASH_FOLDER_NAME.lowercase()) return false
+        val raw = rawPath.split('/').filter { it.isNotEmpty() }
+        return raw.size == segs.size && raw[trashIndex].equals(ProtectedPaths.TRASH_FOLDER_NAME, ignoreCase = true)
     }
 }

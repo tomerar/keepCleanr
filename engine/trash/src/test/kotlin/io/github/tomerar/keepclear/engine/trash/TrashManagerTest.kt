@@ -106,24 +106,77 @@ class TrashManagerTest {
     }
 
     @Test
-    fun `purge waits 30 days and survives same-boot clock jumps (TRASH-2, E-DEL-10)`(): Unit = runBlocking {
+    fun `purge waits 30 days of real time (TRASH-2)`(): Unit = runBlocking {
         trashOne()
+        clock.advance(TrashPolicy.RETENTION_MILLIS - 1)
         trash.purgeExpired() shouldBe 0
-        clock.wall += 365L * 24 * 3_600_000 // clock jumps a year, elapsed time barely moves
-        trash.purgeExpired() shouldBe 0
-        clock.elapsed += 25L * 3_600_000
+        clock.advance(2)
         trash.purgeExpired() shouldBe bytes.size.toLong()
         index.all().shouldBeEmpty()
     }
 
     @Test
-    fun `after a reboot only wall time counts`(): Unit = runBlocking {
+    fun `a same-boot clock jump is refused and logged (E-DEL-10)`(): Unit = runBlocking {
+        val jumps = mutableListOf<ClockJump>()
+        val m =
+            TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
         trashOne()
-        clock.boot = "boot-2"
-        clock.elapsed = 0
-        clock.wall += TrashPolicy.RETENTION_MILLIS - 1
+        m.purgeExpired() shouldBe 0
+        clock.wall += 365L * 24 * 3_600_000 // clock jumps a year, uptime barely moves
+        clock.uptime += 25L * 3_600_000
+        clock.elapsed += 25L * 3_600_000
+        m.purgeExpired() shouldBe 0
+        jumps.single().sameBoot shouldBe true
+        // Next run: no new jump, but 30 days of uptime still haven't passed.
+        m.purgeExpired() shouldBe 0
+        fake.exists(index.all().single().trashedPath) shouldBe true
+    }
+
+    @Test
+    fun `reboot plus a clock set forward can't empty the trash early (M2, E-DEL-10)`(): Unit = runBlocking {
+        trashOne()
         trash.purgeExpired() shouldBe 0
-        clock.wall += 2
+        clock.reboot()
+        clock.wall += TrashPolicy.RETENTION_MILLIS + 1 // set forward after the reboot; not detectable as a jump
+        clock.advance(25L * 3_600_000)
+        trash.purgeExpired() shouldBe 0
+        index.all() shouldHaveSize 1
+        // Real time catches up: purged.
+        clock.advance(TrashPolicy.RETENTION_MILLIS)
+        trash.purgeExpired() shouldBe bytes.size.toLong()
+    }
+
+    @Test
+    fun `a clock set backwards is refused and logged (E-DEL-10)`(): Unit = runBlocking {
+        val jumps = mutableListOf<ClockJump>()
+        val m =
+            TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
+        trashOne()
+        m.purgeExpired()
+        clock.wall -= 2 * TrashPolicy.CLOCK_JUMP_TOLERANCE
+        m.purgeExpired() shouldBe 0
+        jumps.single().wallDeltaMillis shouldBe -2 * TrashPolicy.CLOCK_JUMP_TOLERANCE
+    }
+
+    @Test
+    fun `power-off time only delays a purge`(): Unit = runBlocking {
+        trashOne()
+        clock.advance(10L * 86_400_000)
+        clock.reboot(offMillis = 20L * 86_400_000) // wall says 30 days, phone was on for 10
+        trash.purgeExpired() shouldBe 0
+        clock.advance(20L * 86_400_000)
+        trash.purgeExpired() shouldBe bytes.size.toLong()
+    }
+
+    @Test
+    fun `a recovered entry with no uptime stamp still waits at least 24 h of real time (M2)`(): Unit = runBlocking {
+        val entry = trashOne()
+        index.put(entry.copy(deletedAtUptime = null, bootId = "recovered"))
+        clock.reboot()
+        clock.wall += TrashPolicy.RETENTION_MILLIS * 2
+        trash.purgeExpired() shouldBe 0
+        index.all().single().deletedAtUptime shouldNotBe null
+        clock.advance(TrashPolicy.MIN_ELAPSED_BEFORE_PURGE + 1)
         trash.purgeExpired() shouldBe bytes.size.toLong()
     }
 
@@ -276,8 +329,7 @@ class TrashManagerTest {
             fake.addFile(sidecarPath.absolute, Sidecar.encode(forged, FakeSigner("attacker")))
             val m = manager()
             m.recover().untrusted shouldBe 1
-            clock.wall += 400L * 86_400_000L
-            clock.elapsed += 400L * 86_400_000L
+            clock.advance(400L * 86_400_000L)
             m.purgeExpired() shouldBe 0
             fake.exists(entry.trashedPath) shouldBe true
             index.all().single().trusted shouldBe false
@@ -302,5 +354,46 @@ class TrashManagerTest {
         fake.delete(KPath.Local(entry.trashedPath))
         trash.forgetMissing(index.all()) shouldBe 1
         index.all().shouldBeEmpty()
+    }
+
+    @Test
+    fun `restore refuses a trashed file whose size or content no longer matches the record (T1-6)`(): Unit =
+        runBlocking {
+            val entry = trashOne()
+            fake.modify(entry.trashedPath, FakeStorageGateway.Content.Bytes(ByteArray(7)), mtime = 99)
+            run(op(entry.trashedPath, OpKind.RESTORE)).done.shouldBeEmpty()
+            fake.exists(photo) shouldBe false
+            index.all() shouldHaveSize 1
+
+            val other = "$root/DCIM/Camera/IMG_2.jpg"
+            fake.addFile(other, ByteArray(100) { 1 }, mtime = 10)
+            val e2 = trashOne(other).let {
+                index.put(it.copy(sha256 = "0".repeat(64)))
+                index.get(it.id)!!
+            }
+            run(op(e2.trashedPath, OpKind.RESTORE)).done.shouldBeEmpty()
+            fake.exists(other) shouldBe false
+        }
+
+    @Test
+    fun `a sidecar from a newer version is surfaced as untrusted, not left as an orphan (E-MIG-4)`(): Unit =
+        runBlocking {
+            val entry = trashOne()
+            index.entries.clear()
+            val sidecarPath = KPath.Local(entry.trashedPath).parent!!.parent!!.child("${entry.id}.json")
+            val newer = """{"body":{"v":2,"id":"${entry.id}","originalPath":"$photo","trashedName":"IMG_1.jpg",""" +
+                """"size":5000,"mtimeMillis":10,"sha256":null,"ruleId":null,"reason":"TRASH","deletedAt":1,""" +
+                """"expiresAt":2,"verifiedCopy":null,"futureField":{"x":1}},"mac":"m","futureTop":true}"""
+            fake.delete(sidecarPath)
+            fake.addFile(sidecarPath.absolute, newer.toByteArray())
+            manager().recover().untrusted shouldBe 1
+            index.all().single().trusted shouldBe false
+        }
+
+    @Test
+    fun `an old-version sidecar with unknown keys is still rejected (SEC-1)`() {
+        val bytes = """{"body":{"v":1,"id":"x","originalPath":"/a","trashedName":"a","size":1,"mtimeMillis":1,""" +
+            """"reason":"r","deletedAt":1,"expiresAt":2,"evil":1},"mac":"m"}"""
+        Sidecar.decode(bytes.toByteArray(), signer).shouldBeInstanceOf<Sidecar.Companion.Decoded.Rejected>()
     }
 }

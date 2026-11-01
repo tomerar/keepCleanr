@@ -38,29 +38,58 @@ class KeepClearApplication : Application() {
             gateway = fileGateway,
             index = RoomTrashIndex(database.trashDao()),
             signer = KeystoreSidecarSigner(),
-            clock = SystemTrashClock(contentResolver),
+            clock = trashClock,
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
+            // E-DEL-10: a refused purge run is logged (no file paths).
+            onClockJump = { j ->
+                android.util.Log.w(
+                    "KeepClear-Trash",
+                    "purge refused: clock jump wall=${j.wallDeltaMillis}ms uptime=${j.uptimeDeltaMillis}ms " +
+                        "sameBoot=${j.sameBoot}",
+                )
+            },
         )
     }
+
+    val trashClock by lazy { SystemTrashClock(contentResolver, this) }
+
+    /** Providers treated as a removable drive: only debug builds' fake USB drive, for device tests (H1). */
+    val testDriveAuthorities: Set<String>
+        get() = if (BuildConfig.DEBUG) setOf("$packageName.testusb") else emptySet()
+
+    /** Opens a picked backup folder (MOVE-2). Blocking I/O. */
+    suspend fun openTarget(uri: android.net.Uri, label: String) =
+        io.github.tomerar.keepclear.backup.saf.SafTargets.open(
+            contentResolver,
+            uri,
+            label,
+            removableAuthorities = testDriveAuthorities,
+        )
 
     /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
     val testMode by lazy { TestMode(this) }
 
-    /** The single choke point for every destructive action (CLAUDE.md safety rule 3). */
-    fun executor(onResult: (OpResult) -> Unit = {}) = ActionExecutor(
-        gateway = fileGateway,
-        guard = SafetyGuard(protectedPaths),
-        protectedPaths = protectedPaths,
-        handler = trashManager,
-        currentSession = sessionId,
-        // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
-        isDryRun = { testMode.isOn },
-        onResult = { result ->
-            TestMode.log(result)
-            onResult(result)
-        },
-    )
+    /**
+     * The single choke point for every destructive action (CLAUDE.md safety rule 3). Built per plan so the
+     * PROTECTED roots include every backup folder known right now (H3, safety rule 4).
+     */
+    suspend fun executor(onResult: (OpResult) -> Unit = {}): ActionExecutor {
+        val guarded = BackupRoots.protectedPaths(moveController.store.jobs())
+        return ActionExecutor(
+            gateway = fileGateway,
+            guard = SafetyGuard(guarded),
+            protectedPaths = guarded,
+            handler = trashManager,
+            currentSession = sessionId,
+            // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
+            isDryRun = { testMode.isOn },
+            onResult = { result ->
+                TestMode.log(result)
+                onResult(result)
+            },
+        )
+    }
 
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }

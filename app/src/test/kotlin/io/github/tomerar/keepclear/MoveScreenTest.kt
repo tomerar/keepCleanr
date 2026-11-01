@@ -66,8 +66,24 @@ class MoveScreenTest {
 
     private val job = MoveJob("j1", "t", "SanDisk", "KeepClear/OnePlus 10T", 1, JobState.DONE)
 
-    private fun receipt(verified: Int = 3, pending: Int = 0, failed: Map<FailReason, Int> = emptyMap()) =
-        Receipt("j1", "SanDisk", "KeepClear/OnePlus 10T", verified, verified * 1_000_000L, failed, 0, pending, 0)
+    private fun receipt(
+        verified: Int = 3,
+        pending: Int = 0,
+        failed: Map<FailReason, Int> = emptyMap(),
+        confirmed: Int = verified,
+    ) = Receipt(
+        "j1",
+        "SanDisk",
+        "KeepClear/OnePlus 10T",
+        verified,
+        verified * 1_000_000L,
+        failed,
+        0,
+        pending,
+        0,
+        confirmed = confirmed,
+        confirmedBytes = confirmed * 1_000_000L,
+    )
 
     private var picked: List<ClassifiedItem>? = null
     private var freed: String? = null
@@ -133,6 +149,30 @@ class MoveScreenTest {
         show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = false))))
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("freeUnavailable"))
         compose.onAllNodesWithTag("freeOriginals").fetchSemanticsNodes().size.let { assertEquals(0, it) }
+    }
+
+    @Test
+    fun `a copy checked only once offers Check backup, never Free (H1)`() {
+        var checked: String? = null
+        val view = JobView(job, receipt(confirmed = 0), canReadBack = true)
+        assertEquals(false, view.canFree)
+        assertEquals(true, view.needsCheck)
+        compose.setContent {
+            KeepClearTheme {
+                MoveScreen(
+                    summary = summary(),
+                    state = MoveUiState(jobs = listOf(view)),
+                    now = now,
+                    notificationsOff = false,
+                    actions = MoveActions(onFree = { freed = it }, onCheck = { checked = it }),
+                    onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("checkBackup"))
+        compose.onAllNodesWithTag("freeOriginals").fetchSemanticsNodes().size.let { assertEquals(0, it) }
+        compose.onNodeWithTag("checkBackup").performClick()
+        assertEquals("j1", checked)
     }
 
     @Test

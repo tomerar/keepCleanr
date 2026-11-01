@@ -35,6 +35,11 @@ data class TrashEntry(
     val trusted: Boolean = true,
     /** Verified backup copy (MOVE, TRASH-5), e.g. "SanDisk:KeepClear/…/IMG.jpg". */
     val verifiedCopy: String? = null,
+    /**
+     * [TrashClock.uptimeMillis] at deletion (E-DEL-10, M2). Null for entries rebuilt from a sidecar or written by
+     * an older version; [TrashManager.purgeExpired] fills it in conservatively the first time it sees one.
+     */
+    val deletedAtUptime: Long? = null,
 )
 
 /** Port: persisted trash index (Room in the app, in-memory in tests). */
@@ -65,11 +70,31 @@ interface TrashClock {
 
     /** Changes on every reboot (Android: `Settings.Global.BOOT_COUNT`). */
     fun bootId(): String
+
+    /**
+     * Time the phone has been on (including sleep), **accumulated across reboots** and persisted. It can't be set
+     * by the user, so it bounds how much real time passed even when the wall clock is changed (M2). Power-off time
+     * isn't counted, which can only delay a purge, never speed it up.
+     */
+    fun uptimeMillis(): Long
+
+    /** Last observation persisted by [TrashManager.purgeExpired], to detect clock jumps across runs. */
+    fun lastMark(): ClockMark?
+
+    fun saveMark(mark: ClockMark)
 }
+
+data class ClockMark(val wallMillis: Long, val uptimeMillis: Long, val bootId: String)
+
+/** Why an automatic purge run was refused (E-DEL-10); the app logs it. */
+data class ClockJump(val wallDeltaMillis: Long, val uptimeDeltaMillis: Long, val sameBoot: Boolean)
 
 /** Retention (TRASH-2; owner decision Q2: 30 days for every category). */
 object TrashPolicy {
     const val RETENTION_MILLIS: Long = 30L * 24 * 3_600_000
     const val MIN_ELAPSED_BEFORE_PURGE: Long = 24L * 3_600_000
+
+    /** Wall/uptime disagreement tolerated before a purge run is refused (NTP corrections are far smaller). */
+    const val CLOCK_JUMP_TOLERANCE: Long = 3_600_000
     const val TRASH_DIR = ".KeepClearTrash"
 }

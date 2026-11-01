@@ -16,7 +16,7 @@ Work only on the current milestone in `tasks.md`. If the spec is wrong or incomp
 
 ## Status
 
-Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. Next: v1 milestones in the order of `tasks.md` (M11 phone-first polish first), one PR per milestone, each after the owner's OK. Device checks and proposals waiting for the owner: `docs/progress.md`.
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. Next: the independent review's PRs A (data safety), B (hardening), C (UX) in that order (`docs/progress.md`); M11 is paused until they merge. Then v1 milestones in the order of `tasks.md`, one PR per milestone, each after the owner's OK. Device checks and proposals waiting for the owner: `docs/progress.md`.
 
 ## Product principles (owner, 2026-11-01)
 
@@ -48,8 +48,8 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 ## Product rules
 
-- No ads, analytics, crash SDKs or Google Play Services. No `INTERNET` permission in MVP (ADR 0008). Network/cloud backup targets (SMB, Google Drive, …) are proposed in ADR 0011: network code only in dedicated `backup:target-*` modules, and a cloud copy counts as verified only with a checksum the server computed.
-- No AccessibilityService (ADR 0008). An optional `foss`-only Accessibility cache cleaner is only a proposal (ADR 0012, not approved). Shizuku is Later; "Clear app caches" uses `allocateBytes` (SAFE-5) and `ACTION_CLEAR_APP_CACHE` (SAFE-6).
+- No ads, analytics, crash SDKs or Google Play Services. No `INTERNET` permission in MVP (ADR 0008). Network/cloud backup targets per ADR 0011 (accepted; Google Drive first, then SMB, Nextcloud, Dropbox): network code only in dedicated `backup:target-*` modules, and a cloud copy counts as verified only with a checksum the server computed.
+- No AccessibilityService (ADR 0008). No Accessibility cleaner in v1 (ADR 0012, accepted); the guided per-app list replaces it. Shizuku is Later; "Clear app caches" uses `allocateBytes` (SAFE-5) and `ACTION_CLEAR_APP_CACHE` (SAFE-6).
 - Copy: exact numbers (count + bytes), plain language, no fear or "boost" claims. Every item has why / what-happens-if-deleted texts in **English and Hebrew**.
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).
 - All strings live in resources; en/he parity is checked in CI.

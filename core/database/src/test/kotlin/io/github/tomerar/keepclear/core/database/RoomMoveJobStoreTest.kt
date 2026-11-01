@@ -51,6 +51,7 @@ class RoomMoveJobStoreTest {
         verifiedAt = 99,
         nameChanged = true,
         reusedExisting = true,
+        confirmedAt = 120,
     )
 
     @Test
@@ -64,6 +65,7 @@ class RoomMoveJobStoreTest {
             JobState.PAUSED,
             PauseReason.TARGET_DISCONNECTED,
             "content://x/tree/y",
+            verifyBootId = "7",
         )
         store.putJob(job)
         val failed = file.copy(
@@ -71,6 +73,7 @@ class RoomMoveJobStoreTest {
             state = MoveFileState.FAILED,
             failReason = FailReason.TOO_LARGE_FOR_TARGET,
             verifiedAt = null,
+            confirmedAt = null,
         )
         store.putFile(file)
         store.putFile(failed)

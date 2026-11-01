@@ -48,8 +48,12 @@ class SafBackupTargetTest {
         phone.mkdirs()
     }
 
+    /** The fake drive is declared removable explicitly; unknown providers are copy-only (H1). */
+    private suspend fun open() =
+        SafTargets.open(resolver, tree, "Test USB", removableAuthorities = setOf(FakeUsbProvider.authority(context)))
+
     private suspend fun target(): SafBackupTarget {
-        val check = SafTargets.open(resolver, tree, "Test USB")
+        val check = open()
         assertTrue("$check", check is TargetCheck.Ok)
         return (check as TargetCheck.Ok).target
     }
@@ -123,13 +127,13 @@ class SafBackupTargetTest {
         val first = target()
         assertEquals(first.id, target().id)
         File(FakeUsbProvider.base, SafTargets.MARKER).writeText("not ours")
-        assertEquals(TargetCheck.DamagedMarker, SafTargets.open(resolver, tree, "Test USB"))
+        assertEquals(TargetCheck.DamagedMarker, open())
         assertEquals("not ours", File(FakeUsbProvider.base, SafTargets.MARKER).readText())
     }
 
     @Test
     fun unpluggedDriveIsUnavailable(): Unit = runBlocking {
         FakeUsbProvider.ejected = true
-        assertEquals(TargetCheck.Unavailable, SafTargets.open(resolver, tree, "Test USB"))
+        assertEquals(TargetCheck.Unavailable, open())
     }
 }

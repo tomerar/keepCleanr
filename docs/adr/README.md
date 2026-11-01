@@ -16,5 +16,5 @@ All ADRs were accepted with the spec on 2026-10-31.
 | [0008](0008-no-accessibility-no-network.md) | No AccessibilityService, no INTERNET in v1 | Accepted (0011/0012 propose amendments) |
 | [0009](0009-signing-and-release.md) | Signing keys, Play App Signing, versioning, changelog, release checklist | Accepted |
 | [0010](0010-mvp-folder-trash.md) | MVP uses the folder trash for every file it can reach by path (amends 0006) | Accepted for `foss` (2026-11-01) |
-| [0011](0011-network-and-cloud-targets.md) | Network and cloud backup targets; server digests may free originals (amends 0008) | Proposed |
-| [0012](0012-foss-accessibility-cache-cleaner.md) | Accessibility "Clear cache" automation: foss only, "Later", behind gates | Proposed |
+| [0011](0011-network-and-cloud-targets.md) | Network and cloud backup targets; server digests may free originals (amends 0008) | Accepted (Drive first, 2026-11-01) |
+| [0012](0012-foss-accessibility-cache-cleaner.md) | Accessibility "Clear cache" automation: foss only, "Later", behind gates | Accepted (none in v1, 2026-11-01) |

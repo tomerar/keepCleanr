@@ -1,6 +1,6 @@
 # ADR 0011: Network and cloud backup targets, and when they may free originals
 
-Status: Proposed (needs owner confirmation) · Date: 2026-11-01
+Status: Accepted with one change (owner, 2026-11-01): Google Drive first · Date: 2026-11-01
 Amends: [ADR 0008](0008-no-accessibility-no-network.md) (network confinement rule). Builds on [ADR 0007](0007-verify-by-hash.md).
 
 ## Context
@@ -17,8 +17,12 @@ backups (no computer), which means network and cloud targets. Research [08](../r
 - ADR 0008's "only to the host the user typed" can't hold for cloud providers, whose hosts are fixed and include variable upload hosts.
 
 ## Decision
-- **Targets and order** (each its own milestone and PR, after the owner's OK): SMB (M13, unchanged) → Google Drive (gated by a 1-day OAuth spike
-  without Play Services) → WebDAV/Nextcloud → Dropbox → OneDrive.
+- **Targets and order** (each its own milestone and PR, after the owner's OK), **as changed by the owner on 2026-11-01**: **Google Drive first**
+  (most non-technical users have a Google account but no NAS), gated by a 1-day sign-in spike without Play Services → SMB → WebDAV/Nextcloud →
+  Dropbox. OneDrive stays Later (no trustworthy checksum). **If the spike fails, SMB goes first and the owner is told.**
+- **Drive space, honestly:** before a Drive backup, show how much space the selection needs and how much is free in the user's Google account
+  (Drive `about.storageQuota`), in plain words; the free 15 GB is shared with Gmail and Photos and won't fit large moves. Never start a job that
+  can't fit; offer a smaller selection instead.
 - **Modules:** each target is `backup:target-<name>` implementing `BackupTarget`. Shared `backup:net` (one OkHttp factory) and
   `backup:auth-oauth` (AppAuth). Only these modules may import network or OAuth APIs (Konsist + dependency allowlist). No Play Services, no MSAL,
   no Google/Microsoft client libraries, no embedded client secrets, in any flavor.

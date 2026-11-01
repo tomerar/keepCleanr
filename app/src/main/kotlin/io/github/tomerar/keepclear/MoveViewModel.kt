@@ -18,6 +18,8 @@ import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.ExecutionReport
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
+import io.github.tomerar.keepclear.engine.move.CheckResult
+import io.github.tomerar.keepclear.engine.move.FreshRead
 import io.github.tomerar.keepclear.engine.move.MoveEngine
 import io.github.tomerar.keepclear.engine.move.MoveFile
 import io.github.tomerar.keepclear.engine.move.MoveJob
@@ -57,8 +59,35 @@ enum class TargetProblem {
 }
 
 data class JobView(val job: MoveJob, val receipt: Receipt, val canReadBack: Boolean) {
-    /** MOVE-9: freeing is offered only once every file is settled and at least one copy is verified. */
-    val canFree: Boolean get() = canReadBack && receipt.complete && receipt.verified > 0
+    /**
+     * MOVE-9, H1: freeing is offered only once every file is settled and copies passed the second check
+     * ("Check backup"), whose read can't come from the phone's memory.
+     */
+    val canFree: Boolean get() = canReadBack && receipt.complete && receipt.confirmed > 0
+
+    /** Verified copies that still need the second check before their originals may be freed (H1). */
+    val needsCheck: Boolean get() = canReadBack && receipt.complete && receipt.verified > receipt.confirmed
+}
+
+/** H1: the second check, step by step (MOVE-15). */
+sealed interface BackupCheck {
+    val jobId: String
+
+    /** Waiting for the drive to be unplugged (drops what the phone remembers of it). */
+    data class Unplug(override val jobId: String) : BackupCheck
+
+    /** Waiting for the same drive to come back. */
+    data class PlugBack(override val jobId: String) : BackupCheck
+
+    data class Checking(override val jobId: String) : BackupCheck
+
+    data class Done(override val jobId: String, val result: CheckResult) : BackupCheck
+
+    /** The drive didn't come back in time, or another drive was attached. */
+    data class TimedOut(override val jobId: String) : BackupCheck
+
+    /** The drive went away or access was lost while checking; what was checked is kept. */
+    data class Interrupted(override val jobId: String) : BackupCheck
 }
 
 /** Result of freeing originals after a verified copy (MOVE-10). */
@@ -79,6 +108,7 @@ data class MoveUiState(
     val problem: TargetProblem? = null,
     val busy: Boolean = false,
     val freeResult: FreeResult? = null,
+    val check: BackupCheck? = null,
 )
 
 class MoveViewModel(application: Application) : AndroidViewModel(application) {
@@ -123,7 +153,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             runCatching { app.contentResolver.takePersistableUriPermission(uri, flags) }
             val label = withContext(Dispatchers.IO) { treeLabel(uri) }
-            when (val check = SafTargets.open(app.contentResolver, uri, label)) {
+            when (val check = app.openTarget(uri, label)) {
                 is TargetCheck.Ok -> {
                     val files = plan("preview", items, check.target.caps)
                     val issues = MovePlanner.preflight(files, check.target, emptySet(), battery(), charging())
@@ -220,13 +250,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(busy = true) }
             val store = controller.store
             val job = store.job(jobId)
-            val check = job?.targetRef?.let { SafTargets.open(app.contentResolver, it.toUri(), job.targetLabel) }
+            val check = job?.targetRef?.let { app.openTarget(it.toUri(), job.targetLabel) }
             if (job == null || check !is TargetCheck.Ok || check.target.id != job.targetId) {
                 _state.update { it.copy(busy = false, problem = TargetProblem.UNAVAILABLE) }
                 return@launch
             }
-            val ops =
-                withContext(Dispatchers.IO) { MoveEngine(app.fileGateway, check.target, store).originalsPlan(jobId) }
+            // H1: only copies confirmed by the second check, re-hashed on the drive right now.
+            val ops = withContext(Dispatchers.IO) { engine(check.target).originalsPlan(jobId) }
             if (ops.isEmpty()) {
                 _state.update { it.copy(busy = false, freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
                 return@launch
@@ -258,9 +288,74 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun engine(target: io.github.tomerar.keepclear.backup.BackupTarget) =
+        MoveEngine(app.fileGateway, target, controller.store, bootId = { app.trashClock.bootId() })
+
+    private var checkJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * MOVE-15 / H1 "Check backup": re-reads every verified copy in a way the phone's memory can't answer. After a
+     * restart since the backup, it reads right away; otherwise it asks to unplug the drive and plug it back in,
+     * and watches both happen before reading. Nothing is freed here; the user still decides (principle 3).
+     */
+    fun checkBackup(jobId: String) {
+        checkJob?.cancel()
+        checkJob = viewModelScope.launch {
+            val store = controller.store
+            val job = withContext(Dispatchers.IO) { store.job(jobId) } ?: return@launch
+            val uri = job.targetRef?.toUri() ?: return@launch
+
+            suspend fun attached(): io.github.tomerar.keepclear.backup.saf.SafBackupTarget? =
+                (withContext(Dispatchers.IO) { app.openTarget(uri, job.targetLabel) } as? TargetCheck.Ok)
+                    ?.target?.takeIf { it.id == job.targetId }
+            val rebooted = job.verifyBootId != null && job.verifyBootId != app.trashClock.bootId()
+            val evidence = if (rebooted) {
+                FreshRead.REBOOTED
+            } else {
+                _state.update { it.copy(check = BackupCheck.Unplug(jobId)) }
+                val gone = kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
+                    while (attached() != null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    true
+                }
+                if (gone == null) return@launch timeout(jobId)
+                _state.update { it.copy(check = BackupCheck.PlugBack(jobId)) }
+                kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
+                    while (attached() == null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    true
+                } ?: return@launch timeout(jobId)
+                FreshRead.REATTACHED
+            }
+            val target = attached() ?: return@launch timeout(jobId)
+            _state.update { it.copy(check = BackupCheck.Checking(jobId)) }
+            val result = try {
+                withContext(Dispatchers.IO) { engine(target).confirm(jobId, evidence) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never crash on a storage error mid-check; confirmed files are already saved (review P2).
+                null
+            }
+            val step = if (result == null || result.interrupted) {
+                BackupCheck.Interrupted(jobId)
+            } else {
+                BackupCheck.Done(jobId, result)
+            }
+            _state.update { it.copy(check = step) }
+            reload()
+        }
+    }
+
+    private fun timeout(jobId: String) = _state.update { it.copy(check = BackupCheck.TimedOut(jobId)) }
+
+    fun cancelCheck() {
+        checkJob?.cancel()
+        _state.update { it.copy(check = null) }
+    }
+
     private fun canReadBack(job: MoveJob): Boolean = runCatching {
         val uri = job.targetRef!!.toUri()
-        SafTargets.classify(uri.authority, DocumentsContract.getTreeDocumentId(uri))?.second?.canReadBack == true
+        SafTargets.classify(uri.authority, DocumentsContract.getTreeDocumentId(uri), app.testDriveAuthorities)
+            ?.second?.canReadBack == true
     }.getOrDefault(false)
 
     fun clearFreeResult() = _state.update { it.copy(freeResult = null) }
@@ -286,6 +381,9 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun charging(): Boolean = app.getSystemService(BatteryManager::class.java).isCharging
 }
+
+private const val CHECK_WAIT_MILLIS = 5 * 60_000L
+private const val POLL_MILLIS = 1_000L
 
 /** Folder per source on the drive (MOVE-7). Names are English on the drive so a PC shows the same folders. */
 object MoveSources {

@@ -39,7 +39,7 @@ class TrashOnDeviceTest {
         val gateway = FileGateway()
         val index = InMemoryTrashIndex()
         val signer = KeystoreSidecarSigner()
-        val clock = SystemTrashClock(context.contentResolver)
+        val clock = SystemTrashClock(context.contentResolver, context)
 
         fun manager() = TrashManager(gateway, index, signer, clock, ProtectedPaths(), listOf(volume))
         val s = gateway.stat(KPath.Local(photo.path))!!

@@ -136,6 +136,8 @@ class MainActivity : ComponentActivity() {
                             onStop = moveVm::stop,
                             onResume = moveVm::resume,
                             onFree = moveVm::freeOriginals,
+                            onCheck = moveVm::checkBackup,
+                            onCancelCheck = moveVm::cancelCheck,
                             onShare = { id -> move.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt) },
                             onOpenGooglePhotos = ::openGooglePhotos,
                         ),

@@ -70,7 +70,12 @@ class MoveJobOnDeviceTest {
     }
 
     private suspend fun newJob(n: Int): String {
-        val check = SafTargets.open(context.contentResolver, tree, "Test USB")
+        val check = SafTargets.open(
+            context.contentResolver,
+            tree,
+            "Test USB",
+            removableAuthorities = setOf(FakeUsbProvider.authority(context)),
+        )
         assertTrue("$check", check is TargetCheck.Ok)
         val target = (check as TargetCheck.Ok).target
         val id = UUID.randomUUID().toString()

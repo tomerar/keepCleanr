@@ -37,7 +37,15 @@ data class PlannedOp(
     val ruleId: String? = null,
     /** Verified backup copy for MOVE originals (TRASH-5). */
     val verifiedCopy: String? = null,
+    /**
+     * The copies that make this op safe (H2): the other copy of a duplicate, or every extracted file of an
+     * archive. The executor re-stats each right before acting and skips the op if any is gone or changed.
+     */
+    val witnesses: List<Witness> = emptyList(),
 )
+
+/** A file that must still be there, unchanged in size, for an op to proceed (H2, SAFETY-8). */
+data class Witness(val ref: KPath, val path: String, val size: Long)
 
 /**
  * What the user confirmed (design.md §3.3). The confirmation UI renders from the plan; [confirm]

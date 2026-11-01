@@ -81,4 +81,18 @@ class SafetyGuardTest {
         guard.check(plan(op("$ROOT/Download/.KeepClear\u200BTrash/photo.jpg", OpKind.PURGE)), SESSION)
             .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
     }
+
+    @Test
+    fun `purge containment is canonical - only the trash at a volume root counts (review Low)`() {
+        // A user folder that happens to be named like the trash is not the trash.
+        guard.check(plan(op("$ROOT/DCIM/.KeepClearTrash/IMG_1.jpg", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        guard.check(plan(op("/storage/1234-ABCD/.KeepClearTrash/1/x.jpg", OpKind.PURGE)), SESSION) shouldBe
+            SafetyGuard.Verdict.Accepted
+        guard.check(plan(op("/storage/1234-ABCD/Music/.KeepClearTrash/x.mp3", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        // The trash folder itself is never a purge target.
+        guard.check(plan(op("$ROOT/.KeepClearTrash", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    }
 }
