@@ -27,7 +27,10 @@ Requires JDK 21 and the Android SDK (platform `android-37.0`).
 ```sh
 ./gradlew :app:assembleFossDebug   # F-Droid/GitHub flavor
 ./gradlew ciCheck                  # everything CI checks
+scripts/reproducible-build.sh      # builds the unsigned fossRelease twice and checks both are identical
 ```
+
+The F-Droid/IzzyOnDroid store listing lives in `fastlane/metadata/android/` (English and Hebrew).
 
 ## License
 

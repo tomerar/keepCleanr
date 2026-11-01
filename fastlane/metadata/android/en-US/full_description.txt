@@ -1,0 +1,26 @@
+KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you, and everything you clean can come back for 30 days.
+
+<b>How it sorts what it finds</b>
+<ul>
+<li><b>Junk</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li>
+<li><b>Worth a look</b>: large videos, duplicates, screenshots, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. You decide; nothing is selected for you.</li>
+<li><b>Memories</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up space".</li>
+</ul>
+
+<b>Everything can come back</b>
+What you clean waits 30 days in KeepClear's trash. Put it back with one tap, or empty it sooner if you want the space now (KeepClear asks twice).
+
+<b>Also</b>
+<ul>
+<li>Apps: see which apps use the most space and which you have not opened in about 6 months, and uninstall through Android's own window.</li>
+<li>Go through duplicates and similar photos one by one with a swipe.</li>
+<li>Restore files from a backup you made with KeepClear.</li>
+<li>An optional reminder when space runs low. It only reminds; it never cleans by itself.</li>
+<li>English and Hebrew, light and dark themes.</li>
+</ul>
+
+<b>Permissions, honestly</b>
+This build asks for <b>All files access</b>, so it can find WhatsApp media, folders from an old phone, other apps' recycle bins and leftover files. It also asks, only when you use the feature, for usage access (to show app sizes and when apps were last opened), the list of installed apps, notifications (backup progress) and network access (only for backups to a shared folder you set up, at the address you typed). Every permission is optional and explained before Android asks; KeepClear works with less if you say no.
+
+<b>Private by design</b>
+No ads, no analytics, no crash reporting, no account. Nothing about you or your files is sent anywhere. KeepClear is free software under the GNU GPL, version 3 or later.

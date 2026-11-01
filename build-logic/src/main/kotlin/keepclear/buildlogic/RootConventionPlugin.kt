@@ -23,6 +23,30 @@ class RootConventionPlugin : Plugin<Project> {
             description = "Fails if default-path strings use technical terms (P-2) or Hebrew writes Android in Latin."
             rootDir.set(layout.projectDirectory)
         }
+        tasks.register<StoreMetadataTask>("checkStoreMetadata") {
+            group = "verification"
+            description =
+                "Fails if the F-Droid/IzzyOnDroid listing (fastlane) is missing a text or breaks a limit (M18)."
+            rootDir.set(layout.projectDirectory)
+        }
+    }
+}
+
+abstract class StoreMetadataTask : DefaultTask() {
+    @get:Internal
+    abstract val rootDir: DirectoryProperty
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun run() {
+        val problems = StoreMetadata.checkTree(rootDir.get().asFile)
+        if (problems.isNotEmpty()) {
+            throw GradleException("Store listing:\n" + problems.joinToString("\n") { " - $it" })
+        }
+        logger.lifecycle("Store listing OK (en-US, iw-IL).")
     }
 }
 

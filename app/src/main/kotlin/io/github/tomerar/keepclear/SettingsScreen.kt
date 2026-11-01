@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -152,16 +153,18 @@ fun SettingsScreen(
                     }
                 }
             }
+            val reminderLabel = stringResource(R.string.reminder_setting)
             Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.reminder_setting), style = MaterialTheme.typography.titleSmall)
+                        Text(reminderLabel, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.reminder_setting_body), style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(
                         checked = actions.reminderOn,
                         onCheckedChange = actions.onReminder,
-                        modifier = Modifier.testTag("reminderSwitch"),
+                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
+                        modifier = Modifier.testTag("reminderSwitch").semantics { contentDescription = reminderLabel },
                     )
                 }
             }
@@ -200,16 +203,18 @@ fun SettingsScreen(
                 }
             }
             Text(stringResource(R.string.settings_advanced), style = MaterialTheme.typography.titleMedium)
+            val testModeLabel = stringResource(R.string.test_mode_title)
             Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.test_mode_title), style = MaterialTheme.typography.titleSmall)
+                        Text(testModeLabel, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.test_mode_body), style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(
                         checked = testModeOn,
                         onCheckedChange = { on -> if (on) onTestModeOn() else step = 1 },
-                        modifier = Modifier.testTag("testModeSwitch"),
+                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
+                        modifier = Modifier.testTag("testModeSwitch").semantics { contentDescription = testModeLabel },
                     )
                 }
             }

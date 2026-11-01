@@ -1,0 +1,6 @@
+First version.
+• Junk cleared in one tap; everything else explained, and you decide.
+• Photos and videos moved to your own drive or network folder: copied, checked, and freed only when you say so.
+• 30-day trash: put anything back with one tap.
+• Apps by size, duplicate review with a swipe, restore from a backup, an optional low-space reminder.
+• English and Hebrew.
