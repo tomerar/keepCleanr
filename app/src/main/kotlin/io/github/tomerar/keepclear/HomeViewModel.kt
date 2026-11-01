@@ -15,6 +15,7 @@ import io.github.tomerar.keepclear.core.safety.OpResult
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.core.storage.media.MediaBatch
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Classifier
@@ -68,10 +69,45 @@ data class HomeUiState(
     val busy: Boolean = false,
     /** Free space measured before and after the last action that frees space (review PR C). */
     val measured: Measured? = null,
+    /** M12: Android's own confirmation dialogs still to show, for items going to Android's trash. */
+    val consent: MediaConsent? = null,
     /** SAFE-10: launchable apps, and the space measured after the user cleared one in Android's screen. */
     val apps: List<AppEntry> = emptyList(),
     val perAppFreed: Map<String, Long> = emptyMap(),
 )
+
+/**
+ * M12: what Android must confirm, one dialog per [requests] entry, launched one at a time by the activity. Only
+ * the ops of requests the user approved count as done.
+ */
+data class MediaConsent(
+    val requests: List<io.github.tomerar.keepclear.core.safety.ConsentRequest>,
+    val origin: Screen,
+    val approved: List<PlannedOp> = emptyList(),
+    val declined: Int = 0,
+    val failed: Int = 0,
+) {
+    /** The user answered the first request (or it could not be shown: [couldNotShow]). */
+    fun answer(approved: Boolean, couldNotShow: Boolean = false): MediaConsent {
+        val head = requests.firstOrNull() ?: return this
+        return copy(
+            requests = requests.drop(1),
+            approved = if (approved) this.approved + head.ops else this.approved,
+            declined = declined + if (!approved && !couldNotShow) head.ops.size else 0,
+            failed = failed + if (couldNotShow) head.ops.size else 0,
+        )
+    }
+
+    fun result() = CleanResult(
+        done = Total(approved.size, approved.sumOf { it.expectedSize }),
+        skipped = declined,
+        failed = failed,
+        trashedPaths = emptyList(),
+        origin = origin,
+        androidTrash = approved.isNotEmpty(),
+        declined = approved.isEmpty() && failed == 0,
+    )
+}
 
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
 data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val origin: Screen)
@@ -211,7 +247,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             ) to enrichment.evidence
         }
         evidence = ev
-        _state.update { it.copy(summary = summary) }
+        // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
+        val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
+        _state.update { it.copy(summary = summary, trash = it.trash.copy(android = androidTrash)) }
     }
 
     private var trashRecovered = false
@@ -240,7 +278,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
             // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
             val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
-            _state.update { it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed)) }
+            _state.update {
+                it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed, android = it.trash.android))
+            }
         }
     }
 
@@ -259,6 +299,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Ids found changed while restoring (content check), kept so the Trash keeps showing them. */
     private val changedFound = mutableSetOf<String>()
+
+    /** M12: put items back from Android's trash, or delete them now; Android confirms each request. */
+    fun androidTrash(items: List<ScanItem>, restore: Boolean, confirmation: Confirmation) {
+        if (items.isEmpty() || _state.value.busy) return
+        val origin = currentScreen()
+        val kind = if (restore) OpKind.RESTORE else OpKind.PURGE
+        viewModelScope.launch {
+            val ops = items.map {
+                PlannedOp(it.ref, it.path, kind, false, it.size, it.mtimeMillis, null, shownAs = it.path)
+            }
+            val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
+            val report = app.executor().run(plan) as? ExecutionReport.Ran ?: return@launch
+            if (report.consent.isNotEmpty()) {
+                _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
+            }
+        }
+    }
 
     /** Owner decision 1.2: restore a changed item into `KeepClear/Restored-changed/` (user confirmed). */
     fun restoreChanged(entry: TrashEntry, confirmation: Confirmation) =
@@ -345,9 +402,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val origin = currentScreen()
         _state.update { it.copy(busy = true, cleanResult = null) }
         viewModelScope.launch {
-            // Only path-addressable files can go to KeepClear's trash in this version (ADR 0010). MediaStore-only
-            // items (no All files access, `play`) are reported as skipped instead of being acted on.
-            val (local, unsupported) = items.partition { it.item.ref is KPath.Local }
+            // Files KeepClear can reach by path go to its folder trash (ADR 0010); MediaStore-only items (`play`, or
+            // no All files access) go to Android's own trash after Android's confirmation (M12). SAF items: later.
+            val (local, unsupported) = items.partition {
+                it.item.ref is KPath.Local || (it.item.ref is KPath.Media && !it.item.isTrashed)
+            }
             // SAFETY-6/8, H2: built from the scan snapshot with duplicate groups and witnesses (CleanPlanner).
             val unconfirmed = CleanPlanner.plan(UUID.randomUUID().toString(), local, evidence, "clean")
             val ops = unconfirmed.ops
@@ -362,6 +421,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
                         done = report.done.map { it.op } + wouldHave
+                        // M12: Android asks the user itself; the result comes back in consentResult().
+                        if (report.consent.isNotEmpty()) {
+                            _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
+                        }
                         val lastCopies = report.skipped.filter {
                             it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.LAST_COPY
                         }.map { it.op }
@@ -396,6 +459,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             loadTrash()
             scan()
         }
+    }
+
+    /**
+     * M12: builds Android's request for the next dialog right before it shows (building a second request of the same
+     * kind earlier would cancel the first). Null when it can't be built; that batch is then reported as failed.
+     */
+    suspend fun nextConsentRequest(): Any? {
+        val head = _state.value.consent?.requests?.firstOrNull() as? MediaBatch ?: return null
+        return try {
+            app.mediaRequests.build(head)
+        } catch (e: io.github.tomerar.keepclear.core.storage.StorageException) {
+            android.util.Log.w("KeepClear", "consent request not built: ${e.javaClass.simpleName}")
+            consentResult(approved = false, couldNotShow = true)
+            null
+        } catch (e: IllegalArgumentException) {
+            // Android rejects rows it can't put in its trash; never let that crash the app.
+            android.util.Log.w("KeepClear", "consent request rejected by Android: ${e.javaClass.simpleName}")
+            consentResult(approved = false, couldNotShow = true)
+            null
+        }
+    }
+
+    /**
+     * M12: the user answered Android's dialog for the first pending request. When the last one is answered, the
+     * result counts only the approved dialogs' items; a rescan then shows what really changed.
+     */
+    fun consentResult(approved: Boolean, couldNotShow: Boolean = false) {
+        val c = _state.value.consent ?: return
+        val next = c.answer(approved, couldNotShow)
+        if (next.requests.isNotEmpty()) {
+            _state.update { it.copy(consent = next) }
+            return
+        }
+        _state.update { it.copy(consent = null, cleanResult = next.result()) }
+        refresh()
+        scan()
     }
 
     /** E-DEL-15: Undo restores everything the last clean moved to the trash. */

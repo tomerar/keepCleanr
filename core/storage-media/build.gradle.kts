@@ -9,7 +9,10 @@ android {
 
 dependencies {
     api(project(":engine:scan"))
+    api(project(":core:safety"))
     implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit4)
+    testImplementation(testFixtures(project(":core:storage-api")))
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.junit4)

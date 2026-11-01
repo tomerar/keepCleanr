@@ -74,6 +74,19 @@ class MainActivity : ComponentActivity() {
                         notificationsOff = !granted
                         moveVm.start()
                     }
+                // M12: Android's own confirmation for its trash (MediaStore), one dialog at a time.
+                val consentLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                        vm.consentResult(result.resultCode == RESULT_OK)
+                    }
+                val consent = state.consent
+                androidx.compose.runtime.LaunchedEffect(consent?.requests?.size) {
+                    // Built only now: a second request of the same kind would cancel the first one (M12).
+                    val next = if (consent != null) vm.nextConsentRequest() as? android.content.IntentSender else null
+                    if (next != null) {
+                        consentLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(next).build())
+                    }
+                }
                 val externalCacheLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                         vm.refresh()
@@ -196,6 +209,7 @@ class MainActivity : ComponentActivity() {
                             onConfirmLastCopy = vm::confirmLastCopies,
                             onOneByOne = { openOneByOne(vm) },
                             onDismissLastCopy = vm::dismissLastCopies,
+                            onAndroidTrash = vm::androidTrash,
                         ),
                         home = {
                             HomeScreen(

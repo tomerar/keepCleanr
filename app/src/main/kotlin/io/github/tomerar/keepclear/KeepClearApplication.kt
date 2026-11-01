@@ -56,6 +56,14 @@ class KeepClearApplication : Application() {
 
     val trashClock by lazy { SystemTrashClock(contentResolver, this) }
 
+    /** File paths through the file gateway, MediaStore rows through MediaStore (M12). */
+    val actionGateway by lazy {
+        io.github.tomerar.keepclear.core.storage.RoutingGateway(
+            fileGateway,
+            media = io.github.tomerar.keepclear.core.storage.media.MediaGateway(contentResolver),
+        )
+    }
+
     /** Providers treated as a removable drive: only debug builds' fake USB drive, for device tests (H1). */
     val testDriveAuthorities: Set<String>
         get() = if (BuildConfig.DEBUG) setOf("$packageName.testusb") else emptySet()
@@ -69,6 +77,11 @@ class KeepClearApplication : Application() {
             removableAuthorities = testDriveAuthorities,
         )
 
+    /** M12: builds Android's trash/delete requests for MediaStore rows, one dialog at a time. */
+    val mediaRequests by lazy {
+        io.github.tomerar.keepclear.core.storage.media.AndroidMediaRequests(contentResolver)
+    }
+
     /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
     val testMode by lazy { TestMode(this) }
 
@@ -79,10 +92,11 @@ class KeepClearApplication : Application() {
     suspend fun executor(onResult: (OpResult) -> Unit = {}): ActionExecutor {
         val guarded = BackupRoots.protectedPaths(moveController.store.jobs(), packageName)
         return ActionExecutor(
-            gateway = fileGateway,
+            // M12: MediaStore rows are re-checked through MediaStore and go to Android's trash with its consent.
+            gateway = actionGateway,
             guard = SafetyGuard(guarded),
             protectedPaths = guarded,
-            handler = trashManager,
+            handler = io.github.tomerar.keepclear.core.storage.media.MediaConsentHandler(trashManager, mediaRequests),
             currentSession = sessionId,
             // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
             isDryRun = { testMode.isOn },

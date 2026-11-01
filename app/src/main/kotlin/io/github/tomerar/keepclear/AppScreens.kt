@@ -193,6 +193,7 @@ private fun ScreenContent(
                 onRestoreChanged = safeActions.onRestoreChanged,
                 measured = state.measured?.takeIf { it.origin == Screen.Trash },
                 busy = state.busy,
+                onAndroidTrash = safeActions.onAndroidTrash,
             )
         }
 
@@ -222,5 +223,11 @@ class SafeActions(
     /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
     val onConfirmLastCopy: (io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = {},
     val onOneByOne: () -> Unit = {},
+    /** M12: restore (true) or delete now (false) items in Android's trash. */
+    val onAndroidTrash: (
+        List<io.github.tomerar.keepclear.engine.scan.ScanItem>,
+        Boolean,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit = { _, _, _ -> },
     val onDismissLastCopy: () -> Unit = {},
 )

@@ -385,4 +385,9 @@
     <string name="trash_uninstall_note">הקבצים בסל המחזור של KeepClear שמורים בתיקייה מוסתרת, ‎.KeepClearTrash‎, בטלפון. אם מסירים את KeepClear, הם נשארים שם וממשיכים לתפוס מקום (עכשיו %1$s). כדאי לשחזר או לרוקן את הסל קודם.</string>
     <string name="settings_uninstall_title">לפני שמסירים את האפליקציה</string>
     <string name="settings_open_trash">לפתוח את סל המחזור</string>
+    <string name="android_trash_done">%1$s הועברו לסל המחזור של אנדרואיד. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר להחזיר אותם מסל המחזור של KeepClear.</string>
+    <string name="android_trash_declined">שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד.</string>
+    <string name="trash_group_android">בסל המחזור של אנדרואיד (תמונות וסרטונים)</string>
+    <string name="trash_android_note">אנדרואיד מוחק אותם בעצמו 30 יום אחרי שנמחקו. אנדרואיד מבקש אישור לכל שחזור או מחיקה.</string>
+    <string name="trash_android_empty">למחוק אותם עכשיו</string>
 </resources>

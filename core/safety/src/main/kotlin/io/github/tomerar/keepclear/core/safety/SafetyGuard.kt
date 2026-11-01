@@ -39,7 +39,11 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
                 } else if (op.isDirectory && protectedPaths.isProtectedContainer(op.displayPath)) {
                     reasons += "Directory op on a protected container (SAFETY-3): ${op.displayPath}"
                 }
-            } else if (op.kind == OpKind.PURGE && !isInsideTrash(op.displayPath)) {
+            } else if (op.kind == OpKind.PURGE && op.ref !is io.github.tomerar.keepclear.core.storage.KPath.Media &&
+                !isInsideTrash(op.displayPath)
+            ) {
+                // A MediaStore row may be purged only while it is in Android's trash; the media handler checks that
+                // right before acting (M12). Anything else must be inside KeepClear's own trash.
                 reasons += "PURGE outside the trash (SAFETY-2): ${op.displayPath}"
             }
             if (op.kind == OpKind.MOVE_DELETE_ORIGINAL) {

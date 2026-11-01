@@ -35,7 +35,9 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 
 | Milestone | Status | PR | Notes |
 |---|---|---|---|
-| M11 Phone-first polish | 🔄 in review | | SAFE-9 app folders (per-app, no delete; `Android/data`/`obb` PROTECTED), SAFE-10 one app at a time (measured), TRASH-7 uninstall note on Trash + Settings, Check backup fault tests (missing / truncated / bit-flipped). Plain-language pass, Check backup, cache trim on Home and copy lint landed in PRs A–C. |
+| M11 Phone-first polish | ✅ merged ([#19](https://github.com/tomerar/keepCleanr/pull/19)); 1 Codex finding fixed (package-name case); fixed a MoveService start/stop race found by CI | | SAFE-9 app folders (per-app, no delete; `Android/data`/`obb` PROTECTED), SAFE-10 one app at a time (measured), TRASH-7 uninstall note on Trash + Settings, Check backup fault tests (missing / truncated / bit-flipped). Plain-language pass, Check backup, cache trim on Home and copy lint landed in PRs A–C. |
+| M12a `play`: Android's trash for MediaStore items | 🔄 in review | | MediaStore-only items (play, or no All files access) go to Android's own trash after Android's confirmation (`createTrashRequest`, batches of 2,000); re-checked through MediaStore first (size, mtime, trashed state); restore and "Delete these now" for Android's trash on the Trash screen (second confirmation + Android's dialog). Executor gained a consent step (`NeedsConsent`). |
+| M12b `play`: SAF trees for WhatsApp/old folders | ⬜ | | `SafGateway` + contract suite on the fake USB provider; folder trash inside a granted tree (`moveDocument`). |
 
 ## Test build for the phone (no computer needed)
 
@@ -88,6 +90,7 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 
 | # | What | Why |
 |---|---|---|
+| W2 | Play Console: create the app and an internal-testing track, upload a `play` build, and fill the `READ_MEDIA_*` declaration (tasks.md M12). Everything else in M12 is built and tested without it. | Needs your Play developer account. |
 | W1 | Before installing the next test APK: in the **old** test app (named "KeepClear"), restore or empty the trash, then uninstall it. The new one is "KeepClear test" and installs alongside. | Test builds now have their own package so the public test key can't update a real install (PR B). |
 
 ## Blockers and decisions needed
