@@ -147,4 +147,26 @@ class TrashScreenTest {
         assertEquals(1, kept)
         assertEquals(0, confirmed)
     }
+
+    @Test
+    fun `a confirmed last copy that belongs to a duplicate group keeps its group size, so the guard accepts it`() {
+        val path = "/storage/emulated/0/DCIM/Camera/IMG_7.jpg"
+        val op = io.github.tomerar.keepclear.core.safety.PlannedOp(
+            io.github.tomerar.keepclear.core.storage.KPath.Local(path),
+            path,
+            io.github.tomerar.keepclear.core.safety.OpKind.TRASH,
+            false,
+            1,
+            1,
+            duplicateGroup = "dup:x",
+        )
+        val plan = lastCopyPlan("p", listOf(op), mapOf("dup:x" to 3, "dup:other" to 2)).confirm(1, "s")
+        assertEquals(mapOf("dup:x" to 3), plan.duplicateGroupSizes)
+        assertEquals(true, plan.ops.single().lastCopyConfirmed)
+        val verdict = io.github.tomerar.keepclear.core.safety.SafetyGuard(
+            io.github.tomerar.keepclear.core.safety.ProtectedPaths(),
+        )
+            .check(plan, "s")
+        assertEquals(io.github.tomerar.keepclear.core.safety.SafetyGuard.Verdict.Accepted, verdict)
+    }
 }

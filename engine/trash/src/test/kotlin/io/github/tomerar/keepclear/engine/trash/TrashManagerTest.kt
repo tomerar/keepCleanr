@@ -458,4 +458,14 @@ class TrashManagerTest {
         val entry = trashOne()
         trash.isChanged(entry, fullCheck = true) shouldBe false
     }
+
+    @Test
+    fun `freeing a backed-up original is never held back as the last copy - its copy is on the drive`(): Unit =
+        runBlocking {
+            val content = ByteArray(3_000) { 6 }
+            trashSentCopyWithWitness(content)
+            val sha = io.github.tomerar.keepclear.core.hash.Sha256.of(content)
+            val free = op(camera, OpKind.MOVE_DELETE_ORIGINAL).copy(expectedSha256 = sha, verifiedCopy = "USB: x")
+            run(free).done shouldHaveSize 1
+        }
 }

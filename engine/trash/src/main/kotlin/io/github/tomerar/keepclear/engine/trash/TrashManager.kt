@@ -59,7 +59,8 @@ class TrashManager(
      */
     override suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? {
         if (op.lastCopyConfirmed) return null
-        if (op.kind != OpKind.TRASH && op.kind != OpKind.MOVE_DELETE_ORIGINAL) return null
+        // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy.
+        if (op.kind != OpKind.TRASH) return null
         val path = CanonicalPath.of(op.displayPath) ?: return null
         val holders = index.all().filter { e ->
             e.state == TrashState.ACTIVE && e.witnessPaths.any { CanonicalPath.of(it) == path }
