@@ -18,17 +18,13 @@ import org.junit.Test
 
 /** M12: MediaStore items go to Android's trash in batches; restore and "Empty now" only for trashed rows. */
 class MediaConsentHandlerTest {
-    private val asked = mutableListOf<String>()
-    private val requests = object : MediaRequests {
-        override fun trash(
-            rows: List<KPath.Media>,
-            trashed: Boolean,
-        ): Any = "trash:$trashed:${rows.size}".also {
-            asked +=
-                it
-        }
+    private val built = mutableListOf<MediaBatch>()
 
-        override fun delete(rows: List<KPath.Media>): Any = "delete:${rows.size}".also { asked += it }
+    /** Rows with an even id stand for image/video/audio; odd ids for files Android's trash won't take. */
+    private val requests = object : MediaRequests {
+        override suspend fun canAsk(row: KPath.Media) = row.id % 2 == 0L
+
+        override suspend fun build(batch: MediaBatch): Any = "request".also { built += batch }
     }
     private val files = ActionHandler { _, _ -> }
     private val handler = MediaConsentHandler(files, requests)
@@ -49,9 +45,25 @@ class MediaConsentHandlerTest {
     @Test
     fun `selections are split into batches of 2000, one request kind each`(): Unit = runBlocking {
         val ops = (1L..4_500L).map { op(it) } + listOf(op(9_000, OpKind.RESTORE))
-        val tokens = handler.requestConsent(ops)
-        assertEquals(listOf("trash:true:2000", "trash:true:2000", "trash:true:500", "trash:false:1"), tokens)
-        assertEquals(listOf("delete:1"), handler.requestConsent(listOf(op(5, OpKind.PURGE))))
+        val batches = handler.requestConsent(ops).map { it as MediaBatch }
+        assertEquals(
+            listOf(OpKind.TRASH to 2000, OpKind.TRASH to 2000, OpKind.TRASH to 500, OpKind.RESTORE to 1),
+            batches.map { it.kind to it.ops.size },
+        )
+        // Each batch carries exactly its own ops, so an approved dialog counts only what it covered.
+        assertEquals(ops, batches.flatMap { it.ops })
+    }
+
+    @Test
+    fun `no Android request is created up front, the UI builds one per dialog`(): Unit = runBlocking {
+        handler.requestConsent((1L..4_500L).map { op(it) })
+        assertTrue(built.isEmpty())
+    }
+
+    @Test
+    fun `rows Android's trash can't take are skipped, not handed over`(): Unit = runBlocking {
+        assertEquals(SkipReason.UNSUPPORTED, handler.veto(op(3, OpKind.TRASH), gatewayWith(trashed = false)))
+        assertNull(handler.veto(op(4, OpKind.TRASH), gatewayWith(trashed = false)))
     }
 
     private fun gatewayWith(trashed: Boolean?) = object : StorageGateway by FakeStorageGateway() {
@@ -61,10 +73,10 @@ class MediaConsentHandlerTest {
 
     @Test
     fun `empty-now and restore only for rows in Android's trash, trash only for others`(): Unit = runBlocking {
-        assertNull(handler.veto(op(1, OpKind.PURGE), gatewayWith(trashed = true)))
-        assertEquals(SkipReason.CHANGED, handler.veto(op(1, OpKind.PURGE), gatewayWith(trashed = false)))
-        assertNull(handler.veto(op(1, OpKind.TRASH), gatewayWith(trashed = false)))
-        assertEquals(SkipReason.CHANGED, handler.veto(op(1, OpKind.TRASH), gatewayWith(trashed = true)))
-        assertEquals(SkipReason.MISSING, handler.veto(op(1, OpKind.RESTORE), gatewayWith(trashed = null)))
+        assertNull(handler.veto(op(2, OpKind.PURGE), gatewayWith(trashed = true)))
+        assertEquals(SkipReason.CHANGED, handler.veto(op(2, OpKind.PURGE), gatewayWith(trashed = false)))
+        assertNull(handler.veto(op(2, OpKind.TRASH), gatewayWith(trashed = false)))
+        assertEquals(SkipReason.CHANGED, handler.veto(op(2, OpKind.TRASH), gatewayWith(trashed = true)))
+        assertEquals(SkipReason.MISSING, handler.veto(op(2, OpKind.RESTORE), gatewayWith(trashed = null)))
     }
 }

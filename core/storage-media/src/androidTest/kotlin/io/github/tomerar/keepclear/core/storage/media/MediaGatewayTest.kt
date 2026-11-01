@@ -64,10 +64,26 @@ class MediaGatewayTest {
     fun androidBuildsTheConsentRequests(): Unit = runBlocking {
         val uri = insertImage(ByteArray(10))
         val row = KPath.Media(MediaStore.VOLUME_EXTERNAL_PRIMARY, uri.lastPathSegment!!.toLong())
-        val handler = MediaConsentHandler(ActionHandler { _, _ -> }, AndroidMediaRequests(resolver))
+        val requests = AndroidMediaRequests(resolver)
+        val handler = MediaConsentHandler(ActionHandler { _, _ -> }, requests)
         val op = PlannedOp(row, "/storage/emulated/0/Pictures/KeepClearTest/x.jpg", OpKind.TRASH, false, 10, 1)
-        val requests = handler.requestConsent(listOf(op))
-        assertEquals(1, requests.size)
-        assertTrue(requests.single() is IntentSender)
+        assertTrue(requests.canAsk(row))
+        val batches = handler.requestConsent(listOf(op))
+        assertEquals(1, batches.size)
+        // Built with the Images item URI: Android rejects Files URIs for photos (IllegalArgumentException).
+        assertTrue(requests.build(batches.single() as MediaBatch) is IntentSender)
+    }
+
+    @Test
+    fun rowsOtherThanImageVideoAudioAreNotAskedFor(): Unit = runBlocking {
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "kc_gw_${System.nanoTime()}.txt")
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/KeepClearTest")
+        }
+        val uri = resolver.insert(MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values)!!
+        created += uri
+        val row = KPath.Media(MediaStore.VOLUME_EXTERNAL_PRIMARY, uri.lastPathSegment!!.toLong())
+        assertFalse(AndroidMediaRequests(resolver).canAsk(row))
     }
 }

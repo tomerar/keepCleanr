@@ -15,6 +15,7 @@ import io.github.tomerar.keepclear.core.safety.OpResult
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.core.storage.media.MediaBatch
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Classifier
@@ -75,8 +76,38 @@ data class HomeUiState(
     val perAppFreed: Map<String, Long> = emptyMap(),
 )
 
-/** M12: what Android must confirm, launched one dialog at a time by the activity. */
-data class MediaConsent(val requests: List<Any>, val ops: List<PlannedOp>, val origin: Screen, val approved: Int = 0)
+/**
+ * M12: what Android must confirm, one dialog per [requests] entry, launched one at a time by the activity. Only
+ * the ops of requests the user approved count as done.
+ */
+data class MediaConsent(
+    val requests: List<io.github.tomerar.keepclear.core.safety.ConsentRequest>,
+    val origin: Screen,
+    val approved: List<PlannedOp> = emptyList(),
+    val declined: Int = 0,
+    val failed: Int = 0,
+) {
+    /** The user answered the first request (or it could not be shown: [couldNotShow]). */
+    fun answer(approved: Boolean, couldNotShow: Boolean = false): MediaConsent {
+        val head = requests.firstOrNull() ?: return this
+        return copy(
+            requests = requests.drop(1),
+            approved = if (approved) this.approved + head.ops else this.approved,
+            declined = declined + if (!approved && !couldNotShow) head.ops.size else 0,
+            failed = failed + if (couldNotShow) head.ops.size else 0,
+        )
+    }
+
+    fun result() = CleanResult(
+        done = Total(approved.size, approved.sumOf { it.expectedSize }),
+        skipped = declined,
+        failed = failed,
+        trashedPaths = emptyList(),
+        origin = origin,
+        androidTrash = approved.isNotEmpty(),
+        declined = approved.isEmpty() && failed == 0,
+    )
+}
 
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
 data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val origin: Screen)
@@ -280,9 +311,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
             val report = app.executor().run(plan) as? ExecutionReport.Ran ?: return@launch
-            val waiting = report.results.filterIsInstance<OpResult.NeedsConsent>().map { it.op }
             if (report.consent.isNotEmpty()) {
-                _state.update { it.copy(consent = MediaConsent(report.consent, waiting, origin)) }
+                _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
             }
         }
     }
@@ -392,9 +422,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         simulated = wouldHave.isNotEmpty()
                         done = report.done.map { it.op } + wouldHave
                         // M12: Android asks the user itself; the result comes back in consentResult().
-                        val waiting = report.results.filterIsInstance<OpResult.NeedsConsent>().map { it.op }
                         if (report.consent.isNotEmpty()) {
-                            _state.update { it.copy(consent = MediaConsent(report.consent, waiting, origin)) }
+                            _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
                         }
                         val lastCopies = report.skipped.filter {
                             it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.LAST_COPY
@@ -433,31 +462,37 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * M12: the user answered Android's dialog for the first pending request. When the last one is answered, the
-     * result says what went to Android's trash (measured by a rescan, not assumed).
+     * M12: builds Android's request for the next dialog right before it shows (building a second request of the same
+     * kind earlier would cancel the first). Null when it can't be built; that batch is then reported as failed.
      */
-    fun consentResult(approved: Boolean) {
+    suspend fun nextConsentRequest(): Any? {
+        val head = _state.value.consent?.requests?.firstOrNull() as? MediaBatch ?: return null
+        return try {
+            app.mediaRequests.build(head)
+        } catch (e: io.github.tomerar.keepclear.core.storage.StorageException) {
+            android.util.Log.w("KeepClear", "consent request not built: ${e.javaClass.simpleName}")
+            consentResult(approved = false, couldNotShow = true)
+            null
+        } catch (e: IllegalArgumentException) {
+            // Android rejects rows it can't put in its trash; never let that crash the app.
+            android.util.Log.w("KeepClear", "consent request rejected by Android: ${e.javaClass.simpleName}")
+            consentResult(approved = false, couldNotShow = true)
+            null
+        }
+    }
+
+    /**
+     * M12: the user answered Android's dialog for the first pending request. When the last one is answered, the
+     * result counts only the approved dialogs' items; a rescan then shows what really changed.
+     */
+    fun consentResult(approved: Boolean, couldNotShow: Boolean = false) {
         val c = _state.value.consent ?: return
-        val rest = c.requests.drop(1)
-        val next = c.copy(requests = rest, approved = c.approved + if (approved) 1 else 0)
-        if (rest.isNotEmpty()) {
+        val next = c.answer(approved, couldNotShow)
+        if (next.requests.isNotEmpty()) {
             _state.update { it.copy(consent = next) }
             return
         }
-        _state.update {
-            it.copy(
-                consent = null,
-                cleanResult = CleanResult(
-                    done = if (next.approved > 0) Total(c.ops.size, c.ops.sumOf { op -> op.expectedSize }) else Total(),
-                    skipped = 0,
-                    failed = 0,
-                    trashedPaths = emptyList(),
-                    origin = c.origin,
-                    androidTrash = next.approved > 0,
-                    declined = next.approved == 0,
-                ),
-            )
-        }
+        _state.update { it.copy(consent = null, cleanResult = next.result()) }
         refresh()
         scan()
     }

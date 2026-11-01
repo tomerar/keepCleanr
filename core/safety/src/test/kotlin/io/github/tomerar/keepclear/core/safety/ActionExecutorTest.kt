@@ -200,6 +200,8 @@ class ActionExecutorTest {
         fake.exists(a) shouldBe true
     }
 
+    private data class Dialog(override val ops: List<PlannedOp>) : ConsentRequest
+
     /** Stands in for the MediaStore trash: Android asks the user itself (M12). */
     private class ConsentHandler : ActionHandler {
         val asked = mutableListOf<List<PlannedOp>>()
@@ -208,9 +210,9 @@ class ActionExecutorTest {
 
         override fun needsConsent(op: PlannedOp) = true
 
-        override suspend fun requestConsent(ops: List<PlannedOp>): List<Any> {
+        override suspend fun requestConsent(ops: List<PlannedOp>): List<ConsentRequest> {
             asked += ops
-            return listOf("system-dialog")
+            return listOf(Dialog(ops))
         }
     }
 
@@ -223,7 +225,7 @@ class ActionExecutorTest {
         report.results[0].shouldBeInstanceOf<OpResult.NeedsConsent>()
         (report.results[1] as OpResult.Skipped).reason shouldBe SkipReason.CHANGED
         h.asked.single().map { it.displayPath } shouldBe listOf(a)
-        report.consent shouldBe listOf("system-dialog")
+        report.consent.single().ops.map { it.displayPath } shouldBe listOf(a)
         fake.exists(a) shouldBe true
     }
 

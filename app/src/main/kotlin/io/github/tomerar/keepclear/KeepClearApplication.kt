@@ -77,6 +77,11 @@ class KeepClearApplication : Application() {
             removableAuthorities = testDriveAuthorities,
         )
 
+    /** M12: builds Android's trash/delete requests for MediaStore rows, one dialog at a time. */
+    val mediaRequests by lazy {
+        io.github.tomerar.keepclear.core.storage.media.AndroidMediaRequests(contentResolver)
+    }
+
     /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
     val testMode by lazy { TestMode(this) }
 
@@ -91,10 +96,7 @@ class KeepClearApplication : Application() {
             gateway = actionGateway,
             guard = SafetyGuard(guarded),
             protectedPaths = guarded,
-            handler = io.github.tomerar.keepclear.core.storage.media.MediaConsentHandler(
-                trashManager,
-                io.github.tomerar.keepclear.core.storage.media.AndroidMediaRequests(contentResolver),
-            ),
+            handler = io.github.tomerar.keepclear.core.storage.media.MediaConsentHandler(trashManager, mediaRequests),
             currentSession = sessionId,
             // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
             isDryRun = { testMode.isOn },

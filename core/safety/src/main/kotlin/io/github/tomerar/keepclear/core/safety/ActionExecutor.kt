@@ -24,8 +24,16 @@ fun interface ActionHandler {
      */
     fun needsConsent(op: PlannedOp): Boolean = false
 
-    /** Builds Android's consent request(s) for [ops] (e.g. `IntentSender`s), launched by the UI. */
-    suspend fun requestConsent(ops: List<PlannedOp>): List<Any> = emptyList()
+    /**
+     * Splits [ops] into the requests Android will show, one dialog each. The UI builds and launches them one at a
+     * time (Android cancels an earlier pending request of the same kind when a new one is created).
+     */
+    suspend fun requestConsent(ops: List<PlannedOp>): List<ConsentRequest> = emptyList()
+}
+
+/** One dialog Android shows (M12); [ops] are exactly what it covers, so only approved requests count as done. */
+interface ConsentRequest {
+    val ops: List<PlannedOp>
 }
 
 /** Outcome per op (E-DEL-11: partial success is normal and reported). */
@@ -64,6 +72,9 @@ enum class SkipReason {
      * explicit "this is the last copy" confirmation (owner decision 1.3, SAFETY-8).
      */
     LAST_COPY,
+
+    /** The storage can't do this for this item (e.g. a MediaStore row Android's trash doesn't accept). */
+    UNSUPPORTED,
 }
 
 sealed interface ExecutionReport {
@@ -72,7 +83,7 @@ sealed interface ExecutionReport {
     data class Ran(
         val results: List<OpResult>,
         /** Android's consent requests for the [OpResult.NeedsConsent] ops, for the UI to launch (M12). */
-        val consent: List<Any> = emptyList(),
+        val consent: List<ConsentRequest> = emptyList(),
     ) : ExecutionReport {
         val done get() = results.filterIsInstance<OpResult.Done>()
         val skipped get() = results.filterIsInstance<OpResult.Skipped>()

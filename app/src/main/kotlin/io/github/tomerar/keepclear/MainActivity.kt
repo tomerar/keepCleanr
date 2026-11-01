@@ -80,8 +80,9 @@ class MainActivity : ComponentActivity() {
                         vm.consentResult(result.resultCode == RESULT_OK)
                     }
                 val consent = state.consent
-                androidx.compose.runtime.LaunchedEffect(consent?.requests?.size, consent?.approved) {
-                    val next = consent?.requests?.firstOrNull() as? android.content.IntentSender
+                androidx.compose.runtime.LaunchedEffect(consent?.requests?.size) {
+                    // Built only now: a second request of the same kind would cancel the first one (M12).
+                    val next = if (consent != null) vm.nextConsentRequest() as? android.content.IntentSender else null
                     if (next != null) {
                         consentLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(next).build())
                     }
