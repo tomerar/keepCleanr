@@ -14,6 +14,16 @@ android {
     androidResources {
         localeFilters += listOf("en", "iw")
     }
+    signingConfigs {
+        // Test builds only: a committed, non-secret key so CI test APKs update each other (keystore/README.md).
+        // Releases are signed by the owner's key, never from this repository (ADR 0009).
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug-test.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
