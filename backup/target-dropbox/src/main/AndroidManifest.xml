@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- M17c, ADR 0011: the network permission comes only from backup target modules (checked in CI). It is used only
+     to reach Dropbox's API hosts (api.dropboxapi.com, content.dropboxapi.com) once the user connects Dropbox. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

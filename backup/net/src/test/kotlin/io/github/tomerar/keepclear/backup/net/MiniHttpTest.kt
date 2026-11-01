@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-package io.github.tomerar.keepclear.backup.webdav
+package io.github.tomerar.keepclear.backup.net
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe

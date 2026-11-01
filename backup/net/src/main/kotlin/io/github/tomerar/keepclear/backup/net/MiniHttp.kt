@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-package io.github.tomerar.keepclear.backup.webdav
+package io.github.tomerar.keepclear.backup.net
 
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -19,15 +19,15 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 /** The server answered with this status where KeepClear expected another (mapped to a storage error by the caller). */
-internal class HttpStatusException(val status: Int) : IOException("HTTP $status")
+class HttpStatusException(val status: Int) : IOException("HTTP $status")
 
 /** The server's answer broke HTTP/1.1 or KeepClear's limits (SEC: every response is untrusted). */
-internal open class HttpProtocolException(message: String) : IOException(message)
+open class HttpProtocolException(message: String) : IOException(message)
 
 /** More or fewer body bytes than announced: the upload was abandoned before the server could complete it. */
-internal class HttpLengthMismatchException(message: String) : HttpProtocolException(message)
+class HttpLengthMismatchException(message: String) : HttpProtocolException(message)
 
-internal class HttpResponse(
+class HttpResponse(
     val status: Int,
     /** Lower-case header names. */
     val headers: Map<String, List<String>>,
@@ -54,7 +54,8 @@ internal class HttpResponse(
 /**
  * A small, strict HTTP/1.1 client over the JDK's own sockets and TLS (M17). Android's `HttpURLConnection` refuses
  * WebDAV methods (PROPFIND, MKCOL, MOVE) and `java.net.http` doesn't exist on Android, so KeepClear speaks
- * HTTP/1.1 itself instead of adding a third-party library (PRIV-1).
+ * HTTP/1.1 itself instead of adding a third-party library (PRIV-1). Shared by the network backup targets
+ * (`backup:target-webdav`, `backup:target-dropbox`) so there is one audited client, not one per target.
  *
  * - Talks **only** to [host]:[port]; redirects are never followed (ADR 0011 network rule), so credentials can't
  *   be sent anywhere else.
@@ -65,7 +66,7 @@ internal class HttpResponse(
  * - Idle connections are reused; [close] drops them all, so the next request runs on a brand-new connection
  *   ("Check backup" over a new session, FreshRead.NEW_SESSION).
  */
-internal class MiniHttp(
+class MiniHttp(
     private val https: Boolean,
     private val host: String,
     private val port: Int,
@@ -190,12 +191,17 @@ internal class MiniHttp(
         c.output.write(sb.toString().toByteArray(Charsets.UTF_8))
     }
 
-    /** One request with an optional small body; the response body must be read or closed by the caller. */
+    /**
+     * One request with an optional small body; the response body must be read or closed by the caller.
+     * [repeatable]: the request only reads (GET, PROPFIND, or an RPC like Dropbox's `get_metadata` that is sent
+     * as POST), so it may be sent once more on a new connection when a kept-alive one turns out to be closed.
+     */
     fun send(
         method: String,
         path: String,
         headers: List<Pair<String, String>> = emptyList(),
         body: ByteArray? = null,
+        repeatable: Boolean = method in SAFE_TO_REPEAT,
     ): HttpResponse {
         var fresh = false
         while (true) {
@@ -212,7 +218,7 @@ internal class MiniHttp(
                 c.kill()
                 // A kept-alive connection the server closed just now: a read-only request is simply sent again,
                 // once, on a new connection. Requests that change something are never repeated.
-                if (c.reused && !fresh && method in SAFE_TO_REPEAT && e !is HttpProtocolException) {
+                if (c.reused && !fresh && repeatable && e !is HttpProtocolException) {
                     fresh = true
                     continue
                 }
@@ -557,7 +563,7 @@ internal class MiniHttp(
 }
 
 /** An [OutputStream] that feeds an [MiniHttp.Upload]. */
-internal open class UploadStream(private val upload: MiniHttp.Upload) : OutputStream() {
+open class UploadStream(private val upload: MiniHttp.Upload) : OutputStream() {
     override fun write(b: Int) = write(byteArrayOf(b.toByte()), 0, 1)
 
     override fun write(b: ByteArray, off: Int, len: Int) = upload.write(b, off, len)

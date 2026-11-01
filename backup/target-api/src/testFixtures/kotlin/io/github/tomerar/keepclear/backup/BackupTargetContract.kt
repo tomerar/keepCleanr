@@ -8,6 +8,8 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assumptions.assumeFalse
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -91,6 +93,7 @@ abstract class BackupTargetContract {
 
     @Test
     fun `delete removes files and empty folders, never full ones`(): Unit = withTarget { t ->
+        assumeTrue(t.caps.canDeleteFolders, "this target never deletes folders")
         t.mkdirs("d")
         t.write("d/f", byteArrayOf(1))
         shouldThrow<StorageException.NotEmpty> { t.delete("d") }
@@ -100,6 +103,21 @@ abstract class BackupTargetContract {
         t.list("").filter { it.name == "d" }.shouldBeEmpty()
         shouldThrow<StorageException.NotFound> { t.delete("d") }
     }
+
+    @Test
+    fun `a target that can't delete folders safely refuses every folder delete, empty or not`(): Unit =
+        withTarget { t ->
+            assumeFalse(t.caps.canDeleteFolders, "this target deletes empty folders")
+            t.mkdirs("d/empty")
+            t.write("d/f", byteArrayOf(1))
+            shouldThrow<StorageException.Unsupported> { t.delete("d/empty") }
+            shouldThrow<StorageException.Unsupported> { t.delete("d") }
+            t.stat("d/empty")!!.isDirectory shouldBe true
+            t.read("d/f") shouldBe byteArrayOf(1)
+            t.delete("d/f")
+            t.stat("d/f") shouldBe null
+            shouldThrow<StorageException.NotFound> { t.delete("d/f") }
+        }
 
     @Test
     fun `reading a missing file or a folder fails with a storage error`(): Unit = withTarget { t ->
@@ -128,6 +146,6 @@ abstract class BackupTargetContract {
     @Test
     fun `a server digest is only offered for kinds the target declares`(): Unit = withTarget { t ->
         t.write("f", byteArrayOf(1))
-        if (DigestKind.SHA256 !in t.caps.serverDigests) t.serverDigest("f", DigestKind.SHA256) shouldBe null
+        DigestKind.entries.filter { it !in t.caps.serverDigests }.forEach { t.serverDigest("f", it) shouldBe null }
     }
 }
