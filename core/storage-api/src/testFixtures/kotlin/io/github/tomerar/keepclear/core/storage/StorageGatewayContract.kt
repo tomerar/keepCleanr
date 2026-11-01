@@ -13,7 +13,8 @@ import org.junit.jupiter.api.Test
  * The behaviour every [StorageGateway] must have (tasks.md M1). Subclass it per implementation:
  * the fake (JVM), `FileGateway` (M3), `SafGateway` (instrumented, M11).
  *
- * Tests only use the gateway API, so they also run against real storage.
+ * Tests only use the gateway API, so they also run against real storage. The suite is also dexed and run on a
+ * device (`SafGatewayContractTest`): test names may use spaces but no commas, dots or brackets (dex format).
  */
 abstract class StorageGatewayContract {
     /** A gateway and an empty, writable directory to work in. */
@@ -173,7 +174,7 @@ abstract class StorageGatewayContract {
     }
 
     @Test
-    fun `symlinks are never followed by stat, rename or delete`(): Unit = runBlocking {
+    fun `symlinks are never followed by stat or rename or delete`(): Unit = runBlocking {
         val (g, root) = newGateway()
         val target = g.write(root, "real.txt", "real".toByteArray())
         if (!createSymlink(

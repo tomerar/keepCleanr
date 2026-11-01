@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
+import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import android.provider.DocumentsContract.Root
 import android.provider.DocumentsProvider
@@ -76,7 +77,7 @@ class FakeUsbProvider : DocumentsProvider() {
 
     private fun row(c: MatrixCursor, f: File) {
         val flags = Document.FLAG_SUPPORTS_DELETE or Document.FLAG_SUPPORTS_RENAME or Document.FLAG_SUPPORTS_WRITE or
-            (if (f.isDirectory) Document.FLAG_DIR_SUPPORTS_CREATE else 0)
+            Document.FLAG_SUPPORTS_MOVE or (if (f.isDirectory) Document.FLAG_DIR_SUPPORTS_CREATE else 0)
         c.newRow()
             .add(Document.COLUMN_DOCUMENT_ID, idOf(f))
             .add(Document.COLUMN_DISPLAY_NAME, if (f == base) "USB" else f.name)
@@ -162,6 +163,39 @@ class FakeUsbProvider : DocumentsProvider() {
         val to = File(f.parentFile, displayName)
         if (to.exists()) throw IllegalStateException("exists")
         if (!f.renameTo(to)) throw IllegalStateException("rename failed")
+        return idOf(to)
+    }
+
+    /** Like real local/USB providers: the ids from [parentDocumentId] (or the root) down to the document. */
+    override fun findDocumentPath(parentDocumentId: String?, childDocumentId: String): DocumentsContract.Path {
+        check()
+        val top = parentDocumentId ?: ROOT_DOC
+        if (!isChildDocument(top, childDocumentId) || !file(childDocumentId).exists()) {
+            throw FileNotFoundException(childDocumentId)
+        }
+        val stop = file(top)
+        val ids = ArrayDeque<String>()
+        var f: File? = file(childDocumentId)
+        while (f != null) {
+            ids.addFirst(idOf(f))
+            if (f == stop) break
+            f = f.parentFile
+        }
+        return DocumentsContract.Path(if (parentDocumentId == null) "usb" else null, ids.toList())
+    }
+
+    /** Moves within the drive; never overwrites (fails if the name is taken in the target folder). */
+    override fun moveDocument(
+        sourceDocumentId: String,
+        sourceParentDocumentId: String,
+        targetParentDocumentId: String,
+    ): String {
+        check()
+        val f = file(sourceDocumentId)
+        if (f.parentFile != file(sourceParentDocumentId)) throw IllegalStateException("not in that folder")
+        val to = File(file(targetParentDocumentId), f.name)
+        if (to.exists()) throw IllegalStateException("exists")
+        if (!f.renameTo(to)) throw IllegalStateException("move failed")
         return idOf(to)
     }
 
