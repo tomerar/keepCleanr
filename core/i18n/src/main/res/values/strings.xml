@@ -12,7 +12,7 @@
     <string name="home_card_review_body">Things that might matter, explained in plain words. You decide.</string>
     <string name="home_card_move_title">Move to backup</string>
     <string name="home_card_move_body">Your memories go to your own drive and are checked before anything is deleted.</string>
-    <string name="home_privacy">No ads. No tracking. No internet access.</string>
+    <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
     <string name="debug_toggle_rtl">Flip layout direction (debug)</string>
     <string name="home_storage_line">%1$s used · %2$s free</string>
     <string name="access_card_title">See what\'s taking space</string>
@@ -329,7 +329,7 @@
     <string name="settings_language">Language</string>
     <string name="settings_language_system">Phone\'s language</string>
     <string name="settings_about">About KeepClear</string>
-    <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking, no internet access. Version %1$s.</string>
+    <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking. It connects to the network only to reach a backup place you set up, at the address you typed. Version %1$s.</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_replay_intro">Show the introduction again</string>
     <string name="settings_get_back_title">How to get files back</string>

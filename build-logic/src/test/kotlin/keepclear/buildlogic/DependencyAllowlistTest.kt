@@ -34,4 +34,19 @@ class DependencyAllowlistTest {
         val violations = DependencyAllowlist.check(listOf("com.example:lib:1.0"))
         assertTrue(violations.single().contains("not on the allowlist"))
     }
+
+    @Test
+    fun `the SMB libraries are allowed as exact modules, not their whole groups (M15)`() {
+        val smb = listOf(
+            "com.hierynomus:smbj:0.15.0",
+            "com.hierynomus:asn-one:0.6.0",
+            "org.bouncycastle:bcprov-jdk18on:1.85.2",
+            "org.slf4j:slf4j-api:2.0.18",
+            "net.engio:mbassador:1.3.2",
+        )
+        assertTrue(DependencyAllowlist.check(smb).isEmpty())
+        // Other modules of the same groups still need discussion.
+        assertTrue(DependencyAllowlist.check(listOf("com.hierynomus:sshj:0.40.0")).single().contains("not on the allowlist"))
+        assertTrue(DependencyAllowlist.check(listOf("org.slf4j:slf4j-simple:2.0.18")).single().contains("not on the allowlist"))
+    }
 }

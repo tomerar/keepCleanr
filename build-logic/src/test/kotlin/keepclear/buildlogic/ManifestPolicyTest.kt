@@ -30,20 +30,44 @@ class ManifestPolicyTest {
         </activity>
     """
 
-    private fun check(xml: String, flavor: String = "foss", debuggable: Boolean = false) =
-        ManifestPolicy.check(xml, flavor, appId, privacy, debuggable)
+    private fun check(xml: String, flavor: String = "foss", debuggable: Boolean = false, mergerReport: String? = null) =
+        ManifestPolicy.check(xml, flavor, appId, privacy, debuggable, mergerReport)
 
     @Test
     fun `clean manifest passes`() {
         assertEquals(emptyList<String>(), check(manifest()))
     }
 
+    private fun report(vararg sources: String) = (
+        listOf("uses-permission#android.permission.INTERNET") + sources.toList() +
+            listOf("\tandroid:name", "\t\tADDED from /x/AndroidManifest.xml:3:22-62", "uses-permission#android.permission.WAKE_LOCK")
+        ).joinToString("\n")
+
     @Test
-    fun `INTERNET fails in every flavor`() {
+    fun `INTERNET only from a backup target module, in every flavor (ADR 0011)`() {
+        val internet = manifest(listOf("android.permission.INTERNET"))
+        val fromSmb = report("ADDED from [:backup:target-smb] /x/backup/target-smb/build/AndroidManifest.xml:6:5-67")
         for (flavor in listOf("foss", "play")) {
-            val violations = check(manifest(listOf("android.permission.INTERNET")), flavor)
-            assertTrue(violations.any { "INTERNET" in it && "ADR 0008" in it }, "$flavor: $violations")
+            assertEquals(emptyList<String>(), check(internet, flavor, mergerReport = fromSmb), flavor)
+            // No report, the app's own manifest, or a library: all refused.
+            assertTrue(check(internet, flavor).any { "ADR 0011" in it }, flavor)
+            val fromApp = report("ADDED from /x/app/src/main/AndroidManifest.xml:12:5-67")
+            assertTrue(check(internet, flavor, mergerReport = fromApp).any { "ADR 0011" in it }, flavor)
+            val fromLib = report("MERGED from [com.example:tracker:1.0] /x/AndroidManifest.xml:5:5-67")
+            assertTrue(check(internet, flavor, mergerReport = fromLib).any { "ADR 0011" in it }, flavor)
+            val alsoApp = report(
+                "ADDED from /x/app/src/main/AndroidManifest.xml:12:5-67",
+                "MERGED from [:backup:target-smb] /x/AndroidManifest.xml:6:5-67",
+            )
+            assertTrue(check(internet, flavor, mergerReport = alsoApp).any { "ADR 0011" in it }, flavor)
         }
+    }
+
+    @Test
+    fun `merger report sources are read for the right permission only`() {
+        val r = report("ADDED from [:backup:target-smb] /x:1:1-2")
+        assertEquals(listOf("ADDED from [:backup:target-smb] /x:1:1-2"), ManifestPolicy.permissionSources(r, "android.permission.INTERNET"))
+        assertEquals(emptyList<String>(), ManifestPolicy.permissionSources(r, "android.permission.CAMERA"))
     }
 
     @Test

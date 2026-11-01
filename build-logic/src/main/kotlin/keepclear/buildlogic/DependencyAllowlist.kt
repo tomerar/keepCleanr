@@ -47,6 +47,12 @@ object DependencyAllowlist {
         "com.google.code.findbugs:jsr305",
         "org.checkerframework",
         "com.google.j2objc:j2objc-annotations",
+        // M15 (ADR 0011, research 06 §3.1): SMB backups, used only by backup:target-smb. Exact modules, not groups.
+        "com.hierynomus:smbj",
+        "com.hierynomus:asn-one",
+        "org.bouncycastle:bcprov-jdk18on",
+        "org.slf4j:slf4j-api",
+        "net.engio:mbassador",
     )
 
     /** Returns violations for `group:module:version` ids. */

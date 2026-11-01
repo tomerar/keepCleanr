@@ -5,7 +5,7 @@ Published at: https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md (a
 
 ## Short version
 
-KeepClear works only on your phone. It does not collect, send, sell or share any data. It has no ads, no analytics, no crash reporting and no account. The current version cannot connect to the internet at all.
+KeepClear works only on your phone. It does not collect, send, sell or share any data. It has no ads, no analytics, no crash reporting and no account. It connects to the network only if you set up a network drive for backups (a shared folder on your computer or NAS), and then only to the address you typed.
 
 ## What KeepClear accesses, and why
 
@@ -17,6 +17,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | Usage access (`PACKAGE_USAGE_STATS`) | To show how much space each app uses and when it was last opened. | No |
 | List of apps (`QUERY_ALL_PACKAGES` in `foss`; launcher apps only in `play`) | To match folders and caches to the apps that own them. | No |
 | Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps. Android asks you to confirm; KeepClear never removes an app by itself. | No |
+| Network (`INTERNET`) | Only to back up to a network drive you set up, at the address you typed. | Only the files you back up, to that address |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`) | To keep a backup running while the screen is off. | No |
 | Background jobs (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, added by Android's WorkManager) | To empty trash items once their 30 days are over, also after a restart. | No |
@@ -38,7 +39,7 @@ When you move files to a drive or computer you choose, KeepClear copies them the
 
 ## Network
 
-The current version does not have the Android `INTERNET` permission. If a future version adds backup to a computer or server on your network, it will connect only to the address you type in, and this policy will be updated before that release.
+KeepClear has the Android `INTERNET` permission only for backups to a network drive (SMB: a shared folder on your computer or NAS, ADR 0011). It connects only to the address you typed, only while a backup, a check of a backup, or freeing space after a backup runs, and it sends only the files you chose to back up. The password is stored on the phone, encrypted with a key kept in Android's secure key store; it is never logged or sent anywhere else. Nothing else in KeepClear can use the network (checked automatically in every build). Settings shows the address in use.
 
 ## Children
 

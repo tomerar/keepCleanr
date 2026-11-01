@@ -49,6 +49,7 @@ dependencies {
     implementation(project(":core:storage-saf"))
     implementation(project(":core:database"))
     implementation(project(":backup:target-saf"))
+    implementation(project(":backup:target-smb"))
     implementation(project(":engine:move"))
     implementation(project(":engine:scan"))
     implementation(project(":engine:classify"))

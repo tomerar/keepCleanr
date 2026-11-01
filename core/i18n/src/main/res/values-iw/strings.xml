@@ -9,7 +9,7 @@
     <string name="home_card_review_body">דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם.</string>
     <string name="home_card_move_title">להעביר לגיבוי</string>
     <string name="home_card_move_body">הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק.</string>
-    <string name="home_privacy">בלי פרסומות. בלי מעקב. בלי גישה לאינטרנט.</string>
+    <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
     <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
     <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
     <string name="access_card_title">לראות מה תופס מקום</string>
@@ -346,7 +346,7 @@
     <string name="settings_language">שפה</string>
     <string name="settings_language_system">שפת הטלפון</string>
     <string name="settings_about">על KeepClear</string>
-    <string name="settings_about_body">חינמי וקוד פתוח (GPL-3.0). בלי פרסומות, בלי מעקב, בלי גישה לאינטרנט. גרסה %1$s.</string>
+    <string name="settings_about_body">חינמי וקוד פתוח (GPL-3.0). בלי פרסומות, בלי מעקב. חיבור לרשת רק כדי להגיע למקום גיבוי שהוגדר, בכתובת שהוקלדה. גרסה %1$s.</string>
     <string name="settings_privacy">מדיניות פרטיות</string>
     <string name="settings_replay_intro">להציג שוב את ההיכרות</string>
     <string name="settings_get_back_title">איך מחזירים קבצים</string>

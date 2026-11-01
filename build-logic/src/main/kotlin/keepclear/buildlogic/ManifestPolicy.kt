@@ -8,14 +8,32 @@ import javax.xml.parsers.DocumentBuilderFactory
 /**
  * Pure policy check for a merged AndroidManifest.xml.
  *
- * Rules (see docs/spec): ADR 0008 (no INTERNET, no accessibility service), ADR 0005 (restricted
+ * Rules (see docs/spec): ADR 0008 as amended by ADR 0011 (INTERNET only from a backup target module, no
+ * accessibility service), ADR 0005 (restricted
  * permissions only in `foss`), SEC-5 (only the launcher activity is exported), PRIV-6 (every
  * requested permission is documented in docs/PRIVACY.md).
  */
 object ManifestPolicy {
     private const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
 
-    val forbiddenEverywhere = setOf("android.permission.INTERNET")
+    /** Nothing may request these in any flavor. */
+    val forbiddenEverywhere = emptySet<String>()
+
+    /**
+     * ADR 0011: network permissions may only come from a backup target module (`:backup:target-*`), as shown by
+     * the manifest merger's report. Anything else that adds one (the app itself, a library) is a violation.
+     */
+    val networkPermissions = setOf("android.permission.INTERNET")
+    private val targetModuleSource = Regex("""^(ADDED|MERGED) from \[:backup:target-[a-z0-9-]+]""")
+    private val sourceLine = Regex("""^(ADDED|MERGED|INJECTED|IMPLIED) from """)
+
+    /** The "ADDED/MERGED from …" lines for [permission] in a manifest-merger report. */
+    fun permissionSources(mergerReport: String, permission: String): List<String> {
+        val lines = mergerReport.lines()
+        val start = lines.indexOfFirst { it.trim() == "uses-permission#$permission" }
+        if (start < 0) return emptyList()
+        return lines.drop(start + 1).takeWhile { sourceLine.containsMatchIn(it) }
+    }
     val forbiddenInPlay = setOf(
         "android.permission.MANAGE_EXTERNAL_STORAGE",
         "android.permission.QUERY_ALL_PACKAGES",
@@ -46,6 +64,8 @@ object ManifestPolicy {
         applicationId: String,
         privacyPolicy: String,
         debuggable: Boolean = false,
+        /** The manifest merger's report for this variant; null if it couldn't be read. */
+        mergerReport: String? = null,
     ): List<String> {
         val doc = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
             .newDocumentBuilder().parse(manifestXml.byteInputStream())
@@ -58,6 +78,13 @@ object ManifestPolicy {
 
         permissions.filter { it in forbiddenEverywhere }
             .forEach { violations += "Forbidden permission in every flavor (ADR 0008): $it" }
+        permissions.filter { it in networkPermissions }.forEach { permission ->
+            val sources = mergerReport?.let { permissionSources(it, permission) }.orEmpty()
+            if (sources.isEmpty() || sources.any { !targetModuleSource.containsMatchIn(it) }) {
+                violations += "Network permission not from a backup target module (ADR 0011): $permission " +
+                    "(${sources.ifEmpty { listOf("source unknown") }.joinToString("; ")})"
+            }
+        }
         if (flavor == "play") {
             permissions.filter { it in forbiddenInPlay }
                 .forEach { violations += "Restricted permission in play flavor (ADR 0005): $it" }
@@ -115,5 +142,13 @@ object ManifestPolicy {
         applicationId: String,
         privacyPolicy: File,
         debuggable: Boolean,
-    ): List<String> = check(manifest.readText(), flavor, applicationId, privacyPolicy.readText(), debuggable)
+        mergerReport: File? = null,
+    ): List<String> = check(
+        manifest.readText(),
+        flavor,
+        applicationId,
+        privacyPolicy.readText(),
+        debuggable,
+        mergerReport?.takeIf { it.isFile }?.readText(),
+    )
 }
