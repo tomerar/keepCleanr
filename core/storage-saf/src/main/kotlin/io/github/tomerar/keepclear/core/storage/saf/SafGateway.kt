@@ -120,7 +120,8 @@ class SafGateway(private val resolver: ContentResolver) : StorageGateway {
         val p = saf(path)
         val s = statNow(p) ?: throw StorageException.NotFound(p)
         if (s.isDirectory) throw StorageException.IsADirectory(p)
-        guard(p) { resolver.openInputStream(p.uri()) ?: throw StorageException.NotFound(p) }
+        val stream = guard(p) { resolver.openInputStream(p.uri()) ?: throw StorageException.NotFound(p) }
+        MappedInput(stream, p)
     }
 
     /** Creates [name] in [dir] and returns it, or fails without leaving a renamed copy behind. */
@@ -144,7 +145,8 @@ class SafGateway(private val resolver: ContentResolver) : StorageGateway {
 
     override suspend fun create(dir: KPath, name: String): OutputStream = withContext(Dispatchers.IO) {
         val child = createExact(saf(dir), name, OCTET_STREAM)
-        guard(child) { resolver.openOutputStream(child.uri(), "w") ?: throw StorageException.Io(child) }
+        val stream = guard(child) { resolver.openOutputStream(child.uri(), "w") ?: throw StorageException.Io(child) }
+        MappedOutput(stream, child)
     }
 
     override suspend fun mkdir(dir: KPath, name: String): KPath = withContext(Dispatchers.IO) {
@@ -171,6 +173,22 @@ class SafGateway(private val resolver: ContentResolver) : StorageGateway {
         path.with(DocumentsContract.getDocumentId(uri))
     }
 
+    /** Document ids from the granted folder down to [path], inclusive. */
+    private fun ancestorsOf(path: KPath.Saf): List<String> =
+        guard(path) { DocumentsContract.findDocumentPath(resolver, path.uri())?.path }
+            ?: throw StorageException.Unsupported(path, "provider can't tell the parent folder")
+
+    private inline fun <T> undoOnFailure(undo: () -> Unit, step: () -> T): T = try {
+        step()
+    } catch (e: StorageException) {
+        try {
+            undo()
+        } catch (undoFailed: StorageException) {
+            e.addSuppressed(undoFailed)
+        }
+        throw e
+    }
+
     override suspend fun rename(path: KPath, newParent: KPath, newName: String): KPath = withContext(Dispatchers.IO) {
         val p = saf(path)
         val dest = saf(newParent)
@@ -180,17 +198,34 @@ class SafGateway(private val resolver: ContentResolver) : StorageGateway {
         requireDir(dest)
         if (existing(dest, newName) != null) throw StorageException.AlreadyExists(dest)
         val parent = parentOf(p)
+        // A folder can't go inside itself; checked before anything changes.
+        if (source.isDirectory && p.documentId in ancestorsOf(dest)) {
+            throw StorageException.Unsupported(p, "moving a folder into itself")
+        }
         val result = when {
-            parent.documentId == dest.documentId -> renameInPlace(p, newName)
+            parent.documentId == dest.documentId -> {
+                renameInPlace(p, newName)
+            }
 
-            source.name == newName -> move(p, parent, dest)
+            source.name == newName -> {
+                move(p, parent, dest)
+            }
 
-            // Two steps; pick the order whose intermediate name is free, so nothing is ever overwritten.
-            existing(parent, newName) == null -> move(renameInPlace(p, newName), parent, dest)
+            // Two steps; pick the order whose intermediate name is free, so nothing is ever overwritten. If the
+            // second step fails, the first is undone, so the caller's path still points at the item.
+            existing(parent, newName) == null -> {
+                val renamed = renameInPlace(p, newName)
+                undoOnFailure({ renameInPlace(renamed, source.name) }) { move(renamed, parent, dest) }
+            }
 
-            existing(dest, source.name) == null -> renameInPlace(move(p, parent, dest), newName)
+            existing(dest, source.name) == null -> {
+                val moved = move(p, parent, dest)
+                undoOnFailure({ move(moved, dest, parent) }) { renameInPlace(moved, newName) }
+            }
 
-            else -> throw StorageException.Unsupported(p, "no free name to move through")
+            else -> {
+                throw StorageException.Unsupported(p, "no free name to move through")
+            }
         }
         if (statNow(result)?.name != newName) {
             throw StorageException.Io(result, message = "provider stored a different name")
@@ -217,4 +252,48 @@ class SafGateway(private val resolver: ContentResolver) : StorageGateway {
             Document.COLUMN_LAST_MODIFIED,
         )
     }
+}
+
+/** Maps read/close failures after opening (unplugged drive, dead provider) to [StorageException]s too. */
+internal class MappedInput(private val inner: InputStream, private val path: KPath) : InputStream() {
+    private inline fun <T> map(block: () -> T): T = try {
+        block()
+    } catch (e: StorageException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        throw StorageException.Io(path, e)
+    } catch (e: RuntimeException) {
+        throw StorageException.Io(path, e)
+    }
+
+    override fun read(): Int = map { inner.read() }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int = map { inner.read(b, off, len) }
+
+    override fun skip(n: Long): Long = map { inner.skip(n) }
+
+    override fun available(): Int = map { inner.available() }
+
+    override fun close() = map { inner.close() }
+}
+
+/** Maps write/flush/close failures after opening to [StorageException]s too. */
+internal class MappedOutput(private val inner: OutputStream, private val path: KPath) : OutputStream() {
+    private inline fun <T> map(block: () -> T): T = try {
+        block()
+    } catch (e: StorageException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        throw StorageException.Io(path, e)
+    } catch (e: RuntimeException) {
+        throw StorageException.Io(path, e)
+    }
+
+    override fun write(b: Int) = map { inner.write(b) }
+
+    override fun write(b: ByteArray, off: Int, len: Int) = map { inner.write(b, off, len) }
+
+    override fun flush() = map { inner.flush() }
+
+    override fun close() = map { inner.close() }
 }

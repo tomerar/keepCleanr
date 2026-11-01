@@ -62,6 +62,27 @@ class SafGatewayTest {
     }
 
     @Test
+    fun aFolderIsNeverMovedIntoItselfAndStaysWhereItWas(): Unit = runBlocking {
+        val d = gateway.mkdir(root, "d")
+        val inner = gateway.mkdir(d, "inner")
+        expect<StorageException.Unsupported> { runBlocking { gateway.rename(d, inner, "d2") } }
+        assertEquals("d", gateway.stat(d)!!.name)
+    }
+
+    @Test
+    fun whenTheSecondStepFailsTheFirstIsUndone(): Unit = runBlocking {
+        gateway.create(root, "a").use { it.write(7) }
+        val a = gateway.list(root).toList().single { it.name == "a" }.path
+        val dest = gateway.mkdir(root, "dest")
+        // "b" is free next to "a": rename first, then move. The move fails, so the rename is undone.
+        FakeUsbProvider.failMoves = true
+        expect<StorageException> { runBlocking { gateway.rename(a, dest, "b") } }
+        FakeUsbProvider.failMoves = false
+        assertEquals("a", gateway.stat(a)!!.name)
+        assertEquals(setOf("a", "dest"), gateway.list(root).toList().map { it.name }.toSet())
+    }
+
+    @Test
     fun nothingOutsideAGrantedFolderIsReachable(): Unit = runBlocking {
         expect<StorageException.Unsupported> { runBlocking { gateway.stat(KPath.Local("/storage/emulated/0")) } }
     }

@@ -35,6 +35,9 @@ class FakeUsbProvider : DocumentsProvider() {
 
         @Volatile var creates = 0
 
+        /** Makes every move fail, like a provider that can't move documents (tests the undo of a 2-step rename). */
+        @Volatile var failMoves = false
+
         /** Simulates a slow drive: each created document takes this long. */
         @Volatile var createDelayMs = 0L
 
@@ -49,6 +52,7 @@ class FakeUsbProvider : DocumentsProvider() {
             ejectOnCreate = 0
             creates = 0
             createDelayMs = 0
+            failMoves = false
         }
     }
 
@@ -191,6 +195,7 @@ class FakeUsbProvider : DocumentsProvider() {
         targetParentDocumentId: String,
     ): String {
         check()
+        if (failMoves) throw IllegalStateException("move failed")
         val f = file(sourceDocumentId)
         if (f.parentFile != file(sourceParentDocumentId)) throw IllegalStateException("not in that folder")
         val to = File(file(targetParentDocumentId), f.name)

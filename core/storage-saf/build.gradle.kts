@@ -12,6 +12,7 @@ android {
 dependencies {
     api(project(":core:storage-api"))
     implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.junit4)
