@@ -415,4 +415,42 @@
     <string name="move_problem_unreachable">Nothing answered at that address. Is the computer on and awake, and is the phone on the same Wi-Fi?</string>
     <string name="settings_network_only">Network: only to %1$s (your network drive)</string>
     <string name="settings_network_forget">Forget the network drive</string>
+    <string name="restore_start">Restore from a backup</string>
+    <string name="restore_title">Restore from a backup</string>
+    <string name="restore_pick_body">Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself).</string>
+    <string name="restore_pick_folder">Choose drive or folder</string>
+    <string name="restore_from_network">It\'s on a network drive</string>
+    <string name="restore_needs_all_files">To put files back where they were, KeepClear needs All files access (available in the KeepClear build from F-Droid or GitHub). You can still copy them from the drive with the Files app.</string>
+    <string name="restore_no_backup">No KeepClear backup was found there.</string>
+    <string name="restore_which_phone">Which phone\'s backup?</string>
+    <string name="restore_choose">What to bring back</string>
+    <string name="restore_where">Each file goes back to where it was. If that place is taken or not safe, it goes to Pictures › KeepClear Restored. Nothing on the phone is replaced.</string>
+    <string name="restore_run">Restore</string>
+    <string name="restore_running">Restoring…</string>
+    <string name="restore_interrupted">The drive was disconnected. What was restored stays; restore again to finish.</string>
+    <string name="restore_ok">OK</string>
+    <plurals name="restore_progress">
+        <item quantity="one">%1$s file restored</item>
+        <item quantity="other">%1$s files restored</item>
+    </plurals>
+    <plurals name="restore_done">
+        <item quantity="one">%1$s file restored and checked</item>
+        <item quantity="other">%1$s files restored and checked</item>
+    </plurals>
+    <plurals name="restore_redirected">
+        <item quantity="one">%1$s of them went to Pictures › KeepClear Restored</item>
+        <item quantity="other">%1$s of them went to Pictures › KeepClear Restored</item>
+    </plurals>
+    <plurals name="restore_already_there">
+        <item quantity="one">%1$s was already on the phone</item>
+        <item quantity="other">%1$s were already on the phone</item>
+    </plurals>
+    <plurals name="restore_damaged">
+        <item quantity="one">%1$s copy on the drive doesn\'t match the backup list and was not restored</item>
+        <item quantity="other">%1$s copies on the drive don\'t match the backup list and were not restored</item>
+    </plurals>
+    <plurals name="restore_failed">
+        <item quantity="one">%1$s could not be restored</item>
+        <item quantity="other">%1$s could not be restored</item>
+    </plurals>
 </resources>

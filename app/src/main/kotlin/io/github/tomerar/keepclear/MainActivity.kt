@@ -201,6 +201,15 @@ class MainActivity : ComponentActivity() {
                                 moveVm.onNetworkDrive(location)
                             },
                             savedNetworkDrive = moveVm::savedNetworkDrive,
+                            restore = RestoreActions(
+                                onStart = moveVm::beginRestore,
+                                onPickFolder = { treeLauncher.launch(null) },
+                                onNetworkDrive = moveVm::onNetworkDrive,
+                                savedNetworkDrive = moveVm::savedNetworkDrive,
+                                onChooseBackup = moveVm::chooseBackup,
+                                onRestore = moveVm::runRestore,
+                                onClose = moveVm::closeRestore,
+                            ),
                             onStart = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationsOff &&
                                     !askedNotifications()

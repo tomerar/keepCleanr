@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":backup:target-saf"))
     implementation(project(":backup:target-smb"))
     implementation(project(":engine:move"))
+    implementation(project(":engine:restore"))
     implementation(project(":engine:scan"))
     implementation(project(":engine:classify"))
     implementation(project(":engine:trash"))

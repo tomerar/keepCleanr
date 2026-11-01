@@ -437,4 +437,48 @@
     <string name="move_problem_unreachable">אף מכשיר לא ענה בכתובת הזו. האם המחשב דלוק וער, והטלפון מחובר לאותה רשת Wi-Fi?</string>
     <string name="settings_network_only">רשת: רק אל %1$s (כונן הרשת)</string>
     <string name="settings_network_forget">לשכוח את כונן הרשת</string>
+    <string name="restore_start">שחזור מגיבוי</string>
+    <string name="restore_title">שחזור מגיבוי</string>
+    <string name="restore_pick_body">יש לבחור את הכונן או את התיקייה שבהם נמצא הגיבוי (התיקייה בשם KeepClear, או הכונן עצמו).</string>
+    <string name="restore_pick_folder">בחירת כונן או תיקייה</string>
+    <string name="restore_from_network">הגיבוי בכונן רשת</string>
+    <string name="restore_needs_all_files">כדי להחזיר קבצים למקומם, KeepClear צריכה גישה לכל הקבצים (זמינה בגרסה מ-F-Droid או מ-GitHub). עדיין אפשר להעתיק אותם מהכונן בעזרת אפליקציית הקבצים.</string>
+    <string name="restore_no_backup">לא נמצא שם גיבוי של KeepClear.</string>
+    <string name="restore_which_phone">הגיבוי של איזה טלפון?</string>
+    <string name="restore_choose">מה להחזיר</string>
+    <string name="restore_where">כל קובץ חוזר למקום שבו היה. אם המקום תפוס או לא בטוח, הקובץ נשמר בתמונות › KeepClear Restored. שום קובץ בטלפון לא מוחלף.</string>
+    <string name="restore_run">שחזור</string>
+    <string name="restore_running">משחזרים…</string>
+    <string name="restore_interrupted">הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים.</string>
+    <string name="restore_ok">אישור</string>
+    <plurals name="restore_progress">
+        <item quantity="one">קובץ %1$s שוחזר</item>
+        <item quantity="two">%1$s קבצים שוחזרו</item>
+        <item quantity="other">%1$s קבצים שוחזרו</item>
+    </plurals>
+    <plurals name="restore_done">
+        <item quantity="one">קובץ %1$s שוחזר ונבדק</item>
+        <item quantity="two">%1$s קבצים שוחזרו ונבדקו</item>
+        <item quantity="other">%1$s קבצים שוחזרו ונבדקו</item>
+    </plurals>
+    <plurals name="restore_redirected">
+        <item quantity="one">%1$s מהם נשמר בתמונות › KeepClear Restored</item>
+        <item quantity="two">%1$s מהם נשמרו בתמונות › KeepClear Restored</item>
+        <item quantity="other">%1$s מהם נשמרו בתמונות › KeepClear Restored</item>
+    </plurals>
+    <plurals name="restore_already_there">
+        <item quantity="one">%1$s כבר היה בטלפון</item>
+        <item quantity="two">%1$s כבר היו בטלפון</item>
+        <item quantity="other">%1$s כבר היו בטלפון</item>
+    </plurals>
+    <plurals name="restore_damaged">
+        <item quantity="one">עותק %1$s בכונן לא תואם לרשימת הגיבוי ולא שוחזר</item>
+        <item quantity="two">%1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו</item>
+        <item quantity="other">%1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו</item>
+    </plurals>
+    <plurals name="restore_failed">
+        <item quantity="one">%1$s לא שוחזר</item>
+        <item quantity="two">%1$s לא שוחזרו</item>
+        <item quantity="other">%1$s לא שוחזרו</item>
+    </plurals>
 </resources>
