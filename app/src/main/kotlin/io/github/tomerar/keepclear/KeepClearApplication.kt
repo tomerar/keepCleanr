@@ -54,7 +54,8 @@ class KeepClearApplication : Application() {
         protectedPaths = protectedPaths,
         handler = trashManager,
         currentSession = sessionId,
-        dryRun = testMode.isOn,
+        // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
+        isDryRun = { testMode.isOn },
         onResult = { result ->
             TestMode.log(result)
             onResult(result)

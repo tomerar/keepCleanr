@@ -54,6 +54,25 @@ class ActionExecutorTest {
     }
 
     @Test
+    fun `turning dry run on mid-plan stops every remaining operation (SAFETY-9)`(): Unit = runBlocking {
+        var testMode = false
+        val executor = ActionExecutor(
+            fake,
+            SafetyGuard(protectedPaths),
+            protectedPaths,
+            handler,
+            SESSION,
+            isDryRun = { testMode },
+            onResult = { testMode = true }, // switched on right after the first operation
+        )
+        val report = ran(executor.run(plan(fake.op(a), fake.op(b))))
+        report.results[0].shouldBeInstanceOf<OpResult.Done>()
+        report.results[1].shouldBeInstanceOf<OpResult.Simulated>()
+        handler.performed.size shouldBe 1
+        fake.exists(b) shouldBe true
+    }
+
+    @Test
     fun `changed size or mtime is skipped (SAFETY-6, E-DEL-1)`(): Unit = runBlocking {
         val opA = fake.op(a)
         val opB = fake.op(b)

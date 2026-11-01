@@ -67,6 +67,11 @@ class ActionExecutor(
     private val handler: ActionHandler,
     private val currentSession: String,
     private val dryRun: Boolean = false,
+    /**
+     * Asked again right before **each** operation (SAFETY-9), so switching test mode on while a long plan runs
+     * (e.g. strict re-hashes before freeing originals) stops every remaining operation from being performed.
+     */
+    private val isDryRun: () -> Boolean = { dryRun },
     /** Strict mode (SEC-4, owner decision Q13): re-hash MOVE originals right before trashing. */
     private val strictRehash: Boolean = true,
     private val onResult: (OpResult) -> Unit = {},
@@ -93,7 +98,7 @@ class ActionExecutor(
 
     private suspend fun runOne(op: PlannedOp): OpResult = try {
         precheck(op) ?: run {
-            if (dryRun) {
+            if (isDryRun()) {
                 OpResult.Simulated(op)
             } else {
                 handler.perform(op, gateway)
