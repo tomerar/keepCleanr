@@ -55,6 +55,8 @@ class HomeActions(
     val onCancelScan: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onTrim: () -> Unit = {},
+    /** SAFE-10: the guided per-app list. */
+    val onOneByOne: () -> Unit = {},
 )
 
 /**
@@ -183,6 +185,7 @@ fun HomeScreen(
                     result = state.trimResult.takeIf { state.screens.last() == Screen.Home },
                     enabled = !state.busy,
                     onTrim = actions.onTrim,
+                    onOneByOne = actions.onOneByOne,
                 )
                 if (state.mediaAccess != MediaAccess.NONE && state.allFiles == false && explainer == null) {
                     ActionCard(
@@ -305,7 +308,7 @@ private fun SafeCard(summary: ClassificationSummary, enabled: Boolean, onOpen: (
 
 /** ONB-3 / SAFE-5: "Clear apps' temporary files", on Home always. */
 @Composable
-private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit) {
+private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneByOne: () -> Unit) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]
     Card(modifier = Modifier.fillMaxWidth().testTag("trimCard")) {
@@ -324,6 +327,10 @@ private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit) {
             }
             OutlinedButton(onClick = { confirm = true }, enabled = enabled, modifier = Modifier.testTag("homeTrim")) {
                 Text(stringResource(R.string.trim_button))
+            }
+            // SAFE-5 → SAFE-10: when Android trims little, the guided per-app list is the next step.
+            TextButton(onClick = onOneByOne, modifier = Modifier.testTag("oneByOneLink")) {
+                Text(stringResource(R.string.one_by_one_button))
             }
         }
     }

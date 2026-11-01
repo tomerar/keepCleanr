@@ -60,6 +60,9 @@ class SettingsActions(
     val onReplayIntro: () -> Unit = {},
     val onOpenPrivacy: () -> Unit = {},
     val version: String = "",
+    /** TRASH-7: bytes in KeepClear's trash now; the uninstall note shows while it isn't empty. */
+    val trashBytes: Long = 0,
+    val onOpenTrash: () -> Unit = {},
 )
 
 /**
@@ -99,6 +102,31 @@ fun SettingsScreen(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.settings_get_back_title), style = MaterialTheme.typography.titleSmall)
                     Text(stringResource(R.string.settings_get_back_body), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            if (actions.trashBytes > 0) {
+                Card(Modifier.fillMaxWidth().testTag("beforeUninstall")) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            stringResource(R.string.settings_uninstall_title),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            stringResource(
+                                R.string.trash_uninstall_note,
+                                io.github.tomerar.keepclear.core.common.Bidi.isolate(
+                                    io.github.tomerar.keepclear.core.common.ByteSize.format(
+                                        actions.trashBytes,
+                                        androidx.compose.ui.platform.LocalConfiguration.current.locales[0],
+                                    ),
+                                ),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        TextButton(onClick = actions.onOpenTrash, modifier = Modifier.testTag("settingsOpenTrash")) {
+                            Text(stringResource(R.string.settings_open_trash))
+                        }
+                    }
                 }
             }
             TextButton(onClick = actions.onReplayIntro, modifier = Modifier.testTag("replayIntro")) {

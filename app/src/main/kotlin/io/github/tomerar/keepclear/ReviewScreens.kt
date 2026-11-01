@@ -165,7 +165,9 @@ fun GroupScreen(
     onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
 ) {
     val text = RuleText.of(group.ruleId)
-    val selectable = group.category == Category.SAFE || group.category == Category.REVIEW
+    // SAFE-9: other apps' own folders are never selectable for deletion here.
+    val selectable = (group.category == Category.SAFE || group.category == Category.REVIEW) &&
+        group.ruleId != io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
     val selectedItems = group.items.filter { it.item.path in selected }

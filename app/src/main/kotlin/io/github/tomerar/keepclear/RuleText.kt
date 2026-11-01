@@ -40,6 +40,8 @@ object RuleText {
             Ids(R.string.group_telegram_docs, R.string.why_telegram_docs, R.string.if_deleted_telegram_docs),
         "telegram_legacy" to
             Ids(R.string.group_telegram_legacy, R.string.why_telegram_legacy, R.string.if_deleted_telegram_legacy),
+        "app_content" to
+            Ids(R.string.group_app_content, R.string.why_app_content, R.string.if_deleted_app_content),
         "camera" to Ids(R.string.group_camera, R.string.why_camera, R.string.if_deleted_camera),
         "big_video" to Ids(R.string.group_big_video, R.string.why_big_video, R.string.if_deleted_big_video),
         "apk_files" to Ids(R.string.group_apk_files, R.string.why_apk_files, R.string.if_deleted_apk_files),

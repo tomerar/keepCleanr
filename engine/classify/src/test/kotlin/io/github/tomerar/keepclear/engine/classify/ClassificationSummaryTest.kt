@@ -63,4 +63,34 @@ class ClassificationSummaryTest {
             java.util.Locale.setDefault(saved)
         }
     }
+
+    @Test
+    fun `other apps' media folders are summed per app, largest first (SAFE-9)`() {
+        val c = Classifier()
+
+        fun i(rel: String, size: Long) = c.classify(
+            io.github.tomerar.keepclear.engine.scan.ScanItem(
+                io.github.tomerar.keepclear.core.storage.KPath.Local("/storage/emulated/0/$rel"),
+                "/storage/emulated/0/$rel",
+                size,
+                1,
+            ),
+            now = 2,
+        )
+        val items = listOf(
+            i("Android/media/com.spotify.music/d/a.ogg", 300),
+            i("Android/media/com.spotify.music/d/b.ogg", 300),
+            i("Android/media/org.telegram.messenger/Telegram/v.mp4", 900),
+            i("DCIM/Camera/x.jpg", 5),
+        )
+        AppContent.byApp(items).map { it.first to it.second.bytes } shouldBe
+            listOf("org.telegram.messenger" to 900L, "com.spotify.music" to 600L)
+    }
+
+    @Test
+    fun `the app's package keeps its case, PackageManager needs it exactly (SAFE-9)`() {
+        AppContent.packageOf("/storage/emulated/0/Android/media/com.Example.Player/downloads/a.bin") shouldBe
+            "com.Example.Player"
+        AppContent.packageOf("/storage/emulated/0/DCIM/a.jpg") shouldBe null
+    }
 }

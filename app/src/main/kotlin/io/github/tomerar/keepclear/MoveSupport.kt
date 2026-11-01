@@ -92,21 +92,23 @@ class MoveService : Service() {
 
     @Volatile private var stopReason: PauseReason = PauseReason.PAUSED_BY_USER
 
-    private val app get() = application as KeepClearApplication
+    /**
+     * The newest start request. A job ending calls `stopSelf(latestStartId)`, which does nothing if another
+     * `startForegroundService()` arrived meanwhile (e.g. Continue tapped right after Pause): a plain `stopSelf()`
+     * would destroy the service before that start calls `startForeground`, and Android kills the app.
+     */
+    @Volatile private var latestStartId = 0
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    /** A start that arrived while the previous job was still ending; it runs next. */
+    @Volatile private var pendingJob: String? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val jobId = intent?.getStringExtra(EXTRA_JOB) ?: return START_NOT_STICKY.also { stopSelf() }
-        MoveNotifications.ensureChannel(this)
-        val first = MoveNotifications.progress(this, 0, 0)
-        startForeground(NOTIFICATION_ID, first, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        if (work?.isActive == true) return START_NOT_STICKY
+    private fun launchJob(jobId: String) {
         app.moveController.setRunning(jobId)
         app.moveController.stopper = { reason ->
             stopReason = reason
             work?.cancel()
         }
+        stopReason = PauseReason.PAUSED_BY_USER
         work = scope.launch {
             try {
                 run(jobId)
@@ -114,10 +116,34 @@ class MoveService : Service() {
                 app.moveController.stopper = null
                 app.moveController.setRunning(null)
                 app.moveController.ticks.value++
-                stopForeground(STOP_FOREGROUND_REMOVE) // the result notification replaces the progress one
-                stopSelf()
+                val next = pendingJob
+                pendingJob = null
+                if (next != null) {
+                    launchJob(next)
+                } else {
+                    stopForeground(STOP_FOREGROUND_REMOVE) // the result notification replaces the progress one
+                    stopSelf(latestStartId)
+                }
             }
         }
+    }
+
+    private val app get() = application as KeepClearApplication
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        latestStartId = startId
+        val jobId = intent?.getStringExtra(EXTRA_JOB) ?: return START_NOT_STICKY.also { stopSelf(startId) }
+        MoveNotifications.ensureChannel(this)
+        val first = MoveNotifications.progress(this, 0, 0)
+        startForeground(NOTIFICATION_ID, first, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        if (work?.isActive == true) {
+            // A job is still winding down (e.g. paused a moment ago): run this one right after it.
+            pendingJob = jobId
+            return START_NOT_STICKY
+        }
+        launchJob(jobId)
         // Not restarted by the system: after a kill the job shows as interrupted and waits for the user (MIG-4).
         return START_NOT_STICKY
     }

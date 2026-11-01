@@ -74,6 +74,7 @@ fun SafeScreen(
     onBack: () -> Unit,
     /** An action is running: buttons can't be tapped twice (review PR C). */
     busy: Boolean = false,
+    onOneByOne: () -> Unit = {},
 ) {
     val groups = summary.groups(Category.SAFE)
     var unselected by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -188,6 +189,9 @@ fun SafeScreen(
                         }
                         OutlinedButton(onClick = { confirmTrim = true }, modifier = Modifier.testTag("trim")) {
                             Text(stringResource(R.string.trim_button))
+                        }
+                        TextButton(onClick = onOneByOne, modifier = Modifier.testTag("oneByOneSafe")) {
+                            Text(stringResource(R.string.one_by_one_button))
                         }
                         if (showExternalCacheClear) {
                             OutlinedButton(

@@ -34,6 +34,7 @@ fun AppScreens(
     notificationsOff: Boolean = false,
     testMode: TestModeUi = TestModeUi(),
     settingsActions: SettingsActions = SettingsActions(),
+    appActions: AppActions = AppActions(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -52,6 +53,7 @@ fun AppScreens(
                 notificationsOff,
                 testMode,
                 settingsActions,
+                appActions,
             )
         }
     }
@@ -81,6 +83,7 @@ private fun ScreenContent(
     notificationsOff: Boolean,
     testMode: TestModeUi,
     settingsActions: SettingsActions,
+    appActions: AppActions,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -109,6 +112,7 @@ private fun ScreenContent(
                     onOpenTrash = safeActions.onOpenTrash,
                     onBack = onBack,
                     busy = state.busy,
+                    onOneByOne = safeActions.onOneByOne,
                 )
 
                 screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> MoveScreen(
@@ -124,7 +128,16 @@ private fun ScreenContent(
                 else -> CategoryListScreen(
                     summary,
                     screen.category,
-                    onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
+                    onOpenGroup = { ruleId ->
+                        // SAFE-9: other apps' folders open the per-app screen, never a deletable grid.
+                        onOpen(
+                            if (ruleId == io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID) {
+                                Screen.AppContent
+                            } else {
+                                Screen.Group(ruleId, screen.category)
+                            },
+                        )
+                    },
                     onBack = onBack,
                 )
             }
@@ -154,6 +167,17 @@ private fun ScreenContent(
                     onUndo = safeActions.onUndo,
                 )
             }
+        }
+
+        Screen.AppContent -> {
+            val apps = summary?.groups(io.github.tomerar.keepclear.core.model.Category.REVIEW)
+                ?.firstOrNull { it.ruleId == io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID }
+                ?.items.orEmpty()
+            AppContentScreen(io.github.tomerar.keepclear.engine.classify.AppContent.byApp(apps), appActions, onBack)
+        }
+
+        Screen.OneAppAtATime -> {
+            OneAppAtATimeScreen(state.apps, state.perAppFreed, appActions, onBack)
         }
 
         Screen.Settings -> {
@@ -197,5 +221,6 @@ class SafeActions(
     ) -> Unit = { _, _ -> },
     /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
     val onConfirmLastCopy: (io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = {},
+    val onOneByOne: () -> Unit = {},
     val onDismissLastCopy: () -> Unit = {},
 )

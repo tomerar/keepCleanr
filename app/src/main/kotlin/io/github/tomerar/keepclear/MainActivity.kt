@@ -120,6 +120,19 @@ class MainActivity : ComponentActivity() {
                             onReplayIntro = { showIntro = true },
                             onOpenPrivacy = ::openPrivacy,
                             version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+                            trashBytes = state.trash.bytes,
+                            onOpenTrash = {
+                                vm.loadTrash()
+                                vm.open(Screen.Trash)
+                            },
+                        ),
+                        appActions = AppActions(
+                            labelOf = ::appLabel,
+                            onOpenApp = { pkg -> packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity) },
+                            onOpenAppInfo = { pkg ->
+                                vm.openingAppInfo(pkg)
+                                openAppInfo(pkg)
+                            },
                         ),
                         testMode = TestModeUi(
                             on = testModeOn,
@@ -181,6 +194,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onRestoreChanged = vm::restoreChanged,
                             onConfirmLastCopy = vm::confirmLastCopies,
+                            onOneByOne = { openOneByOne(vm) },
                             onDismissLastCopy = vm::dismissLastCopies,
                         ),
                         home = {
@@ -201,6 +215,7 @@ class MainActivity : ComponentActivity() {
                                     onCancelScan = vm::cancelScan,
                                     onOpenSettings = { vm.open(Screen.Settings) },
                                     onTrim = vm::trimCaches,
+                                    onOneByOne = { openOneByOne(vm) },
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                     onOpenTrash = {
                                         vm.loadTrash()
@@ -224,6 +239,31 @@ class MainActivity : ComponentActivity() {
     /** MOVE-16: hand over to Google Photos' own "Free up space"; KeepClear can't see its cloud state. */
     private fun openGooglePhotos() {
         packageManager.getLaunchIntentForPackage("com.google.android.apps.photos")?.let(::startActivity)
+    }
+
+    /** SAFE-10: launchable apps by name (package visibility via the launcher-intent query). */
+    private fun openOneByOne(vm: HomeViewModel) {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = packageManager.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo.packageName }
+            .distinct()
+            .filter { it != packageName }
+            .map { AppEntry(it, appLabel(it)) }
+            .sortedBy { it.label.lowercase() }
+        vm.setApps(apps)
+        vm.open(Screen.OneAppAtATime)
+    }
+
+    private fun appLabel(pkg: String): String = runCatching {
+        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+    }.getOrDefault(pkg)
+
+    private fun openAppInfo(pkg: String) {
+        runCatching {
+            startActivity(
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$pkg".toUri()),
+            )
+        }
     }
 
     /** Per-app language (Android 13+); older phones open the system language settings. */

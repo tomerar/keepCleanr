@@ -149,6 +149,11 @@ object Rules {
             it.relStartsWith("download", "telegram") || it.relStartsWith("music", "telegram")
         },
         Rule("telegram_legacy", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.relStartsWith("telegram") },
+        // SAFE-9: another app's own media folder (Spotify downloads, Telegram media…): shown per app with its
+        // size and cleared inside that app. Never selectable for deletion in KeepClear.
+        Rule("app_content", Category.REVIEW, RiskChip.UNKNOWN) {
+            it.rel.size >= 4 && it.rel[0] == "android" && it.rel[1] == "media"
+        },
         // Memories (CLS-3).
         Rule("camera", Category.MOVE, RiskChip.MIGHT_BE_MEMORY, bucket = { it.month() }) { it.relStartsWith("dcim") },
         // CLS-3: photos and videos in Pictures/ albums (screenshots and AI images matched earlier).
@@ -180,4 +185,28 @@ object Rules {
         }
         return canonical to rel
     }
+}
+
+/** SAFE-9: size of other apps' own folders, per app, largest first. Read-only. */
+object AppContent {
+    const val RULE_ID = "app_content"
+
+    /**
+     * Package name of an `Android/media/<pkg>/…` or `Android/data/<pkg>/…` path, or null. Taken from the path
+     * as written, not the lower-cased canonical form: package names are case-sensitive for PackageManager.
+     */
+    fun packageOf(path: String): String? {
+        val raw = path.split('/').filter { it.isNotEmpty() }
+        val i = raw.indices.firstOrNull { idx ->
+            raw[idx].equals("android", ignoreCase = true) &&
+                raw.getOrNull(idx + 1)?.lowercase() in setOf("media", "data")
+        } ?: return null
+        return raw.getOrNull(i + 2)?.takeIf { raw.size > i + 3 }
+    }
+
+    fun byApp(items: List<ClassifiedItem>): List<Pair<String, Total>> =
+        items.filter { it.ruleId == RULE_ID }
+            .groupBy { packageOf(it.item.path) ?: "?" }
+            .map { (pkg, list) -> pkg to list.fold(Total()) { t, i -> t + i } }
+            .sortedByDescending { it.second.bytes }
 }

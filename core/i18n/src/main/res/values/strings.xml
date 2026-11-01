@@ -347,4 +347,22 @@
         <item quantity="other">Backup finished: %1$d files checked. Open KeepClear to check the backup once more and free up space.</item>
     </plurals>
     <string name="move_guide_anyway">Choose another place</string>
+    <string name="app_content_title">Inside apps\' own folders</string>
+    <string name="app_content_body">These files belong to the apps below. KeepClear doesn\'t delete them: clear them inside each app, so the app knows.</string>
+    <string name="app_open">Open app</string>
+    <string name="app_info">Open app info</string>
+    <string name="app_hint_spotify">In Spotify: Settings › Storage › Remove all downloads.</string>
+    <string name="app_hint_telegram">In Telegram: Settings › Data and Storage › Storage Usage › Clear cache.</string>
+    <string name="app_hint_youtube">In YouTube: You › Downloads, then remove what you don\'t need.</string>
+    <string name="app_hint_netflix">In Netflix: My Netflix › Downloads › Edit.</string>
+    <string name="app_hint_generic">Open the app and look for Downloads or Storage in its settings.</string>
+    <string name="one_by_one_button">Clear one app at a time</string>
+    <string name="one_by_one_title">Clear one app at a time</string>
+    <string name="one_by_one_body">Tap an app, then tap \"Storage\" and \"Clear cache\" on Android\'s screen. Come back here to see how much was freed. KeepClear never taps anything for you.</string>
+    <string name="one_by_one_freed">Freed %1$s</string>
+    <string name="one_by_one_nothing">Nothing changed</string>
+    <string name="one_by_one_sizes_later">Sizes per app need usage access; that comes in a later version.</string>
+    <string name="trash_uninstall_note">Files in KeepClear\'s trash are kept in a hidden folder, .KeepClearTrash, on this phone. If you uninstall KeepClear, they stay there and keep taking space (now %1$s). Restore or empty the trash first.</string>
+    <string name="settings_uninstall_title">Before you uninstall</string>
+    <string name="settings_open_trash">Open the trash</string>
 </resources>
