@@ -71,7 +71,18 @@ class KeepClearApplication : Application() {
         val split = GrantedFolderSplit.of(found.toMap(), allFiles)
         grantedFolderRoots = split.trashRoots
         grantedFolders = split.mounts
+        // MSG-3 (PR #30 review): readable cloned-app storage is scanned, so it must also hold its own trash.
+        clonedRoots = ClonedApps.probe(
+            allFiles,
+            exists = { java.io.File(it).exists() },
+            canList = { java.io.File(it).list() != null },
+        ).readable.toSet()
     }
+
+    /** MSG-3: readable cloned-app storage roots; each is a trash volume like the main one. */
+    @Volatile
+    var clonedRoots: Set<String> = emptySet()
+        private set
 
     /** Every file path goes through here: the phone's files, or a granted folder's documents (M12b). */
     val localGateway by lazy {
@@ -101,7 +112,7 @@ class KeepClearApplication : Application() {
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
             // M12b: a granted folder keeps its own trash inside it (documents can't move out of it).
-            grantedRoots = { grantedFolderRoots.toList() },
+            grantedRoots = { ClonedApps.trashVolumes(grantedFolderRoots, clonedRoots) },
             // E-DEL-10: a refused purge run is logged (no file paths).
             onClockJump = { j ->
                 android.util.Log.w(

@@ -207,6 +207,26 @@ class TrashManagerTest {
     )
 
     @Test
+    fun `a cloned-app file is trashed inside the clone storage once its root is registered (MSG-3)`(): Unit =
+        runBlocking {
+            val clone = "/storage/emulated/999"
+            val file = "$clone/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/IMG-1.jpg"
+            fake.addFile(file, bytes, mtime = 10)
+            val s = fake.stat(KPath.Local(file))!!
+            val plan = ActionPlan("p", listOf(PlannedOp(s.path, file, OpKind.TRASH, false, s.size, s.mtimeMillis)), "t")
+            // Not registered (the PR #30 review case): refused, never trashed elsewhere.
+            granted = listOf(whatsapp)
+            val refused = ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, grantedManager(), "s")
+            (refused.run(plan.confirm(1, "s")) as ExecutionReport.Ran).done.shouldBeEmpty()
+            fake.exists(file) shouldBe true
+            // Registered: trashed into the clone's own trash.
+            granted = listOf(whatsapp, clone)
+            val executor = ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, grantedManager(), "s")
+            (executor.run(plan.confirm(1, "s")) as ExecutionReport.Ran).done shouldHaveSize 1
+            index.all().single().trashedPath shouldContain "$clone/.KeepClearTrash/"
+        }
+
+    @Test
     fun `a file in a granted folder is trashed inside that folder (M12b)`(): Unit = runBlocking {
         val sent = "$whatsapp/Media/WhatsApp Images/Sent/IMG-1.jpg"
         fake.addFile(sent, bytes, mtime = 10)

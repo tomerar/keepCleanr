@@ -50,4 +50,10 @@ class ClonedAppsTest {
         assertTrue(p.isProtectedContainer(clone))
         assertFalse(p.isProtected("$clone/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/a.jpg"))
     }
+
+    @Test
+    fun `readable clone roots are trash volumes too`() {
+        val v = ClonedApps.trashVolumes(setOf("/storage/emulated/0/Android/media/com.whatsapp/WhatsApp"), setOf(clone))
+        assertTrue(clone in v)
+    }
 }

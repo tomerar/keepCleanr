@@ -17,6 +17,9 @@ object ClonedApps {
 
     fun root(user: Int) = "/storage/emulated/$user"
 
+    /** Extra trash volumes: granted folders plus readable clone roots (PR #30 review). */
+    fun trashVolumes(granted: Set<String>, cloned: Set<String>): List<String> = (granted + cloned).toList()
+
     /** True for a path inside a cloned-app storage root. */
     fun isCloned(path: String): Boolean {
         val segments = CanonicalPath.of(path)?.split('/')?.filter { it.isNotEmpty() } ?: return false
