@@ -64,4 +64,7 @@ interface BackupTarget {
     suspend fun delete(rel: String)
 
     suspend fun list(relDir: String): List<Stat>
+
+    /** Releases what the target holds open (a network drive's connection). It reconnects if used again. */
+    suspend fun close() {}
 }

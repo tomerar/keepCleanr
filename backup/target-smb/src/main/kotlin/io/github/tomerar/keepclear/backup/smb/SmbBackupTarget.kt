@@ -135,7 +135,7 @@ class SmbBackupTarget(
     }
 
     /** Disconnects; the next call connects again. */
-    suspend fun close() = mutex.withLock { closeQuietly() }
+    override suspend fun close() = mutex.withLock { closeQuietly() }
 
     private fun smbPath(rel: String): String {
         require(!rel.startsWith("/")) { "relative path expected" }

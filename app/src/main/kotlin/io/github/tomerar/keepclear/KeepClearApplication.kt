@@ -126,6 +126,18 @@ class KeepClearApplication : Application() {
         NetworkDriveStore(getSharedPreferences("network-drive", MODE_PRIVATE), KeystoreSecretBox())
     }
 
+    /**
+     * "Forget the network drive" (C9): removes it and its sealed password, and pauses a backup that is running to
+     * it right now, so nothing more is sent to that address (PR #25 review).
+     */
+    suspend fun forgetNetworkDrive() {
+        networkDrives.clear()
+        val running = moveController.running.value?.let { moveController.store.job(it) }
+        if (OpenedTarget.usesNetworkDrive(running)) {
+            moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
+        }
+    }
+
     /** Opens the network drive at [location] (M15). Network I/O; call off the main thread. */
     suspend fun openNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation, label: String) =
         OpenedTarget.of(io.github.tomerar.keepclear.backup.smb.SmbTargets.open(location, label))

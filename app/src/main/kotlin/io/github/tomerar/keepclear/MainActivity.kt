@@ -138,19 +138,12 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 // M15: Settings shows the only address KeepClear may connect to (PRIVACY.md "Network").
-                var networkHost by androidx.compose.runtime.remember { mutableStateOf(app.networkDrives.host()) }
-                LifecycleResumeEffect(Unit) {
-                    networkHost = app.networkDrives.host()
-                    onPauseOrDispose { }
-                }
+                val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
                         settingsActions = SettingsActions(
                             networkHost = networkHost,
-                            onForgetNetworkDrive = {
-                                app.networkDrives.clear()
-                                networkHost = null
-                            },
+                            onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             currentLanguage = currentLanguage(),
                             onLanguage = ::setLanguage,
                             onReplayIntro = { showIntro = true },

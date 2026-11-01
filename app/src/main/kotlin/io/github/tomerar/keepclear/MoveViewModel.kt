@@ -317,12 +317,22 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 controller.store.putFiles(files)
             }
             _state.update { it.copy(picked = null) }
+            // The service opens the target itself; release the one used for the preview (PR #25 review).
+            releasePicked()
             controller.start(app, id)
             reload()
         }
     }
 
-    fun cancelPick() = _state.update { it.copy(picked = null, problem = null) }
+    fun cancelPick() {
+        _state.update { it.copy(picked = null, problem = null) }
+        viewModelScope.launch { releasePicked() }
+    }
+
+    private suspend fun releasePicked() {
+        pickedTarget?.useTarget { }
+        pickedTarget = null
+    }
 
     fun pause() = controller.pause(PauseReason.PAUSED_BY_USER)
 
@@ -341,11 +351,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val job = store.job(jobId)
             val check = job?.targetRef?.let { withContext(Dispatchers.IO) { app.openTargetRef(it, job.targetLabel) } }
             if (job == null || check !is OpenedTarget.Ok || check.target.id != job.targetId) {
+                (check as? OpenedTarget.Ok)?.target?.useTarget { }
                 _state.update { it.copy(busy = false, problem = TargetProblem.UNAVAILABLE) }
                 return@launch
             }
-            // H1: only copies confirmed by the second check, re-hashed on the drive right now.
-            val ops = withContext(Dispatchers.IO) { engine(check.target).originalsPlan(jobId) }
+            // H1: only copies confirmed by the second check, re-hashed on the drive right now. The drive is
+            // released right after; freeing itself only touches the phone.
+            val ops = withContext(Dispatchers.IO) { check.target.useTarget { engine(it).originalsPlan(jobId) } }
             if (ops.isEmpty()) {
                 _state.update { it.copy(busy = false, freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
                 return@launch
@@ -395,9 +407,16 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val ref = job.targetRef ?: return@launch
 
             // Each call opens the target anew (for a network drive: a brand-new connection).
-            suspend fun attached(): io.github.tomerar.keepclear.backup.BackupTarget? =
-                (withContext(Dispatchers.IO) { app.openTargetRef(ref, job.targetLabel) } as? OpenedTarget.Ok)
-                    ?.target?.takeIf { it.id == job.targetId }
+            suspend fun attached(): io.github.tomerar.keepclear.backup.BackupTarget? {
+                val opened = withContext(Dispatchers.IO) { app.openTargetRef(ref, job.targetLabel) } as? OpenedTarget.Ok
+                val target = opened?.target ?: return null
+                if (target.id == job.targetId) return target
+                target.useTarget { }
+                return null
+            }
+
+            // Polling only asks whether the drive is there; each probe is released at once.
+            suspend fun present(): Boolean = attached()?.useTarget { true } ?: false
             val rebooted = job.verifyBootId != null && job.verifyBootId != app.trashClock.bootId()
             val evidence = if (OpenedTarget.isNetwork(ref)) {
                 // M15: a network drive's reads all come from the server; a new connection is a fresh read, so
@@ -408,13 +427,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 _state.update { it.copy(check = BackupCheck.Unplug(jobId)) }
                 val gone = kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
-                    while (attached() != null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    while (present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 }
                 if (gone == null) return@launch timeout(jobId)
                 _state.update { it.copy(check = BackupCheck.PlugBack(jobId)) }
                 kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
-                    while (attached() == null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    while (!present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 } ?: return@launch timeout(jobId)
                 FreshRead.REATTACHED
@@ -422,7 +441,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val target = attached() ?: return@launch timeout(jobId)
             _state.update { it.copy(check = BackupCheck.Checking(jobId)) }
             val result = try {
-                withContext(Dispatchers.IO) { engine(target).confirm(jobId, evidence) }
+                withContext(Dispatchers.IO) { target.useTarget { engine(it).confirm(jobId, evidence) } }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

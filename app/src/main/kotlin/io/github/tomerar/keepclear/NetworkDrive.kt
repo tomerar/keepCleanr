@@ -58,6 +58,11 @@ class KeystoreSecretBox(private val alias: String = "keepclear-network-drive") :
  * password is stored only sealed by [SecretBox] and is never logged.
  */
 class NetworkDriveStore(private val prefs: SharedPreferences, private val box: SecretBox) {
+    private val _hostState = kotlinx.coroutines.flow.MutableStateFlow(prefs.getString(HOST, null))
+
+    /** The saved drive's address, updated on save and forget (Settings shows it, PR #25 review). */
+    val hostState: kotlinx.coroutines.flow.StateFlow<String?> = _hostState
+
     fun save(location: SmbLocation) = prefs.edit(commit = true) {
         putString(HOST, location.host)
         putInt(PORT, location.port)
@@ -74,7 +79,7 @@ class NetworkDriveStore(private val prefs: SharedPreferences, private val box: S
             )
         }
         putString(PASSWORD, sealed)
-    }
+    }.also { _hostState.value = location.host }
 
     /** The saved drive, or null if none (or the password can't be opened any more: set it up again). */
     fun load(): SmbLocation? {
@@ -101,7 +106,7 @@ class NetworkDriveStore(private val prefs: SharedPreferences, private val box: S
     /** The address shown in Settings ("only to …"), without loading the password. */
     fun host(): String? = prefs.getString(HOST, null)
 
-    fun clear() = prefs.edit(commit = true) { clear() }
+    fun clear() = prefs.edit(commit = true) { clear() }.also { _hostState.value = null }
 
     private companion object {
         const val HOST = "host"

@@ -57,4 +57,15 @@ class NetworkDriveStoreTest {
         store.save(nas.copy(user = "", password = ""))
         assertEquals("", store.load()!!.password)
     }
+
+    @Test
+    fun `Settings sees the address as soon as a drive is saved or forgotten (PR 25 review)`() {
+        assertNull(store.hostState.value)
+        store.save(nas)
+        assertEquals("nas", store.hostState.value)
+        store.save(nas.copy(host = "192.168.1.20"))
+        assertEquals("192.168.1.20", store.hostState.value)
+        store.clear()
+        assertNull(store.hostState.value)
+    }
 }

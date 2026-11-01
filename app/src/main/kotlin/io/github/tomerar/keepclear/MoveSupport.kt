@@ -153,6 +153,7 @@ class MoveService : Service() {
         // A picked drive/folder or the network drive (M15); identity must match the job's (E-MOVE-2).
         val check = job.targetRef?.let { app.openTargetRef(it, job.targetLabel) }
         if (check !is OpenedTarget.Ok || check.target.id != job.targetId) {
+            (check as? OpenedTarget.Ok)?.target?.useTarget { }
             val reason = if (check is OpenedTarget.Ok) PauseReason.WRONG_TARGET else PauseReason.TARGET_DISCONNECTED
             store.putJob(job.copy(state = JobState.PAUSED, pauseReason = reason))
             MoveNotifications.result(this, store.job(jobId)!!, 0)
@@ -175,15 +176,18 @@ class MoveService : Service() {
             cancelReason = { stopReason },
             bootId = { app.trashClock.bootId() },
         )
-        val end = try {
-            engine.run(jobId)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Never crash the service: keep every checkpoint and pause (review Low). No paths in the log.
-            android.util.Log.w("KeepClear-Move", "job paused after ${e.javaClass.simpleName}")
-            (store.job(jobId) ?: job).copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR)
-                .also { store.putJob(it) }
+        // The target (a network drive's connection) is released when the job ends, fails or is cancelled.
+        val end = check.target.useTarget {
+            try {
+                engine.run(jobId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never crash the service: keep every checkpoint and pause (review Low). No paths in the log.
+                android.util.Log.w("KeepClear-Move", "job paused after ${e.javaClass.simpleName}")
+                (store.job(jobId) ?: job).copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR)
+                    .also { store.putJob(it) }
+            }
         }
         MoveNotifications.result(this, end, verified)
     }
