@@ -39,6 +39,9 @@ class ProtectedPaths(
 
         // KeepClear's own app folders.
         val rel = relativeToVolume(segments)
+        // SAFE-9: never delete inside another app's private folders (Android/data, Android/obb). Their content is
+        // cleared inside that app; KeepClear only shows its size (decided conservatively for obb too).
+        if (rel.size >= 3 && rel[0] == "android" && (rel[1] == "data" || rel[1] == "obb")) return true
         if (rel.size >= 3 && rel[0] == "android" && rel[1] in setOf("data", "media", "obb") &&
             rel[2] == ownPackage
         ) {

@@ -211,6 +211,15 @@ fun TrashScreen(
                         Bidi.isolate(count(trash.entries.size)),
                     )
                     Text(stringResource(R.string.trash_summary, total), style = MaterialTheme.typography.bodyLarge)
+                    // TRASH-7: always visible while the trash isn't empty (an uninstall can't be intercepted).
+                    Text(
+                        stringResource(
+                            R.string.trash_uninstall_note,
+                            Bidi.isolate(ByteSize.format(trash.bytes, locale)),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("uninstallNote"),
+                    )
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = { pending = Pending.RestoreAll(trash.entries) },

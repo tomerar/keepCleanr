@@ -21,6 +21,12 @@
     <!-- MOVE-16: open Google Photos' own "Free up space" (package visibility for this one app only). -->
     <queries>
         <package android:name="com.google.android.apps.photos" />
+        <!-- SAFE-9/10: names of launchable apps, to show "Inside apps' folders" and "Clear one app at a time".
+             No permission and no list leaves the phone. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <!-- WorkManager (daily trash purge) would add this; KeepClear has no network in the MVP (ADR 0008). -->

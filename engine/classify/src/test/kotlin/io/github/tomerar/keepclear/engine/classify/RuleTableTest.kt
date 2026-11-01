@@ -58,6 +58,14 @@ class RuleTableTest {
             Triple("Telegram/Telegram Images/1.jpg", Category.REVIEW, "telegram_legacy"),
             Triple("Download/app.apk", Category.REVIEW, "apk_files"),
             Triple("Documents/report.pdf", Category.REVIEW, "unknown"),
+            // SAFE-9: other apps' own folders are shown per app, cleared inside that app.
+            Triple("Android/media/com.spotify.music/downloads/song.ogg", Category.REVIEW, "app_content"),
+            Triple(
+                "Android/media/org.telegram.messenger/Telegram/Telegram Video/v.mp4",
+                Category.REVIEW,
+                "app_content",
+            ),
+            Triple("Android/data/com.netflix.mediaclient/files/Download/x", Category.PROTECTED, "protected"),
             Triple("WhatsApp/Media/WhatsApp Images/IMG.jpg", Category.REVIEW, "legacy_wa"),
             Triple(
                 "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes/202601/PTT.opus",

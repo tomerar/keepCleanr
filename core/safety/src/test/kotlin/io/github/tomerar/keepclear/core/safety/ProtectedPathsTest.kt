@@ -10,6 +10,9 @@ class ProtectedPathsTest {
     private val protected = ProtectedPaths(extraRoots = listOf("/storage/emulated/0/Keep Forever"))
 
     private val mustProtect = listOf(
+        // SAFE-9: KeepClear never deletes inside another app's Android/data folder.
+        "/storage/emulated/0/Android/data/com.spotify.music/files/spotifycache/x.file",
+        "/storage/1234-ABCD/Android/data/com.netflix.mediaclient/files/Download/a",
         "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
         "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases",
         "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Backups/stickers.db.crypt14",

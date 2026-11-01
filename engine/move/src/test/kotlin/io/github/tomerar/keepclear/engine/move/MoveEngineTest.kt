@@ -192,6 +192,28 @@ class MoveEngineTest {
         }
 
     @Test
+    fun `Check backup finds missing, truncated and bit-flipped copies and never frees them (MOVE-15)`(): Unit =
+        runBlocking {
+            val rig = Rig(files = 4)
+            rig.engine().run(rig.newJob())
+            val files = rig.store.files.values.sortedBy { it.index }
+
+            fun copy(i: Int) = "$USB/${files[i].relTarget}"
+            rig.fake.delete(KPath.Local(copy(0)))
+            val original1 = rig.fake.readAllBytes(copy(1))
+            rig.fake.modify(copy(1), FakeStorageGateway.Content.Bytes(original1.copyOf(original1.size - 1)), mtime = 7)
+            val original2 = rig.fake.readAllBytes(copy(2))
+            val flipped = original2.copyOf().also { it[it.size / 2] = (it[it.size / 2].toInt() xor 1).toByte() }
+            rig.fake.modify(copy(2), FakeStorageGateway.Content.Bytes(flipped), mtime = 7)
+            val result = rig.engine().confirm("job1", FreshRead.REATTACHED)
+            result.ok shouldBe 1
+            result.missing shouldBe 1
+            result.damaged shouldBe 2
+            rig.engine().originalsPlan("job1").map { it.displayPath } shouldBe listOf(files[3].sourcePath)
+            rig.store.files.values.filter { it.state == MoveFileState.PENDING }.size shouldBe 3
+        }
+
+    @Test
     fun `revoked access pauses the job (E-MOVE-17)`(): Unit = runBlocking {
         val rig = Rig()
         rig.fake.fail(Op.CREATE, matches = { it.toString().startsWith(USB) }) { StorageException.PermissionDenied(it) }

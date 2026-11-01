@@ -68,6 +68,9 @@ data class HomeUiState(
     val busy: Boolean = false,
     /** Free space measured before and after the last action that frees space (review PR C). */
     val measured: Measured? = null,
+    /** SAFE-10: launchable apps, and the space measured after the user cleared one in Android's screen. */
+    val apps: List<AppEntry> = emptyList(),
+    val perAppFreed: Map<String, Long> = emptyMap(),
 )
 
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
@@ -86,6 +89,12 @@ sealed interface Screen {
     data object Trash : Screen
 
     data object Settings : Screen
+
+    /** SAFE-9: other apps' own folders, per app. */
+    data object AppContent : Screen
+
+    /** SAFE-10: clear one app at a time. */
+    data object OneAppAtATime : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -95,10 +104,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanJob: Job? = null
     private val classifier = Classifier()
 
+    /** SAFE-10: the app whose info screen the user opened, and the free space just before. */
+    private var appInfoOpened: Pair<String, Long>? = null
+
+    /** SAFE-10: the user is about to open Android's app-info screen for [pkg]. */
+    fun openingAppInfo(pkg: String) {
+        appInfoOpened = pkg to freeNow()
+    }
+
+    fun setApps(apps: List<AppEntry>) = _state.update { it.copy(apps = apps) }
+
     /** Called on every resume: permissions and free space can change outside the app. */
     fun refresh() {
         val stat = StatFs(app.filesDir.absolutePath)
         val free = stat.availableBytes
+        appInfoOpened?.let { (pkg, before) ->
+            // Measured, never estimated (SAFE-10).
+            _state.update { it.copy(perAppFreed = it.perAppFreed + (pkg to (free - before).coerceAtLeast(0))) }
+            appInfoOpened = null
+        }
         val before = _state.value
         _state.update {
             it.copy(

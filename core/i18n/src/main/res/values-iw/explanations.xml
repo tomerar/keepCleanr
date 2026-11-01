@@ -89,4 +89,7 @@
     <string name="group_pictures_media">תמונות וסרטונים באלבומים</string>
     <string name="why_pictures_media">תמונות וסרטונים ששמורים בתיקיות התמונות שלכם.</string>
     <string name="if_deleted_pictures_media">KeepClear מסיר אותם רק אחרי שהם הועתקו לכונן שלכם וכל קובץ נבדק.</string>
+    <string name="group_app_content">בתוך התיקיות של אפליקציות</string>
+    <string name="why_app_content">הקבצים האלה שייכים לאפליקציה אחרת (למשל מוזיקה או סרטונים שהיא הורידה). האפליקציה הזו מנהלת אותם.</string>
+    <string name="if_deleted_app_content">‏KeepClear לא מוחק אותם. אפשר לפתוח את האפליקציה ולהסיר את ההורדות שם, כדי שהיא תדע שהן נמחקו.</string>
 </resources>

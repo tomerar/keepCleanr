@@ -367,4 +367,22 @@
         <item quantity="other">הגיבוי הסתיים: נבדקו %1$d קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
     </plurals>
     <string name="move_guide_anyway">לבחור מקום אחר</string>
+    <string name="app_content_title">בתוך התיקיות של אפליקציות</string>
+    <string name="app_content_body">הקבצים האלה שייכים לאפליקציות שלמטה. ‏KeepClear לא מוחק אותם: מנקים אותם בתוך כל אפליקציה, כדי שהיא תדע.</string>
+    <string name="app_open">לפתוח את האפליקציה</string>
+    <string name="app_info">לפתוח את פרטי האפליקציה</string>
+    <string name="app_hint_spotify">ב-Spotify: הגדרות › אחסון › הסרת כל ההורדות.</string>
+    <string name="app_hint_telegram">בטלגרם: הגדרות › נתונים ואחסון › שימוש באחסון › ניקוי מטמון.</string>
+    <string name="app_hint_youtube">ביוטיוב: אתם › הורדות, ואז להסיר את מה שלא צריך.</string>
+    <string name="app_hint_netflix">בנטפליקס: Netflix שלי › הורדות › עריכה.</string>
+    <string name="app_hint_generic">לפתוח את האפליקציה ולחפש בהגדרות שלה „הורדות” או „אחסון”.</string>
+    <string name="one_by_one_button">לנקות אפליקציה אחת בכל פעם</string>
+    <string name="one_by_one_title">לנקות אפליקציה אחת בכל פעם</string>
+    <string name="one_by_one_body">להקיש על אפליקציה, ואז במסך של אנדרואיד על „אחסון” ו„ניקוי מטמון”. כשחוזרים לכאן רואים כמה התפנה. ‏KeepClear אף פעם לא לוחץ במקומכם.</string>
+    <string name="one_by_one_freed">פונו %1$s</string>
+    <string name="one_by_one_nothing">לא השתנה כלום</string>
+    <string name="one_by_one_sizes_later">גודל לכל אפליקציה דורש הרשאת שימוש; זה יגיע בגרסה מאוחרת יותר.</string>
+    <string name="trash_uninstall_note">הקבצים בסל המחזור של KeepClear שמורים בתיקייה מוסתרת, ‎.KeepClearTrash‎, בטלפון. אם מסירים את KeepClear, הם נשארים שם וממשיכים לתפוס מקום (עכשיו %1$s). כדאי לשחזר או לרוקן את הסל קודם.</string>
+    <string name="settings_uninstall_title">לפני שמסירים את האפליקציה</string>
+    <string name="settings_open_trash">לפתוח את סל המחזור</string>
 </resources>
