@@ -304,6 +304,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (!classifyRuns.isLatest(run)) return
         evidence = ev
+        // SET-3: the reminder can say how much is ready to clean without scanning in the background.
+        runCatching { app.reminderPrefs.lastJunkBytes = summary.total(Category.SAFE).bytes }
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
         _state.update { it.copy(summary = summary, trash = it.trash.copy(android = androidTrash)) }

@@ -79,6 +79,9 @@ class KeepClearApplication : Application() {
     }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
 
+    /** SET-3: the opt-in low-space reminder. */
+    val reminderPrefs by lazy { ReminderPrefs(getSharedPreferences("space-reminder", MODE_PRIVATE)) }
+
     /** CLS-7 / SET-2: what the user kept or marked as junk. */
     val userChoices by lazy { UserChoices(getSharedPreferences("user-choices", MODE_PRIVATE)) }
 

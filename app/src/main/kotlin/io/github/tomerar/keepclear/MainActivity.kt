@@ -140,6 +140,7 @@ class MainActivity : ComponentActivity() {
                 // M15: Settings shows the only address KeepClear may connect to (PRIVACY.md "Network").
                 val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 val choices by app.userChoices.state.collectAsStateWithLifecycle()
+                var reminderOn by androidx.compose.runtime.remember { mutableStateOf(app.reminderPrefs.enabled) }
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
                         settingsActions = SettingsActions(
@@ -147,6 +148,17 @@ class MainActivity : ComponentActivity() {
                             choices = choices,
                             onRemoveKept = vm::removeKept,
                             onRemoveJunk = vm::removeJunk,
+                            reminderOn = reminderOn,
+                            onReminder = { on ->
+                                app.reminderPrefs.enabled = on
+                                reminderOn = on
+                                SpaceReminder.schedule(this@MainActivity, on)
+                                // The reminder is a notification: ask for it once, if not yet allowed (ONB-10).
+                                // allowed() is always true below Android 13, where no permission exists.
+                                if (on && !MoveNotifications.allowed(this@MainActivity)) {
+                                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
+                                }
+                            },
                             onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             currentLanguage = currentLanguage(),
                             onLanguage = ::setLanguage,

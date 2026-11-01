@@ -509,4 +509,10 @@
         <item quantity="two">%1$s דולגו</item>
         <item quantity="other">%1$s דולגו</item>
     </plurals>
+    <string name="reminder_setting">להזכיר לי כשהמקום מתמלא</string>
+    <string name="reminder_setting_body" formatted="false">לכל היותר פעם בשבוע, כשנשאר פחות מ-10% (או 2 GB) פנוי. רק תזכורת; שום דבר לא נמחק ברקע.</string>
+    <string name="reminder_channel">תזכורות מקום</string>
+    <string name="reminder_title">המקום בטלפון מתמלא</string>
+    <string name="reminder_text">%1$s פנויים. אפשר לפתוח את KeepClear כדי לראות מה אפשר לפנות.</string>
+    <string name="reminder_text_junk">%1$s פנויים. בבדיקה האחרונה נמצאו %2$s של זבל שמוכן לניקוי.</string>
 </resources>
