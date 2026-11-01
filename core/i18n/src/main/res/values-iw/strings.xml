@@ -34,8 +34,6 @@
     <string name="partial_banner">KeepClear רואה רק את התמונות שבחרתם. כדי לקבל מספרים אמיתיים, אפשר לתת גישה לכולן.</string>
     <string name="partial_change">לשנות</string>
     <string name="media_only_note">רואים רק תמונות, סרטונים ושמע.</string>
-    <string name="scan_running">עדיין סופרים… %1$s עד עכשיו</string>
-    <string name="scan_done">נסרקו %1$s · %2$s</string>
     <string name="scan_incomplete">הסריקה נעצרה כי הגישה הוסרה. המספרים האלה חלקיים.</string>
     <string name="scan_again">לסרוק שוב</string>
     <string name="scan_cancel">לבטל</string>
@@ -63,7 +61,6 @@
     <string name="area_other">אחר</string>
     <string name="label_why">למה זה כאן?</string>
     <string name="label_if_deleted">מה יקרה אם זה יימחק?</string>
-    <string name="move_coming_soon">גיבוי יגיע בגרסה מאוחרת יותר</string>
     <string name="back">לחזור</string>
     <string name="preview_modified">שונה ב-%1$s</string>
     <string name="keep_signal_note">מועדף או שהשתנה לאחרונה, ולכן צריך את ההחלטה שלכם.</string>
@@ -113,7 +110,6 @@
         <item quantity="other">%1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם.</item>
     </plurals>
     <string name="clean_undo">להחזיר הכול</string>
-    <string name="clean_open_trash">לפתוח את סל המחזור</string>
     <string name="trim_title">לנקות קבצים זמניים של אפליקציות</string>
     <string name="trim_body">אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן.</string>
     <string name="trim_button">לנקות קבצים זמניים</string>
@@ -264,7 +260,6 @@
     <string name="move_channel">גיבוי</string>
     <string name="move_notification_title">גיבוי KeepClear</string>
     <string name="move_notification_progress">נבדקו: %1$d מתוך %2$d</string>
-    <string name="move_notification_done">הגיבוי הסתיים: נבדקו %1$d קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</string>
     <string name="move_notification_paused">הגיבוי הושהה. אפשר לפתוח את KeepClear כדי להמשיך.</string>
     <string name="move_notification_updated">הגיבוי הושהה בגלל עדכון של האפליקציה. אפשר להקיש כדי להמשיך.</string>
     <string name="move_receipt_text">סיכום הגיבוי של KeepClear\nכונן: %1$s\nתיקייה: %2$s\nקבצים שהועתקו ונבדקו: %3$d (%4$s)\nקבצים שדולגו או לא הועתקו: %5$d\nהעותק לא מוצפן.</string>
@@ -298,7 +293,6 @@
     <string name="intro_skip">לדלג</string>
     <string name="trim_result_zero">אנדרואיד לא מצא כרגע מה לנקות. בדרך כלל הקבצים הזמניים של אפליקציות כבר קטנים, וכשהטלפון כמעט מלא אנדרואיד מנקה אותם בעצמו.</string>
     <string name="result_freed">פונו %1$s · עכשיו פנויים %2$s (היו %3$s)</string>
-    <string name="busy">עובדים על זה…</string>
     <string name="clean_empty_now">לרוקן עכשיו</string>
     <string name="review_select_all">לבחור הכול</string>
     <string name="review_unselect_all">לבטל את הבחירה</string>
@@ -366,5 +360,10 @@
         <item quantity="one">שעה אחת</item>
         <item quantity="two">שעתיים</item>
         <item quantity="other">%1$s שעות</item>
+    </plurals>
+    <plurals name="move_notification_done">
+        <item quantity="one">הגיבוי הסתיים: נבדק קובץ אחד. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
+        <item quantity="two">הגיבוי הסתיים: נבדקו שני קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
+        <item quantity="other">הגיבוי הסתיים: נבדקו %1$d קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
     </plurals>
 </resources>

@@ -37,8 +37,6 @@
     <string name="partial_banner">KeepClear sees only the photos you picked. Allow all to get real numbers.</string>
     <string name="partial_change">Change</string>
     <string name="media_only_note">Seeing photos, videos and audio only.</string>
-    <string name="scan_running">Still counting… %1$s so far</string>
-    <string name="scan_done">Scanned %1$s · %2$s</string>
     <string name="scan_incomplete">Scan stopped because access was removed. These numbers are incomplete.</string>
     <string name="scan_again">Scan again</string>
     <string name="scan_cancel">Cancel</string>
@@ -64,7 +62,6 @@
     <string name="area_other">Other</string>
     <string name="label_why">Why is this here?</string>
     <string name="label_if_deleted">What happens if it\'s deleted?</string>
-    <string name="move_coming_soon">Backing up arrives in a later version</string>
     <string name="back">Back</string>
     <string name="preview_modified">Changed %1$s</string>
     <string name="keep_signal_note">A favourite or recently changed, so it needs your review.</string>
@@ -113,7 +110,6 @@
         <item quantity="other">%1$s files changed since the scan, so we left them alone.</item>
     </plurals>
     <string name="clean_undo">Put it all back</string>
-    <string name="clean_open_trash">Open the trash</string>
     <string name="trim_title">Clear apps\' temporary files</string>
     <string name="trim_body">Android deletes temporary files that apps download again by themselves.</string>
     <string name="trim_button">Clear temporary files</string>
@@ -249,7 +245,6 @@
     <string name="move_channel">Backup</string>
     <string name="move_notification_title">KeepClear backup</string>
     <string name="move_notification_progress">Checked: %1$d of %2$d</string>
-    <string name="move_notification_done">Backup finished: %1$d files checked. Open KeepClear to check the backup once more and free up space.</string>
     <string name="move_notification_paused">The backup is paused. Open KeepClear to continue.</string>
     <string name="move_notification_updated">Backup paused by an app update. Tap to continue.</string>
     <string name="move_receipt_text">KeepClear backup summary\nDrive: %1$s\nFolder: %2$s\nFiles copied and checked: %3$d (%4$s)\nFiles skipped or not copied: %5$d\nThe copy is not encrypted.</string>
@@ -283,7 +278,6 @@
     <string name="intro_skip">Skip</string>
     <string name="trim_result_zero">Android found nothing to clear right now. Apps\' temporary files are usually already small, and on a nearly full phone Android clears them by itself.</string>
     <string name="result_freed">Freed %1$s · now %2$s free (was %3$s)</string>
-    <string name="busy">Working…</string>
     <string name="clean_empty_now">Empty now</string>
     <string name="review_select_all">Select all</string>
     <string name="review_unselect_all">Unselect all</string>
@@ -347,5 +341,9 @@
     <plurals name="duration_hours">
         <item quantity="one">%1$s hour</item>
         <item quantity="other">%1$s hours</item>
+    </plurals>
+    <plurals name="move_notification_done">
+        <item quantity="one">Backup finished: %1$d file checked. Open KeepClear to check the backup once more and free up space.</item>
+        <item quantity="other">Backup finished: %1$d files checked. Open KeepClear to check the backup once more and free up space.</item>
     </plurals>
 </resources>

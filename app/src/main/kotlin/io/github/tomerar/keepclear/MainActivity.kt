@@ -250,7 +250,7 @@ class MainActivity : ComponentActivity() {
 
     /** PRIV-5: the privacy policy, opened in the browser (KeepClear itself has no internet access). */
     private fun openPrivacy() {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PRIVACY_URL))) }
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_URL.toUri())) }
     }
 
     /** A USB drive or memory card is mounted (checked before Android's folder picker, review PR C). */
