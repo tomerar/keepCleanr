@@ -49,6 +49,32 @@ jobs:
             **/build/test-results/
             app/build/outputs/roborazzi/
 
+  reproducible:
+    # M18: F-Droid ships our signed APK only if its own build of the tag is byte-identical (research 05 §6.4).
+    # Builds the unsigned fossRelease twice from two fresh clones at different paths, without the build cache.
+    name: Reproducible build (fossRelease)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Build fossRelease twice and compare
+        run: KEEPCLEAR_REPRO_DIR="$RUNNER_TEMP/repro" scripts/reproducible-build.sh
+      - name: Upload both APKs
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: reproducible-apks
+          path: ${{ runner.temp }}/repro/*.apk
+
   emulator:
     name: Launch smoke test (API ${{ matrix.api }})
     runs-on: ubuntu-latest

@@ -35,6 +35,12 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 includeInApk = false
                 includeInBundle = false
             }
+            buildTypes.configureEach {
+                // Reproducible builds (M18): no git state in the APK. AGP would write the commit (or
+                // "NO_VALID_GIT_FOUND" in a worktree or source tarball) to META-INF/version-control-info.textproto,
+                // so the same source would give different APKs depending on how it was checked out.
+                vcsInfo.include = false
+            }
         }
 
         val privacyFile = rootProject.layout.projectDirectory.file("docs/PRIVACY.md")

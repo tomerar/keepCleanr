@@ -32,6 +32,7 @@ tasks.register("ciCheck") {
         "spotlessCheck",
         "checkStringParity",
         "checkCopy",
+        "checkStoreMetadata",
         subprojects.filter { it.buildFile.exists() }.map { "${it.path}:check" },
         ":app:assembleFossDebug",
         ":app:assemblePlayDebug",
