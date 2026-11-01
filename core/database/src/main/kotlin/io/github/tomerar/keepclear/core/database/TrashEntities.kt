@@ -32,6 +32,8 @@ data class TrashEntryEntity(
     val trusted: Boolean,
     val verifiedCopy: String?,
     @androidx.room.ColumnInfo(defaultValue = "NULL") val deletedAtUptime: Long? = null,
+    /** Witness paths, one per line (owner decision 1.3). */
+    @androidx.room.ColumnInfo(defaultValue = "NULL") val witnessPaths: String? = null,
 )
 
 @Dao
@@ -81,6 +83,7 @@ class RoomTrashIndex(private val dao: TrashDao) : TrashIndex {
         trusted,
         verifiedCopy,
         deletedAtUptime,
+        witnessPaths.takeIf { it.isNotEmpty() }?.joinToString("\n"),
     )
 
     private fun TrashEntryEntity.toEntry() = TrashEntry(
@@ -101,5 +104,6 @@ class RoomTrashIndex(private val dao: TrashDao) : TrashIndex {
         trusted,
         verifiedCopy,
         deletedAtUptime,
+        witnessPaths?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
     )
 }

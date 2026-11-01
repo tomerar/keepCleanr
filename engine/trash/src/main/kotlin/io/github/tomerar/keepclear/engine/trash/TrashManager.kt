@@ -3,9 +3,11 @@ package io.github.tomerar.keepclear.engine.trash
 
 import io.github.tomerar.keepclear.core.hash.Sha256
 import io.github.tomerar.keepclear.core.safety.ActionHandler
+import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.safety.ProtectedPaths
+import io.github.tomerar.keepclear.core.safety.SkipReason
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
@@ -44,8 +46,47 @@ class TrashManager(
         when (op.kind) {
             OpKind.TRASH, OpKind.MOVE_DELETE_ORIGINAL -> trash(op)
             OpKind.RESTORE -> restore(entryFor(op))
+            OpKind.RESTORE_CHANGED -> restoreChanged(entryFor(op))
             OpKind.PURGE -> purge(entryFor(op))
         }
+    }
+
+    /**
+     * Owner decision 1.3: before trashing a file, look for a trashed item that was deleted **because this file
+     * existed** (it lists this path as a witness) with the same content. Then this file is the last copy and
+     * needs the user's explicit confirmation. Same size + SHA-256 when the record has a hash; when the sizes
+     * differ (an archive whose extracted file this is) it is blocked too (decided conservatively).
+     */
+    override suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? {
+        if (op.lastCopyConfirmed) return null
+        // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy.
+        if (op.kind != OpKind.TRASH) return null
+        val path = CanonicalPath.of(op.displayPath) ?: return null
+        val holders = index.all().filter { e ->
+            e.state == TrashState.ACTIVE && e.witnessPaths.any { CanonicalPath.of(it) == path }
+        }
+        if (holders.isEmpty()) return null
+        var hash: String? = null
+        for (e in holders) {
+            if (e.size != op.expectedSize) return SkipReason.LAST_COPY
+            val sha = e.sha256 ?: return SkipReason.LAST_COPY
+            if (hash == null) hash = runCatching { gateway.openRead(op.ref).use { Sha256.of(it) } }.getOrNull()
+            if (hash == null || hash == sha) return SkipReason.LAST_COPY
+        }
+        return null
+    }
+
+    /**
+     * Owner decision 1.2: true when the file in the trash is no longer the file that was trashed (size; with
+     * [fullCheck] also the SHA-256 when the record has one). Such items are shown as "changed since deleted".
+     */
+    suspend fun isChanged(entry: TrashEntry, fullCheck: Boolean = false): Boolean {
+        val stat = runCatching { gateway.stat(KPath.Local(entry.trashedPath)) }.getOrNull() ?: return false
+        if (!stat.isFile) return false
+        if (stat.size != entry.size) return true
+        val sha = entry.sha256 ?: return false
+        if (!fullCheck) return false
+        return runCatching { gateway.openRead(stat.path).use { Sha256.of(it) } != sha }.getOrDefault(true)
     }
 
     // ------------------------------------------------------------------------------------- trash
@@ -65,7 +106,8 @@ class TrashManager(
             volumeRoot = volume,
             size = op.expectedSize,
             mtimeMillis = op.expectedMtime,
-            sha256 = op.expectedSha256,
+            // A duplicate's content hash is known from the scan ("dup:<sha>"), so restore can check it (T1.6).
+            sha256 = op.expectedSha256 ?: op.duplicateGroup?.removePrefix("dup:")?.takeIf { Sha256.isValidHex(it) },
             ruleId = op.ruleId,
             reason = op.kind.name,
             deletedAt = now,
@@ -75,6 +117,7 @@ class TrashManager(
             deletedAtUptime = clock.uptimeMillis(),
             state = TrashState.PENDING,
             verifiedCopy = op.verifiedCopy,
+            witnessPaths = op.witnesses.map { it.path },
         )
         // Write-ahead: journal + sidecar before the file moves (LOW-3). If these fail, nothing moved.
         index.put(entry)
@@ -142,6 +185,25 @@ class TrashManager(
         val parent = mkdirs(destination.parent!!, entry.volumeRoot)
         val name = freeName(parent, destination.name)
         gateway.rename(trashed, parent, name)
+        forget(entry)
+    }
+
+    /** Where a changed item goes: a separate folder, so it never replaces anything (owner decision 1.2). */
+    fun changedDestinationDir(entry: TrashEntry): String = "${entry.volumeRoot}/KeepClear/Restored-changed"
+
+    private suspend fun restoreChanged(entry: TrashEntry) {
+        val trashed = KPath.Local(entry.trashedPath)
+        if (gateway.stat(trashed) == null) {
+            forget(entry)
+            throw StorageException.NotFound(trashed)
+        }
+        val name = safeName(entry.originalPath.substringAfterLast('/'))
+        val destination = "${changedDestinationDir(entry)}/$name"
+        if (validator.check(destination, entry.volumeRoot, gateway) != null) {
+            throw StorageException.Unsupported(KPath.Local(destination), "unsafe restore destination")
+        }
+        val parent = mkdirs(KPath.Local(changedDestinationDir(entry)), entry.volumeRoot)
+        gateway.rename(trashed, parent, freeName(parent, name))
         forget(entry)
     }
 

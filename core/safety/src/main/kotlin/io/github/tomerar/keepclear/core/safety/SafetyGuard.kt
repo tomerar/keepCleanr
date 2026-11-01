@@ -21,7 +21,7 @@ class SafetyGuard(private val protectedPaths: ProtectedPaths) {
         if (plan.ops.isEmpty()) reasons += "Plan is empty"
 
         for (op in plan.ops) {
-            val trashOnly = op.kind == OpKind.PURGE || op.kind == OpKind.RESTORE
+            val trashOnly = op.kind == OpKind.PURGE || op.kind == OpKind.RESTORE || op.kind == OpKind.RESTORE_CHANGED
             if (!trashOnly) {
                 if (protectedPaths.isProtected(op.displayPath)) {
                     reasons += "PROTECTED path in plan (SAFETY-3): ${op.displayPath}"

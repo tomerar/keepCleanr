@@ -57,6 +57,8 @@ data class HomeUiState(
     val summary: ClassificationSummary? = null,
     val trash: TrashUi = TrashUi(),
     val cleanResult: CleanResult? = null,
+    /** Owner decision 1.3: items held back because they are the last copy of something in the trash. */
+    val lastCopy: List<io.github.tomerar.keepclear.core.safety.PlannedOp>? = null,
     /** Bytes Android freed in the last cache trim (measured, SAFE-5). */
     val trimResult: Long? = null,
     /** Navigation stack; last is visible. */
@@ -204,16 +206,60 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     .toSet()
             }
             val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
-            _state.update { it.copy(trash = TrashUi(entries, destinations, releasable.toSet())) }
+            // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
+            val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
+            _state.update { it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed)) }
         }
     }
 
     /** Restore or permanently delete trash entries through the executor (user already confirmed in the UI). */
-    fun restore(entries: List<TrashEntry>) = runTrashPlan(entries, OpKind.RESTORE)
+    fun restore(entries: List<TrashEntry>) {
+        viewModelScope.launch {
+            // Owner decision 1.2: a changed item is never put back in place; it is marked and offered separately.
+            val changed = entries.filter { app.trashManager.isChanged(it, fullCheck = true) }
+            changedFound += changed.map { it.id }
+            runTrashPlan(entries - changed.toSet(), OpKind.RESTORE)
+        }
+    }
+
+    /** Ids found changed while restoring (content check), kept so the Trash keeps showing them. */
+    private val changedFound = mutableSetOf<String>()
+
+    /** Owner decision 1.2: restore a changed item into `KeepClear/Restored-changed/` (user confirmed). */
+    fun restoreChanged(entry: TrashEntry) = runTrashPlan(listOf(entry), OpKind.RESTORE_CHANGED)
+
+    /** Duplicate-group sizes of the plan the held-back items came from (SAFETY-8 still applies to them). */
+    private var lastCopyGroupSizes: Map<String, Int> = emptyMap()
+
+    /** Owner decision 1.3: the user confirmed these are the last copies; trash them. */
+    fun confirmLastCopies() {
+        val ops = _state.value.lastCopy ?: return
+        _state.update { it.copy(lastCopy = null) }
+        viewModelScope.launch {
+            val plan = lastCopyPlan(UUID.randomUUID().toString(), ops, lastCopyGroupSizes)
+                .confirm(System.currentTimeMillis(), app.sessionId)
+            val report = app.executor().run(plan)
+            if (report is ExecutionReport.Rejected) {
+                _state.update {
+                    it.copy(
+                        cleanResult = CleanResult(Total(), skipped = 0, failed = ops.size, trashedPaths = emptyList()),
+                    )
+                }
+            }
+            loadTrash()
+            scan()
+        }
+    }
+
+    fun dismissLastCopies() = _state.update { it.copy(lastCopy = null) }
 
     fun purge(entries: List<TrashEntry>) = runTrashPlan(entries, OpKind.PURGE)
 
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind) {
+        if (entries.isEmpty()) {
+            loadTrash()
+            return
+        }
         viewModelScope.launch {
             // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
             app.trashManager.forgetMissing(entries)
@@ -230,7 +276,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 app.executor().run(plan)
             }
             loadTrash()
-            if (kind == OpKind.RESTORE) scan()
+            if (kind == OpKind.RESTORE || kind == OpKind.RESTORE_CHANGED) scan()
         }
     }
 
@@ -254,7 +300,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
                         done = report.done.map { it.op } + wouldHave
-                        skipped += report.skipped.size
+                        val lastCopies = report.skipped.filter {
+                            it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.LAST_COPY
+                        }.map { it.op }
+                        if (lastCopies.isNotEmpty()) {
+                            lastCopyGroupSizes = plan.duplicateGroupSizes
+                            _state.update { it.copy(lastCopy = lastCopies) }
+                        }
+                        skipped += report.skipped.size - lastCopies.size
                         failed = report.failed.size
                     }
 
@@ -325,4 +378,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         return sm.storageVolumes.mapNotNull { v -> v.directory?.takeIf { v.state == "mounted" }?.absolutePath }
             .map { KPath.Local(it) }
     }
+}
+
+/** Owner decision 1.3: the plan for items the user confirmed as last copies, keeping their group sizes (SAFETY-8). */
+fun lastCopyPlan(id: String, ops: List<PlannedOp>, groupSizes: Map<String, Int>): ActionPlan {
+    val groups = ops.mapNotNull { it.duplicateGroup }.toSet()
+    return ActionPlan(
+        id,
+        ops.map { it.copy(lastCopyConfirmed = true) },
+        "clean",
+        duplicateGroupSizes = groupSizes.filterKeys { it in groups },
+    )
 }

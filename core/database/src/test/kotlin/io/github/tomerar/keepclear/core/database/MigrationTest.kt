@@ -37,7 +37,7 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -53,7 +53,7 @@ class MigrationTest {
                     "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("m12", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m12", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -74,7 +74,7 @@ class MigrationTest {
                     "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
             )
         }
-        helper.runMigrationsAndValidate("m23", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m23", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -105,7 +105,7 @@ class MigrationTest {
                     "NULL, 0, NULL, 5, 0, 0)",
             )
         }
-        helper.runMigrationsAndValidate("m34", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m34", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT deletedAtUptime FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
@@ -119,6 +119,25 @@ class MigrationTest {
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
                 c.getString(1) shouldBe "VERIFIED"
+            }
+        }
+    }
+
+    @Test
+    fun `4 to 5 adds witness paths as null and keeps trash rows (owner decision 1-3)`() {
+        helper.createDatabase("m45", 4).use { db ->
+            db.execSQL(
+                "INSERT INTO trash_entry (id, originalPath, trashedPath, volumeRoot, size, mtimeMillis, sha256, " +
+                    "ruleId, reason, deletedAt, expiresAt, deletedAtElapsed, bootId, state, trusted, verifiedCopy, " +
+                    "deletedAtUptime) VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', " +
+                    "1, NULL, 5)",
+            )
+        }
+        helper.runMigrationsAndValidate("m45", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT witnessPaths, deletedAtUptime FROM trash_entry").use { c ->
+                c.moveToFirst()
+                c.isNull(0) shouldBe true
+                c.getLong(1) shouldBe 5
             }
         }
     }

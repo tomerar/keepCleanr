@@ -16,6 +16,12 @@ enum class OpKind {
 
     /** Trash a MOVE original after L3 verification (requires [PlannedOp.expectedSha256]). */
     MOVE_DELETE_ORIGINAL,
+
+    /**
+     * Put back a trashed item that changed since it was trashed, only into a separate folder
+     * (`KeepClear/Restored-changed/`) after an explicit confirmation; never over anything (owner decision 1.2).
+     */
+    RESTORE_CHANGED,
 }
 
 /**
@@ -42,6 +48,11 @@ data class PlannedOp(
      * archive. The executor re-stats each right before acting and skips the op if any is gone or changed.
      */
     val witnesses: List<Witness> = emptyList(),
+    /**
+     * The user confirmed "this is the last copy" for this item (owner decision 1.3): another trashed item was
+     * deleted because this one existed, so deleting it too leaves no copy outside the trash.
+     */
+    val lastCopyConfirmed: Boolean = false,
 )
 
 /** A file that must still be there, unchanged in size, for an op to proceed (H2, SAFETY-8). */

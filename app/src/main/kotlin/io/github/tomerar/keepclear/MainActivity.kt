@@ -158,6 +158,9 @@ class MainActivity : ComponentActivity() {
                                 vm.loadTrash()
                                 vm.open(Screen.Trash)
                             },
+                            onRestoreChanged = vm::restoreChanged,
+                            onConfirmLastCopy = vm::confirmLastCopies,
+                            onDismissLastCopy = vm::dismissLastCopies,
                         ),
                         home = {
                             HomeScreen(

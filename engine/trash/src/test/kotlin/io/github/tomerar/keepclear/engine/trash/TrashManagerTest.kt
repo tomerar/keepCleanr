@@ -396,4 +396,76 @@ class TrashManagerTest {
             """"reason":"r","deletedAt":1,"expiresAt":2,"evil":1},"mac":"m"}"""
         Sidecar.decode(bytes.toByteArray(), signer).shouldBeInstanceOf<Sidecar.Companion.Decoded.Rejected>()
     }
+
+    private val camera = "$root/DCIM/Camera/IMG_7.jpg"
+    private val sent = "$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/IMG_7.jpg"
+
+    private suspend fun trashSentCopyWithWitness(content: ByteArray): TrashEntry {
+        fake.addFile(camera, content, mtime = 10)
+        fake.addFile(sent, content, mtime = 10)
+        val sha = io.github.tomerar.keepclear.core.hash.Sha256.of(content)
+        val sentOp = op(sent).copy(
+            duplicateGroup = "dup:$sha",
+            witnesses = listOf(
+                io.github.tomerar.keepclear.core.safety.Witness(KPath.Local(camera), camera, content.size.toLong()),
+            ),
+        )
+        val plan = ActionPlan("p", listOf(sentOp), "clean", duplicateGroupSizes = mapOf("dup:$sha" to 2))
+        ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, trash, "s").run(plan.confirm(1, "s"))
+        return index.all().single { it.originalPath == sent }
+    }
+
+    @Test
+    fun `trashing the last copy of something already in the trash needs an explicit confirm (owner 1-3)`(): Unit =
+        runBlocking {
+            val content = ByteArray(3_000) { 6 }
+            val sentEntry = trashSentCopyWithWitness(content)
+            sentEntry.witnessPaths shouldBe listOf(camera)
+            // Later, the camera original is deleted from Review: it's now the last copy.
+            val blocked = run(op(camera))
+            (blocked.results.single() as io.github.tomerar.keepclear.core.safety.OpResult.Skipped).reason shouldBe
+                io.github.tomerar.keepclear.core.safety.SkipReason.LAST_COPY
+            fake.exists(camera) shouldBe true
+            // "This is the last copy" confirmed by the user: it goes to the trash like anything else.
+            run(op(camera).copy(lastCopyConfirmed = true)).done shouldHaveSize 1
+        }
+
+    @Test
+    fun `a different file at the witness path is not blocked`(): Unit = runBlocking {
+        trashSentCopyWithWitness(ByteArray(3_000) { 6 })
+        fake.modify(camera, FakeStorageGateway.Content.Bytes(ByteArray(3_000) { 9 }), mtime = 11)
+        run(op(camera)).done shouldHaveSize 1
+    }
+
+    @Test
+    fun `a changed file in the trash restores only to a separate folder, never overwriting (owner 1-2)`(): Unit =
+        runBlocking {
+            val entry = trashOne()
+            fake.modify(entry.trashedPath, FakeStorageGateway.Content.Bytes(ByteArray(7)), mtime = 99)
+            trash.isChanged(entry, fullCheck = true) shouldBe true
+            run(op(entry.trashedPath, OpKind.RESTORE)).done.shouldBeEmpty()
+            val separate = "$root/KeepClear/Restored-changed/IMG_1.jpg"
+            fake.addFile(separate, ByteArray(1)) // something already there: never overwritten
+            run(op(entry.trashedPath, OpKind.RESTORE_CHANGED)).done shouldHaveSize 1
+            fake.readAllBytes(separate) shouldBe ByteArray(1)
+            fake.files("$root/KeepClear/Restored-changed").size shouldBe 2
+            fake.exists(photo) shouldBe false
+            index.all().shouldBeEmpty()
+        }
+
+    @Test
+    fun `an unchanged file is not reported as changed`(): Unit = runBlocking {
+        val entry = trashOne()
+        trash.isChanged(entry, fullCheck = true) shouldBe false
+    }
+
+    @Test
+    fun `freeing a backed-up original is never held back as the last copy - its copy is on the drive`(): Unit =
+        runBlocking {
+            val content = ByteArray(3_000) { 6 }
+            trashSentCopyWithWitness(content)
+            val sha = io.github.tomerar.keepclear.core.hash.Sha256.of(content)
+            val free = op(camera, OpKind.MOVE_DELETE_ORIGINAL).copy(expectedSha256 = sha, verifiedCopy = "USB: x")
+            run(free).done shouldHaveSize 1
+        }
 }

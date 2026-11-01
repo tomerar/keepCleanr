@@ -47,6 +47,8 @@ data class TrashUi(
     val restoreTo: Map<String, String> = emptyMap(),
     /** Entry ids whose backup copy passed the second, uncached check (H1); only these offer "Release now". */
     val releasable: Set<String> = emptySet(),
+    /** Entry ids whose file changed in the trash since it was deleted (owner decision 1.2). */
+    val changed: Set<String> = emptySet(),
 ) {
     val bytes: Long get() = entries.sumOf { it.size }
 }
@@ -55,6 +57,8 @@ private sealed interface Pending {
     data class Empty(val entries: List<TrashEntry>) : Pending
 
     data class Release(val entry: TrashEntry) : Pending
+
+    data class RestoreChanged(val entry: TrashEntry) : Pending
 }
 
 /**
@@ -82,6 +86,7 @@ fun TrashScreen(
     onRestore: (List<TrashEntry>) -> Unit,
     onPurge: (List<TrashEntry>) -> Unit,
     onBack: () -> Unit,
+    onRestoreChanged: (TrashEntry) -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -151,11 +156,28 @@ fun TrashScreen(
                             )
                         }
                         entry.verifiedCopy?.let { Text(stringResource(R.string.trash_verified_copy, Bidi.isolate(it))) }
+                        val changed = entry.id in trash.changed
+                        if (changed) {
+                            Text(
+                                stringResource(R.string.trash_changed),
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.testTag("changed_${entry.id}"),
+                            )
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = {
-                                onRestore(listOf(entry))
-                            }, modifier = Modifier.testTag("restore_${entry.id}")) {
-                                Text(stringResource(R.string.trash_restore))
+                            if (changed) {
+                                // Never put a changed file back in place of anything: separate folder, after a confirm.
+                                TextButton(onClick = {
+                                    pending = Pending.RestoreChanged(entry)
+                                }, modifier = Modifier.testTag("restoreChanged_${entry.id}")) {
+                                    Text(stringResource(R.string.trash_restore_changed))
+                                }
+                            } else {
+                                TextButton(onClick = {
+                                    onRestore(listOf(entry))
+                                }, modifier = Modifier.testTag("restore_${entry.id}")) {
+                                    Text(stringResource(R.string.trash_restore))
+                                }
                             }
                             if (entry.verifiedCopy != null && entry.id in trash.releasable) {
                                 Button(onClick = {
@@ -224,8 +246,63 @@ fun TrashScreen(
             )
         }
 
+        is Pending.RestoreChanged -> {
+            AlertDialog(
+                onDismissRequest = { pending = null },
+                title = { Text(stringResource(R.string.trash_restore_changed_title)) },
+                text = { Text(stringResource(R.string.trash_restore_changed_body)) },
+                confirmButton = {
+                    SafeConfirmButton(
+                        stringResource(R.string.trash_restore_changed),
+                        onClick = {
+                            pending = null
+                            onRestoreChanged(p.entry)
+                        },
+                        modifier = Modifier.testTag("confirmRestoreChanged"),
+                    )
+                },
+                dismissButton = {
+                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
+                },
+            )
+        }
+
         null -> {
             // No confirmation open.
         }
     }
+}
+
+/** Owner decision 1.3: these items are the last copy of something already in the trash. */
+@Composable
+fun LastCopyDialog(
+    ops: List<io.github.tomerar.keepclear.core.safety.PlannedOp>,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val locale = LocalConfiguration.current.locales[0]
+    val n = NumberFormat.getIntegerInstance(locale).format(ops.size)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.last_copy_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(pluralStringResource(R.plurals.last_copy_body, ops.size, n))
+                ops.take(5).forEach { Text(Bidi.isolate(it.displayPath.substringAfterLast('/'))) }
+            }
+        },
+        confirmButton = {
+            SafeConfirmButton(
+                stringResource(R.string.last_copy_confirm),
+                onClick = onConfirm,
+                modifier = Modifier.testTag("confirmLastCopy"),
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("keepLastCopy")) {
+                Text(stringResource(R.string.last_copy_keep))
+            }
+        },
+        modifier = Modifier.testTag("lastCopyDialog"),
+    )
 }

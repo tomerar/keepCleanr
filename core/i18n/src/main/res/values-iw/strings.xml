@@ -42,6 +42,11 @@
     <string name="scan_cancel">ביטול</string>
     <string name="low_space_light">הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום.</string>
     <string name="low_space_minimal">נשארו פחות מ-100MB. KeepClear לא שומר כלום עד שיתפנה מקום.</string>
+    <plurals name="last_copy_body">
+        <item quantity="one">עותק של הקובץ הזה כבר בסל המחזור, כי הקובץ הזה היה קיים. אם מוחקים גם אותו, לא נשאר עותק מחוץ לסל.</item>
+        <item quantity="two">עותקים של שני הקבצים האלה כבר בסל המחזור, כי הקבצים האלה היו קיימים. אם מוחקים גם אותם, לא נשאר עותק מחוץ לסל.</item>
+        <item quantity="other">עותקים של %1$s הקבצים האלה כבר בסל המחזור, כי הקבצים האלה היו קיימים. אם מוחקים גם אותם, לא נשאר עותק מחוץ לסל.</item>
+    </plurals>
     <plurals name="file_count">
         <item quantity="one">קובץ אחד</item>
         <item quantity="two">%s קבצים</item>
@@ -75,6 +80,13 @@
     <string name="trash_summary">%1$s · המקום יתפנה כשהפריטים יפוגו, או לרוקן עכשיו.</string>
     <string name="trash_empty_state">סל המחזור ריק.</string>
     <string name="trash_frees_on">יתפנה ב-%1$s</string>
+    <string name="trash_changed">השתנה מאז שנמחק</string>
+    <string name="trash_restore_changed">לשחזר לתיקייה נפרדת</string>
+    <string name="trash_restore_changed_title">לשחזר קובץ שהשתנה?</string>
+    <string name="trash_restore_changed_body">הקובץ הזה לא זהה למה שנמחק. הוא יוחזר לתיקייה KeepClear/Restored-changed, ואף פעם לא במקום קובץ אחר.</string>
+    <string name="last_copy_title">זה העותק האחרון</string>
+    <string name="last_copy_confirm">למחוק גם את העותק האחרון</string>
+    <string name="last_copy_keep">להשאיר</string>
     <string name="trash_restore">לשחזר</string>
     <string name="trash_restore_all">לשחזר הכול</string>
     <string name="trash_empty_now">לרוקן את סל המחזור</string>
