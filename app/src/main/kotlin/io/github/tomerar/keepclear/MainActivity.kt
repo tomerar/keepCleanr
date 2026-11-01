@@ -137,9 +137,13 @@ class MainActivity : ComponentActivity() {
                         },
                     )
                 }
+                // M15: Settings shows the only address KeepClear may connect to (PRIVACY.md "Network").
+                val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
                         settingsActions = SettingsActions(
+                            networkHost = networkHost,
+                            onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             currentLanguage = currentLanguage(),
                             onLanguage = ::setLanguage,
                             onReplayIntro = { showIntro = true },
@@ -192,6 +196,11 @@ class MainActivity : ComponentActivity() {
                                 moveVm.pendingItems = items
                                 treeLauncher.launch(null)
                             },
+                            onNetworkDrive = { items, location ->
+                                moveVm.pendingItems = items
+                                moveVm.onNetworkDrive(location)
+                            },
+                            savedNetworkDrive = moveVm::savedNetworkDrive,
                             onStart = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationsOff &&
                                     !askedNotifications()

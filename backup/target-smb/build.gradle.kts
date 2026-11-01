@@ -6,6 +6,8 @@ plugins {
 // M15, ADR 0011: the only module that talks to the network for SMB. INTERNET is declared here, nowhere else.
 android {
     namespace = "io.github.tomerar.keepclear.backup.smb"
+    // The release build shrinks code with R8; these rules keep smbj's reflective parts (M15).
+    defaultConfig.consumerProguardFiles("consumer-rules.pro")
     testOptions.unitTests.all { test ->
         // Integration tests talk to a real Samba server (scripts/samba-test-server.sh); CI always provides one.
         listOf(

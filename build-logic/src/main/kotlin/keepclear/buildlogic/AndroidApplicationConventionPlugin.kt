@@ -50,6 +50,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     applicationId.set(variant.applicationId)
                     debuggable.set(variant.buildType == "debug")
                     privacyPolicy.set(privacyFile)
+                    val mergerName = listOfNotNull(variant.flavorName?.takeIf { it.isNotEmpty() }, variant.buildType)
+                        .joinToString("-")
+                    mergerReport.set(layout.buildDirectory.file("outputs/logs/manifest-merger-$mergerName-report.txt"))
                     reportFile.set(layout.buildDirectory.file("reports/policy/${variant.name}-manifest.txt"))
                 }
                 val depsTask = tasks.register<DependencyAllowlistTask>("check${name}DependencyAllowlist") {

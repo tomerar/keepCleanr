@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear
 
 import android.app.Application
 import android.os.storage.StorageManager
+import androidx.core.net.toUri
 import io.github.tomerar.keepclear.core.database.KeepClearDatabase
 import io.github.tomerar.keepclear.core.database.RoomTrashIndex
 import io.github.tomerar.keepclear.core.database.ScanIndex
@@ -119,6 +120,39 @@ class KeepClearApplication : Application() {
     /** Providers treated as a removable drive: only debug builds' fake USB drive, for device tests (H1). */
     val testDriveAuthorities: Set<String>
         get() = if (BuildConfig.DEBUG) setOf("$packageName.testusb") else emptySet()
+
+    /** M15: the network drive the user set up (password sealed with a key-store key). */
+    val networkDrives by lazy {
+        NetworkDriveStore(getSharedPreferences("network-drive", MODE_PRIVATE), KeystoreSecretBox())
+    }
+
+    /**
+     * "Forget the network drive" (C9): removes it and its sealed password, and pauses a backup that is running to
+     * it right now, so nothing more is sent to that address (PR #25 review).
+     */
+    suspend fun forgetNetworkDrive() {
+        networkDrives.clear()
+        val running = moveController.running.value?.let { moveController.store.job(it) }
+        if (OpenedTarget.usesNetworkDrive(running)) {
+            moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
+        }
+    }
+
+    /** Opens the network drive at [location] (M15). Network I/O; call off the main thread. */
+    suspend fun openNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation, label: String) =
+        OpenedTarget.of(io.github.tomerar.keepclear.backup.smb.SmbTargets.open(location, label))
+
+    /**
+     * Reopens a job's target from its stored reference: a picked tree URI, or the saved network drive. A network
+     * reference opens only if it still matches the saved drive; the marker then has to match too (E-MOVE-2).
+     */
+    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = if (OpenedTarget.isNetwork(ref)) {
+        val location = networkDrives.load()
+            ?.takeIf { io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(it) == ref }
+        if (location == null) OpenedTarget.Unavailable else openNetworkDrive(location, label)
+    } else {
+        OpenedTarget.of(openTarget(ref.toUri(), label))
+    }
 
     /** Opens a picked backup folder (MOVE-2). Blocking I/O. */
     suspend fun openTarget(uri: android.net.Uri, label: String) =

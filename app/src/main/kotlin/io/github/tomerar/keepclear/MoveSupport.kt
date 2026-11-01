@@ -17,7 +17,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import io.github.tomerar.keepclear.backup.saf.TargetCheck
 import io.github.tomerar.keepclear.core.database.RoomMoveJobStore
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.move.JobState
@@ -151,10 +150,11 @@ class MoveService : Service() {
     private suspend fun run(jobId: String) {
         val store = app.moveController.store
         val job = store.job(jobId) ?: return
-        val treeUri = job.targetRef?.toUri()
-        val check = treeUri?.let { app.openTarget(it, job.targetLabel) }
-        if (check !is TargetCheck.Ok || check.target.id != job.targetId) {
-            val reason = if (check is TargetCheck.Ok) PauseReason.WRONG_TARGET else PauseReason.TARGET_DISCONNECTED
+        // A picked drive/folder or the network drive (M15); identity must match the job's (E-MOVE-2).
+        val check = job.targetRef?.let { app.openTargetRef(it, job.targetLabel) }
+        if (check !is OpenedTarget.Ok || check.target.id != job.targetId) {
+            (check as? OpenedTarget.Ok)?.target?.useTarget { }
+            val reason = if (check is OpenedTarget.Ok) PauseReason.WRONG_TARGET else PauseReason.TARGET_DISCONNECTED
             store.putJob(job.copy(state = JobState.PAUSED, pauseReason = reason))
             MoveNotifications.result(this, store.job(jobId)!!, 0)
             return
@@ -176,15 +176,18 @@ class MoveService : Service() {
             cancelReason = { stopReason },
             bootId = { app.trashClock.bootId() },
         )
-        val end = try {
-            engine.run(jobId)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Never crash the service: keep every checkpoint and pause (review Low). No paths in the log.
-            android.util.Log.w("KeepClear-Move", "job paused after ${e.javaClass.simpleName}")
-            (store.job(jobId) ?: job).copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR)
-                .also { store.putJob(it) }
+        // The target (a network drive's connection) is released when the job ends, fails or is cancelled.
+        val end = check.target.useTarget {
+            try {
+                engine.run(jobId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never crash the service: keep every checkpoint and pause (review Low). No paths in the log.
+                android.util.Log.w("KeepClear-Move", "job paused after ${e.javaClass.simpleName}")
+                (store.job(jobId) ?: job).copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR)
+                    .also { store.putJob(it) }
+            }
         }
         MoveNotifications.result(this, end, verified)
     }

@@ -16,9 +16,13 @@ import java.io.OutputStream
  * served from the page cache (the bytes as written) until [eject] drops it; after that, reads come from the
  * medium and show the damage.
  */
-class FakeCapacityDrive(private val realBytes: Int, override val id: String = "fake-usb") : BackupTarget {
+class FakeCapacityDrive(
+    private val realBytes: Int,
+    override val id: String = "fake-usb",
+    network: Boolean = false,
+) : BackupTarget {
     override val label = "Fake 2 TB stick"
-    override val caps = TargetCaps(canReadBack = true)
+    override val caps = TargetCaps(canReadBack = true, readsFromServer = network)
     private val medium = ByteArray(realBytes)
     private var head = 0
     private val files = LinkedHashMap<String, Pair<Int, Int>>() // rel -> (offset, size)

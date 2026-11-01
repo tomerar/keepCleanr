@@ -47,7 +47,13 @@ enum class PauseReason {
  * H1: proof that a re-read can't come from the phone's page cache. [REATTACHED]: the app watched the drive
  * disappear and come back (unmount drops the cache). [REBOOTED]: the phone restarted since the first check.
  */
-enum class FreshRead { REATTACHED, REBOOTED }
+enum class FreshRead {
+    REATTACHED,
+    REBOOTED,
+
+    /** M15: a network drive read over a brand-new connection; valid only for targets whose reads come from the server. */
+    NEW_SESSION,
+}
 
 /** Result of the second pass ("Check backup", MOVE-15). */
 data class CheckResult(

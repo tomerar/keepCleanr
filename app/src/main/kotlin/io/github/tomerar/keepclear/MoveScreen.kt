@@ -55,6 +55,13 @@ enum class MoveAge(val months: Int?) { OLDER_12(12), OLDER_6(6), ALL(null) }
 
 class MoveActions(
     val onPickTarget: (List<ClassifiedItem>) -> Unit = {},
+    /** M15: back up to the network drive at this address instead of a picked drive or folder. */
+    val onNetworkDrive: (
+        List<ClassifiedItem>,
+        io.github.tomerar.keepclear.backup.smb.SmbLocation,
+    ) -> Unit = { _, _ -> },
+    /** M15: the saved network drive, to fill the form again. */
+    val savedNetworkDrive: () -> io.github.tomerar.keepclear.backup.smb.SmbLocation? = { null },
     val onStart: () -> Unit = {},
     val onCancelPick: () -> Unit = {},
     val onPause: () -> Unit = {},
@@ -73,20 +80,22 @@ class MoveActions(
 ) {
     /** The same actions with [open] for "Show group": nothing else can be lost on the way. */
     fun withOpenGroup(open: (String) -> Unit) = MoveActions(
-        onPickTarget,
-        onStart,
-        onCancelPick,
-        onPause,
-        onStop,
-        onResume,
-        onFree,
-        onCheck,
-        onCancelCheck,
-        onShare,
-        onOpenGooglePhotos,
-        open,
-        hasRemovableDrive,
-        onOpenTrash,
+        onPickTarget = onPickTarget,
+        onNetworkDrive = onNetworkDrive,
+        savedNetworkDrive = savedNetworkDrive,
+        onStart = onStart,
+        onCancelPick = onCancelPick,
+        onPause = onPause,
+        onStop = onStop,
+        onResume = onResume,
+        onFree = onFree,
+        onCheck = onCheck,
+        onCancelCheck = onCancelCheck,
+        onShare = onShare,
+        onOpenGooglePhotos = onOpenGooglePhotos,
+        onOpenGroup = open,
+        hasRemovableDrive = hasRemovableDrive,
+        onOpenTrash = onOpenTrash,
     )
 }
 
@@ -120,6 +129,7 @@ fun MoveScreen(
     var age by rememberSaveable { mutableStateOf(MoveAge.OLDER_12) }
     var confirmFree by remember { mutableStateOf<JobView?>(null) }
     var guide by remember { mutableStateOf(false) }
+    var network by remember { mutableStateOf(false) }
     var confirmStop by remember { mutableStateOf(false) }
     val items = moveSelection(summary, selected, age, now)
     val total = items.fold(Total()) { t, i -> t + i }
@@ -226,7 +236,21 @@ fun MoveScreen(
                 guide = false
                 actions.onPickTarget(items)
             },
+            onNetwork = {
+                guide = false
+                network = true
+            },
             onDismiss = { guide = false },
+        )
+    }
+    if (network) {
+        NetworkDriveDialog(
+            saved = remember { actions.savedNetworkDrive() },
+            onConnect = { location ->
+                network = false
+                actions.onNetworkDrive(items, location)
+            },
+            onDismiss = { network = false },
         )
     }
     if (confirmStop) {
@@ -307,6 +331,8 @@ private fun ProblemCard(problem: TargetProblem) {
                     TargetProblem.DAMAGED_MARKER -> R.string.move_problem_marker
                     TargetProblem.UNAVAILABLE -> R.string.move_problem_unavailable
                     TargetProblem.SELECTION_LOST -> R.string.move_problem_selection_lost
+                    TargetProblem.REFUSED -> R.string.move_problem_refused
+                    TargetProblem.UNREACHABLE -> R.string.move_problem_unreachable
                 },
             ),
             modifier = Modifier.padding(12.dp),
@@ -605,7 +631,12 @@ fun durationText(millis: Long): String {
 
 /** Review PR C: two plain steps before Android's folder picker, and a check that a drive is attached. */
 @Composable
-private fun PickGuideDialog(hasDrive: () -> Boolean, onContinue: () -> Unit, onDismiss: () -> Unit) {
+private fun PickGuideDialog(
+    hasDrive: () -> Boolean,
+    onContinue: () -> Unit,
+    onNetwork: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     var noDrive by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -624,6 +655,10 @@ private fun PickGuideDialog(hasDrive: () -> Boolean, onContinue: () -> Unit, onD
                     TextButton(onClick = onContinue, modifier = Modifier.testTag("guideAnyway")) {
                         Text(stringResource(R.string.move_guide_anyway))
                     }
+                }
+                // M15: a computer or NAS at home instead of a drive.
+                TextButton(onClick = onNetwork, modifier = Modifier.testTag("useNetwork")) {
+                    Text(stringResource(R.string.move_network_option))
                 }
             }
         },
@@ -660,7 +695,7 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
                         Text(stringResource(R.string.move_target_unknown))
                     }
 
-                    TargetKind.REMOVABLE -> {}
+                    TargetKind.REMOVABLE, TargetKind.NETWORK -> {}
                 }
                 picked.issues.forEach { issue ->
                     val text = when (issue) {
@@ -716,5 +751,88 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
             }
         },
         dismissButton = { TextButton(onClick = actions.onCancelPick) { Text(stringResource(R.string.move_cancel)) } },
+    )
+}
+
+/** M15: where the network drive is. Only a plain address is accepted (ADR 0011: only to the address typed). */
+@Composable
+private fun NetworkDriveDialog(
+    saved: io.github.tomerar.keepclear.backup.smb.SmbLocation?,
+    onConnect: (io.github.tomerar.keepclear.backup.smb.SmbLocation) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var host by rememberSaveable { mutableStateOf(saved?.host.orEmpty()) }
+    var share by rememberSaveable { mutableStateOf(saved?.share.orEmpty()) }
+    var user by rememberSaveable { mutableStateOf(saved?.user.orEmpty()) }
+    // The password is never kept in saved instance state.
+    var password by remember { mutableStateOf(saved?.password.orEmpty()) }
+    val hostOk = io.github.tomerar.keepclear.backup.smb.SmbHosts.isPlainHost(host.trim())
+    val shareOk = share.isNotBlank() && '/' !in share && '\\' !in share
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.move_network_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.testTag("networkDrive").verticalScroll(rememberScrollState()),
+            ) {
+                Text(stringResource(R.string.move_network_intro), style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.material3.OutlinedTextField(
+                    value = host,
+                    onValueChange = { host = it },
+                    label = { Text(stringResource(R.string.move_network_host)) },
+                    singleLine = true,
+                    isError = host.isNotBlank() && !hostOk,
+                    supportingText = if (host.isNotBlank() && !hostOk) {
+                        { Text(stringResource(R.string.move_network_bad_host)) }
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("networkHost"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = share,
+                    onValueChange = { share = it },
+                    label = { Text(stringResource(R.string.move_network_share)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("networkShare"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = user,
+                    onValueChange = { user = it },
+                    label = { Text(stringResource(R.string.move_network_user)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("networkUser"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.move_network_password)) },
+                    singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                    ),
+                    modifier = Modifier.fillMaxWidth().testTag("networkPassword"),
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConnect(
+                        io.github.tomerar.keepclear.backup.smb.SmbLocation(
+                            host = host.trim(),
+                            share = share.trim(),
+                            user = user.trim(),
+                            password = password,
+                        ),
+                    )
+                },
+                enabled = hostOk && shareOk,
+                modifier = Modifier.testTag("networkConnect"),
+            ) { Text(stringResource(R.string.move_network_connect)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
     )
 }

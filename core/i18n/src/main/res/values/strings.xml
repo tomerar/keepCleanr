@@ -12,7 +12,7 @@
     <string name="home_card_review_body">Things that might matter, explained in plain words. You decide.</string>
     <string name="home_card_move_title">Move to backup</string>
     <string name="home_card_move_body">Your memories go to your own drive and are checked before anything is deleted.</string>
-    <string name="home_privacy">No ads. No tracking. No internet access.</string>
+    <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
     <string name="debug_toggle_rtl">Flip layout direction (debug)</string>
     <string name="home_storage_line">%1$s used · %2$s free</string>
     <string name="access_card_title">See what\'s taking space</string>
@@ -329,7 +329,7 @@
     <string name="settings_language">Language</string>
     <string name="settings_language_system">Phone\'s language</string>
     <string name="settings_about">About KeepClear</string>
-    <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking, no internet access. Version %1$s.</string>
+    <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking. It connects to the network only to reach a backup place you set up, at the address you typed. Version %1$s.</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_replay_intro">Show the introduction again</string>
     <string name="settings_get_back_title">How to get files back</string>
@@ -402,4 +402,17 @@
     <string name="explainer_label_steps">How</string>
     <string name="whatsapp_wrong_folder">That wasn\'t WhatsApp\'s folder, so nothing was added. Choose the folder named WhatsApp (Android › media › com.whatsapp › WhatsApp).</string>
     <string name="whatsapp_try_again">Try again</string>
+    <string name="move_network_option">Use a network drive instead (a computer or NAS at home)</string>
+    <string name="move_network_title">Network drive</string>
+    <string name="move_network_intro">A computer or NAS at home that shares a folder. KeepClear connects only to the address you type here, reads every copy back over the network to check it, and frees space only when you tap it.</string>
+    <string name="move_network_host">Address (for example 192.168.1.20 or my-pc)</string>
+    <string name="move_network_share">Shared folder name</string>
+    <string name="move_network_user">User name (leave empty for guest)</string>
+    <string name="move_network_password">Password</string>
+    <string name="move_network_bad_host">Type only the computer\'s name or address, without \\\\ or smb://.</string>
+    <string name="move_network_connect">Connect</string>
+    <string name="move_problem_refused">The network drive refused the user name or password. Check them and try again.</string>
+    <string name="move_problem_unreachable">Nothing answered at that address. Is the computer on and awake, and is the phone on the same Wi-Fi?</string>
+    <string name="settings_network_only">Network: only to %1$s (your network drive)</string>
+    <string name="settings_network_forget">Forget the network drive</string>
 </resources>

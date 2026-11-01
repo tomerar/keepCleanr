@@ -80,7 +80,8 @@ class SmbBackupTarget(
     override val label: String,
     private val timeoutSeconds: Long = 30,
 ) : BackupTarget {
-    override val caps = TargetCaps(canReadBack = true, caseSensitive = false, maxPathChars = 260)
+    override val caps =
+        TargetCaps(canReadBack = true, caseSensitive = false, maxPathChars = 260, readsFromServer = true)
 
     private val mutex = Mutex()
     private var client: SMBClient? = null
@@ -134,7 +135,7 @@ class SmbBackupTarget(
     }
 
     /** Disconnects; the next call connects again. */
-    suspend fun close() = mutex.withLock { closeQuietly() }
+    override suspend fun close() = mutex.withLock { closeQuietly() }
 
     private fun smbPath(rel: String): String {
         require(!rel.startsWith("/")) { "relative path expected" }

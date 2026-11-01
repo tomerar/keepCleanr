@@ -9,7 +9,7 @@
     <string name="home_card_review_body">דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם.</string>
     <string name="home_card_move_title">להעביר לגיבוי</string>
     <string name="home_card_move_body">הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק.</string>
-    <string name="home_privacy">בלי פרסומות. בלי מעקב. בלי גישה לאינטרנט.</string>
+    <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
     <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
     <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
     <string name="access_card_title">לראות מה תופס מקום</string>
@@ -346,7 +346,7 @@
     <string name="settings_language">שפה</string>
     <string name="settings_language_system">שפת הטלפון</string>
     <string name="settings_about">על KeepClear</string>
-    <string name="settings_about_body">חינמי וקוד פתוח (GPL-3.0). בלי פרסומות, בלי מעקב, בלי גישה לאינטרנט. גרסה %1$s.</string>
+    <string name="settings_about_body">חינמי וקוד פתוח (GPL-3.0). בלי פרסומות, בלי מעקב. חיבור לרשת רק כדי להגיע למקום גיבוי שהוגדר, בכתובת שהוקלדה. גרסה %1$s.</string>
     <string name="settings_privacy">מדיניות פרטיות</string>
     <string name="settings_replay_intro">להציג שוב את ההיכרות</string>
     <string name="settings_get_back_title">איך מחזירים קבצים</string>
@@ -424,4 +424,17 @@
     <string name="explainer_label_steps">איך</string>
     <string name="whatsapp_wrong_folder">זו לא הייתה התיקייה של וואטסאפ, ולכן לא נוסף כלום. צריך לבחור את התיקייה בשם WhatsApp.</string>
     <string name="whatsapp_try_again">לנסות שוב</string>
+    <string name="move_network_option">להשתמש בכונן רשת במקום (מחשב או NAS בבית)</string>
+    <string name="move_network_title">כונן רשת</string>
+    <string name="move_network_intro">מחשב או NAS בבית שמשתף תיקייה. KeepClear מתחברת רק לכתובת שמוקלדת כאן, קוראת כל עותק בחזרה דרך הרשת כדי לבדוק אותו, ומפנה מקום רק אחרי הקשה.</string>
+    <string name="move_network_host">כתובת (למשל 192.168.1.20 או my-pc)</string>
+    <string name="move_network_share">שם התיקייה המשותפת</string>
+    <string name="move_network_user">שם משתמש (ריק לגישת אורח)</string>
+    <string name="move_network_password">סיסמה</string>
+    <string name="move_network_bad_host">יש להקליד רק את שם המחשב או את הכתובת, בלי \\\\ ובלי smb://.</string>
+    <string name="move_network_connect">התחברות</string>
+    <string name="move_problem_refused">כונן הרשת דחה את שם המשתמש או את הסיסמה. כדאי לבדוק אותם ולנסות שוב.</string>
+    <string name="move_problem_unreachable">אף מכשיר לא ענה בכתובת הזו. האם המחשב דלוק וער, והטלפון מחובר לאותה רשת Wi-Fi?</string>
+    <string name="settings_network_only">רשת: רק אל %1$s (כונן הרשת)</string>
+    <string name="settings_network_forget">לשכוח את כונן הרשת</string>
 </resources>

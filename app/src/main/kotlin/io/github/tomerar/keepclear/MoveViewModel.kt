@@ -12,7 +12,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.tomerar.keepclear.backup.saf.SafTargets
-import io.github.tomerar.keepclear.backup.saf.TargetCheck
 import io.github.tomerar.keepclear.backup.saf.TargetKind
 import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.ExecutionReport
@@ -56,6 +55,12 @@ enum class TargetProblem {
 
     /** The app was closed while the folder picker was open; the selection is gone and must be made again. */
     SELECTION_LOST,
+
+    /** M15: the network drive answered but refused the name or password. */
+    REFUSED,
+
+    /** M15: nothing answered at the network drive's address (computer off or asleep, other Wi-Fi, typo). */
+    UNREACHABLE,
 }
 
 data class JobView(
@@ -137,8 +142,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private val controller = app.moveController
     private val _state = MutableStateFlow(MoveUiState())
     val state: StateFlow<MoveUiState> = _state
-    private var pickedUri: Uri? = null
-    private var pickedTarget: io.github.tomerar.keepclear.backup.saf.SafBackupTarget? = null
+
+    /** How the job will reopen the picked target: a tree URI, or the network drive's `smb://` reference. */
+    private var pickedRef: String? = null
+    private var pickedTarget: io.github.tomerar.keepclear.backup.BackupTarget? = null
 
     init {
         viewModelScope.launch {
@@ -203,38 +210,70 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             runCatching { app.contentResolver.takePersistableUriPermission(uri, flags) }
             val label = withContext(Dispatchers.IO) { treeLabel(uri) }
-            when (val check = app.openTarget(uri, label)) {
-                is TargetCheck.Ok -> {
-                    val files = plan("preview", items, check.target.caps)
-                    val issues = MovePlanner.preflight(files, check.target, emptySet(), battery(), charging())
-                    pickedUri = uri
-                    pickedTarget = check.target
-                    _state.update {
-                        it.copy(
-                            busy = false,
-                            picked = PickedTarget(
-                                label,
-                                check.kind,
-                                check.target.caps.canReadBack,
-                                files,
-                                issues,
-                                check.format,
-                            ),
-                        )
-                    }
-                }
+            opened(OpenedTarget.of(app.openTarget(uri, label)), label, uri.toString(), items)
+        }
+    }
 
-                TargetCheck.OnThisPhone -> {
-                    fail(TargetProblem.ON_THIS_PHONE)
-                }
+    /**
+     * M15: the user typed a network drive's address and tapped "Connect". It is saved (password sealed) only when
+     * KeepClear could open it; otherwise the form says why (refused, or nothing answered).
+     */
+    fun onNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation) {
+        val items = pendingItems
+        if (items.isEmpty()) {
+            fail(TargetProblem.SELECTION_LOST)
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(busy = true, picked = null, problem = null) }
+            val label = location.host
+            val check = withContext(Dispatchers.IO) { app.openNetworkDrive(location, label) }
+            if (check is OpenedTarget.Ok) withContext(Dispatchers.IO) { app.networkDrives.save(location) }
+            opened(check, label, io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(location), items)
+        }
+    }
 
-                TargetCheck.DamagedMarker -> {
-                    fail(TargetProblem.DAMAGED_MARKER)
-                }
+    /** The saved network drive, to fill the form again (the password stays sealed until it is used). */
+    fun savedNetworkDrive() = runCatching { app.networkDrives.load() }.getOrNull()
 
-                TargetCheck.Unavailable -> {
-                    fail(TargetProblem.UNAVAILABLE)
+    private suspend fun opened(check: OpenedTarget, label: String, ref: String, items: List<ClassifiedItem>) {
+        when (check) {
+            is OpenedTarget.Ok -> {
+                val files = plan("preview", items, check.target.caps)
+                val issues = withContext(Dispatchers.IO) {
+                    MovePlanner.preflight(files, check.target, emptySet(), battery(), charging())
                 }
+                pickedRef = ref
+                pickedTarget = check.target
+                _state.update {
+                    it.copy(
+                        busy = false,
+                        picked = PickedTarget(
+                            label,
+                            check.kind,
+                            check.target.caps.canReadBack,
+                            files,
+                            issues,
+                            check.format,
+                        ),
+                    )
+                }
+            }
+
+            OpenedTarget.OnThisPhone -> {
+                fail(TargetProblem.ON_THIS_PHONE)
+            }
+
+            OpenedTarget.DamagedMarker -> {
+                fail(TargetProblem.DAMAGED_MARKER)
+            }
+
+            OpenedTarget.Refused -> {
+                fail(TargetProblem.REFUSED)
+            }
+
+            OpenedTarget.Unavailable -> {
+                fail(if (OpenedTarget.isNetwork(ref)) TargetProblem.UNREACHABLE else TargetProblem.UNAVAILABLE)
             }
         }
     }
@@ -260,7 +299,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     fun start() {
         val picked = _state.value.picked ?: return
         val target = pickedTarget ?: return
-        val uri = pickedUri ?: return
+        val ref = pickedRef ?: return
         if (picked.blocked || picked.files.isEmpty()) return
         viewModelScope.launch {
             val id = UUID.randomUUID().toString()
@@ -271,19 +310,29 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 targetLabel = picked.label,
                 rootRel = MovePlanner.rootRel(deviceName()),
                 createdAt = System.currentTimeMillis(),
-                targetRef = uri.toString(),
+                targetRef = ref,
             )
             withContext(Dispatchers.IO) {
                 controller.store.putJob(job)
                 controller.store.putFiles(files)
             }
             _state.update { it.copy(picked = null) }
+            // The service opens the target itself; release the one used for the preview (PR #25 review).
+            releasePicked()
             controller.start(app, id)
             reload()
         }
     }
 
-    fun cancelPick() = _state.update { it.copy(picked = null, problem = null) }
+    fun cancelPick() {
+        _state.update { it.copy(picked = null, problem = null) }
+        viewModelScope.launch { releasePicked() }
+    }
+
+    private suspend fun releasePicked() {
+        pickedTarget?.useTarget { }
+        pickedTarget = null
+    }
 
     fun pause() = controller.pause(PauseReason.PAUSED_BY_USER)
 
@@ -300,13 +349,15 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(busy = true) }
             val store = controller.store
             val job = store.job(jobId)
-            val check = job?.targetRef?.let { app.openTarget(it.toUri(), job.targetLabel) }
-            if (job == null || check !is TargetCheck.Ok || check.target.id != job.targetId) {
+            val check = job?.targetRef?.let { withContext(Dispatchers.IO) { app.openTargetRef(it, job.targetLabel) } }
+            if (job == null || check !is OpenedTarget.Ok || check.target.id != job.targetId) {
+                (check as? OpenedTarget.Ok)?.target?.useTarget { }
                 _state.update { it.copy(busy = false, problem = TargetProblem.UNAVAILABLE) }
                 return@launch
             }
-            // H1: only copies confirmed by the second check, re-hashed on the drive right now.
-            val ops = withContext(Dispatchers.IO) { engine(check.target).originalsPlan(jobId) }
+            // H1: only copies confirmed by the second check, re-hashed on the drive right now. The drive is
+            // released right after; freeing itself only touches the phone.
+            val ops = withContext(Dispatchers.IO) { check.target.useTarget { engine(it).originalsPlan(jobId) } }
             if (ops.isEmpty()) {
                 _state.update { it.copy(busy = false, freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
                 return@launch
@@ -353,24 +404,36 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         checkJob = viewModelScope.launch {
             val store = controller.store
             val job = withContext(Dispatchers.IO) { store.job(jobId) } ?: return@launch
-            val uri = job.targetRef?.toUri() ?: return@launch
+            val ref = job.targetRef ?: return@launch
 
-            suspend fun attached(): io.github.tomerar.keepclear.backup.saf.SafBackupTarget? =
-                (withContext(Dispatchers.IO) { app.openTarget(uri, job.targetLabel) } as? TargetCheck.Ok)
-                    ?.target?.takeIf { it.id == job.targetId }
+            // Each call opens the target anew (for a network drive: a brand-new connection).
+            suspend fun attached(): io.github.tomerar.keepclear.backup.BackupTarget? {
+                val opened = withContext(Dispatchers.IO) { app.openTargetRef(ref, job.targetLabel) } as? OpenedTarget.Ok
+                val target = opened?.target ?: return null
+                if (target.id == job.targetId) return target
+                target.useTarget { }
+                return null
+            }
+
+            // Polling only asks whether the drive is there; each probe is released at once.
+            suspend fun present(): Boolean = attached()?.useTarget { true } ?: false
             val rebooted = job.verifyBootId != null && job.verifyBootId != app.trashClock.bootId()
-            val evidence = if (rebooted) {
+            val evidence = if (OpenedTarget.isNetwork(ref)) {
+                // M15: a network drive's reads all come from the server; a new connection is a fresh read, so
+                // there is nothing to unplug (decided conservatively: progress.md C8).
+                FreshRead.NEW_SESSION
+            } else if (rebooted) {
                 FreshRead.REBOOTED
             } else {
                 _state.update { it.copy(check = BackupCheck.Unplug(jobId)) }
                 val gone = kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
-                    while (attached() != null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    while (present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 }
                 if (gone == null) return@launch timeout(jobId)
                 _state.update { it.copy(check = BackupCheck.PlugBack(jobId)) }
                 kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
-                    while (attached() == null) kotlinx.coroutines.delay(POLL_MILLIS)
+                    while (!present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 } ?: return@launch timeout(jobId)
                 FreshRead.REATTACHED
@@ -378,7 +441,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val target = attached() ?: return@launch timeout(jobId)
             _state.update { it.copy(check = BackupCheck.Checking(jobId)) }
             val result = try {
-                withContext(Dispatchers.IO) { engine(target).confirm(jobId, evidence) }
+                withContext(Dispatchers.IO) { target.useTarget { engine(it).confirm(jobId, evidence) } }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -403,6 +466,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun canReadBack(job: MoveJob): Boolean = runCatching {
+        // A network drive is read back over the network (M15).
+        if (OpenedTarget.isNetwork(job.targetRef)) return@runCatching true
         val uri = job.targetRef!!.toUri()
         SafTargets.classify(uri.authority, DocumentsContract.getTreeDocumentId(uri), app.testDriveAuthorities)
             ?.second?.canReadBack == true
