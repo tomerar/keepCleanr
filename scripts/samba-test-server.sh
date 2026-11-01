@@ -12,9 +12,9 @@ PASSWORD="kc-test-only-$(date +%s)"
 SUDO=""
 if [ "$(id -u)" != "0" ]; then SUDO="sudo"; fi
 
-$SUDO mkdir -p "$DIR/share" "$DIR/run" "$DIR/lock" "$DIR/state" "$DIR/cache" "$DIR/private"
+$SUDO mkdir -p "$DIR/share" "$DIR/drop" "$DIR/run" "$DIR/lock" "$DIR/state" "$DIR/cache" "$DIR/private"
 id "$USER_NAME" >/dev/null 2>&1 || $SUDO useradd -M -s /usr/sbin/nologin "$USER_NAME"
-$SUDO chown "$USER_NAME" "$DIR/share"
+$SUDO chown "$USER_NAME" "$DIR/share" "$DIR/drop"
 
 CONF="$DIR/smb.conf"
 $SUDO tee "$CONF" >/dev/null <<CONF
@@ -41,6 +41,13 @@ $SUDO tee "$CONF" >/dev/null <<CONF
   read only = no
   valid users = $USER_NAME
   create mask = 0644
+
+# Only for the test that makes the server drop a share: closing it must not disturb tests running in parallel.
+[keepclear-drop]
+  path = $DIR/drop
+  read only = no
+  valid users = $USER_NAME
+  create mask = 0644
 CONF
 
 printf '%s\n%s\n' "$PASSWORD" "$PASSWORD" | $SUDO smbpasswd -c "$CONF" -s -a "$USER_NAME" >/dev/null
@@ -55,6 +62,7 @@ done
 echo "export KEEPCLEAR_SMB_HOST=127.0.0.1"
 echo "export KEEPCLEAR_SMB_PORT=$PORT"
 echo "export KEEPCLEAR_SMB_SHARE=keepclear"
+echo "export KEEPCLEAR_SMB_DROP_SHARE=keepclear-drop"
 echo "export KEEPCLEAR_SMB_USER=$USER_NAME"
 echo "export KEEPCLEAR_SMB_PASSWORD=$PASSWORD"
 echo "export KEEPCLEAR_SMB_CONF=$CONF"

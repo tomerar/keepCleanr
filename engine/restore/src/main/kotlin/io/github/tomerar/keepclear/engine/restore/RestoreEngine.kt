@@ -121,7 +121,8 @@ class RestoreEngine(
                 }
             } catch (e: StorageException.Disconnected) {
                 return RestoreReport(restored, already, damaged, redirected, failed, interrupted = true)
-            } catch (e: StorageException) {
+            } catch (e: java.io.IOException) {
+                // Any other storage or stream failure (e.g. the phone is full): this file failed, go on (PR #26).
                 failed++
             }
             onProgress(index + 1)
@@ -152,6 +153,8 @@ class RestoreEngine(
             destination = "$volumeRoot/$restoreDirRel/${entry.group}/${entry.name}"
             redirected = true
         }
+        // Restored there before (an earlier or interrupted run)? Then it is already there, not copied again.
+        if (redirected && alreadyInRestoreFolder(destination, entry)) return Outcome.AlreadyThere
         if (redirected) {
             val reason = validator.check(destination, volumeRoot, phone)
             if (reason != null) throw StorageException.Unsupported(KPath.Local(destination), reason)
@@ -181,10 +184,25 @@ class RestoreEngine(
             }
             val final = rename(tempPath, dir, dest.name)
             return Outcome.Restored(final, redirected)
-        } catch (e: StorageException) {
+        } catch (e: java.io.IOException) {
+            // Includes raw stream failures (a full phone): never leave a partial temporary file behind.
             runCatching { phone.delete(tempPath) }
             throw e
         }
+    }
+
+    /** Whether [destination] or one of its numbered names ("x (2).jpg") already holds this exact file. */
+    private suspend fun alreadyInRestoreFolder(destination: String, entry: BackupEntry): Boolean {
+        val dest = KPath.Local(destination)
+        val dir = dest.parent ?: return false
+        for (attempt in 1..MAX_NAME_TRIES) {
+            val candidate = dir.child(if (attempt == 1) dest.name else numbered(dest.name, attempt))
+            val stat = phone.stat(candidate) ?: return false
+            if (stat.isFile && stat.size == entry.line.size && hashOnPhone(candidate.absolute) == entry.line.sha256) {
+                return true
+            }
+        }
+        return false
     }
 
     /** Gives the temp file its final name, or the next free one ("name (2).jpg"); never overwrites. */

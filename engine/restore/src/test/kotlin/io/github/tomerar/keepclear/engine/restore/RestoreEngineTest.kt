@@ -131,4 +131,42 @@ class RestoreEngineTest {
             fake.exists("$phone/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14") shouldBe false
             fake.files("$phone/.KeepClearTrash").shouldBeEmpty()
         }
+
+    @Test
+    fun `restoring the same selection again copies nothing twice (PR 26 review)`(): Unit = runBlocking {
+        val rootRel = backUpAndLoseOriginals()
+        val catalog = engine().catalog(rootRel)!!
+        fake.addFile(items[1].path, "someone else's file".toByteArray())
+        engine().restore(catalog).redirected shouldBe 1
+        val again = engine().restore(catalog)
+        again.restored.shouldBeEmpty()
+        again.alreadyThere shouldBe 4
+        fake.files("$phone/Pictures/KeepClear Restored").filter { "(2)" in it }.shouldBeEmpty()
+    }
+
+    @Test
+    fun `a full phone fails that file cleanly, leaves no partial file, and goes on (PR 26 review)`(): Unit =
+        runBlocking {
+            val rootRel = backUpAndLoseOriginals()
+            val catalog = engine().catalog(rootRel)!!
+            var writes = 0
+            val full = object : io.github.tomerar.keepclear.core.storage.StorageGateway by fake {
+                override suspend fun create(dir: KPath, name: String): java.io.OutputStream {
+                    val real = fake.create(dir, name)
+                    // The first restored file hits "no space left" halfway (a raw IOException from the stream).
+                    if (++writes > 1) return real
+                    return object : java.io.OutputStream() {
+                        override fun write(b: Int) = throw java.io.IOException("ENOSPC")
+
+                        override fun write(b: ByteArray, off: Int, len: Int) = throw java.io.IOException("ENOSPC")
+
+                        override fun close() = real.close()
+                    }
+                }
+            }
+            val report = RestoreEngine(target, full, ProtectedPaths(), phone, newId = { "t${++ids}" }).restore(catalog)
+            report.failed shouldBe 1
+            report.restored shouldHaveSize 3
+            fake.files(phone).filter { ".kc-restore-" in it }.shouldBeEmpty()
+        }
 }

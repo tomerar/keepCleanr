@@ -104,16 +104,24 @@ class SmbBackupTargetTest {
     @Test
     fun `a share the server dropped is reconnected, not reused forever (PR 24 review)`(): Unit = runBlocking {
         val conf = System.getenv("KEEPCLEAR_SMB_CONF")
-        assumeTrue("needs the test server's smb.conf", conf != null)
+        val dropShare = System.getenv("KEEPCLEAR_SMB_DROP_SHARE")
+        assumeTrue("needs the test server's smb.conf", conf != null && dropShare != null)
+        // Its own share: Gradle runs debug and release unit tests in parallel against the same server, and closing
+        // the shared share would cut off the other run mid-test.
+        val target = SmbBackupTarget(env!!.copy(share = dropShare!!), id = "drop", label = "drop", timeoutSeconds = 10)
+        target.mkdirs(run)
         target.create("$run/a").use { it.write(1) }
         // The server closes the share but keeps the TCP connection: smbj still thinks it is connected.
         val sudo = if (System.getProperty("user.name") == "root") emptyList() else listOf("sudo", "-n")
-        val closed = ProcessBuilder(sudo + listOf("smbcontrol", "-s", conf!!, "smbd", "close-share", env!!.share))
+        val closed = ProcessBuilder(sudo + listOf("smbcontrol", "-s", conf!!, "smbd", "close-share", dropShare))
             .redirectErrorStream(true).start().waitFor()
         assertEquals(0, closed)
-        // The first call may see the dropped share (and says so); after it, KeepClear connects again.
-        runCatching { target.stat("$run/a") }
-        assertEquals(1L, target.stat("$run/a")!!.size)
+        // A call may see the dropped share (and says so); after that, KeepClear connects again. Without
+        // reconnecting, every call would fail. (The parallel release-variant run of this test may drop the share
+        // once more, so a few calls are allowed.)
+        val size = (1..3).firstNotNullOfOrNull { runCatching { target.stat("$run/a")?.size }.getOrNull() }
+        assertEquals(1L, size)
+        target.close()
     }
 
     @Test
