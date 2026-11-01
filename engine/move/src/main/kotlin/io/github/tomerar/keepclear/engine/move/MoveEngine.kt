@@ -2,6 +2,7 @@
 package io.github.tomerar.keepclear.engine.move
 
 import io.github.tomerar.keepclear.backup.BackupTarget
+import io.github.tomerar.keepclear.backup.DigestKind
 import io.github.tomerar.keepclear.core.hash.Sha256
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
@@ -113,7 +114,9 @@ class MoveEngine(
         file = file.copy(sourceSize = before.size, sourceMtime = before.mtimeMillis, sourceIdentity = before.identity)
         val (bytes, sha) = try {
             source.openRead(file.source).use { input ->
-                guarded { target.create(file.tempRel) }.use { output -> Sha256.copy(input, output) }
+                // The size is announced so a network target can send it up front (M17); a source that grows or
+                // shrinks mid-copy then fails the upload, which is caught as a source change below.
+                guarded { target.create(file.tempRel, before.size) }.use { output -> Sha256.copy(input, output) }
             }
         } catch (e: Pause) {
             runCatching { target.delete(file.tempRel) }
@@ -122,6 +125,10 @@ class MoveEngine(
             val pause = pauseFor(e)
             runCatching { target.delete(file.tempRel) }
             if (pause != null) throw Pause(pause)
+            val now = runCatching { source.stat(file.source) }.getOrNull()
+            if (now != null && (now.size != before.size || now.mtimeMillis != before.mtimeMillis)) {
+                return put(file.copy(state = MoveFileState.SRC_CHANGED, attempts = file.attempts + 1))
+            }
             val reason = if (isSourceError(e, file)) FailReason.SOURCE_UNREADABLE else FailReason.TARGET_ERROR
             return put(file.copy(state = MoveFileState.FAILED, failReason = reason))
         }
@@ -170,11 +177,28 @@ class MoveEngine(
                 put(file.copy(state = MoveFileState.PENDING, attempts = file.attempts + 1))
             }
         }
-        val hash = if (stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
+        // M17, ADR 0011: a SHA-256 the server computed while storing our upload is the proof; no download needed.
+        // Without one (generic WebDAV, a header the server didn't send, a file we didn't upload), read back.
+        val serverHash = if (DigestKind.SHA256 in target.caps.serverDigests &&
+            stat?.size == file.sourceSize &&
+            !file.reusedExisting
+        ) {
+            guarded { target.serverDigest(file.relTarget, DigestKind.SHA256) }
+        } else {
+            null
+        }
+        val hash = serverHash ?: if (stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
         if (hash != null && hash == file.sourceSha256) {
-            // First pass only: this read may have come from the page cache (H1). Freeing needs confirm().
+            // A read-back may have come from the page cache (H1), so freeing needs confirm(). A server digest was
+            // computed by the server over what it stored, never from the phone's cache: it counts as confirmed.
+            // The copy is still read back and re-hashed at free time (originalsPlan).
             return put(
-                file.copy(state = MoveFileState.VERIFIED, verifiedAt = clock(), failReason = null, confirmedAt = null),
+                file.copy(
+                    state = MoveFileState.VERIFIED,
+                    verifiedAt = clock(),
+                    failReason = null,
+                    confirmedAt = if (serverHash != null) clock() else null,
+                ),
             )
         }
         val attempts = file.attempts + 1

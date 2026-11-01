@@ -24,10 +24,23 @@ data class TargetCaps(
      * read over a **new connection** is a fresh read of what the server stores (H1, [FreshRead] NEW_SESSION).
      */
     val readsFromServer: Boolean = false,
+    /**
+     * M17, ADR 0011: digests the **server itself** computes over the bytes it stored while a file is uploaded
+     * (Nextcloud `X-Hash: sha256` → `X-Hash-SHA256`). [BackupTarget.serverDigest] returns them. Empty for targets
+     * without one (USB, SAF, SMB, generic WebDAV). Values the client sent and the server merely stored (Nextcloud
+     * `OC-Checksum`, `oc:checksums`) are never listed here: they prove nothing.
+     */
+    val serverDigests: Set<DigestKind> = emptySet(),
 ) {
     companion object {
         const val FAT32_MAX_FILE: Long = 4L * 1024 * 1024 * 1024 - 1
     }
+}
+
+/** A digest a server computes itself (ADR 0011). Only cryptographic kinds that ADR 0007 accepts as proof. */
+enum class DigestKind {
+    /** Lowercase hex SHA-256 of the stored bytes. */
+    SHA256,
 }
 
 /**
@@ -52,6 +65,21 @@ interface BackupTarget {
 
     /** Creates a new file (never overwrites). */
     suspend fun create(rel: String): OutputStream
+
+    /**
+     * Like [create], when the caller knows how many bytes it will write (a network target can then announce
+     * the length, M17). Writing more or fewer than [size] bytes fails the upload with a [StorageException];
+     * no complete file is left under [rel] in that case.
+     */
+    suspend fun create(rel: String, size: Long): OutputStream = create(rel)
+
+    /**
+     * M17, ADR 0011: the digest of kind [kind] that the **server computed** over the bytes it stored for [rel]
+     * during this target's own upload (followed through [rename]), or null when there is none (no server digest,
+     * the server didn't send one, or the file wasn't uploaded through this object). Never a client-supplied value.
+     * Only consulted when [TargetCaps.serverDigests] contains [kind].
+     */
+    suspend fun serverDigest(rel: String, kind: DigestKind): String? = null
 
     /** Renames within the target; fails if [toRel] exists. */
     suspend fun rename(fromRel: String, toRel: String)

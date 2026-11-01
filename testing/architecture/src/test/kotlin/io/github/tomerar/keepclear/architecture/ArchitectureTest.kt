@@ -46,11 +46,13 @@ class ArchitectureTest {
         }
     }
 
+    /** ADR 0008 as amended by ADR 0011: backup target modules (and later `backup/net`) are the only exception. */
     @Test
     fun `no network APIs in app code (ADR 0008)`() {
         val forbidden = listOf("java.net.URL", "java.net.HttpURLConnection", "java.net.Socket", "okhttp3.")
         projectScope.files
             .filterNot { it.path.contains("/build-logic/") || it.path.contains("/testing/architecture/") }
+            .filterNot { "/backup/target-" in it.path || "/backup/net/" in it.path }
             .assertFalse { file -> file.imports.any { imp -> forbidden.any { imp.name.startsWith(it) } } }
     }
 
