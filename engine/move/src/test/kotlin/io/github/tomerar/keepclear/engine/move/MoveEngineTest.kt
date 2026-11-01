@@ -175,6 +175,23 @@ class MoveEngineTest {
     }
 
     @Test
+    fun `a drive unplugged during Check backup interrupts the check, never crashes or resets copies`(): Unit =
+        runBlocking {
+            val rig = Rig(files = 3)
+            rig.engine().run(rig.newJob())
+            var reads = 0
+            rig.fake.fail(Op.OPEN_READ, matches = { it.toString().startsWith(USB) && ++reads > 1 }) {
+                StorageException.Disconnected(it)
+            }
+            val result = rig.engine().confirm("job1", FreshRead.REATTACHED)
+            result.interrupted shouldBe true
+            result.ok shouldBe 1
+            val files = rig.store.files.values.sortedBy { it.index }
+            files.all { it.state == MoveFileState.VERIFIED } shouldBe true
+            files.count { it.confirmedAt != null } shouldBe 1
+        }
+
+    @Test
     fun `revoked access pauses the job (E-MOVE-17)`(): Unit = runBlocking {
         val rig = Rig()
         rig.fake.fail(Op.CREATE, matches = { it.toString().startsWith(USB) }) { StorageException.PermissionDenied(it) }

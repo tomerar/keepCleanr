@@ -50,7 +50,13 @@ enum class PauseReason {
 enum class FreshRead { REATTACHED, REBOOTED }
 
 /** Result of the second pass ("Check backup", MOVE-15). */
-data class CheckResult(val ok: Int, val damaged: Int, val missing: Int)
+data class CheckResult(
+    val ok: Int,
+    val damaged: Int,
+    val missing: Int,
+    /** The drive went away or access was lost mid-check; files not reached keep their state. */
+    val interrupted: Boolean = false,
+)
 
 data class MoveJob(
     val id: String,

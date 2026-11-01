@@ -85,6 +85,9 @@ sealed interface BackupCheck {
 
     /** The drive didn't come back in time, or another drive was attached. */
     data class TimedOut(override val jobId: String) : BackupCheck
+
+    /** The drive went away or access was lost while checking; what was checked is kept. */
+    data class Interrupted(override val jobId: String) : BackupCheck
 }
 
 /** Result of freeing originals after a verified copy (MOVE-10). */
@@ -324,8 +327,20 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             }
             val target = attached() ?: return@launch timeout(jobId)
             _state.update { it.copy(check = BackupCheck.Checking(jobId)) }
-            val result = withContext(Dispatchers.IO) { engine(target).confirm(jobId, evidence) }
-            _state.update { it.copy(check = BackupCheck.Done(jobId, result)) }
+            val result = try {
+                withContext(Dispatchers.IO) { engine(target).confirm(jobId, evidence) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never crash on a storage error mid-check; confirmed files are already saved (review P2).
+                null
+            }
+            val step = if (result == null || result.interrupted) {
+                BackupCheck.Interrupted(jobId)
+            } else {
+                BackupCheck.Done(jobId, result)
+            }
+            _state.update { it.copy(check = step) }
             reload()
         }
     }

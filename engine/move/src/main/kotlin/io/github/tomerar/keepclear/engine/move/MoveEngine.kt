@@ -378,8 +378,17 @@ class MoveEngine(
         var missing = 0
         for (f in store.files(jobId).filter { it.state == MoveFileState.VERIFIED }) {
             currentCoroutineContext().ensureActive()
-            val stat = target.stat(f.relTarget)
-            val hash = if (stat?.size == f.sourceSize) readBackHash(f.relTarget) else null
+            // Unplugged or access lost mid-check: stop, keep what was confirmed, touch nothing else.
+            val read = try {
+                val stat = target.stat(f.relTarget)
+                stat to (if (stat?.size == f.sourceSize) readBackHash(f.relTarget) else null)
+            } catch (e: Pause) {
+                return CheckResult(ok, damaged, missing, interrupted = true)
+            } catch (e: StorageException) {
+                if (pauseFor(e) != null) return CheckResult(ok, damaged, missing, interrupted = true)
+                throw e
+            }
+            val (stat, hash) = read
             when {
                 hash != null && hash == f.sourceSha256 -> {
                     ok++

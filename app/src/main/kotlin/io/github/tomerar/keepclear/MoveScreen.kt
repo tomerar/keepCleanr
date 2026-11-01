@@ -460,6 +460,13 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
                         modifier = Modifier.testTag("checkTimeout"),
                     )
                 }
+
+                is BackupCheck.Interrupted -> {
+                    Text(
+                        stringResource(R.string.move_check_interrupted),
+                        modifier = Modifier.testTag("checkInterrupted"),
+                    )
+                }
             }
             if (check is BackupCheck.Unplug || check is BackupCheck.PlugBack) {
                 Text(stringResource(R.string.move_check_why), style = MaterialTheme.typography.bodySmall)

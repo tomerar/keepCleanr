@@ -159,6 +159,7 @@
     <string name="move_check_timeout">The drive didn\'t come back. Nothing was changed. Try again when it\'s plugged in.</string>
     <string name="move_check_why">Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that.</string>
     <string name="move_check_close">Close</string>
+    <string name="move_check_interrupted">The check stopped: the drive was disconnected. Files checked so far are kept. Plug it in and check again.</string>
     <string name="move_paused_user">Paused.</string>
     <string name="move_receipt_title">Copied to %1$s</string>
     <string name="move_receipt_verified">%1$s copied and checked (read back from the drive, SHA-256).</string>
