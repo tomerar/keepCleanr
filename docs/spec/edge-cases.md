@@ -143,4 +143,4 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-SEC-7 | File swapped for a symlink or a different file between plan and action | Skipped (identity changed); symlinks moved as links, never followed. | U (fake gateway) |
 | E-SEC-8 | Another app sends an intent to our service/receiver | Not exported → `SecurityException` in the sender; no action. | Robolectric |
 | E-SEC-9 | PROTECTED path written as `whatsapp/DATABASES`, NFD, with zero-width chars, or under `/storage/emulated/999/` | Still PROTECTED. | U (table) |
-| E-SEC-10 | Overlay app covers the confirm sheet | Touches ignored; hint "Something is covering the screen". | UI |
+| E-SEC-10 | Overlay app covers the confirm sheet | Touches ignored; hint "Something is covering the screen". Checked on each touch inside `SafeConfirmButton` (`FLAG_WINDOW_IS_OBSCURED` / `…PARTIALLY_OBSCURED`), because Compose dialogs are separate windows that don't inherit the activity's `filterTouchesWhenObscured` (review PR B). | UI (`ObscuredTouchTest`) |

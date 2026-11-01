@@ -95,4 +95,33 @@ class SafetyGuardTest {
         guard.check(plan(op("$ROOT/.KeepClearTrash", OpKind.PURGE)), SESSION)
             .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
     }
+
+    @Test
+    fun `a plan confirmed by the user's tap may only hold what was shown (review PR B)`() {
+        val a = op(photo)
+        val other = op("$ROOT/DCIM/Camera/other.jpg")
+        val shown = Confirmation.of(listOf(photo), at = 5)
+        guard.check(ActionPlan("p", listOf(a), "t").confirm(shown, SESSION), SESSION) shouldBe
+            SafetyGuard.Verdict.Accepted
+        guard.check(ActionPlan("p", listOf(a, other), "t").confirm(shown, SESSION), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        // Unconfirmed plans are still rejected.
+        guard.check(ActionPlan("p", listOf(a), "t"), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    }
+
+    @Test
+    fun `an op whose path ref differs from the path shown is rejected (review PR B)`() {
+        val swapped = op(photo).copy(ref = io.github.tomerar.keepclear.core.storage.KPath.Local("$ROOT/DCIM/other.jpg"))
+        guard.check(plan(swapped), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    }
+
+    @Test
+    fun `a trashed item confirmed by its original path matches through shownAs`() {
+        val trashed = "$ROOT/.KeepClearTrash/1/x.jpg"
+        val restore = op(trashed, OpKind.RESTORE).copy(shownAs = photo)
+        guard.check(
+            ActionPlan("p", listOf(restore), "t").confirm(Confirmation.of(listOf(photo), 1), SESSION),
+            SESSION,
+        ) shouldBe SafetyGuard.Verdict.Accepted
+    }
 }

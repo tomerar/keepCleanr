@@ -56,3 +56,5 @@ Status: Accepted (2026-10-31) · Date: 2026-10-31
 
 ## Note: test builds (2026-11-01)
 Debug/test builds, including the test APK that CI publishes from `main` for the owner's phone, are signed with a committed, non-secret test key (`keystore/debug-test.keystore`, see `keystore/README.md`) so each test APK updates the previous one. It never signs a release, and a release can't update a test install: uninstall the test build first (after restoring or emptying the trash).
+
+Amended (review PR B): debug/test builds use `applicationIdSuffix ".test"` (`io.github.tomerar.keepclear.test`, label "KeepClear test"). The test key is public, so it must not be able to sign an update for the real package. Release `foss` and `play` keep the single applicationId above. An old test install (from before this change) has to be cleaned up by hand; see `keystore/README.md`.

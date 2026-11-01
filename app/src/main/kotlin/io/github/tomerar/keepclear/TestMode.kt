@@ -41,12 +41,16 @@ class TestMode(context: Context, defaultOn: Boolean = BuildConfig.DEBUG) {
         const val KEY = "testMode"
         const val TAG = "KeepClear-TestMode"
 
-        /** What an executor reports in test mode: logged, never performed. */
+        /**
+         * What an executor reports in test mode: logged, never performed. Only the kind and size: logcat is
+         * readable by other tools, and file names can be private (review PR B).
+         */
         fun log(result: OpResult) {
-            if (result is OpResult.Simulated) {
-                Log.i(TAG, "would ${result.op.kind}: ${result.op.displayPath} (${result.op.expectedSize} bytes)")
-            }
+            logLine(result)?.let { Log.i(TAG, it) }
         }
+
+        fun logLine(result: OpResult): String? =
+            if (result is OpResult.Simulated) "would ${result.op.kind} (${result.op.expectedSize} bytes)" else null
 
         /** Marker for "Android was not asked to clear caches" in [HomeUiState.trimResult]. */
         const val TRIM_SKIPPED = -1L

@@ -53,7 +53,26 @@ data class PlannedOp(
      * deleted because this one existed, so deleting it too leaves no copy outside the trash.
      */
     val lastCopyConfirmed: Boolean = false,
-)
+    /**
+     * What the user saw for this item in the confirmation, when it differs from [displayPath] (e.g. a trashed
+     * item is shown by its original path). The guard matches the [Confirmation] against this.
+     */
+    val shownAs: String? = null,
+) {
+    /** The path the confirmation must contain for this op (review PR B). */
+    val confirmKey: String get() = shownAs ?: displayPath
+}
+
+/**
+ * The user's tap on a confirm button (review PR B): created by the confirm UI at the moment of the tap, from
+ * exactly the items it showed, never by a ViewModel. A plan confirmed with it may only contain ops whose
+ * [PlannedOp.confirmKey] is in [paths].
+ */
+class Confirmation private constructor(val at: Long, val paths: Set<String>) {
+    companion object {
+        fun of(shownPaths: Collection<String>, at: Long): Confirmation = Confirmation(at, shownPaths.toSet())
+    }
+}
 
 /** A file that must still be there, unchanged in size, for an op to proceed (H2, SAFETY-8). */
 data class Witness(val ref: KPath, val path: String, val size: Long)
@@ -70,8 +89,16 @@ data class ActionPlan(
     val duplicateGroupSizes: Map<String, Int> = emptyMap(),
     val confirmedAt: Long? = null,
     val sessionId: String? = null,
+    /** Paths the user confirmed; null = no [Confirmation] (only the two-argument form, used by engine tests). */
+    val confirmedPaths: Set<String>? = null,
 ) {
     val totalBytes: Long get() = ops.sumOf { it.expectedSize }
 
-    fun confirm(now: Long, session: String): ActionPlan = copy(confirmedAt = now, sessionId = session)
+    /** Engine/test form: confirms every op as shown. The app must use the [Confirmation] form (Konsist). */
+    fun confirm(now: Long, session: String): ActionPlan =
+        copy(confirmedAt = now, sessionId = session, confirmedPaths = ops.map { it.confirmKey }.toSet())
+
+    /** The app's form: [confirmation] comes from the user's tap; [session] identifies this process. */
+    fun confirm(confirmation: Confirmation, session: String): ActionPlan =
+        copy(confirmedAt = confirmation.at, sessionId = session, confirmedPaths = confirmation.paths)
 }

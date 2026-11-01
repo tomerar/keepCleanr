@@ -126,4 +126,33 @@ class ArchitectureTest {
             .filter { "/src/main/" in it.path && !it.path.endsWith("/Streams.kt") }
             .assertFalse { file -> missing.any { it in file.text } }
     }
+
+    /**
+     * Review PR B: logcat is readable by anyone with `adb` and by bug-report tools; file names can be private
+     * ("divorce papers.pdf"). No log call in production code may include a path, a name or a URI.
+     */
+    @Test
+    fun `no file paths in log calls`() {
+        val logCall = Regex("""Log\.[vdiwe]\((?:[^()]|\([^()]*\))*\)""")
+        val pathish = listOf("displayPath", "Path", "path", ".absolute", "Uri", "uri", "name")
+        projectScope.files
+            .filter { "/src/main/" in it.path }
+            .assertFalse { file ->
+                logCall.findAll(file.text).any { call -> pathish.any { it in call.value.substringAfter(',') } }
+            }
+    }
+
+    /**
+     * Review PR B: plans are confirmed where the user taps. App code may confirm a plan only with a
+     * `Confirmation` (never `confirm(now, session)`), and only UI code (not a ViewModel) may create one.
+     */
+    @Test
+    fun `plans are confirmed by the user's tap, not stamped by a ViewModel`() {
+        val appMain = projectScope.files.filter { "/app/src/main/" in it.path }
+        appMain.assertFalse { file ->
+            Regex("""\.confirm\(\s*System\.currentTimeMillis\(\)""").containsMatchIn(file.text)
+        }
+        appMain.filter { it.name.endsWith("ViewModel") || it.path.endsWith("ViewModel.kt") }
+            .assertFalse { file -> "Confirmation.of(" in file.text || "userConfirmed(" in file.text }
+    }
 }

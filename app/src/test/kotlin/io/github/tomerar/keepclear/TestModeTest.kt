@@ -106,8 +106,8 @@ class TestModeTest {
                     ),
                     trimResult = TestMode.TRIM_SKIPPED,
                     showExternalCacheClear = false,
-                    onClean = {},
-                    onUndo = {},
+                    onClean = { _, _ -> },
+                    onUndo = { _, _ -> },
                     onTrim = {},
                     onClearExternalCaches = {},
                     onOpenGroup = {},
@@ -118,5 +118,28 @@ class TestModeTest {
         }
         compose.onNodeWithTag("simulatedResult").assertExists()
         compose.onNodeWithTag("undo").assertDoesNotExist()
+    }
+
+    @Test
+    fun `test-mode log lines never contain a file path or name`() {
+        val path = "/storage/emulated/0/Documents/divorce papers.pdf"
+        val op = io.github.tomerar.keepclear.core.safety.PlannedOp(
+            io.github.tomerar.keepclear.core.storage.KPath.Local(path),
+            path,
+            io.github.tomerar.keepclear.core.safety.OpKind.TRASH,
+            false,
+            42,
+            1,
+        )
+        val line = TestMode.logLine(io.github.tomerar.keepclear.core.safety.OpResult.Simulated(op))!!
+        assertFalse(line.contains("divorce"))
+        assertFalse(line.contains("/storage"))
+        assertTrue(line.contains("42"))
+    }
+
+    @Test
+    fun `test builds are a separate app, so the public test key can't update a real install (M3)`() {
+        assertEquals("io.github.tomerar.keepclear.test", BuildConfig.APPLICATION_ID)
+        assertEquals("io.github.tomerar.keepclear.test", context.packageName)
     }
 }

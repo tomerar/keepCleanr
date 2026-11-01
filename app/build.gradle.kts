@@ -24,7 +24,14 @@ android {
             keyPassword = "android"
         }
     }
+    buildFeatures.resValues = true
     buildTypes {
+        debug {
+            // Review PR B (M3): the public test key must never be able to update a real install, so test builds
+            // are a separate app: io.github.tomerar.keepclear.test, named "KeepClear test" (ADR 0009 note).
+            applicationIdSuffix = ".test"
+            resValue("string", "launcher_name", "KeepClear test")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

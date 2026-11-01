@@ -58,7 +58,13 @@ enum class TargetProblem {
     SELECTION_LOST,
 }
 
-data class JobView(val job: MoveJob, val receipt: Receipt, val canReadBack: Boolean) {
+data class JobView(
+    val job: MoveJob,
+    val receipt: Receipt,
+    val canReadBack: Boolean,
+    /** Originals the user is offered to free: confirmed copies (H1). The confirm tap names exactly these. */
+    val freeablePaths: Set<String> = emptySet(),
+) {
     /**
      * MOVE-9, H1: freeing is offered only once every file is settled and copies passed the second check
      * ("Check backup"), whose read can't come from the phone's memory.
@@ -132,7 +138,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun reload() {
         val store = controller.store
         val jobs = withContext(Dispatchers.IO) {
-            store.jobs().map { JobView(it, Receipt.of(it, store.files(it.id)), canReadBack(it)) }
+            store.jobs().map { job ->
+                val files = store.files(job.id)
+                val freeable = files.filter {
+                    it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED && it.confirmedAt != null
+                }.map { it.sourcePath }.toSet()
+                JobView(job, Receipt.of(job, files), canReadBack(job), freeable)
+            }
         }
         _state.update { it.copy(jobs = jobs) }
     }
@@ -245,7 +257,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      * MOVE-10: after the user confirmed in this session, trash the originals whose copy is verified and still on
      * the drive. Everything goes through the executor: re-check, strict re-hash, PROTECTED paths, 30-day trash.
      */
-    fun freeOriginals(jobId: String) {
+    fun freeOriginals(jobId: String, confirmation: io.github.tomerar.keepclear.core.safety.Confirmation) {
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             val store = controller.store
@@ -261,8 +273,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update { it.copy(busy = false, freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
                 return@launch
             }
-            val plan = ActionPlan(UUID.randomUUID().toString(), ops, "move")
-                .confirm(System.currentTimeMillis(), app.sessionId)
+            // Review PR B: the confirmation lists the originals the receipt offered; anything else is rejected.
+            val plan = ActionPlan(UUID.randomUUID().toString(), ops, "move").confirm(confirmation, app.sessionId)
             val report = withContext(Dispatchers.IO) { app.executor().run(plan) }
             val result = when (report) {
                 is ExecutionReport.Ran -> {

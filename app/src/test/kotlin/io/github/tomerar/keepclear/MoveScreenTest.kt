@@ -95,7 +95,7 @@ class MoveScreenTest {
                 state = state,
                 now = now,
                 notificationsOff = notificationsOff,
-                actions = MoveActions(onPickTarget = { picked = it }, onFree = { freed = it }),
+                actions = MoveActions(onPickTarget = { picked = it }, onFree = { id, _ -> freed = id }),
                 onBack = {},
             )
         }
@@ -164,7 +164,7 @@ class MoveScreenTest {
                     state = MoveUiState(jobs = listOf(view)),
                     now = now,
                     notificationsOff = false,
-                    actions = MoveActions(onFree = { freed = it }, onCheck = { checked = it }),
+                    actions = MoveActions(onFree = { id, _ -> freed = id }, onCheck = { checked = it }),
                     onBack = {},
                 )
             }

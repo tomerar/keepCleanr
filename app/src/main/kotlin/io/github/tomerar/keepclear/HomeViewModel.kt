@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.ActionPlan
+import io.github.tomerar.keepclear.core.safety.Confirmation
 import io.github.tomerar.keepclear.core.safety.ExecutionReport
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.OpResult
@@ -212,13 +213,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Restore or permanently delete trash entries through the executor (user already confirmed in the UI). */
-    fun restore(entries: List<TrashEntry>) {
+    /**
+     * Restore or permanently delete trash entries through the executor. [confirmation] is the user's tap in the
+     * Trash UI, made from the entries' original paths (review PR B).
+     */
+    fun restore(entries: List<TrashEntry>, confirmation: Confirmation) {
         viewModelScope.launch {
             // Owner decision 1.2: a changed item is never put back in place; it is marked and offered separately.
             val changed = entries.filter { app.trashManager.isChanged(it, fullCheck = true) }
             changedFound += changed.map { it.id }
-            runTrashPlan(entries - changed.toSet(), OpKind.RESTORE)
+            runTrashPlan(entries - changed.toSet(), OpKind.RESTORE, confirmation)
         }
     }
 
@@ -226,18 +230,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val changedFound = mutableSetOf<String>()
 
     /** Owner decision 1.2: restore a changed item into `KeepClear/Restored-changed/` (user confirmed). */
-    fun restoreChanged(entry: TrashEntry) = runTrashPlan(listOf(entry), OpKind.RESTORE_CHANGED)
+    fun restoreChanged(entry: TrashEntry, confirmation: Confirmation) =
+        runTrashPlan(listOf(entry), OpKind.RESTORE_CHANGED, confirmation)
 
     /** Duplicate-group sizes of the plan the held-back items came from (SAFETY-8 still applies to them). */
     private var lastCopyGroupSizes: Map<String, Int> = emptyMap()
 
     /** Owner decision 1.3: the user confirmed these are the last copies; trash them. */
-    fun confirmLastCopies() {
+    fun confirmLastCopies(confirmation: Confirmation) {
         val ops = _state.value.lastCopy ?: return
         _state.update { it.copy(lastCopy = null) }
         viewModelScope.launch {
             val plan = lastCopyPlan(UUID.randomUUID().toString(), ops, lastCopyGroupSizes)
-                .confirm(System.currentTimeMillis(), app.sessionId)
+                .confirm(confirmation, app.sessionId)
             val report = app.executor().run(plan)
             if (report is ExecutionReport.Rejected) {
                 _state.update {
@@ -253,9 +258,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissLastCopies() = _state.update { it.copy(lastCopy = null) }
 
-    fun purge(entries: List<TrashEntry>) = runTrashPlan(entries, OpKind.PURGE)
+    fun purge(entries: List<TrashEntry>, confirmation: Confirmation) = runTrashPlan(entries, OpKind.PURGE, confirmation)
 
-    private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind) {
+    private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind, confirmation: Confirmation) {
         if (entries.isEmpty()) {
             loadTrash()
             return
@@ -265,14 +270,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             app.trashManager.forgetMissing(entries)
             val ops = entries.mapNotNull { e ->
                 val stat = app.fileGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
-                PlannedOp(stat.path, e.trashedPath, kind, stat.isDirectory, stat.size, stat.mtimeMillis, stat.identity)
+                PlannedOp(
+                    stat.path,
+                    e.trashedPath,
+                    kind,
+                    stat.isDirectory,
+                    stat.size,
+                    stat.mtimeMillis,
+                    stat.identity,
+                    // The Trash shows (and the user confirms) items by their original path.
+                    shownAs = e.originalPath,
+                )
             }
             if (ops.isNotEmpty()) {
-                val plan = ActionPlan(
-                    UUID.randomUUID().toString(),
-                    ops,
-                    kind.name,
-                ).confirm(System.currentTimeMillis(), app.sessionId)
+                val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
                 app.executor().run(plan)
             }
             loadTrash()
@@ -281,7 +292,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
-    fun clean(items: List<ClassifiedItem>) {
+    fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) {
         viewModelScope.launch {
             // Only path-addressable files can go to KeepClear's trash in this version (ADR 0010). MediaStore-only
             // items (no All files access, `play`) are reported as skipped instead of being acted on.
@@ -294,7 +305,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             var skipped = unsupported.size
             var failed = 0
             if (ops.isNotEmpty()) {
-                val plan = unconfirmed.confirm(System.currentTimeMillis(), app.sessionId)
+                val plan = unconfirmed.confirm(confirmation, app.sessionId)
                 when (val report = app.executor().run(plan)) {
                     is ExecutionReport.Ran -> {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
@@ -334,12 +345,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** E-DEL-15: Undo restores everything the last clean moved to the trash. */
-    fun undo(result: CleanResult) {
+    fun undo(result: CleanResult, confirmation: Confirmation) {
         viewModelScope.launch {
             val paths = result.trashedPaths.toSet()
             val entries = app.trashManager.entries().filter { it.originalPath in paths }
             _state.update { it.copy(cleanResult = null) }
-            restore(entries)
+            restore(entries, confirmation)
         }
     }
 

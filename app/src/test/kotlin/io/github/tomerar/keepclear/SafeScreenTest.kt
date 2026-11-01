@@ -59,6 +59,8 @@ class SafeScreenTest {
     private var trimmed = 0
     private var undone: CleanResult? = null
 
+    private var confirmedPaths: Set<String>? = null
+
     private fun show(result: CleanResult? = null, external: Boolean = false) = compose.setContent {
         KeepClearTheme {
             SafeScreen(
@@ -66,10 +68,11 @@ class SafeScreenTest {
                 result = result,
                 trimResult = null,
                 showExternalCacheClear = external,
-                onClean = {
-                    cleaned = it
+                onClean = { items, confirmation ->
+                    cleaned = items
+                    confirmedPaths = confirmation.paths
                 },
-                onUndo = { undone = it },
+                onUndo = { r, _ -> undone = r },
                 onTrim = { trimmed++ },
                 onClearExternalCaches = {},
                 onOpenGroup = {},
@@ -90,6 +93,8 @@ class SafeScreenTest {
         compose.mainClock.advanceTimeBy(600)
         compose.onNodeWithTag("confirmClean").assertIsEnabled().performClick()
         assertEquals(4, cleaned!!.size)
+        // Review PR B: the tap names exactly what the dialog showed.
+        assertEquals(cleaned!!.map { it.item.path }.toSet(), confirmedPaths)
         assertTrue(cleaned!!.none { it.item.path.contains("/DCIM/Camera/") })
     }
 

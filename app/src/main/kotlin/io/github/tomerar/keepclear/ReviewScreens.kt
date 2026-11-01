@@ -50,6 +50,7 @@ import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.core.safety.Confirmation
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.GroupSummary
@@ -149,9 +150,9 @@ fun GroupScreen(
     group: GroupSummary,
     onOpenItem: (ClassifiedItem) -> Unit,
     onBack: () -> Unit,
-    onDelete: (List<ClassifiedItem>) -> Unit = {},
+    onDelete: (List<ClassifiedItem>, Confirmation) -> Unit = { _, _ -> },
     result: CleanResult? = null,
-    onUndo: (CleanResult) -> Unit = {},
+    onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
 ) {
     val text = RuleText.of(group.ruleId)
     val selectable = group.category == Category.SAFE || group.category == Category.REVIEW
@@ -217,7 +218,7 @@ fun GroupScreen(
                                 )
                                 if (!r.simulated) {
                                     TextButton(onClick = {
-                                        onUndo(r)
+                                        onUndo(r, userConfirmed(r.trashedPaths))
                                     }, modifier = Modifier.testTag("undo")) {
                                         Text(stringResource(R.string.clean_undo))
                                     }
@@ -288,7 +289,7 @@ fun GroupScreen(
             onConfirm = {
                 confirming = null
                 selected = emptySet()
-                onDelete(list)
+                onDelete(list, userConfirmed(list.map { it.item.path }))
             },
             onDismiss = { confirming = null },
         )

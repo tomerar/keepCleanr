@@ -45,7 +45,14 @@ class TrashScreenTest {
     private var purged: List<TrashEntry>? = null
 
     private fun show(trash: TrashUi) = compose.setContent {
-        KeepClearTheme { TrashScreen(trash, onRestore = { restored = it }, onPurge = { purged = it }, onBack = {}) }
+        KeepClearTheme {
+            TrashScreen(trash, onRestore = {
+                e,
+                _,
+                ->
+                restored = e
+            }, onPurge = { e, _ -> purged = e }, onBack = {})
+        }
     }
 
     @Test
@@ -109,10 +116,10 @@ class TrashScreenTest {
             KeepClearTheme {
                 TrashScreen(
                     TrashUi(listOf(a), changed = setOf("a")),
-                    onRestore = { restored = it },
-                    onPurge = {},
+                    onRestore = { e, _ -> restored = e },
+                    onPurge = { _, _ -> },
                     onBack = {},
-                    onRestoreChanged = { restoredChanged = it },
+                    onRestoreChanged = { e, _ -> restoredChanged = e },
                 )
             }
         }
