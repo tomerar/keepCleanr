@@ -16,7 +16,7 @@ Work only on the current milestone in `tasks.md`. If the spec is wrong or incomp
 
 ## Status
 
-Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. Next: the independent review's PRs A (data safety), B (hardening), C (UX) in that order (`docs/progress.md`); M11 is paused until they merge. Then v1 milestones in the order of `tasks.md`, one PR per milestone, each after the owner's OK. Device checks and proposals waiting for the owner: `docs/progress.md`.
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. The review PRs A, B, C and the v1 milestones M11–M16a, M17a (Nextcloud/WebDAV engine), M17c (Dropbox engine) and M18a (reproducible build, store listing, accessibility) are merged (PRs #12–#33). Next needs the owner: M17b (network targets in the app; decision W3 on the built-in HTTP client in `backup:net`, accounts W4/W8) and the owner-only parts of M18 (W5–W7). Device checks and proposals waiting for the owner: `docs/progress.md`.
 
 ## Product principles (owner, 2026-11-01)
 
