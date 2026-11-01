@@ -479,4 +479,10 @@
         <item quantity="one">%1$s skipped</item>
         <item quantity="other">%1$s skipped</item>
     </plurals>
+    <string name="reminder_setting">Remind me when space is low</string>
+    <string name="reminder_setting_body" formatted="false">At most once a week, when less than 10% (or 2 GB) is free. It only reminds; nothing is deleted in the background.</string>
+    <string name="reminder_channel">Space reminders</string>
+    <string name="reminder_title">Space is getting low</string>
+    <string name="reminder_text">%1$s free. Open KeepClear to see what can go.</string>
+    <string name="reminder_text_junk">%1$s free. The last check found %2$s of junk ready to clean.</string>
 </resources>

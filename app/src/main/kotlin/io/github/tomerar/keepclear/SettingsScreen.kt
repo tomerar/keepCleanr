@@ -70,6 +70,9 @@ class SettingsActions(
     val choices: Choices = Choices(),
     val onRemoveKept: (String) -> Unit = {},
     val onRemoveJunk: (String) -> Unit = {},
+    /** SET-3: "Remind me when space is low" (off by default). */
+    val reminderOn: Boolean = false,
+    val onReminder: (Boolean) -> Unit = {},
 )
 
 /**
@@ -147,6 +150,19 @@ fun SettingsScreen(
                             ChoiceRow(folder, R.string.choice_junk_label, "removeJunk") { actions.onRemoveJunk(folder) }
                         }
                     }
+                }
+            }
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.reminder_setting), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.reminder_setting_body), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(
+                        checked = actions.reminderOn,
+                        onCheckedChange = actions.onReminder,
+                        modifier = Modifier.testTag("reminderSwitch"),
+                    )
                 }
             }
             TextButton(onClick = actions.onReplayIntro, modifier = Modifier.testTag("replayIntro")) {
