@@ -269,13 +269,20 @@ class DropboxBackupTargetTest {
     }
 
     @Test
-    fun `delete removes only files and empty folders`(): Unit = runBlocking {
+    fun `folders are never deleted, empty or not, files only in the revision seen`(): Unit = runBlocking {
         val t = target()
+        t.caps.canDeleteFolders shouldBe false
         t.put("d/f", data)
-        shouldThrow<StorageException.NotEmpty> { t.delete("d") }
+        t.mkdirs("d/empty")
+        // Dropbox would delete a folder with whatever another device just added; KeepClear never asks.
+        shouldThrow<StorageException.Unsupported> { t.delete("d/empty") }
+        shouldThrow<StorageException.Unsupported> { t.delete("d") }
+        server.isFolder("KeepClear/d/empty") shouldBe true
+        server.bytes("KeepClear/d/f") shouldBe data
         t.delete("d/f")
-        t.delete("d")
         server.files().shouldBeEmpty()
-        server.exists("KeepClear") shouldBe true
+        server.isFolder("KeepClear/d") shouldBe true
+        server.requests.filter { it.startsWith("/2/files/delete_v2 ") } shouldBe
+            listOf("/2/files/delete_v2 /KeepClear/d/f")
     }
 }

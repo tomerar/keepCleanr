@@ -128,16 +128,31 @@ internal object DropboxJson {
     fun fold(path: String): String = path.lowercase(Locale.ROOT)
 
     /**
-     * Reads a metadata object; null when it isn't a well-formed file or folder (a deleted entry, missing fields,
+     * Reads a polymorphic `Metadata` object (`get_metadata`, `list_folder` entries), which Dropbox tags with
+     * `.tag`: null when it isn't a well-formed file or folder (no or another tag such as `deleted`, missing fields,
      * a name that isn't a single safe path segment, or a `path_lower` whose last segment isn't that name).
      */
-    fun entry(o: JsonObject): DbxEntry? {
-        val tag = o.string(".tag") ?: return null
-        if (tag != "file" && tag != "folder") return null
+    fun entry(o: JsonObject): DbxEntry? = when (o.string(".tag")) {
+        "file" -> fields(o, isFolder = false)
+        "folder" -> fields(o, isFolder = true)
+        else -> null
+    }
+
+    /**
+     * Reads a concrete `FileMetadata` object: what `upload`, `upload_session/finish` and the download's
+     * `Dropbox-API-Result` header return. Dropbox sends it **without** `.tag` (the type is fixed by the endpoint),
+     * so none is required; a tag that is present must still say `file`.
+     */
+    fun fileEntry(o: JsonObject): DbxEntry? {
+        if (o.containsKey(".tag") && o.string(".tag") != "file") return null
+        return fields(o, isFolder = false)
+    }
+
+    private fun fields(o: JsonObject, isFolder: Boolean): DbxEntry? {
         val name = o.string("name")?.takeIf(DropboxPaths::isSafeSegment) ?: return null
         val pathLower = o.string("path_lower")?.takeIf { it.startsWith("/") && it.length <= 4096 } ?: return null
         if (fold(pathLower.substringAfterLast('/')) != fold(name)) return null
-        if (tag == "folder") return DbxEntry(true, name, pathLower, 0, 0, null, null)
+        if (isFolder) return DbxEntry(true, name, pathLower, 0, 0, null, null)
         val size = o.long("size")?.takeIf { it in 0..MAX_FILE_SIZE } ?: return null
         val mtime = o.string("server_modified")?.let {
             try {

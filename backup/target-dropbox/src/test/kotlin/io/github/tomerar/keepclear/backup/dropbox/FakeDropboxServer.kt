@@ -290,11 +290,16 @@ class FakeDropboxServer : AutoCloseable {
         HashMode.GARBAGE -> "not-a-hash"
     }
 
-    private fun meta(lower: String, node: Node): JsonObject = buildJsonObject {
+    /**
+     * Metadata as Dropbox sends it. [tagged]: a polymorphic `Metadata` (get_metadata, list_folder, move_v2,
+     * delete_v2) carries `.tag`; a concrete `FileMetadata`/`FolderMetadata` (upload, upload_session/finish, the
+     * download's Dropbox-API-Result, create_folder_v2) has none (files.stone).
+     */
+    private fun meta(lower: String, node: Node, tagged: Boolean = true): JsonObject = buildJsonObject {
         val name = node.display.substringAfterLast('/')
         when (node) {
             is Node.Folder -> {
-                put(".tag", "folder")
+                if (tagged) put(".tag", "folder")
                 put("name", name)
                 put("path_lower", lower)
                 put("path_display", node.display)
@@ -302,7 +307,7 @@ class FakeDropboxServer : AutoCloseable {
             }
 
             is Node.File -> {
-                put(".tag", "file")
+                if (tagged) put(".tag", "file")
                 put("name", name)
                 put("path_lower", lower)
                 put("path_display", node.display)
@@ -426,7 +431,7 @@ class FakeDropboxServer : AutoCloseable {
         if (!makeParents(lower, "/" + path.trim('/'))) return error(ex, 409, "path/conflict/file/")
         val node = Node.Folder("/" + path.trim('/'))
         nodes[lower] = node
-        ok(ex, buildJsonObject { put("metadata", meta(lower, node)) })
+        ok(ex, buildJsonObject { put("metadata", meta(lower, node, tagged = false)) })
     }
 
     private fun move(ex: HttpExchange, o: JsonObject): Unit = synchronized(lock) {
@@ -518,7 +523,7 @@ class FakeDropboxServer : AutoCloseable {
             System.currentTimeMillis(),
         )
         nodes[lower] = node
-        ok(ex, meta(lower, node))
+        ok(ex, meta(lower, node, tagged = false))
     }
 
     private fun upload(ex: HttpExchange, arg: JsonObject) {
@@ -577,7 +582,7 @@ class FakeDropboxServer : AutoCloseable {
         }
         if (node !is Node.File) return error(ex, 409, "path/not_file/")
         // Dropbox escapes non-ASCII characters in this header.
-        ex.responseHeaders.add("Dropbox-API-Result", DropboxJson.header(meta(lower, node)))
+        ex.responseHeaders.add("Dropbox-API-Result", DropboxJson.header(meta(lower, node, tagged = false)))
         ex.responseHeaders.add("Content-Type", "application/octet-stream")
         val body = if (longDownload) node.bytes + ByteArray(1_000) else node.bytes
         reply(ex, 200, body)

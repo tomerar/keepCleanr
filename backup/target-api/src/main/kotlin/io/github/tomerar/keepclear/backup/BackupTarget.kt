@@ -31,6 +31,13 @@ data class TargetCaps(
      * `OC-Checksum`, `oc:checksums`) are never listed here: they prove nothing.
      */
     val serverDigests: Set<DigestKind> = emptySet(),
+    /**
+     * True when [BackupTarget.delete] can remove an empty folder safely. False where the medium can't delete a
+     * folder only if it is empty (Dropbox deletes folders with their contents, so a file added by another device
+     * after an emptiness check would be lost): there [BackupTarget.delete] on a folder always throws
+     * [io.github.tomerar.keepclear.core.storage.StorageException.Unsupported] and leaves it in place.
+     */
+    val canDeleteFolders: Boolean = true,
 ) {
     companion object {
         const val FAT32_MAX_FILE: Long = 4L * 1024 * 1024 * 1024 - 1
@@ -99,7 +106,10 @@ interface BackupTarget {
 
     suspend fun openRead(rel: String): InputStream
 
-    /** Deletes a file KeepClear itself created (temp files, its own old manifest). */
+    /**
+     * Deletes a file KeepClear itself created (temp files, its own old manifest), or an empty folder when
+     * [TargetCaps.canDeleteFolders].
+     */
     suspend fun delete(rel: String)
 
     suspend fun list(relDir: String): List<Stat>

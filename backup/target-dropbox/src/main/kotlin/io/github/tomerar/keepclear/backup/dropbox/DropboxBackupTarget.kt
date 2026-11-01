@@ -51,7 +51,7 @@ class DropboxRetryAfterException(val retryAfterSeconds: Long?) :
  *   download from Dropbox (`readsFromServer`); free time still downloads and re-hashes each copy.
  * - **Never overwrite.** Uploads use `mode=add`, `autorename=false`, `strict_conflict=true` after `get_metadata`
  *   found the name free; renames use `move_v2` with `autorename=false` after the destination was found free.
- *   Deletes remove only one revision of a file KeepClear saw (`parent_rev`) or an empty folder.
+ *   Deletes remove only one revision of a file KeepClear saw (`parent_rev`); folders are never deleted.
  * - **Uploads** up to [singleUploadMax] go in one `upload` request with the length announced; larger ones, and
  *   files whose size isn't known up front, go through an upload session in chunks of [chunkSize]
  *   (`start`/`append_v2`/`finish`). Dropbox stores nothing under the name unless the whole upload completed.
@@ -80,6 +80,7 @@ class DropboxBackupTarget(
         caseSensitive = false,
         readsFromServer = true,
         serverDigests = setOf(DigestKind.DROPBOX_CONTENT_HASH),
+        canDeleteFolders = false,
     )
 
     private val base: List<String> = folder.split('/').filter { it.isNotEmpty() }.also { segs ->
@@ -344,7 +345,8 @@ class DropboxBackupTarget(
 
     /** Checks the metadata Dropbox answered for a finished upload: the right path and every byte. */
     private fun checkCommitted(r: HttpResponse, path: KPath, target: String, size: Long) {
-        val entry = DropboxJson.entry(DropboxJson.parse(r.readBody(MAX_RPC_BYTES)))
+        // `upload` and `upload_session/finish` return a concrete FileMetadata (no `.tag`).
+        val entry = DropboxJson.fileEntry(DropboxJson.parse(r.readBody(MAX_RPC_BYTES)))
             ?: throw DropboxJsonException("not a file")
         if (entry.isFolder || entry.pathLower != DropboxJson.fold(target) || entry.size != size) {
             throw StorageException.Io(path, message = "Dropbox stored something else than was sent")
@@ -568,7 +570,7 @@ class DropboxBackupTarget(
             // The file's metadata comes in a header; it must describe this file, and its size bounds the body.
             val meta = try {
                 r.header("dropbox-api-result")
-                    ?.let { DropboxJson.entry(DropboxJson.parse(it.toByteArray(Charsets.ISO_8859_1))) }
+                    ?.let { DropboxJson.fileEntry(DropboxJson.parse(it.toByteArray(Charsets.ISO_8859_1))) }
             } catch (e: DropboxJsonException) {
                 null
             }
@@ -606,16 +608,18 @@ class DropboxBackupTarget(
         val path = kpath(segs)
         io(path) {
             val e = metadata(segs) ?: throw StorageException.NotFound(path)
-            // Dropbox deletes a folder with everything in it; KeepClear only ever deletes empty ones. A file is
-            // deleted only in the revision just seen (parent_rev), never a newer one written meanwhile.
-            if (e.isFolder && children(segs).isNotEmpty()) throw StorageException.NotEmpty(path)
-            if (!e.isFolder && e.rev == null) throw StorageException.Io(path, message = "no revision to delete")
+            // Dropbox deletes a folder with everything in it, and `parent_rev` doesn't apply to folders: a file
+            // another device adds between an emptiness check and the delete would go too. So folders are never
+            // deleted here (caps.canDeleteFolders = false). A file is deleted only in the revision just seen
+            // (parent_rev), never a newer one written meanwhile.
+            if (e.isFolder) throw StorageException.Unsupported(path, "folders are never deleted on Dropbox")
+            val rev = e.rev ?: throw StorageException.Io(path, message = "no revision to delete")
             try {
                 rpc(
                     "/2/files/delete_v2",
                     buildJsonObject {
                         put("path", dbx(segs))
-                        if (e.rev != null) put("parent_rev", e.rev)
+                        put("parent_rev", rev)
                     },
                     path,
                     readOnly = false,
