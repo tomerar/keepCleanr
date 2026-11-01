@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -208,26 +209,29 @@ fun GroupScreen(
                     if (selectable) {
                         val all = group.items.map { it.item.path }.toSet()
                         val allSelected = all.isNotEmpty() && selected.containsAll(all)
-                        TextButton(
-                            onClick = { selected = if (allSelected) emptySet() else all },
-                            modifier = Modifier.testTag("selectAll"),
-                        ) {
-                            Text(
-                                stringResource(
-                                    if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
-                                ),
-                            )
+                        // One row, so the pictures stay where they were on small screens.
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(
+                                onClick = { selected = if (allSelected) emptySet() else all },
+                                modifier = Modifier.testTag("selectAll"),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
+                                    ),
+                                )
+                            }
+                            // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
+                            if (group.items.size > 1) {
+                                TextButton(onClick = { swiping = true }, modifier = Modifier.testTag("startSwipe")) {
+                                    Text(stringResource(R.string.swipe_start))
+                                }
+                            }
                         }
                         Text(
                             stringResource(R.string.review_long_press_hint),
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
-                        if (group.items.size > 1) {
-                            TextButton(onClick = { swiping = true }, modifier = Modifier.testTag("startSwipe")) {
-                                Text(stringResource(R.string.swipe_start))
-                            }
-                        }
                     }
                     result?.let { r ->
                         Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
