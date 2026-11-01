@@ -39,6 +39,20 @@ class M13Test {
     }
 
     @Test
+    fun `in trial mode Uninstall explains and never opens Android's uninstall window (SAFETY-9)`() {
+        var uninstalled: String? = null
+        val apps = listOf(AppInfo("old.game", "Old game", 2_000_000_000, 0, 0, now - 9 * month, now - 30 * month))
+        compose.setContent {
+            KeepClearTheme {
+                AppsScreen(apps, now, AppsActions(onUninstall = { uninstalled = it }, testModeOn = true), onBack = {})
+            }
+        }
+        compose.onNodeWithTag("uninstall_old.game").performClick()
+        assertEquals(null, uninstalled)
+        compose.onNodeWithTag("uninstallTrial_old.game").assertExists()
+    }
+
+    @Test
     fun `without usage access, the screen explains it first (ONB-7)`() {
         var asked = 0
         compose.setContent {

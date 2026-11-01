@@ -153,9 +153,13 @@ class MainActivity : ComponentActivity() {
                             },
                             onUninstall = { pkg ->
                                 // Android's own uninstall window; KeepClear never removes an app itself.
-                                runCatching { startActivity(Intent(Intent.ACTION_DELETE, "package:$pkg".toUri())) }
+                                // SAFETY-9: never in trial mode (the screen explains; this is the backstop).
+                                if (!app.testMode.isOn) {
+                                    runCatching { startActivity(Intent(Intent.ACTION_DELETE, "package:$pkg".toUri())) }
+                                }
                             },
                             onOpenAppInfo = ::openAppInfo,
+                            testModeOn = testModeOn,
                         ),
                         appActions = AppActions(
                             labelOf = ::appLabel,

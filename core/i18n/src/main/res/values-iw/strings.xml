@@ -413,4 +413,5 @@
         <item quantity="two">שתי אפליקציות</item>
         <item quantity="other">%1$s אפליקציות</item>
     </plurals>
+    <string name="test_mode_uninstall_blocked">מצב ניסיון: שום אפליקציה לא מוסרת. כדי להסיר את האפליקציה הזאת, אפשר לכבות את מצב הניסיון בהגדרות › מתקדם, או להשתמש בהגדרות › אפליקציות של אנדרואיד.</string>
 </resources>

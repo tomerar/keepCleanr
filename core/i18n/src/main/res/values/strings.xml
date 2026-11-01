@@ -391,4 +391,5 @@
         <item quantity="one">%1$s app</item>
         <item quantity="other">%1$s apps</item>
     </plurals>
+    <string name="test_mode_uninstall_blocked">Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android\'s Settings › Apps.</string>
 </resources>

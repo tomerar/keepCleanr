@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -33,6 +38,8 @@ class AppsActions(
     val onAllowUsageAccess: () -> Unit = {},
     val onUninstall: (String) -> Unit = {},
     val onOpenAppInfo: (String) -> Unit = {},
+    /** SAFETY-9: in trial mode Uninstall explains instead of opening Android's uninstall window. */
+    val testModeOn: Boolean = false,
 )
 
 /**
@@ -99,7 +106,34 @@ fun AppsScreen(apps: List<AppInfo>?, now: Long, actions: AppsActions, onBack: ()
 
 @Composable
 private fun AppRow(app: AppInfo, now: Long, actions: AppsActions, uninstall: Boolean) {
+    var blocked by rememberSaveable { mutableStateOf(false) }
+    // One column: a lazy item with two root composables would draw them on top of each other.
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        AppRowContent(app, now, actions, uninstall, blocked) { blocked = true }
+    }
+}
+
+@Composable
+private fun AppRowContent(
+    app: AppInfo,
+    now: Long,
+    actions: AppsActions,
+    uninstall: Boolean,
+    blocked: Boolean,
+    onBlocked: () -> Unit,
+) {
     val locale = LocalConfiguration.current.locales[0]
+    if (blocked) {
+        Text(
+            stringResource(R.string.test_mode_uninstall_blocked),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                .padding(8.dp)
+                .testTag("uninstallTrial_${app.pkg}"),
+        )
+    }
     Row(
         Modifier.fillMaxWidth().testTag(if (uninstall) "unused_${app.pkg}" else "app_${app.pkg}"),
         verticalAlignment = Alignment.CenterVertically,
@@ -111,7 +145,8 @@ private fun AppRow(app: AppInfo, now: Long, actions: AppsActions, uninstall: Boo
         }
         if (uninstall) {
             OutlinedButton(onClick = {
-                actions.onUninstall(app.pkg)
+                // SAFETY-9: removing an app deletes its data; trial mode never hands that to Android.
+                if (actions.testModeOn) onBlocked() else actions.onUninstall(app.pkg)
             }, modifier = Modifier.testTag("uninstall_${app.pkg}")) {
                 Text(stringResource(R.string.apps_uninstall))
             }
