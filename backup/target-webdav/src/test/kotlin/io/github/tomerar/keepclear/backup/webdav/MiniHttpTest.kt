@@ -4,10 +4,13 @@ package io.github.tomerar.keepclear.backup.webdav
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
@@ -100,6 +103,51 @@ class MiniHttpTest {
         // A body larger than the caller allows.
         serve("HTTP/1.1 200 OK\r\nContent-Length: 20\r\n\r\n" + "x".repeat(20))
         shouldThrow<HttpProtocolException> { client().send("GET", "/").readBody(10) }
+    }
+
+    /** Accepts uploads, reads the request head, then never reads the body and never closes. */
+    private fun stall() = thread(isDaemon = true) {
+        while (!socket.isClosed) {
+            val s = runCatching { socket.accept() }.getOrNull() ?: break
+            accepted.incrementAndGet()
+            s.receiveBufferSize = 4 * 1024
+            val input = s.getInputStream()
+            var crlf = 0
+            while (crlf < 4) {
+                val b = input.read()
+                if (b < 0) break
+                crlf = if ((b == '\r'.code && crlf % 2 == 0) || (b == '\n'.code && crlf % 2 == 1)) crlf + 1 else 0
+            }
+            // ...and nothing more: the socket stays open and unread.
+        }
+    }
+
+    private fun uploadUntilStuck(http: MiniHttp) {
+        val up = http.upload("PUT", "/big", emptyList(), 1L shl 30)
+        val chunk = ByteArray(64 * 1024)
+        repeat(16 * 1024) { up.write(chunk, 0, chunk.size) } // 1 GiB: far more than any socket buffer
+    }
+
+    @Test
+    fun `a server that stops reading an upload can't block it forever (PR 31 review)`() {
+        stall()
+        val http = MiniHttp(https = false, host = "127.0.0.1", port = socket.localPort, timeoutMillis = 1_000)
+        assertTimeoutPreemptively(Duration.ofSeconds(20)) {
+            assertThrows(IOException::class.java) { uploadUntilStuck(http) }
+        }
+    }
+
+    @Test
+    fun `close aborts an upload that is blocked in a write (PR 31 review)`() {
+        stall()
+        val http = MiniHttp(https = false, host = "127.0.0.1", port = socket.localPort, timeoutMillis = 120_000)
+        thread(isDaemon = true) {
+            Thread.sleep(1_000)
+            http.close()
+        }
+        assertTimeoutPreemptively(Duration.ofSeconds(20)) {
+            assertThrows(IOException::class.java) { uploadUntilStuck(http) }
+        }
     }
 
     @Test

@@ -13,6 +13,8 @@ import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
@@ -20,7 +22,10 @@ import javax.net.ssl.SSLSocketFactory
 internal class HttpStatusException(val status: Int) : IOException("HTTP $status")
 
 /** The server's answer broke HTTP/1.1 or KeepClear's limits (SEC: every response is untrusted). */
-internal class HttpProtocolException(message: String) : IOException(message)
+internal open class HttpProtocolException(message: String) : IOException(message)
+
+/** More or fewer body bytes than announced: the upload was abandoned before the server could complete it. */
+internal class HttpLengthMismatchException(message: String) : HttpProtocolException(message)
 
 internal class HttpResponse(
     val status: Int,
@@ -73,12 +78,33 @@ internal class MiniHttp(
         val output = BufferedOutputStream(socket.getOutputStream(), 64 * 1024)
 
         fun kill() {
+            synchronized(lock) {
+                active.remove(this)
+                idle.remove(this)
+            }
             runCatching { socket.close() }
+        }
+
+        /**
+         * Runs a socket write with a deadline. `soTimeout` covers reads only: a server that accepts a request but
+         * stops reading would block a write forever. The watchdog closes the socket instead, so the write fails
+         * with an IOException (Disconnected) and the job pauses.
+         */
+        fun <T> timed(block: () -> T): T {
+            val task = WATCHDOG.schedule({ kill() }, timeoutMillis.toLong(), TimeUnit.MILLISECONDS)
+            try {
+                return block()
+            } finally {
+                task.cancel(false)
+            }
         }
     }
 
     private val lock = Any()
     private val idle = ArrayDeque<Conn>()
+
+    /** Connections in use by a request or a response body; [close] closes them too. */
+    private val active = HashSet<Conn>()
     private var generation = 0
 
     val hostHeader: String =
@@ -89,11 +115,11 @@ internal class MiniHttp(
 
     private fun take(fresh: Boolean = false): Conn {
         while (!fresh) {
-            val c = synchronized(lock) { idle.removeFirstOrNull() } ?: break
+            val c = synchronized(lock) { idle.removeFirstOrNull()?.also { active.add(it) } } ?: break
             if (healthy(c)) return c.also { it.reused = true }
             c.kill()
         }
-        return connect()
+        return connect().also { c -> synchronized(lock) { active.add(c) } }
     }
 
     /**
@@ -118,6 +144,7 @@ internal class MiniHttp(
 
     private fun release(c: Conn) {
         synchronized(lock) {
+            active.remove(c)
             if (c.generation == generation && idle.size < MAX_IDLE && !c.socket.isClosed) {
                 idle.addLast(c)
                 return
@@ -175,9 +202,11 @@ internal class MiniHttp(
             val c = take(fresh)
             try {
                 val all = if (body != null) headers + ("Content-Length" to body.size.toString()) else headers
-                writeHead(c, method, path, all)
-                if (body != null) c.output.write(body)
-                c.output.flush()
+                c.timed {
+                    writeHead(c, method, path, all)
+                    if (body != null) c.output.write(body)
+                    c.output.flush()
+                }
                 return readResponse(c, method)
             } catch (e: IOException) {
                 c.kill()
@@ -202,14 +231,13 @@ internal class MiniHttp(
     fun upload(method: String, path: String, headers: List<Pair<String, String>>, length: Long?): Upload {
         val c = take()
         try {
-            val framing = if (length !=
-                null
-            ) {
+            val framing = if (length != null) {
                 "Content-Length" to length.toString()
             } else {
                 "Transfer-Encoding" to "chunked"
             }
-            writeHead(c, method, path, headers + framing)
+            // Only buffered, not flushed: with nothing written yet the server hasn't even seen the request.
+            c.timed { writeHead(c, method, path, headers + framing) }
             return Upload(c, method, length)
         } catch (e: IOException) {
             c.kill()
@@ -227,16 +255,25 @@ internal class MiniHttp(
         private var chunkFill = 0
         private var done = false
 
+        /**
+         * With a known length, the last byte is held back until [finish]: until then the server has fewer bytes
+         * than announced and can't complete the request, so a length mismatch found later (one byte too many)
+         * never leaves a stored file behind.
+         */
+        private var held: Byte? = null
+
         fun write(b: ByteArray, off: Int, len: Int) {
             if (done) throw HttpProtocolException("the upload has already ended")
             if (length != null && written + len > length) {
                 c.kill()
                 done = true
-                throw HttpProtocolException("more bytes than announced")
+                throw HttpLengthMismatchException("more bytes than announced")
             }
             guard {
                 if (length != null) {
-                    c.output.write(b, off, len)
+                    val now = minOf(len.toLong(), length - 1 - written).coerceAtLeast(0).toInt()
+                    c.output.write(b, off, now)
+                    if (now < len) held = b[off + len - 1] // the announced length's very last byte
                 } else {
                     var o = off
                     var left = len
@@ -251,6 +288,12 @@ internal class MiniHttp(
                 }
             }
             written += len
+        }
+
+        /** Sends what is buffered (never the held-back last byte). */
+        fun flush() {
+            if (done) throw HttpProtocolException("the upload has already ended")
+            guard { c.output.flush() }
         }
 
         private fun flushChunk() {
@@ -268,9 +311,10 @@ internal class MiniHttp(
             done = true
             if (length != null && written != length) {
                 c.kill()
-                throw HttpProtocolException("fewer bytes than announced")
+                throw HttpLengthMismatchException("fewer bytes than announced")
             }
             guard {
+                held?.let { c.output.write(it.toInt()) }
                 if (length == null) {
                     flushChunk()
                     c.output.write("0\r\n\r\n".toByteArray(Charsets.US_ASCII))
@@ -289,9 +333,9 @@ internal class MiniHttp(
          * A write that fails may mean the server already answered and closed (401, 413, 507 before reading the
          * whole body): read that answer if there is one, so the caller learns why.
          */
-        private inline fun guard(block: () -> Unit) {
+        private inline fun guard(crossinline block: () -> Unit) {
             try {
-                block()
+                c.timed { block() }
             } catch (e: IOException) {
                 done = true
                 val early = runCatching {
@@ -480,11 +524,17 @@ internal class MiniHttp(
         }
     }
 
-    /** Drops every idle connection; connections in use are closed when they are handed back. */
+    /**
+     * Closes every connection, idle or in use: a blocked upload or read fails at once with an IOException
+     * (Disconnected), and the next request runs on a new connection.
+     */
     override fun close() {
         val drop = synchronized(lock) {
             generation++
-            idle.toList().also { idle.clear() }
+            (idle + active).also {
+                idle.clear()
+                active.clear()
+            }
         }
         drop.forEach { it.kill() }
     }
@@ -497,6 +547,11 @@ internal class MiniHttp(
         private const val MAX_HEADER_BYTES = 64 * 1024
         private const val MAX_IDLE = 4
         private val SAFE_TO_REPEAT = setOf("GET", "PROPFIND")
+
+        /** Closes sockets whose write has blocked past the timeout (one daemon thread for all clients). */
+        private val WATCHDOG = ScheduledThreadPoolExecutor(1) { r ->
+            Thread(r, "keepclear-http-write-deadline").apply { isDaemon = true }
+        }.apply { removeOnCancelPolicy = true }
         private const val EARLY_ANSWER_MILLIS = 3_000
     }
 }
@@ -506,4 +561,6 @@ internal open class UploadStream(private val upload: MiniHttp.Upload) : OutputSt
     override fun write(b: Int) = write(byteArrayOf(b.toByte()), 0, 1)
 
     override fun write(b: ByteArray, off: Int, len: Int) = upload.write(b, off, len)
+
+    override fun flush() = upload.flush()
 }

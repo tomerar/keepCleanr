@@ -77,6 +77,9 @@ class FakeDavServer(
     /** Read this many bytes of the next PUT body, then drop the connection without answering. */
     @Volatile var dropUploadAfter: Int? = null
 
+    /** Store upload bytes as they arrive, and keep them if the client abandons the upload (a sloppy server). */
+    @Volatile var keepPartialUploads = false
+
     /** Send a GET body shorter than its Content-Length, then drop the connection. */
     @Volatile var shortGet = false
 
@@ -215,7 +218,16 @@ class FakeDavServer(
             }
             throw DropConnection()
         }
-        val received = ex.requestBody.readAllBytes()
+        val sink = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(8 * 1024)
+        while (true) {
+            // A sloppy server writes through as bytes arrive and keeps them if the client goes away mid-body.
+            val n = ex.requestBody.read(buf)
+            if (n < 0) break
+            sink.write(buf, 0, n)
+            if (keepPartialUploads) putFile(path.removePrefix(prefix), sink.toByteArray())
+        }
+        val received = sink.toByteArray()
         synchronized(lock) {
             if (nodes[parentOf(path)] !is Node.Dir) return reply(ex, 409)
             if (nodes[path] is Node.Dir) return reply(ex, 405)

@@ -257,13 +257,27 @@ class WebDavBackupTarget(
         return object : UploadStream(upload) {
             private var closed = false
 
-            override fun write(b: ByteArray, off: Int, len: Int) = mapped(path) { super.write(b, off, len) }
+            override fun write(b: ByteArray, off: Int, len: Int) = mapped(path) {
+                try {
+                    super.write(b, off, len)
+                } catch (e: HttpLengthMismatchException) {
+                    removeAbandonedUpload(segs, size)
+                    throw e
+                }
+            }
+
+            override fun flush() = mapped(path) { super.flush() }
 
             override fun close() {
                 if (closed) return
                 closed = true
                 mapped(path) {
-                    val r = upload.finish()
+                    val r = try {
+                        upload.finish()
+                    } catch (e: HttpLengthMismatchException) {
+                        removeAbandonedUpload(segs, size)
+                        throw e
+                    }
                     val hash = r.header("x-hash-sha256")
                     discard(r)
                     when (r.status) {
@@ -283,6 +297,20 @@ class WebDavBackupTarget(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * An upload whose length didn't match was abandoned before its last byte, so a correct server stores nothing.
+     * A server that keeps partial uploads anyway may leave a file under [segs]: it can only be ours (the name was
+     * free and the PUT carried `If-None-Match: *`), never larger than announced, so it is removed. Best effort:
+     * the caller's error is what counts, and the move engine deletes its temp file again on resume (E-MOVE-1).
+     */
+    private fun removeAbandonedUpload(segs: List<String>, size: Long?) {
+        runCatching {
+            val e = statEntry(segs) ?: return
+            if (e.isCollection || (size != null && e.size > size)) return
+            discard(http.send("DELETE", urlPath(segs), headers()))
         }
     }
 

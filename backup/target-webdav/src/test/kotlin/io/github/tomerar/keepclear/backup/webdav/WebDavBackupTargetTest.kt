@@ -105,6 +105,36 @@ class WebDavBackupTargetTest {
     }
 
     @Test
+    fun `one byte past the announced length never leaves a stored file (PR 31 review)`(): Unit = runBlocking {
+        val t = target()
+        t.mkdirs("")
+        val out = t.create("f", 65_536)
+        out.write(ByteArray(65_536) { 5 })
+        out.flush()
+        Thread.sleep(300) // a server that got every announced byte would have stored the file by now
+        shouldThrow<StorageException> { out.write(1) }
+        runCatching { out.close() }
+        Thread.sleep(100)
+        server.exists("KeepClear/f") shouldBe false
+        t.stat("f") shouldBe null
+    }
+
+    @Test
+    fun `a partial upload a sloppy server kept is removed`(): Unit = runBlocking {
+        val t = target()
+        t.mkdirs("")
+        server.keepPartialUploads = true
+        val out = t.create("p", 100_000)
+        out.write(ByteArray(50_000) { 6 })
+        out.flush()
+        Thread.sleep(300)
+        server.exists("KeepClear/p") shouldBe true // the server already stored what arrived
+        shouldThrow<StorageException> { out.close() }
+        Thread.sleep(100)
+        server.exists("KeepClear/p") shouldBe false
+    }
+
+    @Test
     fun `a read cut short by the server is a disconnect, never a short file`(): Unit = runBlocking {
         val t = target()
         t.mkdirs("")
