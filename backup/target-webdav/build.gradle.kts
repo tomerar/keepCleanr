@@ -4,7 +4,8 @@ plugins {
 }
 
 // M17, ADR 0011: the only module that talks to the network for WebDAV/Nextcloud. HTTP/1.1 over the JDK's own
-// sockets and TLS (no third-party HTTP library, PRIV-1); INTERNET is declared here, nowhere else.
+// sockets and TLS through backup:net's MiniHttp (no third-party HTTP library, PRIV-1); INTERNET is declared in the
+// target modules' manifests, nowhere else.
 android {
     namespace = "io.github.tomerar.keepclear.backup.webdav"
     // The tests use JUnit 5 so they can run the shared BackupTarget contract suite (backup:target-api fixtures).
@@ -13,6 +14,7 @@ android {
 
 dependencies {
     api(project(":backup:target-api"))
+    implementation(project(":backup:net"))
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(testFixtures(project(":backup:target-api")))
     testImplementation(testFixtures(project(":core:storage-api")))

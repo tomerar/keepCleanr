@@ -26,6 +26,7 @@ class ArchitectureTest {
             "engine/move",
             "engine/restore",
             "backup/target-api",
+            "backup/net",
         )
 
     private val projectScope = Konsist.scopeFromProject()
@@ -46,7 +47,7 @@ class ArchitectureTest {
         }
     }
 
-    /** ADR 0008 as amended by ADR 0011: backup target modules (and later `backup/net`) are the only exception. */
+    /** ADR 0008 as amended by ADR 0011: backup target modules and the shared `backup/net` are the only exception. */
     @Test
     fun `no network APIs in app code (ADR 0008)`() {
         val forbidden = listOf("java.net.URL", "java.net.HttpURLConnection", "java.net.Socket", "okhttp3.")
@@ -107,8 +108,8 @@ class ArchitectureTest {
     }
 
     /**
-     * ADR 0011 (amends ADR 0008): network code lives only in backup target modules (`backup/target-*`, later a
-     * shared `backup/net`). Nothing else opens sockets, HTTP connections or SMB sessions.
+     * ADR 0011 (amends ADR 0008): network code lives only in backup target modules (`backup/target-*`) and the
+     * shared HTTP client (`backup/net`). Nothing else opens sockets, HTTP connections or SMB sessions.
      */
     @Test
     fun `network APIs only in backup target modules`() {
