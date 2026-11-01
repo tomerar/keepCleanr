@@ -91,6 +91,13 @@ data class MoveFile(
     val relTarget: String,
     val state: MoveFileState = MoveFileState.PENDING,
     val sourceSha256: String? = null,
+    /**
+     * M17, ADR 0011: Dropbox's content hash of the same bytes as [sourceSha256], computed in the same read while
+     * copying, only for targets whose server reports one. Compared with the server's own value; it is never what
+     * the original is checked against before freeing (that is always [sourceSha256]). Not stored by the Room job
+     * store yet (M17b): after a restart it is null and the copy is read back instead.
+     */
+    val sourceContentHash: String? = null,
     val attempts: Int = 0,
     val failReason: FailReason? = null,
     val verifiedAt: Long? = null,

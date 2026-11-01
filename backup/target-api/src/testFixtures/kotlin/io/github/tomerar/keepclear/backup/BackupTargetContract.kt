@@ -128,6 +128,6 @@ abstract class BackupTargetContract {
     @Test
     fun `a server digest is only offered for kinds the target declares`(): Unit = withTarget { t ->
         t.write("f", byteArrayOf(1))
-        if (DigestKind.SHA256 !in t.caps.serverDigests) t.serverDigest("f", DigestKind.SHA256) shouldBe null
+        DigestKind.entries.filter { it !in t.caps.serverDigests }.forEach { t.serverDigest("f", it) shouldBe null }
     }
 }

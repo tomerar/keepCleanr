@@ -22,8 +22,16 @@ object Sha256 {
 
     fun of(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).toHex()
 
-    /** Copies [input] to [output] and returns the SHA-256 of the bytes copied (single read, MOVE-6). */
-    fun copy(input: InputStream, output: OutputStream, onProgress: (Long) -> Unit = {}): Pair<Long, String> {
+    /**
+     * Copies [input] to [output] and returns the SHA-256 of the bytes copied (single read, MOVE-6). [extra], if
+     * given, is fed the same bytes in the same pass (M17: Dropbox's content hash next to the SHA-256).
+     */
+    fun copy(
+        input: InputStream,
+        output: OutputStream,
+        extra: StreamingDigest? = null,
+        onProgress: (Long) -> Unit = {},
+    ): Pair<Long, String> {
         val digest = MessageDigest.getInstance("SHA-256")
         val buffer = ByteArray(BUFFER)
         var total = 0L
@@ -31,6 +39,7 @@ object Sha256 {
             val n = input.read(buffer)
             if (n < 0) break
             digest.update(buffer, 0, n)
+            extra?.update(buffer, 0, n)
             output.write(buffer, 0, n)
             total += n
             onProgress(total)

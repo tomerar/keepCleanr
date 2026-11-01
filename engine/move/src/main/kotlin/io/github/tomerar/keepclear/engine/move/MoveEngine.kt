@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear.engine.move
 
 import io.github.tomerar.keepclear.backup.BackupTarget
 import io.github.tomerar.keepclear.backup.DigestKind
+import io.github.tomerar.keepclear.core.hash.DropboxContentHash
 import io.github.tomerar.keepclear.core.hash.Sha256
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
@@ -112,11 +113,15 @@ class MoveEngine(
             }
         }
         file = file.copy(sourceSize = before.size, sourceMtime = before.mtimeMillis, sourceIdentity = before.identity)
+        // M17, ADR 0011: Dropbox reports its own block hash, so it is computed here from the same read.
+        val contentHash = DropboxContentHash().takeIf { DigestKind.DROPBOX_CONTENT_HASH in target.caps.serverDigests }
         val (bytes, sha) = try {
             source.openRead(file.source).use { input ->
                 // The size is announced so a network target can send it up front (M17); a source that grows or
                 // shrinks mid-copy then fails the upload, which is caught as a source change below.
-                guarded { target.create(file.tempRel, before.size) }.use { output -> Sha256.copy(input, output) }
+                guarded { target.create(file.tempRel, before.size) }.use { output ->
+                    Sha256.copy(input, output, contentHash)
+                }
             }
         } catch (e: Pause) {
             runCatching { target.delete(file.tempRel) }
@@ -139,7 +144,9 @@ class MoveEngine(
             runCatching { target.delete(file.tempRel) }
             return put(file.copy(state = MoveFileState.SRC_CHANGED, attempts = file.attempts + 1))
         }
-        return put(file.copy(state = MoveFileState.COPIED, sourceSha256 = sha))
+        return put(
+            file.copy(state = MoveFileState.COPIED, sourceSha256 = sha, sourceContentHash = contentHash?.hex()),
+        )
     }
 
     private suspend fun place(start: MoveFile): MoveFile {
@@ -177,18 +184,12 @@ class MoveEngine(
                 put(file.copy(state = MoveFileState.PENDING, attempts = file.attempts + 1))
             }
         }
-        // M17, ADR 0011: a SHA-256 the server computed while storing our upload is the proof; no download needed.
+        // M17, ADR 0011: a digest the server computed over what it stored is the proof; no download needed.
         // Without one (generic WebDAV, a header the server didn't send, a file we didn't upload), read back.
-        val serverHash = if (DigestKind.SHA256 in target.caps.serverDigests &&
-            stat?.size == file.sourceSize &&
-            !file.reusedExisting
-        ) {
-            guarded { target.serverDigest(file.relTarget, DigestKind.SHA256) }
-        } else {
-            null
-        }
-        val hash = serverHash ?: if (stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
-        if (hash != null && hash == file.sourceSha256) {
+        val byServer = if (stat?.size == file.sourceSize && !file.reusedExisting) serverDigestMatches(file) else null
+        val readBack = if (byServer == null && stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
+        val matches = byServer ?: (readBack != null && readBack == file.sourceSha256)
+        if (matches) {
             // A read-back may have come from the page cache (H1), so freeing needs confirm(). A server digest was
             // computed by the server over what it stored, never from the phone's cache: it counts as confirmed.
             // The copy is still read back and re-hashed at free time (originalsPlan).
@@ -197,7 +198,7 @@ class MoveEngine(
                     state = MoveFileState.VERIFIED,
                     verifiedAt = clock(),
                     failReason = null,
-                    confirmedAt = if (serverHash != null) clock() else null,
+                    confirmedAt = if (byServer == true) clock() else null,
                 ),
             )
         }
@@ -224,6 +225,24 @@ class MoveEngine(
         } else {
             put(file.copy(state = MoveFileState.PENDING, attempts = attempts))
         }
+    }
+
+    /**
+     * True/false when the server reported a well-formed digest of a kind it computes and KeepClear has the local
+     * digest of the same kind (match/mismatch); null when there is nothing to compare (then the copy is read back).
+     */
+    private suspend fun serverDigestMatches(file: MoveFile): Boolean? {
+        for (kind in SERVER_DIGEST_ORDER) {
+            if (kind !in target.caps.serverDigests) continue
+            val local = when (kind) {
+                DigestKind.SHA256 -> file.sourceSha256
+                DigestKind.DROPBOX_CONTENT_HASH -> file.sourceContentHash
+            } ?: continue
+            val remote = guarded { target.serverDigest(file.relTarget, kind) }
+                ?.takeIf { Sha256.isValidHex(it) } ?: continue
+            return remote == local
+        }
+        return null
     }
 
     private suspend fun readBackHash(rel: String): String? = try {
@@ -432,5 +451,10 @@ class MoveEngine(
         }
         if (damaged + missing > 0) store.putJob(job.copy(state = JobState.READY))
         return CheckResult(ok, damaged, missing)
+    }
+
+    private companion object {
+        /** Kinds a server may compute, in the order they are asked for (one answer is enough). */
+        val SERVER_DIGEST_ORDER = listOf(DigestKind.SHA256, DigestKind.DROPBOX_CONTENT_HASH)
     }
 }

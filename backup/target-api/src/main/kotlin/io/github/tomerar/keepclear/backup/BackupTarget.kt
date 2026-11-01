@@ -26,8 +26,8 @@ data class TargetCaps(
     val readsFromServer: Boolean = false,
     /**
      * M17, ADR 0011: digests the **server itself** computes over the bytes it stored while a file is uploaded
-     * (Nextcloud `X-Hash: sha256` → `X-Hash-SHA256`). [BackupTarget.serverDigest] returns them. Empty for targets
-     * without one (USB, SAF, SMB, generic WebDAV). Values the client sent and the server merely stored (Nextcloud
+     * (Nextcloud `X-Hash: sha256` → `X-Hash-SHA256`, Dropbox `content_hash`). [BackupTarget.serverDigest] returns
+     * them. Empty for targets without one (USB, SAF, SMB, generic WebDAV). Values the client sent and the server merely stored (Nextcloud
      * `OC-Checksum`, `oc:checksums`) are never listed here: they prove nothing.
      */
     val serverDigests: Set<DigestKind> = emptySet(),
@@ -37,10 +37,19 @@ data class TargetCaps(
     }
 }
 
-/** A digest a server computes itself (ADR 0011). Only cryptographic kinds that ADR 0007 accepts as proof. */
+/**
+ * A digest a server computes itself (ADR 0011). Only cryptographic kinds that ADR 0007 accepts as proof.
+ * Stored by name; never rename (MIG-2).
+ */
 enum class DigestKind {
     /** Lowercase hex SHA-256 of the stored bytes. */
     SHA256,
+
+    /**
+     * Dropbox's `content_hash` (M17): lowercase hex SHA-256 of the concatenated SHA-256s of each 4 MiB block
+     * (`core:hash` DropboxContentHash). SHA-256-based, so a match is as strong a proof as [SHA256].
+     */
+    DROPBOX_CONTENT_HASH,
 }
 
 /**
@@ -74,10 +83,12 @@ interface BackupTarget {
     suspend fun create(rel: String, size: Long): OutputStream = create(rel)
 
     /**
-     * M17, ADR 0011: the digest of kind [kind] that the **server computed** over the bytes it stored for [rel]
-     * during this target's own upload (followed through [rename]), or null when there is none (no server digest,
-     * the server didn't send one, or the file wasn't uploaded through this object). Never a client-supplied value.
-     * Only consulted when [TargetCaps.serverDigests] contains [kind].
+     * M17, ADR 0011: the digest of kind [kind] that the **server computed** over the bytes it stored for [rel],
+     * or null when there is none (no server digest, the server didn't send one, or the file wasn't uploaded
+     * through this object). Servers that hash only while receiving (Nextcloud `X-Hash`) answer for this target's
+     * own upload (followed through [rename]); servers that keep the hash with the file (Dropbox `content_hash`)
+     * answer what they report for [rel] now. Never a client-supplied value. Only consulted when
+     * [TargetCaps.serverDigests] contains [kind].
      */
     suspend fun serverDigest(rel: String, kind: DigestKind): String? = null
 
