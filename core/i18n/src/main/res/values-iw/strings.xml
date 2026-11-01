@@ -390,4 +390,27 @@
     <string name="trash_group_android">בסל המחזור של אנדרואיד (תמונות וסרטונים)</string>
     <string name="trash_android_note">אנדרואיד מוחק אותם בעצמו 30 יום אחרי שנמחקו. אנדרואיד מבקש אישור לכל שחזור או מחיקה.</string>
     <string name="trash_android_empty">למחוק אותם עכשיו</string>
+    <string name="apps_title">אפליקציות</string>
+    <string name="apps_open">אפליקציות והמקום שלהן</string>
+    <string name="apps_total">אפליקציות תופסות %1$s.</string>
+    <string name="apps_access_title">לראות כמה מקום כל אפליקציה תופסת ומתי השתמשו בה</string>
+    <string name="apps_access_body">כדי להראות אפליקציות שלא נפתחו כבר חודשים. המידע נקרא רק בטלפון. במסך הבא צריך להפעיל „גישה לנתוני שימוש” עבור KeepClear.</string>
+    <string name="apps_access_button">להפעיל גישה לנתוני שימוש</string>
+    <string name="apps_unused_title">לא נפתחו כבר בערך חצי שנה</string>
+    <string name="apps_unused_body">ההסרה נעשית בחלון של אנדרואיד; ‏KeepClear אף פעם לא מסיר אפליקציה בעצמו.</string>
+    <string name="apps_uninstall">להסיר</string>
+    <string name="apps_all">כל האפליקציות לפי גודל</string>
+    <string name="apps_never_used">אין תיעוד של שימוש</string>
+    <string name="apps_used_this_month">נפתחה החודש</string>
+    <string name="apps_cache">קבצים זמניים: %1$s</string>
+    <plurals name="apps_last_used">
+        <item quantity="one">נפתחה לאחרונה לפני בערך חודש</item>
+        <item quantity="two">נפתחה לאחרונה לפני בערך חודשיים</item>
+        <item quantity="other">נפתחה לאחרונה לפני בערך %1$s חודשים</item>
+    </plurals>
+    <plurals name="app_count">
+        <item quantity="one">אפליקציה אחת</item>
+        <item quantity="two">שתי אפליקציות</item>
+        <item quantity="other">%1$s אפליקציות</item>
+    </plurals>
 </resources>

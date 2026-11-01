@@ -370,4 +370,25 @@
     <string name="trash_group_android">In Android\'s trash (photos and videos)</string>
     <string name="trash_android_note">Android deletes these by itself 30 days after they were deleted. Android asks you to confirm each restore or delete.</string>
     <string name="trash_android_empty">Delete these now</string>
+    <string name="apps_title">Apps</string>
+    <string name="apps_open">Apps and their space</string>
+    <string name="apps_total">Apps take %1$s.</string>
+    <string name="apps_access_title">See app sizes and when you last used them</string>
+    <string name="apps_access_body">To show apps you haven\'t opened in months. Read on this phone only. Turn on \"Usage access\" for KeepClear on the next screen.</string>
+    <string name="apps_access_button">Turn on usage access</string>
+    <string name="apps_unused_title">Not opened in about 6 months</string>
+    <string name="apps_unused_body">Uninstalling is done by Android\'s own window; KeepClear never removes an app by itself.</string>
+    <string name="apps_uninstall">Uninstall</string>
+    <string name="apps_all">All apps by size</string>
+    <string name="apps_never_used">No record of use</string>
+    <string name="apps_used_this_month">Opened this month</string>
+    <string name="apps_cache">Temporary files: %1$s</string>
+    <plurals name="apps_last_used">
+        <item quantity="one">Last opened about %1$s month ago</item>
+        <item quantity="other">Last opened about %1$s months ago</item>
+    </plurals>
+    <plurals name="app_count">
+        <item quantity="one">%1$s app</item>
+        <item quantity="other">%1$s apps</item>
+    </plurals>
 </resources>

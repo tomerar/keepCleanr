@@ -26,12 +26,16 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val thumbnails by lazy { ThumbnailLoader(contentResolver) }
@@ -93,6 +97,8 @@ class MainActivity : ComponentActivity() {
                     }
                 LifecycleResumeEffect(Unit) {
                     vm.refresh()
+                    // M13: usage access or an uninstall may have changed while KeepClear was in the background.
+                    if (vm.state.value.screens.last() == Screen.Apps) loadApps(vm)
                     notificationsOff = !MoveNotifications.allowed(this@MainActivity)
                     onPauseOrDispose { }
                 }
@@ -138,6 +144,18 @@ class MainActivity : ComponentActivity() {
                                 vm.loadTrash()
                                 vm.open(Screen.Trash)
                             },
+                        ),
+                        appsActions = AppsActions(
+                            onAllowUsageAccess = {
+                                runCatching {
+                                    startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
+                            },
+                            onUninstall = { pkg ->
+                                // Android's own uninstall window; KeepClear never removes an app itself.
+                                runCatching { startActivity(Intent(Intent.ACTION_DELETE, "package:$pkg".toUri())) }
+                            },
+                            onOpenAppInfo = ::openAppInfo,
                         ),
                         appActions = AppActions(
                             labelOf = ::appLabel,
@@ -230,6 +248,7 @@ class MainActivity : ComponentActivity() {
                                     onOpenSettings = { vm.open(Screen.Settings) },
                                     onTrim = vm::trimCaches,
                                     onOneByOne = { openOneByOne(vm) },
+                                    onOpenApps = { openApps(vm) },
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                     onOpenTrash = {
                                         vm.loadTrash()
@@ -255,6 +274,19 @@ class MainActivity : ComponentActivity() {
         packageManager.getLaunchIntentForPackage("com.google.android.apps.photos")?.let(::startActivity)
     }
 
+    /** M13: open Apps; sizes need usage access (asked on that screen, ONB-7). */
+    private fun openApps(vm: HomeViewModel) {
+        loadApps(vm)
+        vm.open(Screen.Apps)
+    }
+
+    private fun loadApps(vm: HomeViewModel) {
+        lifecycleScope.launch {
+            val apps = withContext(Dispatchers.IO) { AppsSource(this@MainActivity).load() }
+            vm.setAppsInfo(apps)
+        }
+    }
+
     /** SAFE-10: launchable apps by name (package visibility via the launcher-intent query). */
     private fun openOneByOne(vm: HomeViewModel) {
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -266,6 +298,12 @@ class MainActivity : ComponentActivity() {
             .sortedBy { it.label.lowercase() }
         vm.setApps(apps)
         vm.open(Screen.OneAppAtATime)
+        // SAFE-10: with usage access, sort by temporary-file size (largest first).
+        lifecycleScope.launch {
+            val info = withContext(Dispatchers.IO) { AppsSource(this@MainActivity).load() } ?: return@launch
+            val cache = info.associate { it.pkg to it.cacheBytes }
+            vm.setApps(apps.map { it.copy(cacheBytes = cache[it.pkg]) }.sortedByDescending { it.cacheBytes ?: -1 })
+        }
     }
 
     private fun appLabel(pkg: String): String = runCatching {

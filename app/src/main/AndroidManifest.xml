@@ -18,6 +18,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- M13 / ONB-7: Usage access (a special access the user turns on in Settings), asked only when Apps is opened:
+         app sizes and when each app was last opened, read on this phone only. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <!-- M13: needed (API 28+) to open Android's own uninstall window (ACTION_DELETE); Android asks the user. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
     <!-- MOVE-16: open Google Photos' own "Free up space" (package visibility for this one app only). -->
     <queries>
         <package android:name="com.google.android.apps.photos" />

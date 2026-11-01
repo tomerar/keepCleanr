@@ -74,6 +74,8 @@ data class HomeUiState(
     /** SAFE-10: launchable apps, and the space measured after the user cleared one in Android's screen. */
     val apps: List<AppEntry> = emptyList(),
     val perAppFreed: Map<String, Long> = emptyMap(),
+    /** M13: apps with sizes and last use; null without usage access (ONB-7). */
+    val appsInfo: List<io.github.tomerar.keepclear.engine.classify.AppInfo>? = null,
 )
 
 /**
@@ -131,6 +133,9 @@ sealed interface Screen {
 
     /** SAFE-10: clear one app at a time. */
     data object OneAppAtATime : Screen
+
+    /** M13: apps by size and last use. */
+    data object Apps : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -149,6 +154,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setApps(apps: List<AppEntry>) = _state.update { it.copy(apps = apps) }
+
+    fun setAppsInfo(apps: List<io.github.tomerar.keepclear.engine.classify.AppInfo>?) =
+        _state.update { it.copy(appsInfo = apps) }
 
     /** Called on every resume: permissions and free space can change outside the app. */
     fun refresh() {
