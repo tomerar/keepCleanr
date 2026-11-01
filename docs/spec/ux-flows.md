@@ -1,6 +1,6 @@
 # KeepClear: MVP UX flows
 
-Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31**, updated 2026-11-01 (product principles P-1…P-3) · Date: 2026-11-01
 Implements: [requirements.md](requirements.md). Evidence: [07-competitor-ux](../research/07-competitor-ux.md).
 
 ## 0. UX rules (apply to every screen)
@@ -13,6 +13,9 @@ Implements: [requirements.md](requirements.md). Evidence: [07-competitor-ux](../
 6. **Calm defaults**: SAFE may be pre-selected; REVIEW and MOVE never are.
 7. **Plain language first**, technical detail behind "Details" (paths, rule id).
 8. **Hebrew is first-class**: gender-neutral (plural/infinitive), RTL mirrored, numbers and paths bidi-isolated, "MB/GB" in Latin without a space.
+9. **Phone-only (P-1).** No screen ever asks for a computer. Where a power user might use one, the app offers its own way ("Check backup").
+10. **Simple by default, Advanced on request (P-2).** The default path has no technical terms: say "checked: every file was read back and matches", not "SHA-256"; say "drive", not "SAF tree"; say "files apps can download again", not "cache". Hashes, paths on the drive, the drive's format, logs and expert switches live under **Details** on a screen and in **Settings › Advanced**.
+11. **Always ask before freeing space (P-3).** A finished backup shows the receipt and waits. Nothing is freed automatically or on a schedule.
 
 Notation: `[Button]`, `(chip)`, `›` = navigates to. Copy shown en / he. Hebrew lines that start with a digit get an RLM (U+200F) in resources.
 
@@ -179,8 +182,9 @@ he: **מה להעביר?** · "תמונות וסרטונים מהמצלמה" · 
 ### 5.2 Choose where
 Cards:
 - **USB-C drive or SD card** (recommended): "Plug in a drive. Fast enough, no internet, and we can check every file." `[Choose drive]` → SAF tree picker.
-- **Computer on your Wi-Fi** (v1, greyed "Coming soon").
-- **Google Drive / other cloud apps**: "You can copy there, but we can't check the copy, so KeepClear won't delete the originals." (MOVE-14)
+- **Network drive on your Wi-Fi** (v1, greyed "Coming soon"): "A shared folder on a home network drive or router. No computer needed." (MOVE-3)
+- **Google Drive** (v1, greyed "Coming soon"): "Sign in to your Google account. Google tells us a fingerprint of every file it stored, so KeepClear can check each copy before freeing space." (MOVE-4, MOVE-20; the word "checksum" appears only under Details.)
+- **Other cloud apps** (OneDrive, Dropbox, Nextcloud): added only where the service can prove each copy (MOVE-4). Through the system folder picker today: "You can copy there, but KeepClear can't check the copy, so it won't free space on the phone." (MOVE-14)
 - Info line: "Using Google Photos? KeepClear can't see what's in it. Check there, or use its Free up space." `[Open Google Photos]` (MOVE-16)
 
 he for the first card: **כונן USB-C או כרטיס SD** — "מחברים כונן. מספיק מהיר, בלי אינטרנט, ואפשר לבדוק כל קובץ."
@@ -202,23 +206,31 @@ Checklist screen, each line ✓ / ✕ with a fix:
 ### 5.5 Receipt (gate to deletion)
 > **Backup checked ✓**
 > 8,909 files · 58.0 GB copied to "SanDisk › KeepClear › OnePlus 10T › Camera".
-> Every file was read back from the drive and matched the original exactly (SHA-256 check).
+> Every file was read back from the drive and matched the original exactly.
 > 3 files weren't copied (over 4 GB for this drive). They stay on your phone.
-> You can check this backup on a computer too: `SHA256SUMS` is on the drive.
+> `[Check backup]` re-reads the drive any time and tells you if anything changed (MOVE-15).
+> `Details ›` (Advanced: SHA-256 per file, the `SHA256SUMS` file, the drive's format)
 > The copy on the drive is not encrypted. Anyone with this drive can open these files, so keep it somewhere safe.
-> To get files back later, open `KeepClear/…` on the drive with any file manager or computer (in-app "Restore from backup" comes in v1).
+> To get files back later, open `KeepClear/…` on the drive with the phone's Files app (in-app "Restore from backup" comes in v1).
 > `[Free 58.0 GB from phone]` `[Keep them for now]`
 
 > **הגיבוי נבדק ✓**
 > ‏8,909 קבצים · 58.0GB הועתקו אל "SanDisk › KeepClear › OnePlus 10T › Camera".
-> כל קובץ נקרא בחזרה מהכונן ונמצא זהה לגמרי למקור (בדיקת SHA-256).
+> כל קובץ נקרא בחזרה מהכונן ונמצא זהה לגמרי למקור.
 > ‏3 קבצים לא הועתקו (גדולים מ-4GB לכונן הזה). הם נשארים בטלפון.
-> אפשר לבדוק את הגיבוי גם במחשב: הקובץ `SHA256SUMS` נמצא בכונן.
+> `[לבדוק את הגיבוי]` קורא שוב את הכונן בכל זמן ומראה אם משהו השתנה.
+> `פרטים ›` (מתקדם: SHA-256 לכל קובץ, הקובץ `SHA256SUMS`, הפורמט של הכונן)
 > העותק בכונן לא מוצפן. כל מי שמחזיק בכונן יכול לפתוח את הקבצים, אז כדאי לשמור אותו במקום בטוח.
-> כדי להחזיר קבצים בעתיד, פותחים את `KeepClear/…` בכונן בכל מנהל קבצים או מחשב (שחזור מתוך האפליקציה יגיע ב-v1).
+> כדי להחזיר קבצים בעתיד, פותחים את `KeepClear/…` בכונן באפליקציית הקבצים של הטלפון (שחזור מתוך האפליקציה יגיע ב-v1).
 > `[לפנות 58.0GB מהטלפון]` `[להשאיר בינתיים]`
 
-"Keep them for now" saves the receipt; Home's MOVE card then shows "58 GB backed up and checked. Ready to free."
+"Keep them for now" saves the receipt; Home's MOVE card then shows "58 GB backed up and checked. Ready to free." Nothing is freed until the user taps it (P-3).
+
+### 5.7 Check backup (MOVE-15, v1 first)
+From a receipt or Settings › Backups: `[Check backup]` → plug in the drive (or sign in) → progress "Checking 8,909 files…" → result:
+> **All 8,909 files are fine.** Checked today. / **3 files are missing or changed.** `[See which]` `[Copy them again]`
+
+he: **כל 8,909 הקבצים תקינים.** / **‏3 קבצים חסרים או השתנו.** `[להציג אותם]` `[להעתיק שוב]`
 
 ### 5.6 Free from phone (confirm)
 > **Free 58.0 GB?**
@@ -243,13 +255,16 @@ Space returns as items expire, or empty now.
 - Items with a verified copy show "Checked copy on SanDisk" / "עותק שנבדק נמצא ב-SanDisk".
 - Empty confirm: "Delete 61.1 GB permanently? 58 GB of it has a checked copy on your drive. 3.1 GB has no other copy." / "למחוק לצמיתות 61.1GB? ל-58GB מתוכם יש עותק שנבדק בכונן. ל-3.1GB אין עותק נוסף."
 - Restore: "Restored 312 files to their folders." / "‏312 קבצים שוחזרו לתיקיות שלהם."
+- Uninstall note (TRASH-7, always visible while the trash holds items): "Files in KeepClear's trash are kept in a hidden folder, .KeepClearTrash, on this phone. If you uninstall KeepClear, they stay there and keep taking space (now 61.1 GB). Restore or empty the trash first." / "הקבצים בסל המחזור של KeepClear נשמרים בתיקייה מוסתרת, ‎.KeepClearTrash‎, בטלפון. אם מסירים את KeepClear, הם נשארים שם וממשיכים לתפוס מקום (כרגע 61.1GB). כדאי לשחזר או לרוקן את הסל לפני כן." `[Restore all]` `[Empty trash]`
 
 ---
 
 ## 7. Apps (MVP: sizes + cache trim; v1: unused apps)
 
-- Header: "Apps take 59.8 GB." Card: `[Let Android trim caches]` (SAFE-5).
-- foss + all-files: `[Clear all apps' external caches]` (system dialog, SAFE-6).
+- Header: "Apps take 59.8 GB." Main card for everyone (also on Home and in Clean now): **Clear app caches** — "Android clears data that apps can download again. Nothing personal is removed." `[Clear app caches]` (SAFE-5; result shows the measured space freed). In foss with all-files access the same button also runs Android's one-dialog external cache clear (SAFE-6). No Shizuku, no Accessibility.
+- If Android freed little or nothing: "Android keeps some app data while the phone is this full, so it freed only 0 MB. You can clear the biggest apps one at a time instead." `[Clear one app at a time]` (SAFE-10).
+- **Clear one app at a time** (SAFE-10, v1): list sorted by cache size, `[Open app info]` per row; after returning: "Chrome: 812 MB freed." KeepClear never taps anything for the user.
+- App content cards (SAFE-9, v1): "Spotify keeps 4.2 GB of downloaded songs. Remove them inside Spotify: Settings › Storage › Remove all downloads." `[Open Spotify]` `[Open app info]`. Same for Telegram media, Netflix/YouTube downloads, etc. KeepClear never deletes inside another app's folder.
 - List (with Usage access): app, size (app / data / cache), "last opened: about 7 months ago". Tap › `[Open app info]` (system, where "Clear cache"/"Uninstall" live).
 - v1: "Not opened in about 6 months · 11 apps · 2.8 GB" bucket with `[Uninstall]` per app (system dialog).
 
@@ -261,7 +276,8 @@ Space returns as items expire, or empty now.
 - Trash keeps items for: 30 days (7–60).
 - Move defaults: older than 1 year; include favourites off.
 - Permissions: list with status + "Manage" link for each.
-- About: version, license GPL-3.0, source link, "KeepClear has no internet permission", trash survives uninstall note, credits (SD Maid SE rules data etc.).
+- About: version, license GPL-3.0, source link, "KeepClear has no internet permission", trash survives uninstall note (TRASH-7), credits (SD Maid SE rules data etc.).
+- **Advanced** (P-2, off the default path): file details (hashes, paths on the drive), the drive's format, export logs, strict-mode switch with its warning, and later expert options (e.g. Shizuku, Later). Nothing here is needed for normal use.
 
 ---
 

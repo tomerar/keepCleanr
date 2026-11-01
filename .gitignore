@@ -27,6 +27,8 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+# Test-build key only (public, see keystore/README.md); release keys never go in the repo.
+!keystore/debug-test.keystore
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json

@@ -135,9 +135,35 @@ class RuleTableTest {
             category shouldBe Category.REVIEW
             keepSignal shouldBe true
         }
-        c("Download/upload.tmp", mtime = now - 3_600_000).category shouldBe Category.REVIEW
+        c("Download/a.zip", facts = setOf(Fact.ARCHIVE_FULLY_EXTRACTED), mtime = now - 3_600_000).run {
+            category shouldBe Category.REVIEW
+            keepSignal shouldBe true
+        }
+        c("LOST.DIR/0001", mtime = now - 3_600_000).category shouldBe Category.REVIEW
+        c("Pictures/x.jpg", trashed = true, mtime = now - 3_600_000).category shouldBe Category.REVIEW
         c("DCIM/Camera/IMG.jpg", favorite = true).category shouldBe Category.MOVE
         c("Pictures/Screenshots/s.png", mtime = now - 1000).category shouldBe Category.REVIEW
+    }
+
+    @Test
+    fun `regenerable items stay SAFE however recent (owner decision B1)`() {
+        val hourAgo = now - 3_600_000
+        listOf(
+            "DCIM/.thumbnails/1.jpg" to "thumbnails",
+            "Download/upload.tmp" to "temp_files",
+            "Pictures/.DS_Store" to "os_junk",
+            "Android/media/com.whatsapp/WhatsApp/Media/.Statuses/a.jpg" to "wa_status_old",
+        ).forEach { (rel, rule) ->
+            val mtime = if (rule == "wa_status_old") now - 2 * 24 * 3_600_000L else hourAgo
+            c(rel, mtime = mtime).run {
+                ruleId shouldBe rule
+                category shouldBe Category.SAFE
+                keepSignal shouldBe false
+            }
+        }
+        // Favourites and lossy (hidden-character) paths still never stay SAFE.
+        c("DCIM/.thumbnails/1.jpg", mtime = hourAgo, favorite = true).category shouldBe Category.REVIEW
+        c("Documents/.thumb\u200Bnails/photo.jpg", mtime = hourAgo).category shouldBe Category.REVIEW
     }
 
     @Test

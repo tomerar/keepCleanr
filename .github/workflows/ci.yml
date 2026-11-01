@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # "Run workflow" on main also builds the test APK
 
 permissions:
   contents: read
@@ -77,3 +78,32 @@ jobs:
           find . -path '*outputs/androidTest-results*' -name '*.xml' -print0 \
             | xargs -0 -r grep -l '<failure' \
             | while read -r f; do echo "== $f"; sed -n '/<failure/,/<\/failure>/p' "$f" | head -80; done
+
+  test-apk:
+    # A test build for the owner's phone, downloadable from the Actions run page (no GitHub Release).
+    name: Test APK (fossDebug)
+    if: github.event_name != 'pull_request'
+    needs: [checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Build fossDebug
+        run: |
+          ./gradlew :app:assembleFossDebug
+          short=$(git rev-parse --short HEAD)
+          cp app/build/outputs/apk/foss/debug/app-foss-debug.apk "keepclear-test-${GITHUB_RUN_NUMBER}-${short}.apk"
+      - name: Upload test APK
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          path: keepclear-test-*.apk
+          archive: false
+          retention-days: 30
+          if-no-files-found: error

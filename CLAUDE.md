@@ -16,7 +16,13 @@ Work only on the current milestone in `tasks.md`. If the spec is wrong or incomp
 
 ## Status
 
-Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11); device checks and open decisions are tracked in `docs/progress.md`. Next: v1 milestones per `tasks.md`, one PR per milestone, after the owner's OK.
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. Next: v1 milestones in the order of `tasks.md` (M11 phone-first polish first), one PR per milestone, each after the owner's OK. Device checks and proposals waiting for the owner: `docs/progress.md`.
+
+## Product principles (owner, 2026-11-01)
+
+1. **Phone-only.** Everything works with only the phone; no user step ever needs a computer. `adb` and PC `sha256sum` are developer checks; the user-facing equivalent is the in-app "Check backup" (MOVE-15).
+2. **Simple by default, Advanced on request.** No technical terms on the default path (no "SHA-256", "SAF", "manifest", "cache partition"); details live under "Details" and Settings › Advanced.
+3. **After a verified backup, always ask.** Show the receipt; free space only when the user taps "Free up space". Never automatic.
 
 ## Identity
 
@@ -42,8 +48,8 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 ## Product rules
 
-- No ads, analytics, crash SDKs or Google Play Services. No `INTERNET` permission in MVP (ADR 0008).
-- No AccessibilityService.
+- No ads, analytics, crash SDKs or Google Play Services. No `INTERNET` permission in MVP (ADR 0008). Network/cloud backup targets (SMB, Google Drive, …) are proposed in ADR 0011: network code only in dedicated `backup:target-*` modules, and a cloud copy counts as verified only with a checksum the server computed.
+- No AccessibilityService (ADR 0008). An optional `foss`-only Accessibility cache cleaner is only a proposal (ADR 0012, not approved). Shizuku is Later; "Clear app caches" uses `allocateBytes` (SAFE-5) and `ACTION_CLEAR_APP_CACHE` (SAFE-6).
 - Copy: exact numbers (count + bytes), plain language, no fear or "boost" claims. Every item has why / what-happens-if-deleted texts in **English and Hebrew**.
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).
 - All strings live in resources; en/he parity is checked in CI.
@@ -65,6 +71,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - JDK 21, Android SDK with platform `android-37.0`. `./gradlew ciCheck` runs what CI runs (except emulator tests).
 - `./gradlew -p build-logic test` tests the policy checkers.
 - Screenshots: `./gradlew :app:recordRoborazziFossDebug` to re-record after an intended UI change; CI verifies them.
+- Test APK: every push to `main` publishes a signed `fossDebug` APK as an Actions artifact (job "Test APK"), signed with the public test key in `keystore/` (never for releases, ADR 0009). No GitHub Releases.
 - New dependency: add it to `gradle/libs.versions.toml`, then refresh `gradle/verification-metadata.xml` with `./gradlew --write-verification-metadata sha256 ciCheck`, then run `scripts/verification-extras.py` (re-adds macOS/Windows aapt2 checksums) and review the diff. Runtime deps must pass the allowlist (PRIV-1).
 
 ## Git

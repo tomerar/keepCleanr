@@ -40,6 +40,9 @@ data class PickedTarget(
     val canReadBack: Boolean,
     val files: List<MoveFile>,
     val issues: List<MovePlanner.Issue>,
+    /** Q4: the drive's format when it could be read; UNKNOWN keeps the 4 GB limit. */
+    val format: io.github.tomerar.keepclear.backup.saf.DriveFormat =
+        io.github.tomerar.keepclear.backup.saf.DriveFormat.UNKNOWN,
 ) {
     val blocked: Boolean get() = issues.any { it.blocking }
 }
@@ -121,7 +124,14 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                     _state.update {
                         it.copy(
                             busy = false,
-                            picked = PickedTarget(label, check.kind, check.target.caps.canReadBack, files, issues),
+                            picked = PickedTarget(
+                                label,
+                                check.kind,
+                                check.target.caps.canReadBack,
+                                files,
+                                issues,
+                                check.format,
+                            ),
                         )
                     }
                 }

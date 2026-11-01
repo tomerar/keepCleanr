@@ -17,3 +17,6 @@ The product promise is "no network except user-chosen backup targets". SAF-based
 
 ## Alternatives
 - Accessibility like SD Maid SE: higher rejection and breakage risk, low GB payoff.
+
+## Note (2026-11-01)
+Two proposals would amend this ADR once approved, and neither changes it today: [ADR 0011](0011-network-and-cloud-targets.md) (network and cloud backup targets, network code only in dedicated `backup:target-*` modules) and [ADR 0012](0012-foss-accessibility-cache-cleaner.md) (an optional Accessibility cache cleaner in `foss` only). Until then, no INTERNET permission and no AccessibilityService, and CI keeps enforcing both.

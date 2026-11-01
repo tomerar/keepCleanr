@@ -1,6 +1,6 @@
 # ADR 0004: Privilege tiers; Shizuku and root strictly optional
 
-Status: Accepted (2026-10-31) · Date: 2026-10-31
+Status: Accepted (2026-10-31); amended 2026-11-01 (Shizuku tier moved to Later) · Date: 2026-10-31
 
 ## Context
 What KeepClear can see and delete depends on access level ([04-android-apis](../research/04-android-apis.md), [01-sdmaid-se](../research/01-sdmaid-se.md)):
@@ -24,3 +24,6 @@ Non-technical users fear and fail at ADB setup. F-Droid marks apps that *require
 ## Alternatives
 - Require Shizuku (Canta model): loses most users, NonFreeDep on F-Droid.
 - Bundle Porter: unknown license/maintenance; revisit later.
+
+## Amendment (owner, 2026-11-01)
+The Shizuku tier (ONB-8, SAFE-7, SEC-9) moves from v1 to **Later**. "Clear app caches" for everyone uses only Basic-tier APIs: `StorageManager.allocateBytes` (SAFE-5) and, in `foss` with all-files access, `ACTION_CLEAR_APP_CACHE` (SAFE-6). The tier model itself stands.

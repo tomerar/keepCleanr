@@ -1,13 +1,14 @@
 # KeepClear: Implementation plan
 
-Status: **Approved by owner 2026-10-31** · Date: 2026-10-31
+Status: **Approved by owner 2026-10-31**; v1 order updated with owner decisions of 2026-11-01 · Date: 2026-11-01
 Milestones are small, ordered, and each ends in something testable. Requirement IDs refer to [requirements.md](requirements.md); edge-case IDs to [edge-cases.md](edge-cases.md).
 
 Rules for every milestone:
 - One PR per milestone (or less). CI green: build both flavors, unit tests, architecture tests, lint, string parity.
 - **Definition of done (DoD)** includes the listed tests passing and the spec updated if reality differed.
 - Destructive code lands only with its tests in the same PR.
-- **Device checks (D)** are run by the owner on the OnePlus 10T with a written checklist in the PR.
+- **Device checks (D)** are run by the owner on the OnePlus 10T with a written checklist in the PR. They need only the phone (P-1): any step that uses a computer (`adb`, `sha256sum` on a PC) is marked *optional, developer only*, and has an in-app equivalent where one exists ("Check backup", MOVE-15).
+- **Test builds:** every push to `main` publishes a signed `fossDebug` test APK as a GitHub Actions artifact (no GitHub Release); see `docs/progress.md` for how to install it from the phone.
 
 ---
 
@@ -127,7 +128,7 @@ Status: **implemented**. Notes: `backup:target-api` (`BackupTarget`, `GatewayBac
 ### M10: SAF target + MOVE UI + foreground service
 Status: **implemented**. Notes:
 - `backup:target-saf`: `SafBackupTarget` (never overwrites, even when a provider auto-renames; fsync before read-back) and `SafTargets`. `SafTargets` classifies providers: USB/SD → copy, verify and free; known cloud providers → copy only (MOVE-14); unknown providers → read back plus a warning. It refuses folders on the phone itself and writes a `.keepclear-target` marker with a random 128-bit id. A resume needs the same tree **and** marker (E-MOVE-2, SEC-3); a foreign or damaged marker is refused, never overwritten.
-- SAF does not show the file system, so every SAF target is treated as FAT32 (files > 4 GiB are blocked with an explanation, never truncated). Owner check D10-2 confirms the drive's real format.
+- SAF does not show the file system. Since 2026-11-01 (Q4) KeepClear reads the drive's format from the mount table where Android shows it and lifts the 4 GiB limit only for drives known not to be FAT32 (exFAT, NTFS, ext4, f2fs); otherwise files > 4 GiB are blocked with an explanation, never truncated. Owner check D10-2 confirms it on the exFAT drive.
 - Room v3 (`move_job`, `move_file`, auto-migration 2→3). Unknown stored states read back as PENDING (copy and verify again), never as VERIFIED.
 - `MoveService` (`dataSync` FGS): pause/stop via non-exported receiver + immutable PendingIntents; `onTimeout` pauses with "time limit". Pausing takes effect after the current file. The notification shows *n of m checked*; ETA is not shown yet.
 - MIG-4: `MY_PACKAGE_REPLACED` (non-exported receiver) and app start mark a RUNNING job without a service as "paused, interrupted"; copying resumes only on "Continue". MIG-5 holds by design: confirmed plans live in memory, bound to the session.
@@ -136,7 +137,7 @@ Status: **implemented**. Notes:
 - Tests: `RoomMoveJobStoreTest`, `MigrationTest` 2→3, `SafTargetsTest`, `MoveScreenTest` (Robolectric). Instrumented (CI emulator): `SafBackupTargetTest` against a fake USB DocumentsProvider (`testing:usb-provider`, debug builds only, inert until a test enables it) with unplug mid-job, provider auto-rename and marker checks; `MoveJobOnDeviceTest` with the real service: full job, update mid-job (MIG-4) and unplug/resume. The notifications-denied path can't be forced on CI (revoking a permission kills the test process); the job is shown to complete either way.
 
 - `backup:target-saf` (OTG/SD, read-back allowlist, target marker file), `dataSync` FGS with notification, pause/resume/cancel, onTimeout handling, receipt screen, delete-originals plan via guard → trash (with `verifiedCopyRef`), Google Photos honesty note, cloud-provider "copy only" mode.
-- **DoD / tests:** MOVE-1…2, 5…14, 16, 18; ONB-10 + E-NOTIF-1/2 (notifications denied); MIG-4/5 + E-MIG-1/2 (update mid-job); instrumented test with a test DocumentsProvider simulating eject; **D (owner):** move 1 year of camera media (~5–10 GB) to a USB-C drive, unplug mid-copy and resume, verify `sha256sum -c` on PC, free originals, restore 10 files from trash.
+- **DoD / tests:** MOVE-1…2, 5…14, 16, 18; ONB-10 + E-NOTIF-1/2 (notifications denied); MIG-4/5 + E-MIG-1/2 (update mid-job); instrumented test with a test DocumentsProvider simulating eject; **D (owner):** move 1 year of camera media (~5–10 GB) to a USB-C drive, unplug mid-copy and resume, check the receipt in the app (optional, developer only: `sha256sum -c` on a PC), free originals, restore 10 files from trash.
 
 **Checkpoint C = MVP release candidate** (GitHub Release, foss APK).
 
@@ -144,15 +145,21 @@ Status: **implemented**. Notes:
 
 ## Phase 4: v1 (public)
 
+Order updated by the owner on 2026-11-01: phone-only (P-1), simple by default with an Advanced area (P-2), always ask before freeing space (P-3); Shizuku moved to Later; network and cloud targets after the phone-only polish. Each milestone stops for the owner's OK.
+
 | Milestone | Scope | Key tests |
 |---|---|---|
-| M11 | `play` flavor storage backend: SAF trees for WhatsApp/old folders, MediaStore-only flows; Play internal-track submission to test READ_MEDIA_* declaration | Contract suite on `SafGateway`; merged-manifest check; Play pre-launch report |
-| M12 | Apps: usage access, sizes, unused ~6 months, uninstall via system | Usage bucket math tests (month precision); D on owner phone (11 apps) |
-| M13 | SMB target (smbj), INTERNET confined to module, UIDT on API 34+, `ACCESS_LOCAL_NETWORK` prep | SMB against Samba in CI (docker) + Windows 11 D test; lint rule for network use |
-| M14 | Shizuku tier: Advanced access sheet, Android/data listing, per-app cache clear | Fake Shizuku binder tests; D with Shizuku on owner phone |
-| M15 | Swipe review, exclusions UI, reclassify, re-verify existing backup (MOVE-15), **restore from backup (MOVE-17)**, reminders | UI + engine tests; MOVE→restore round-trip byte-identical |
-| M15a | Messengers: cloned-app roots (MSG-3), Telegram (MSG-4), large screens (UI-2) | Fixture tests; device checks on OnePlus + Xiaomi (user 999) |
-| M16 | Release engineering: reproducible build, F-Droid/IzzyOnDroid metadata, developer-verification registration, accessibility pass, Hebrew native review | Reproducibility diff in CI; a11y scanner |
+| M11 | **Phone-first polish (no new permissions).** Plain-language pass over every default screen and a **Settings › Advanced** area (P-2; e.g. the receipt says "every file was read back and matches", hashes and `SHA256SUMS` move to Details). **Check backup** (MOVE-15). **Clear app caches** as the main path for everyone on Home and in Clean now (SAFE-5/6), with an honest 0-byte result and the guided **Clear one app at a time** list (SAFE-10). `Android/data` app-content cards (SAFE-9). TRASH-7 uninstall note. Drive-format detection (Q4) is already in. | Copy lint: no technical terms on default-path strings (word list in CI); Check backup fault tests (missing / truncated / bit-flipped); SAFE-5 0-byte path; SAFE-9 cards have no delete action; D: read-only on owner phone |
+| M12 | `play` flavor storage backend: SAF trees for WhatsApp/old folders, MediaStore-only flows and the MediaStore trash (ADR 0006/0010), Play internal-track submission to test the READ_MEDIA_* declaration | Contract suite on `SafGateway`; merged-manifest check; Play pre-launch report |
+| M13 | Apps: usage access, sizes, unused ~6 months, uninstall via system; per-app cache sizes for SAFE-10 | Usage bucket math tests (month precision); D on owner phone (11 apps) |
+| M14 | **Network foundation + SMB network drive** (MOVE-3, [ADR 0011](../adr/0011-network-and-cloud-targets.md) once accepted): `backup:net`, INTERNET only in `backup:target-*` modules (policy + Konsist), resumable uploads, `ACCESS_LOCAL_NETWORK` prep, setup from the phone only | SMB against Samba in CI (docker); fault/kill-point tests; D with a home NAS or router share |
+| M15 | **Google Drive** (MOVE-4, MOVE-20): 1-day sign-in spike first (AppAuth + PKCE, no Play Services, `drive.file`); resumable upload; free originals only after a server `sha256Checksum` match | Fake Drive server tests (missing / mismatched / client-echoed checksum never frees); D on owner phone |
+| M16 | Restore from backup (MOVE-17), swipe review, exclusions UI, reclassify (CLS-7), reminders | UI + engine tests; MOVE→restore round-trip byte-identical |
+| M16a | Messengers: cloned-app roots (MSG-3), Telegram (MSG-4), large screens (UI-2) | Fixture tests; device checks on OnePlus + Xiaomi (user 999) |
+| M17 | More clouds, only with a server-computed checksum: Nextcloud/WebDAV (`X-Hash`), then Dropbox (`content_hash`) | Same fake-server contract as M15 |
+| M18 | Release engineering: reproducible build, F-Droid/IzzyOnDroid metadata, developer-verification registration, accessibility pass, Hebrew native review | Reproducibility diff in CI; a11y scanner |
+
+Moved to **Later** on 2026-11-01: Shizuku tier (ONB-8, SAFE-7, SEC-9; was M14), Accessibility per-app cache cleaner (`foss` only, [ADR 0012](../adr/0012-foss-accessibility-cache-cleaner.md), proposed, not approved), OneDrive (no trustworthy checksum).
 
 ## Device test matrix (v1)
 
@@ -174,7 +181,7 @@ Each device run records: device, OS build, flavor, checklist results and through
 Added in the spec phase (no app code): `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`, `.github/labels.yml`, `docs/TRANSLATING.md` (Weblate workflow). Label sync and Weblate hookup are applied once the owner approves (they change GitHub/Weblate settings).
 
 ## Later
-Similar photos (dHash + BK-tree), WebDAV/Nextcloud `X-Hash`, Immich checksum target, PC companion, root tier, video squeeze.
+Similar photos (dHash + BK-tree), Shizuku tier, Accessibility cache cleaner (foss only, if ADR 0012 is approved), OneDrive, Immich checksum target, SFTP, PC companion, root tier, video squeeze.
 
 ---
 

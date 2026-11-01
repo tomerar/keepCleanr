@@ -11,6 +11,7 @@ import io.github.tomerar.keepclear.engine.scan.ScanItem
  *
  * Keep signals (CLS-5) only move items toward safety: a favourite or recently modified SAFE item
  * becomes REVIEW; MOVE and REVIEW are unchanged (they are never pre-selected anyway, SAFETY-10).
+ * Owner decision B1: regenerable rules ([Rule.regenerable]) ignore the age signal, never favourites.
  */
 class Classifier(
     private val protectedPaths: ProtectedPaths = ProtectedPaths(),
@@ -23,9 +24,11 @@ class Classifier(
         if (protectedPaths.isProtected(item.path)) return protectedItem(item)
         val input = RuleInput(item, canonical, rel, facts, now)
         val rule = rules.firstOrNull { it.matches(input) } ?: Rules.unknown
-        val keep = item.isFavorite || (now - item.mtimeMillis) in 0 until recentMillis
-        // Conservative reading of CLS-5: every SAFE item with a keep signal is downgraded, even
-        // regenerable junk and other apps' bins (open question for the owner in docs/progress.md).
+        val recent = (now - item.mtimeMillis) in 0 until recentMillis
+        // B1: thumbnails, temp files, old statuses and OS junk regenerate, so their age says nothing about
+        // value. Everything else SAFE (archives, duplicates, other apps' bins, LOST.DIR) still needs review
+        // when recent.
+        val keep = item.isFavorite || (recent && !rule.regenerable)
         // SAFE is an allowlist for deletion: it must not rely on lossy normalisation. If removing
         // zero-width/bidi characters changed the path, a junk-looking name is not trusted as junk.
         val lossy = canonical != losslessLowercase(item.path)

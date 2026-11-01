@@ -4,7 +4,12 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 
 ## [Unreleased]
 
+### Changed
+- Thumbnails, temp files, WhatsApp statuses older than 24 hours and OS junk now stay in "Clean now" even when they are recent (owner decision B1; rules v3). Favourites and everything else recent still go to Review.
+
 ### Added
+- Backup drives: KeepClear reads the drive's format where Android shows it; on exFAT (and other non-FAT32) drives, files over 4 GB can be backed up. If the format can't be read, the 4 GB limit stays and the screen explains why.
+- Test builds: CI publishes a signed test APK from `main` for installing on a phone (no GitHub Release).
 - M10: Move to backup on a USB-C drive or SD card: pick sources and age, pre-flight checks, copy and verify in a foreground service with pause/stop and resume after unplug or app update, receipt with how to get files back, then free the verified originals into the 30-day trash.
 - M9: MOVE engine (JVM): copy → hash → place → read-back verify per file, resumable after unplug or full drive, never overwrites, `SHA256SUMS` that `sha256sum -c` accepts, manifest with original paths; crash-safety property test.
 - M8: Review actions: multi-select (nothing pre-selected, select a whole month), editable confirm list, delete to trash with Undo; "Move instead" placeholder.
