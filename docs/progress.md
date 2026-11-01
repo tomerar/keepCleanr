@@ -1,5 +1,7 @@
 # KeepClear: implementation progress
 
+> **Latest test APK (after review PRs A–C):** [Actions run #57](https://github.com/tomerar/keepCleanr/actions/runs/41299825472), artifact **`keepclear-test-57-9e8ca8a.apk`** (from `main` at 9e8ca8a). It installs as a new app, "KeepClear test"; see "Waiting for owner" W1 for the old test install. Trial mode is on by default.
+
 Updated after every milestone so work can resume if a session stops. Plan: [spec/tasks.md](spec/tasks.md).
 
 Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · ⬜ not started
