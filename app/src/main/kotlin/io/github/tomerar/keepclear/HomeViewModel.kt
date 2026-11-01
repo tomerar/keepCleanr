@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +54,10 @@ data class HomeUiState(
     val mediaAccess: MediaAccess = MediaAccess.NONE,
     /** null in the `play` flavor (no all-files access there, ADR 0005). */
     val allFiles: Boolean? = null,
+    /** M12b, ONB-6: granted WhatsApp folders (their real paths), scanned while All files access is off. */
+    val grantedFolders: List<String> = emptyList(),
+    /** ONB-6: the picked folder wasn't WhatsApp's; the guide offers to try again. */
+    val wrongFolder: Boolean = false,
     val spaceMode: SpaceMode = SpaceMode.NORMAL,
     val scan: ScanState = ScanState.Idle,
     /** Classification of the last scan (M5: read-only browsing). */
@@ -168,8 +173,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             appInfoOpened = null
         }
         val before = _state.value
+        app.refreshGrantedFolders()
         _state.update {
             it.copy(
+                grantedFolders = app.grantedFolders.keys.sorted(),
                 totalBytes = stat.totalBytes,
                 freeBytes = free,
                 mediaAccess = MediaAccess.current(app),
@@ -178,16 +185,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         val after = _state.value
-        val gainedAccess = (before.mediaAccess != after.mediaAccess || before.allFiles != after.allFiles)
-        if (after.mediaAccess != MediaAccess.NONE && (after.scan == ScanState.Idle || gainedAccess)) scan()
-        if (after.allFiles == true) loadTrash()
+        val gainedAccess = before.mediaAccess != after.mediaAccess || before.allFiles != after.allFiles ||
+            before.grantedFolders != after.grantedFolders
+        val canScan = after.mediaAccess != MediaAccess.NONE || after.grantedFolders.isNotEmpty()
+        if (canScan && (after.scan == ScanState.Idle || gainedAccess)) scan()
+        if (after.allFiles == true || after.grantedFolders.isNotEmpty()) loadTrash()
     }
 
     fun scan() {
         scanJob?.cancel()
         val s = _state.value
-        val roots = if (s.allFiles == true) storageRoots() else emptyList()
-        val scanner = Scanner(app.fileGateway, app.mediaSource)
+        // M12b: without All files access, granted folders (WhatsApp's) are walked at their real paths.
+        val roots = if (s.allFiles == true) storageRoots() else s.grantedFolders.map { KPath.Local(it) }
+        val scanner = Scanner(app.localGateway, app.mediaSource)
         val persist = s.spaceMode.persistScanResults
         scanJob = viewModelScope.launch {
             _state.update { it.copy(scan = ScanState.Running(0, 0)) }
@@ -247,7 +257,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val now = System.currentTimeMillis()
             // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
             val enrichment = runCatching {
-                FactEnricher(app.fileGateway).enrich(items.filter { it.ref is KPath.Local })
+                FactEnricher(app.localGateway).enrich(items.filter { it.ref is KPath.Local })
             }
                 .getOrDefault(Enrichment(emptyMap(), emptyMap()))
             ClassificationSummary.of(
@@ -369,7 +379,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
             app.trashManager.forgetMissing(entries)
             val ops = entries.mapNotNull { e ->
-                val stat = app.fileGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
+                val stat = app.localGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
                 PlannedOp(
                     stat.path,
                     e.trashedPath,
@@ -503,6 +513,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(consent = null, cleanResult = next.result()) }
         refresh()
         scan()
+    }
+
+    /**
+     * ONB-6: the user picked a folder in the system picker. Only WhatsApp's own folder (with `Media/` inside) is
+     * kept; anything else is let go again and the guide offers to retry (never a silent failure).
+     */
+    fun whatsAppFolderPicked(uri: android.net.Uri?) {
+        if (uri == null) return
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { isWhatsAppFolder(uri) }
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            if (ok) {
+                runCatching { app.contentResolver.takePersistableUriPermission(uri, flags) }
+            }
+            _state.update { it.copy(wrongFolder = !ok) }
+            refresh()
+        }
+    }
+
+    fun dismissWrongFolder() = _state.update { it.copy(wrongFolder = false) }
+
+    private suspend fun isWhatsAppFolder(uri: android.net.Uri): Boolean {
+        if (!android.provider.DocumentsContract.isTreeUri(uri)) return false
+        val id = android.provider.DocumentsContract.getTreeDocumentId(uri)
+        if (!io.github.tomerar.keepclear.core.storage.saf.GrantedFolders.isWhatsAppFolder(id)) return false
+        if (io.github.tomerar.keepclear.core.storage.saf.GrantedFolders.mountPoint(uri.authority.orEmpty(), id) ==
+            null
+        ) {
+            return false
+        }
+        val root = KPath.Saf(uri.toString(), id)
+        return runCatching {
+            app.safGateway.list(root).toList().any { it.isDirectory && it.name == "Media" }
+        }.getOrDefault(false)
     }
 
     /** E-DEL-15: Undo restores everything the last clean moved to the trash. */

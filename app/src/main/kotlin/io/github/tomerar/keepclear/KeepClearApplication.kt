@@ -10,8 +10,13 @@ import io.github.tomerar.keepclear.core.safety.ActionExecutor
 import io.github.tomerar.keepclear.core.safety.OpResult
 import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.safety.SafetyGuard
+import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.file.FileGateway
+import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.core.storage.media.MediaStoreSource
+import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
+import io.github.tomerar.keepclear.core.storage.saf.SafGateway
+import io.github.tomerar.keepclear.core.storage.saf.SafTreeMount
 import io.github.tomerar.keepclear.engine.trash.TrashManager
 import java.util.UUID
 
@@ -26,6 +31,43 @@ class KeepClearApplication : Application() {
     val database by lazy { KeepClearDatabase.build(this) }
     val scanIndex by lazy { ScanIndex(database) }
     val fileGateway by lazy { FileGateway() }
+
+    /**
+     * M12b, ONB-6: WhatsApp folders the user granted through the system picker, mounted at their real path while
+     * All files access is off. Read once per resume ([refreshGrantedFolders]), not on every file operation.
+     */
+    @Volatile
+    var grantedFolders: Map<String, io.github.tomerar.keepclear.core.storage.StorageGateway> = emptyMap()
+        private set
+
+    /** One mount per granted folder, kept so its path cache survives a refresh. */
+    private val mountCache = java.util.concurrent.ConcurrentHashMap<String, SafTreeMount>()
+
+    val safGateway by lazy { SafGateway(contentResolver) }
+
+    fun refreshGrantedFolders() {
+        if (BuildConfig.FLAVOR == "foss" && MediaAccess.hasAllFiles()) {
+            grantedFolders = emptyMap()
+            return
+        }
+        grantedFolders = contentResolver.persistedUriPermissions
+            .filter { it.isReadPermission && it.isWritePermission }
+            .mapNotNull { permission ->
+                val uri = permission.uri
+                if (!android.provider.DocumentsContract.isTreeUri(uri)) return@mapNotNull null
+                val id = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                if (!GrantedFolders.isWhatsAppFolder(id)) return@mapNotNull null
+                val point = GrantedFolders.mountPoint(uri.authority.orEmpty(), id) ?: return@mapNotNull null
+                point to mountCache.getOrPut(uri.toString()) {
+                    SafTreeMount(safGateway, KPath.Saf(uri.toString(), id), point)
+                }
+            }.toMap()
+    }
+
+    /** Every file path goes through here: the phone's files, or a granted folder's documents (M12b). */
+    val localGateway by lazy {
+        io.github.tomerar.keepclear.core.storage.MountedGateway(fileGateway) { grantedFolders }
+    }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
 
     /** Own folders are PROTECTED under this build's real package (test builds end in `.test`). */
@@ -37,12 +79,14 @@ class KeepClearApplication : Application() {
 
     val trashManager by lazy {
         TrashManager(
-            gateway = fileGateway,
+            gateway = localGateway,
             index = RoomTrashIndex(database.trashDao()),
             signer = KeystoreSidecarSigner(),
             clock = trashClock,
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
+            // M12b: a granted folder keeps its own trash inside it (documents can't move out of it).
+            grantedRoots = { grantedFolders.keys.toList() },
             // E-DEL-10: a refused purge run is logged (no file paths).
             onClockJump = { j ->
                 android.util.Log.w(
@@ -59,7 +103,7 @@ class KeepClearApplication : Application() {
     /** File paths through the file gateway, MediaStore rows through MediaStore (M12). */
     val actionGateway by lazy {
         io.github.tomerar.keepclear.core.storage.RoutingGateway(
-            fileGateway,
+            localGateway,
             media = io.github.tomerar.keepclear.core.storage.media.MediaGateway(contentResolver),
         )
     }

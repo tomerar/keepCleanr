@@ -36,6 +36,12 @@ class TrashManager(
     private val protectedPaths: ProtectedPaths,
     /** Volume roots that may hold a trash, e.g. `/storage/emulated/0`, `/storage/1234-ABCD`. */
     private val volumeRoots: List<String>,
+    /**
+     * M12b: folders the user granted (e.g. WhatsApp's folder in the `play` flavor), mounted at their real path.
+     * Each acts as its own volume: files inside it are trashed into `<folder>/.KeepClearTrash`, because a
+     * granted folder can only move documents within itself.
+     */
+    private val grantedRoots: () -> List<String> = { emptyList() },
     private val newId: () -> String = { UUID.randomUUID().toString() },
     /** Called when a purge run is refused because the wall clock jumped (E-DEL-10). */
     private val onClockJump: (ClockJump) -> Unit = {},
@@ -342,7 +348,7 @@ class TrashManager(
                 }
             }
         }
-        for (volume in volumeRoots) {
+        for (volume in allRoots()) {
             if (volumeMissing(volume)) continue
             val root = trashRoot(volume, create = false)
             if (gateway.stat(root)?.isDirectory != true) continue
@@ -409,11 +415,19 @@ class TrashManager(
     }
 
     private fun volumeOf(path: String): String? =
-        volumeRoots.filter { path.startsWith("$it/") }.maxByOrNull { it.length }
+        allRoots().filter { path.startsWith("$it/") }.maxByOrNull { it.length }
 
+    private fun allRoots(): List<String> = (volumeRoots + grantedRoots()).distinct()
+
+    /**
+     * A volume that isn't mounted or granted right now (SD card out, folder access taken back) counts as missing,
+     * so its trash records are kept, never dropped as "file gone" (M12b).
+     */
     private suspend fun volumeMissing(volume: String): Boolean = try {
-        gateway.stat(KPath.Local(volume)) == null
+        volume !in allRoots() || gateway.stat(KPath.Local(volume)) == null
     } catch (e: StorageException.Disconnected) {
+        true
+    } catch (e: StorageException.PermissionDenied) {
         true
     }
 

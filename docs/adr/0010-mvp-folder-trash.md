@@ -12,6 +12,7 @@ ADR 0006 planned two physical trash backends: MediaStore's trash for indexed med
 ## Decision
 - **MVP (`foss` with All files access):** every user file whose path KeepClear can rename goes to the folder trash, including camera media.
 - **`play` flavor (M11) and items KeepClear only knows as MediaStore rows:** MediaStore trash backend, as in ADR 0006.
+- **Granted folders (M12b, `play` or no All files access):** a folder the user picked in Android's folder picker (WhatsApp's folder, ONB-6) is mounted at its real path and is its own trash volume: its files go to `<folder>/.KeepClearTrash`, because documents can only move within the granted folder (never copy + delete). Untrusted items (E-SEC-2) restore to `<folder>/Download/KeepClear Restored/` for the same reason. If access is taken back, the records stay (shown, not dropped) until the folder is granted again.
 - Everything else in ADR 0006 stands: 30-day retention, honest space accounting, "Empty now" with a second confirmation, "Release now (verified copy exists)".
 
 ## Consequences

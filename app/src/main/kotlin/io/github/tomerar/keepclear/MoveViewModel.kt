@@ -339,7 +339,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun engine(target: io.github.tomerar.keepclear.backup.BackupTarget) =
-        MoveEngine(app.fileGateway, target, controller.store, bootId = { app.trashClock.bootId() })
+        MoveEngine(app.localGateway, target, controller.store, bootId = { app.trashClock.bootId() })
 
     private var checkJob: kotlinx.coroutines.Job? = null
 

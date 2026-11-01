@@ -47,7 +47,7 @@ keepclear/
 │   ├─ common/         (JVM)    # Result types, dispatchers, Clock, logging facade, ByteSize, bidi-safe formatting helpers
 │   ├─ storage-api/    (JVM)    # StorageGateway interface, Path abstraction (KPath), capabilities, FakeStorageGateway in testFixtures
 │   ├─ storage-file/   (Android)# java.io/NIO implementation (foss, all-files)
-│   ├─ storage-saf/    (Android)# DocumentsContract/DocumentFile implementation (both flavors)
+│   ├─ storage-saf/    (Android)# SafGateway (DocumentsContract) + SafTreeMount: a granted folder at its real path (M12b)
 │   ├─ storage-media/  (Android)# MediaStore queries, generations, trash/delete requests
 │   ├─ safety/         (JVM)    # SafetyGuard, ProtectedPaths, ActionExecutor (delegates to gateways), dry-run
 │   ├─ hash/           (JVM)    # streaming SHA-256 (java.security), HashCache logic

@@ -46,6 +46,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:storage-file"))
     implementation(project(":core:storage-media"))
+    implementation(project(":core:storage-saf"))
     implementation(project(":core:database"))
     implementation(project(":backup:target-saf"))
     implementation(project(":engine:move"))
