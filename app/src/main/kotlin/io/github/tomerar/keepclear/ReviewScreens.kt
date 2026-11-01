@@ -463,6 +463,13 @@ private fun Tile(
 /** The thumbnail, or the file name when there is none (no loader, unsupported type, or loading failed). */
 @Composable
 internal fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
+    // PR #28 review: a new path starts from no picture, so the previous file's bitmap never shows next to the
+    // next file's name while it loads (a quick Keep/Delete would otherwise act on a different picture).
+    androidx.compose.runtime.key(item.item.path) { ThumbContent(item, sizeDp, showName) }
+}
+
+@Composable
+private fun ThumbContent(item: ClassifiedItem, sizeDp: Int, showName: Boolean) {
     val loader = LocalThumbnailLoader.current
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
     val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path, loader) {

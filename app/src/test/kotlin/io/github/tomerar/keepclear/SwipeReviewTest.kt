@@ -87,4 +87,32 @@ class SwipeReviewTest {
         repeat(3) { compose.onNodeWithTag("swipeKeep").performClick() }
         compose.onNodeWithTag("swipeReview").assertIsNotEnabled()
     }
+
+    @Test
+    fun `advancing never shows the previous item's picture while the next one loads`() {
+        val g = group()
+        val first = g.items[0].item.path
+        val loader = object : ThumbnailLoader(null) {
+            override suspend fun load(item: ScanItem, sizePx: Int): android.graphics.Bitmap? =
+                if (item.path == first) {
+                    android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888)
+                } else {
+                    kotlinx.coroutines.awaitCancellation()
+                }
+        }
+        compose.setContent {
+            KeepClearTheme {
+                androidx.compose.runtime.CompositionLocalProvider(LocalThumbnailLoader provides loader) {
+                    SwipeReview(g.items, onDone = {}, onClose = {})
+                }
+            }
+        }
+        compose.waitForIdle()
+        val firstPicture = compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals(0, firstPicture.size) // the first item shows its picture, not its name
+        compose.onNodeWithTag("swipeKeep").performClick()
+        compose.waitForIdle()
+        // The second item is still loading: its name shows, never the first item's picture.
+        assertEquals(1, compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes().size)
+    }
 }

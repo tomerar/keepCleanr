@@ -18,12 +18,12 @@ import java.io.File
  * Loads small previews with platform APIs only (no image library needed): MediaStore thumbnails for
  * indexed media, `ThumbnailUtils` for walked image/video files. Memory cache only (LOW-1: no disk cache).
  */
-class ThumbnailLoader(private val resolver: ContentResolver) {
+open class ThumbnailLoader(private val resolver: ContentResolver?) {
     private val cache = object : LruCache<String, Bitmap>(32 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
-    suspend fun load(item: ScanItem, sizePx: Int): Bitmap? {
+    open suspend fun load(item: ScanItem, sizePx: Int): Bitmap? {
         val key = "${item.path}#$sizePx#${item.mtimeMillis}"
         cache.get(key)?.let { return it }
         val bitmap = withContext(Dispatchers.IO) {
@@ -31,7 +31,7 @@ class ThumbnailLoader(private val resolver: ContentResolver) {
                 val size = Size(sizePx, sizePx)
                 val ext = item.path.substringAfterLast('.', "").lowercase()
                 when {
-                    item.mediaId != null -> resolver.loadThumbnail(
+                    item.mediaId != null && resolver != null -> resolver.loadThumbnail(
                         ContentUris.withAppendedId(
                             MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
                             item.mediaId!!,
