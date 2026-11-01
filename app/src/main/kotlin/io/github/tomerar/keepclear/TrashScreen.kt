@@ -51,6 +51,8 @@ data class TrashUi(
     val releasable: Set<String> = emptySet(),
     /** Entry ids whose file changed in the trash since it was deleted (owner decision 1.2). */
     val changed: Set<String> = emptySet(),
+    /** M12: photos and videos in Android's own trash (any app's "Recently deleted"). */
+    val android: List<io.github.tomerar.keepclear.engine.scan.ScanItem> = emptyList(),
 ) {
     val bytes: Long get() = entries.sumOf { it.size }
 }
@@ -65,6 +67,8 @@ private sealed interface Pending {
     data class RestoreAll(val entries: List<TrashEntry>) : Pending
 
     data class ReleaseAll(val entries: List<TrashEntry>) : Pending
+
+    data class AndroidEmpty(val items: List<io.github.tomerar.keepclear.engine.scan.ScanItem>) : Pending
 }
 
 private const val GROUP_OPEN_MAX = 5
@@ -175,6 +179,11 @@ fun TrashScreen(
     onRestoreChanged: (TrashEntry, Confirmation) -> Unit = { _, _ -> },
     measured: Measured? = null,
     busy: Boolean = false,
+    onAndroidTrash: (
+        List<io.github.tomerar.keepclear.engine.scan.ScanItem>,
+        Boolean,
+        Confirmation,
+    ) -> Unit = { _, _, _ -> },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -202,7 +211,7 @@ fun TrashScreen(
                     Text(stringResource(R.string.trash_title), style = MaterialTheme.typography.titleLarge)
                 }
                 measured?.let { MeasuredBanner(it) }
-                if (trash.entries.isEmpty()) {
+                if (trash.entries.isEmpty() && trash.android.isEmpty()) {
                     Text(stringResource(R.string.trash_empty_state), modifier = Modifier.testTag("trashEmpty"))
                 } else {
                     val total = stringResource(
@@ -304,6 +313,54 @@ fun TrashScreen(
                     }
                 }
             }
+            if (trash.android.isNotEmpty()) {
+                item(key = "android") {
+                    Card(modifier = Modifier.fillMaxWidth().testTag("androidTrash")) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                stringResource(R.string.trash_group_android),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                stringResource(
+                                    R.string.total_value,
+                                    Bidi.isolate(ByteSize.format(trash.android.sumOf { it.size }, locale)),
+                                    Bidi.isolate(count(trash.android.size)),
+                                ),
+                            )
+                            Text(
+                                stringResource(R.string.trash_android_note),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(
+                                    onClick = {
+                                        onAndroidTrash(
+                                            trash.android,
+                                            true,
+                                            userConfirmed(
+                                                trash.android.map {
+                                                    it.path
+                                                },
+                                            ),
+                                        )
+                                    },
+                                    enabled = !busy,
+                                    modifier = Modifier.testTag("androidRestore"),
+                                ) { Text(stringResource(R.string.trash_restore_group)) }
+                                OutlinedButton(
+                                    onClick = { pending = Pending.AndroidEmpty(trash.android) },
+                                    enabled = !busy,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                    ),
+                                    modifier = Modifier.testTag("androidEmpty"),
+                                ) { Text(stringResource(R.string.trash_android_empty)) }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -367,6 +424,42 @@ fun TrashScreen(
                             onPurge(listOf(p.entry), trashConfirmed(listOf(p.entry)))
                         },
                         modifier = Modifier.testTag("confirmPurge"),
+                    )
+                },
+                dismissButton = {
+                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
+                },
+            )
+        }
+
+        is Pending.AndroidEmpty -> {
+            // Second confirmation (TRASH-4); Android then shows its own dialog too.
+            AlertDialog(
+                onDismissRequest = { pending = null },
+                title = {
+                    Text(
+                        stringResource(
+                            R.string.trash_confirm_empty_title,
+                            Bidi.isolate(
+                                ByteSize.format(
+                                    p.items.sumOf {
+                                        it.size
+                                    },
+                                    locale,
+                                ),
+                            ),
+                        ),
+                    )
+                },
+                text = { Text(stringResource(R.string.trash_confirm_empty_body, Bidi.isolate(count(p.items.size)))) },
+                confirmButton = {
+                    SafeConfirmButton(
+                        stringResource(R.string.trash_confirm_delete),
+                        onClick = {
+                            pending = null
+                            onAndroidTrash(p.items, false, userConfirmed(p.items.map { it.path }))
+                        },
+                        modifier = Modifier.testTag("confirmAndroidEmpty"),
                     )
                 },
                 dismissButton = {

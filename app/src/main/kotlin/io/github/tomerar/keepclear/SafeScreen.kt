@@ -52,6 +52,10 @@ data class CleanResult(
     val simulated: Boolean = false,
     /** The screen the action was started from; the result (and its Undo) shows only there (review PR C). */
     val origin: Screen? = null,
+    /** M12: the items went to Android's own trash (restore from KeepClear's Trash or the gallery's bin). */
+    val androidTrash: Boolean = false,
+    /** M12: the user said no in Android's dialog; nothing changed. */
+    val declined: Boolean = false,
 )
 
 /**
@@ -116,6 +120,8 @@ fun SafeScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.testTag("simulatedResult"),
                                 )
+                            } else if (r.androidTrash || r.declined) {
+                                AndroidTrashResult(r)
                             } else {
                                 Text(
                                     stringResource(R.string.clean_done, totalText(r.done)),
@@ -127,7 +133,7 @@ fun SafeScreen(
                                 )
                             }
                             if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
-                            if (!r.simulated) {
+                            if (!r.simulated && !r.androidTrash && !r.declined) {
                                 UndoRow(onUndo = {
                                     onUndo(r, userConfirmed(r.trashedPaths))
                                 }, onOpenTrash = onOpenTrash)
@@ -261,4 +267,18 @@ private fun UndoRow(onUndo: () -> Unit, onOpenTrash: () -> Unit) {
             Text(stringResource(R.string.clean_empty_now))
         }
     }
+}
+
+/** M12: the result after Android's own confirmation dialog. */
+@Composable
+fun AndroidTrashResult(r: CleanResult) {
+    Text(
+        if (r.declined) {
+            stringResource(R.string.android_trash_declined)
+        } else {
+            stringResource(R.string.android_trash_done, totalText(r.done))
+        },
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.testTag("androidTrashResult"),
+    )
 }

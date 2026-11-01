@@ -124,4 +124,18 @@ class SafetyGuardTest {
             SESSION,
         ) shouldBe SafetyGuard.Verdict.Accepted
     }
+
+    @Test
+    fun `a MediaStore row may be planned for purge, its trashed state is checked by the media handler (M12)`() {
+        val row = op(
+            photo,
+            OpKind.PURGE,
+        ).copy(ref = io.github.tomerar.keepclear.core.storage.KPath.Media("external_primary", 3))
+        guard.check(plan(row), SESSION) shouldBe SafetyGuard.Verdict.Accepted
+        // Still PROTECTED-checked like everything else? PURGE is trash-only, so a protected display path is rejected
+        // only for non-trash kinds; a TRASH of the same protected row is rejected.
+        val protectedRow = op("$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14")
+            .copy(ref = io.github.tomerar.keepclear.core.storage.KPath.Media("external_primary", 4))
+        guard.check(plan(protectedRow), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    }
 }

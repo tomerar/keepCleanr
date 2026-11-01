@@ -199,4 +199,40 @@ class ActionExecutorTest {
         (gone.results.single() as OpResult.Skipped).reason shouldBe SkipReason.WITNESS_GONE
         fake.exists(a) shouldBe true
     }
+
+    /** Stands in for the MediaStore trash: Android asks the user itself (M12). */
+    private class ConsentHandler : ActionHandler {
+        val asked = mutableListOf<List<PlannedOp>>()
+
+        override suspend fun perform(op: PlannedOp, gateway: StorageGateway) = error("must not run without consent")
+
+        override fun needsConsent(op: PlannedOp) = true
+
+        override suspend fun requestConsent(ops: List<PlannedOp>): List<Any> {
+            asked += ops
+            return listOf("system-dialog")
+        }
+    }
+
+    @Test
+    fun `items Android must confirm are checked first, then handed over in one batch (M12)`(): Unit = runBlocking {
+        val h = ConsentHandler()
+        fake.modify(b, FakeStorageGateway.Content.Bytes(ByteArray(3)), mtime = 99) // changed since the scan
+        val report =
+            ran(executor(h = h).run(plan(fake.op(a), fake.op(b).copy(expectedSize = 2000, expectedMtime = 20))))
+        report.results[0].shouldBeInstanceOf<OpResult.NeedsConsent>()
+        (report.results[1] as OpResult.Skipped).reason shouldBe SkipReason.CHANGED
+        h.asked.single().map { it.displayPath } shouldBe listOf(a)
+        report.consent shouldBe listOf("system-dialog")
+        fake.exists(a) shouldBe true
+    }
+
+    @Test
+    fun `in test mode nothing is handed to Android (SAFETY-9, M12)`(): Unit = runBlocking {
+        val h = ConsentHandler()
+        val report = ran(executor(dryRun = true, h = h).run(plan(fake.op(a))))
+        report.results.single().shouldBeInstanceOf<OpResult.Simulated>()
+        h.asked.shouldBeEmpty()
+        report.consent.shouldBeEmpty()
+    }
 }

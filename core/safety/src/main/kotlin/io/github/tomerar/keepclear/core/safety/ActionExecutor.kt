@@ -17,6 +17,15 @@ fun interface ActionHandler {
 
     /** Handler-specific reason to skip [op] before anything changes (e.g. the trash's last-copy check). */
     suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? = null
+
+    /**
+     * M12: true when Android itself must ask the user before [op] happens (MediaStore trash without
+     * `MANAGE_MEDIA`). Such ops are re-checked like any other and then handed over in one batch.
+     */
+    fun needsConsent(op: PlannedOp): Boolean = false
+
+    /** Builds Android's consent request(s) for [ops] (e.g. `IntentSender`s), launched by the UI. */
+    suspend fun requestConsent(ops: List<PlannedOp>): List<Any> = emptyList()
 }
 
 /** Outcome per op (E-DEL-11: partial success is normal and reported). */
@@ -31,6 +40,9 @@ sealed interface OpResult {
     data class Skipped(override val op: PlannedOp, val reason: SkipReason) : OpResult
 
     data class Failed(override val op: PlannedOp, val error: StorageException) : OpResult
+
+    /** Re-checked and handed to Android, which asks the user (M12); done only if the user agrees there. */
+    data class NeedsConsent(override val op: PlannedOp) : OpResult
 }
 
 enum class SkipReason {
@@ -57,7 +69,11 @@ enum class SkipReason {
 sealed interface ExecutionReport {
     data class Rejected(val reasons: List<String>) : ExecutionReport
 
-    data class Ran(val results: List<OpResult>) : ExecutionReport {
+    data class Ran(
+        val results: List<OpResult>,
+        /** Android's consent requests for the [OpResult.NeedsConsent] ops, for the UI to launch (M12). */
+        val consent: List<Any> = emptyList(),
+    ) : ExecutionReport {
         val done get() = results.filterIsInstance<OpResult.Done>()
         val skipped get() = results.filterIsInstance<OpResult.Skipped>()
         val failed get() = results.filterIsInstance<OpResult.Failed>()
@@ -105,13 +121,21 @@ class ActionExecutor(
             results += result
             onResult(result)
         }
-        return ExecutionReport.Ran(results)
+        val needConsent = results.filterIsInstance<OpResult.NeedsConsent>().map { it.op }
+        if (needConsent.isEmpty()) return ExecutionReport.Ran(results)
+        return try {
+            ExecutionReport.Ran(results, handler.requestConsent(needConsent))
+        } catch (e: StorageException) {
+            ExecutionReport.Ran(results.map { if (it is OpResult.NeedsConsent) OpResult.Failed(it.op, e) else it })
+        }
     }
 
     private suspend fun runOne(op: PlannedOp): OpResult = try {
         precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
             if (isDryRun()) {
                 OpResult.Simulated(op)
+            } else if (handler.needsConsent(op)) {
+                OpResult.NeedsConsent(op)
             } else {
                 handler.perform(op, gateway)
                 OpResult.Done(op)

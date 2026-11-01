@@ -365,4 +365,9 @@
     <string name="trash_uninstall_note">Files in KeepClear\'s trash are kept in a hidden folder, .KeepClearTrash, on this phone. If you uninstall KeepClear, they stay there and keep taking space (now %1$s). Restore or empty the trash first.</string>
     <string name="settings_uninstall_title">Before you uninstall</string>
     <string name="settings_open_trash">Open the trash</string>
+    <string name="android_trash_done">%1$s moved to Android\'s trash. Android deletes them after 30 days; until then you can put them back from KeepClear\'s trash.</string>
+    <string name="android_trash_declined">Nothing changed: the request was declined in Android\'s window.</string>
+    <string name="trash_group_android">In Android\'s trash (photos and videos)</string>
+    <string name="trash_android_note">Android deletes these by itself 30 days after they were deleted. Android asks you to confirm each restore or delete.</string>
+    <string name="trash_android_empty">Delete these now</string>
 </resources>

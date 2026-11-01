@@ -225,14 +225,18 @@ fun GroupScreen(
                     result?.let { r ->
                         Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    stringResource(
-                                        if (r.simulated) R.string.test_mode_would_free else R.string.clean_done,
-                                        totalText(r.done),
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                )
-                                if (!r.simulated) {
+                                if (r.androidTrash || r.declined) {
+                                    Column(Modifier.weight(1f)) { AndroidTrashResult(r) }
+                                } else {
+                                    Text(
+                                        stringResource(
+                                            if (r.simulated) R.string.test_mode_would_free else R.string.clean_done,
+                                            totalText(r.done),
+                                        ),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                if (!r.simulated && !r.androidTrash && !r.declined) {
                                     TextButton(onClick = {
                                         onUndo(r, userConfirmed(r.trashedPaths))
                                     }, modifier = Modifier.testTag("undo")) {
