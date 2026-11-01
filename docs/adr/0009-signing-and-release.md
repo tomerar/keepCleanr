@@ -53,3 +53,6 @@ Status: Accepted (2026-10-31) · Date: 2026-10-31
 - Google-generated Play signing key: simpler, but the Play signature differs from GitHub/F-Droid forever.
 - Separate keys per channel: no single point of failure, but users can't switch channels and developer verification must cover several keys.
 - Let F-Droid sign with its own key: standard for F-Droid, but its builds can't update GitHub installs.
+
+## Note: test builds (2026-11-01)
+Debug/test builds, including the test APK that CI publishes from `main` for the owner's phone, are signed with a committed, non-secret test key (`keystore/debug-test.keystore`, see `keystore/README.md`) so each test APK updates the previous one. It never signs a release, and a release can't update a test install: uninstall the test build first (after restoring or emptying the trash).

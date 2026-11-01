@@ -18,42 +18,60 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M9 MOVE engine | ✅ merged | [#10](https://github.com/tomerar/keepCleanr/pull/10) | 4 Codex findings fixed: copy-only targets keep unverified copies, collision names checkpointed before rename, suffixes stay within 255 bytes, crash-safe manifest replace. Also fixed while integrating: reused files never deleted, unreadable manifests kept, ASCII folder names. |
 | M10 SAF target + MOVE UI | ✅ merged | [#11](https://github.com/tomerar/keepCleanr/pull/11) | 4 Codex findings fixed (no fsync on pipes, selection kept across recreation, Continue for older jobs, progress notification removed); device tests fixed for a start/await race. |
 
+## Test build for the phone (no computer needed)
+
+Every push to `main` builds a signed `fossDebug` test APK once CI is green (workflow **CI**, job **Test APK (fossDebug)**). It is an Actions artifact, not a GitHub Release, kept 30 days. Install from the phone:
+
+1. In the phone's browser (signed in to GitHub), open `https://github.com/tomerar/keepCleanr/actions/workflows/ci.yml?query=branch%3Amain`.
+2. Open the newest run with a green check.
+3. Scroll to **Artifacts** and tap `keepclear-test-<number>-<commit>.apk`. It downloads as an `.apk`, not a zip.
+4. Open the downloaded file. The first time, Android asks to allow installs from the browser: **Settings › Allow from this source**, then go back and tap **Install**.
+5. A newer test APK installs over the old one (same test key; see `keystore/README.md`). A future release build can't: uninstall the test build first, after restoring or emptying KeepClear's trash.
+
+To build one on demand: Actions › CI › **Run workflow** on `main`.
+
 ## Device checks waiting for the owner (D)
 
-Run on the OnePlus 10T; record results in `docs/device-reports/`.
+Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are marked *optional (developer)*. Record results in `docs/device-reports/`.
 
-| # | Milestone | Check | Status |
-|---|---|---|---|
-| D0-1 | M0 | Install the `foss` debug APK; Home shows in Hebrew when the phone is in Hebrew; dark mode follows the system | waiting for owner |
-| D3-1 | M3 | Full scan of the OnePlus 10T with All files access: finishes in ≤ 60 s; used/free on Home within 1% of Settings › Storage | waiting for owner |
-| D3-2 | M3 | Permission flow: explainer appears before Android's dialog; choose "Selected photos" → partial banner shows; revoke media permission in Settings mid-scan → "incomplete" message, no crash | waiting for owner |
-| D5-1 | M5 | Scroll a 2,000-screenshot group: smooth (no visible jank) on the 10T | waiting for owner |
-| D6-1 | M6 | Trash 50 test files, restore them; reinstall the app and check the trash is found again (restores to "KeepClear Restored") | waiting for owner |
-| D6-2 | M6 | Does OnePlus Gallery show anything for files in `.KeepClearTrash`? (should not, `.nomedia`) | waiting for owner |
-| D7-1 | M7 | Is the OnePlus File Manager bin at `/sdcard/.FileManagerRecycler`? (`adb shell ls -la /sdcard/`) | waiting for owner |
-| D7-2 | M7 | Clean now on the real phone: ≈ 8 GB found? Clean → Trash → Empty now → Settings › Storage shows the space back | waiting for owner |
-| D7-3 | M7 | "Let Android trim caches": how many bytes does it actually free on the 10T? | waiting for owner |
-| D8-1 | M8 | Open Review › Screenshots and AI images on the 10T: are the groups right? Select a month, remove two items in the confirm list, delete, then Undo | waiting for owner |
-| D10-1 | M10 | Move one year of camera media (5–10 GB) to a USB-C drive; unplug mid-copy, plug back in, tap Continue; it finishes | waiting for owner |
-| D10-2 | M10 | On a PC: `sha256sum -c SHA256SUMS` in `KeepClear/<phone>/` passes; what file system is the drive (FAT32 or exFAT)? Files over 4 GB are blocked on every SAF drive for now | waiting for owner |
-| D10-3 | M10 | "Free … from the phone" after the receipt; then restore 10 of those files from the Trash | waiting for owner |
-| D10-4 | M10 | Notifications: deny on first backup → backup still runs, progress shows in the app; allow → progress notification with Pause/Stop works | waiting for owner |
-| D3-3 | M3 | `adb shell ls /storage/emulated/999` and `pm list users`: is there a Parallel-apps user 999, and can KeepClear (all-files) read it? (MSG-3) | waiting for owner |
+**Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete). **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
+
+| # | Milestone | Check | When | Status |
+|---|---|---|---|---|
+| D0-1 | M0 | Install the test APK; Home shows in Hebrew when the phone is in Hebrew; dark mode follows the system | Now | waiting for owner |
+| D3-1 | M3 | Full scan with All files access: finishes in ≤ 60 s; used/free on Home within 1% of Settings › Storage | Now | waiting for owner |
+| D3-2 | M3 | Permission flow: explainer appears before Android's dialog; "Selected photos" → partial banner; revoke media permission in Settings mid-scan → "incomplete" message, no crash | Now | waiting for owner |
+| D3-3 | M3 | Parallel apps: if WhatsApp is cloned (Settings › Apps › Parallel apps), does KeepClear show the clone's media? *Optional (developer): `adb shell ls /storage/emulated/999` and `pm list users`.* | Now | waiting for owner |
+| D5-1 | M5 | Scroll a 2,000-screenshot group: smooth, no visible jank | Now | waiting for owner |
+| D8-1 | M8 | Review › Screenshots and AI images: are the groups right? Select a month and open the confirm list, then **Cancel** (deleting waits until home) | Now (read-only part) | waiting for owner |
+| D7-1 | M7 | OnePlus File Manager bin: in the Files app, show hidden files; is there `.FileManagerRecycler` in internal storage? *Optional (developer): `adb shell ls -la /sdcard/`.* | Any time | waiting for owner |
+| D7-3 | M7 | "Clear app caches": how many bytes does it actually free? Research predicts about 0 on a 93%-full phone ([09](research/09-accessibility-cache-cleaner.md) §1.2); the result decides SAFE-10's priority | Any time (clears caches only) | waiting for owner |
+| D6-1 | M6 | Trash 50 test files, restore them; reinstall and check the trash is found again (restores to "KeepClear Restored") | Home | waiting for owner |
+| D6-2 | M6 | Does OnePlus Gallery show anything for files in `.KeepClearTrash`? (should not, `.nomedia`) | Home | waiting for owner |
+| D7-2 | M7 | Clean now: ≈ 8 GB found? Clean → Trash → Empty now → Settings › Storage shows the space back | Home | waiting for owner |
+| D10-1 | M10 | Move one year of camera media (5–10 GB) to the exFAT USB-C drive; unplug mid-copy, plug back in, tap Continue; it finishes; a video over 4 GB is copied (exFAT detected) or the screen explains why not | Home | waiting for owner |
+| D10-2 | M10 | The receipt says every file was checked. *Optional (developer): `sha256sum -c SHA256SUMS` on a PC.* In-app "Check backup" comes in M11 | Home | waiting for owner |
+| D10-3 | M10 | "Free … from the phone" after the receipt; then restore 10 of those files from the Trash | Home | waiting for owner |
+| D10-4 | M10 | Notifications: deny on first backup → backup still runs, progress shows in the app; allow → progress notification with Pause/Stop works | Home | waiting for owner |
 
 ## Blockers and decisions needed
 
-| # | Type | Question | What I did meanwhile |
-|---|---|---|---|
-| Q4 | Open question (requirements §14) | Which USB-C drive for backups (≥ 128 GB, exFAT preferred so videos over 4 GB fit)? Needed for device check D10-1. | Nothing blocked in code: every SAF drive is treated as FAT32 (files > 4 GB are blocked with a message, never truncated) until D10-2 confirms the format. |
-| B2 | Decision (ADR 0010, amends ADR 0006) | MVP trash: put **every** file KeepClear can reach by path (including camera media) into its own `.KeepClearTrash` folder, instead of MediaStore's trash for indexed media. Simpler and fully crash-tested; trashed photos disappear from the gallery until restored, and other galleries' "Recently deleted" won't list them. MediaStore trash comes with the `play` flavor (M11). OK? | Implemented as proposed (ADR 0010 status "Proposed"). Still a 30-day trash; nothing permanent changed. |
-| B1 | Decision (CLS-5) | Keep signals: today every SAFE item that is a favourite **or modified in the last 30 days** becomes REVIEW. That is the safe reading of CLS-5, but it means WhatsApp statuses older than 24 h are never SAFE (they are always < 30 days old), and other apps' recent recycle-bin items need review too. Should regenerable junk (thumbnails, statuses, temp files) and already-deleted bin items stay SAFE despite being recent? | Kept the conservative behaviour (nothing becomes SAFE that the spec doesn't clearly allow). Visible in `engine/classify/src/test/resources/owner-classification-snapshot.txt`. |
+None open. Decided by the owner on 2026-11-01 (recorded in requirements §14):
+
+| # | Decision |
+|---|---|
+| B1 | Regenerable items (thumbnails, temp files, WhatsApp statuses > 24 h, OS junk) stay SAFE regardless of age; the 30-day rule applies to everything else. Implemented (rules v3, CLS-5). |
+| B2 | ADR 0010 accepted for `foss`; TRASH-7 wording says trashed files stay in `.KeepClearTrash` and take space after uninstall. |
+| Q4 | 256 GB+ USB-C drive, exFAT. Drive-format detection implemented: the 4 GB limit applies only to FAT32 or an unreadable format. |
+
+Proposed, waiting for the owner: [ADR 0011](adr/0011-network-and-cloud-targets.md) (network and cloud targets, priority SMB → Google Drive → Nextcloud → Dropbox; OneDrive Later) and [ADR 0012](adr/0012-foss-accessibility-cache-cleaner.md) (Accessibility cache cleaner: recommendation is no for v1).
 
 ## Notes for resuming
 
 - Local builds in the sandbox use a Maven Central mirror via `~/.gradle/init.d/mirror.gradle.kts` and `keepclear.robolectricRepoUrl` in `~/.gradle/gradle.properties` (Central returns HTTP 429 here). Not part of the repo; CI uses normal repositories.
 - Android SDK at `/opt/android-sdk` (platform `android-37.0`, build-tools 37.0.0); `local.properties` is git-ignored.
 - Write `gradle/verification-metadata.xml` with `--no-configuration-cache` after deleting `.gradle/`, `build-logic/.gradle`, `build-logic/build` (otherwise the included build's plugin classpath isn't re-resolved and CI fails), then run `scripts/verification-extras.py`.
-- MVP milestones M0–M10 are merged. Next per tasks.md: M11+ (v1: `play` flavor with MediaStore trash, SMB target, restore from backup). Nothing is in progress.
+- MVP milestones M0–M10 are merged. Next per tasks.md (order updated 2026-11-01): M11 phone-first polish, then `play` backend, Apps, SMB, Google Drive, restore. Nothing is in progress; each milestone waits for the owner's OK.
 - Lessons from the overnight run: always `git add -A` before committing new files; pure-JVM modules aren't linted for Android API levels (Konsist now forbids `readNBytes`/`skipNBytes`/`transferTo`); every PR gets a Codex review a minute after opening, so read the threads before merging.
 - **Merge gate (since #5):** CI green on the head commit **and** every Codex review thread answered (fixed, or explained). PRs #2–#4 were merged before their review threads were read; all their findings were verified and fixed in #5, with replies on each thread.
 - Never run two Gradle builds at once in this sandbox (15 GB RAM): the daemon gets killed. Stop daemons with `./gradlew --stop` and kill leftover `java` PIDs by number (pattern-based `pkill` also kills the shell).

@@ -1,6 +1,6 @@
 # ADR 0010: MVP uses the folder trash for every file it can reach by path
 
-Status: Proposed (needs owner confirmation; see docs/progress.md B2) · Date: 2026-10-31
+Status: Accepted for `foss` (owner decision B2, 2026-11-01) · Date: 2026-10-31
 Amends: [ADR 0006](0006-own-trash.md)
 
 ## Context
@@ -18,6 +18,7 @@ ADR 0006 planned two physical trash backends: MediaStore's trash for indexed med
 - Trashed media disappears from the gallery (the trash folder has `.nomedia`) and comes back on restore; MediaStore re-indexes it with a new id.
 - Other galleries' "Recently deleted" won't list KeepClear's trash; KeepClear's Trash screen is the place to restore.
 - The MediaStore backend and its instrumented tests move to M11.
+- **Uninstalling keeps the trash on the phone.** `.KeepClearTrash` is in shared storage, so Android doesn't delete it with the app. The trash keeps taking space until the user restores or empties it, and after a reinstall its entries are untrusted (SEC-1). TRASH-7 says this in plain words on the Trash screen and in Settings › "Before you uninstall", with the measured size and `[Restore all]` / `[Empty trash]` (owner requirement with B2).
 
 ## Alternatives
 - Implement both backends in M6: more UI plumbing (IntentSender per batch) and a second code path before the MVP needs it.
