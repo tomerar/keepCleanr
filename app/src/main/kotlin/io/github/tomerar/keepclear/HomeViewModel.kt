@@ -168,7 +168,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val (summary, ev) = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
             // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
-            val enrichment = runCatching { FactEnricher(app.fileGateway).enrich(items.filter { it.ref is KPath.Local }) }
+            val enrichment = runCatching {
+                FactEnricher(app.fileGateway).enrich(items.filter { it.ref is KPath.Local })
+            }
                 .getOrDefault(Enrichment(emptyMap(), emptyMap()))
             ClassificationSummary.of(
                 items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
@@ -193,7 +195,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
                 dest != entries.first { it.id == id }.originalPath
             }
-            _state.update { it.copy(trash = TrashUi(entries, destinations)) }
+            // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
+            val confirmed = app.moveController.store.let { store ->
+                store.jobs().flatMap { store.files(it.id) }
+                    .filter { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED }
+                    .filter { it.confirmedAt != null }
+                    .map { it.sourcePath }
+                    .toSet()
+            }
+            val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
+            _state.update { it.copy(trash = TrashUi(entries, destinations, releasable.toSet())) }
         }
     }
 

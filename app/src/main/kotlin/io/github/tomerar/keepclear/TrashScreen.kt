@@ -42,7 +42,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /** What the Trash screen shows (TRASH-1…5). [restoreTo] holds non-original destinations (SEC-1). */
-data class TrashUi(val entries: List<TrashEntry> = emptyList(), val restoreTo: Map<String, String> = emptyMap()) {
+data class TrashUi(
+    val entries: List<TrashEntry> = emptyList(),
+    val restoreTo: Map<String, String> = emptyMap(),
+    /** Entry ids whose backup copy passed the second, uncached check (H1); only these offer "Release now". */
+    val releasable: Set<String> = emptySet(),
+) {
     val bytes: Long get() = entries.sumOf { it.size }
 }
 
@@ -152,7 +157,7 @@ fun TrashScreen(
                             }, modifier = Modifier.testTag("restore_${entry.id}")) {
                                 Text(stringResource(R.string.trash_restore))
                             }
-                            if (entry.verifiedCopy != null) {
+                            if (entry.verifiedCopy != null && entry.id in trash.releasable) {
                                 Button(onClick = {
                                     pending = Pending.Release(entry)
                                 }, modifier = Modifier.testTag("release_${entry.id}")) {

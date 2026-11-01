@@ -52,10 +52,18 @@ class SecondPassTest {
         result.ok shouldBe intact.size
         result.damaged shouldBe 6 - intact.size
         (result.damaged > 0) shouldBe true
-        val planned = engine(drive).originalsPlan(id).map { op -> store.files(id).single { it.sourcePath == op.displayPath }.index }
+        val planned = engine(drive).originalsPlan(id).map { op ->
+            store.files(id).single {
+                it.sourcePath ==
+                    op.displayPath
+            }.index
+        }
         planned.toSet() shouldBe intact
         // Damaged copies go back to "copy again"; they are never offered.
-        store.files(id).filter { it.index !in intact }.all { it.state == MoveFileState.PENDING && it.confirmedAt == null } shouldBe true
+        store.files(id).filter {
+            it.index !in intact
+        }.all { it.state == MoveFileState.PENDING && it.confirmedAt == null } shouldBe
+            true
     }
 
     @Test

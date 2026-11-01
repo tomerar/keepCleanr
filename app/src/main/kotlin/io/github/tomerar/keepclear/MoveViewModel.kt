@@ -301,6 +301,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val store = controller.store
             val job = withContext(Dispatchers.IO) { store.job(jobId) } ?: return@launch
             val uri = job.targetRef?.toUri() ?: return@launch
+
             suspend fun attached(): io.github.tomerar.keepclear.backup.saf.SafBackupTarget? =
                 (withContext(Dispatchers.IO) { app.openTarget(uri, job.targetLabel) } as? TargetCheck.Ok)
                     ?.target?.takeIf { it.id == job.targetId }

@@ -421,15 +421,19 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
     Card(Modifier.fillMaxWidth().testTag("checkCard")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             when (check) {
-                is BackupCheck.Unplug -> Text(
-                    stringResource(R.string.move_check_unplug, drive),
-                    modifier = Modifier.testTag("checkUnplug"),
-                )
+                is BackupCheck.Unplug -> {
+                    Text(
+                        stringResource(R.string.move_check_unplug, drive),
+                        modifier = Modifier.testTag("checkUnplug"),
+                    )
+                }
 
-                is BackupCheck.PlugBack -> Text(
-                    stringResource(R.string.move_check_plug_back, drive),
-                    modifier = Modifier.testTag("checkPlugBack"),
-                )
+                is BackupCheck.PlugBack -> {
+                    Text(
+                        stringResource(R.string.move_check_plug_back, drive),
+                        modifier = Modifier.testTag("checkPlugBack"),
+                    )
+                }
 
                 is BackupCheck.Checking -> {
                     Text(stringResource(R.string.move_check_checking))
@@ -450,10 +454,12 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
                     }
                 }
 
-                is BackupCheck.TimedOut -> Text(
-                    stringResource(R.string.move_check_timeout),
-                    modifier = Modifier.testTag("checkTimeout"),
-                )
+                is BackupCheck.TimedOut -> {
+                    Text(
+                        stringResource(R.string.move_check_timeout),
+                        modifier = Modifier.testTag("checkTimeout"),
+                    )
+                }
             }
             if (check is BackupCheck.Unplug || check is BackupCheck.PlugBack) {
                 Text(stringResource(R.string.move_check_why), style = MaterialTheme.typography.bodySmall)

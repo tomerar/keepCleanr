@@ -66,7 +66,9 @@ class FakeCapacityDrive(private val realBytes: Int, override val id: String = "f
     }
 
     override suspend fun stat(rel: String): Stat? {
-        val f = files[rel] ?: return if (rel in dirs) Stat(KPath.Local("/fake/$rel"), rel, Stat.Kind.DIRECTORY, 0, 0) else null
+        val f =
+            files[rel]
+                ?: return if (rel in dirs) Stat(KPath.Local("/fake/$rel"), rel, Stat.Kind.DIRECTORY, 0, 0) else null
         return Stat(KPath.Local("/fake/$rel"), rel.substringAfterLast('/'), Stat.Kind.FILE, f.second.toLong(), 0)
     }
 

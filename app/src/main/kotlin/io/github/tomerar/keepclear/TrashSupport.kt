@@ -7,14 +7,14 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import androidx.core.content.edit
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import io.github.tomerar.keepclear.engine.trash.SidecarSigner
-import androidx.core.content.edit
 import io.github.tomerar.keepclear.engine.trash.ClockMark
+import io.github.tomerar.keepclear.engine.trash.SidecarSigner
 import io.github.tomerar.keepclear.engine.trash.TrashClock
 import java.security.KeyStore
 import java.security.MessageDigest

@@ -76,10 +76,17 @@ class TrashScreenTest {
     }
 
     @Test
-    fun `release now only for items with a verified copy (TRASH-5)`() {
-        show(TrashUi(listOf(entry("a", verified = "SanDisk"), entry("b"))))
+    fun `release now only for items whose copy passed the second check (TRASH-5, H1)`() {
+        show(
+            TrashUi(
+                listOf(entry("a", verified = "SanDisk"), entry("b"), entry("c", verified = "SanDisk")),
+                releasable = setOf("a"),
+            ),
+        )
         compose.onNodeWithTag("release_a").assertIsDisplayed()
         compose.onNodeWithTag("release_b").assertDoesNotExist()
+        // Trashed before the second check existed: the copy was only read once, possibly from the phone's memory.
+        compose.onNodeWithTag("release_c").assertDoesNotExist()
     }
 
     @Test

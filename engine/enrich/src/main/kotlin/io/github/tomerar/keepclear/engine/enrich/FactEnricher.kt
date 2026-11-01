@@ -24,6 +24,11 @@ interface HashCache {
     suspend fun put(item: ScanItem, sha256: String)
 }
 
+/** Why an item is redundant (H2): its duplicate group and the files that must stay for that to hold. */
+data class Evidence(val group: String, val witnesses: List<Witness>)
+
+data class Enrichment(val facts: Map<String, Set<Fact>>, val evidence: Map<String, Evidence>)
+
 /**
  * Second-pass enrichers (design.md §4 step 2), run only on candidate subsets:
  * - **Twins** (SAFE-4): a messenger `Sent/` file is redundant only if a byte-identical copy (size →
@@ -34,11 +39,6 @@ interface HashCache {
  *
  * Read-only; unreadable files simply produce no fact.
  */
-/** Why an item is redundant (H2): its duplicate group and the files that must stay for that to hold. */
-data class Evidence(val group: String, val witnesses: List<Witness>)
-
-data class Enrichment(val facts: Map<String, Set<Fact>>, val evidence: Map<String, Evidence>)
-
 class FactEnricher(
     private val gateway: StorageGateway,
     private val hashCache: HashCache? = null,
@@ -107,7 +107,8 @@ class FactEnricher(
                 val a = fullHash(candidate) ?: break
                 val b = fullHash(original) ?: continue
                 if (a == b) {
-                    found[candidate.path] = Evidence("dup:$a", listOf(Witness(original.ref, original.path, original.size)))
+                    found[candidate.path] =
+                        Evidence("dup:$a", listOf(Witness(original.ref, original.path, original.size)))
                     break
                 }
             }

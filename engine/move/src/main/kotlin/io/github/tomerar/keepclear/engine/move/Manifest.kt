@@ -15,6 +15,7 @@ object Manifest {
     const val JSONL = "keepclear-manifest.jsonl"
     const val SUMS = "SHA256SUMS"
     const val VERSION = 1
+
     /** ~100,000 files at ~150 bytes a line. A larger manifest is left alone and a per-job one is written. */
     const val MAX_BYTES = 16 * 1024 * 1024
     private const val MAX_LINE = 8 * 1024
@@ -30,6 +31,7 @@ object Manifest {
         var overlong = false
         var total = 0L
         val stream = input.buffered()
+
         fun endLine() {
             if (!overlong) {
                 val s = buf.toString(Charsets.UTF_8).removeSuffix("\r")

@@ -18,6 +18,16 @@ Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · �
 | M9 MOVE engine | ✅ merged | [#10](https://github.com/tomerar/keepCleanr/pull/10) | 4 Codex findings fixed: copy-only targets keep unverified copies, collision names checkpointed before rename, suffixes stay within 255 bytes, crash-safe manifest replace. Also fixed while integrating: reused files never deleted, unreadable manifests kept, ASCII folder names. |
 | M10 SAF target + MOVE UI | ✅ merged | [#11](https://github.com/tomerar/keepCleanr/pull/11) | 4 Codex findings fixed (no fsync on pipes, selection kept across recreation, Continue for older jobs, progress notification removed); device tests fixed for a start/await race. |
 
+### Independent review of `main` (9de88f4), 2026-11-01
+
+M11 is paused until these three PRs are merged, in order. Each fix has a test that failed before it.
+
+| PR | Status | Contents |
+|---|---|---|
+| A Data safety | 🔄 in review | H1 second uncached backup check (unplug + replug, or reboot) before freeing, copy re-hashed at free time, unknown providers copy-only, fake-capacity drive test; H2 witnesses never in trash / removable / backup folders, duplicate groups + witnesses in plans, executor re-stat; H3 same-volume block from paths, backup folders PROTECTED, `home:`/Downloads/Media roots on-phone; M2 purge needs 30 days of stored uptime too, clock jumps refused and logged; Lows: restore checks size/SHA, newer sidecars surface as untrusted, canonical purge containment, MOVE pauses on unexpected errors, manifests streamed with caps. Room v4. ADR 0007 amended. |
+| B Hardening | ⬜ | Obscured-touch rejection in confirm buttons (E-SEC-10), debug `applicationIdSuffix`, no paths in logcat, plans confirmed where the user taps, Gradle wrapper file repaired, `persist-credentials: false`. |
+| C UX for non-technical users | ⬜ | Intro, one primary action on Home, measured results, free-after-backup flow, no jargon, Hebrew plurals and rewrites, colours, MOVE progress, review grid accessibility, bidi, Settings. Then a new test APK. |
+
 ## Test build for the phone (no computer needed)
 
 Every push to `main` builds a signed `fossDebug` test APK once CI is green (workflow **CI**, job **Test APK (fossDebug)**). It is an Actions artifact, not a GitHub Release, kept 30 days. Install from the phone:
@@ -53,7 +63,7 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | D7-2 | M7 | Clean now: ≈ 8 GB found? Clean → Trash → Empty now → Settings › Storage shows the space back | Home | waiting for owner |
 | D10-1 | M10 | Move one year of camera media (5–10 GB) to the exFAT USB-C drive; unplug mid-copy, plug back in, tap Continue; it finishes; a video over 4 GB is copied (exFAT detected) or the screen explains why not | Home | waiting for owner |
 | D10-2 | M10 | The receipt says every file was checked. *Optional (developer): `sha256sum -c SHA256SUMS` on a PC.* In-app "Check backup" comes in M11 | Home | waiting for owner |
-| D10-3 | M10 | "Free … from the phone" after the receipt; then restore 10 of those files from the Trash | Home | waiting for owner |
+| D10-3 | M10 | After the receipt: **Check backup** (unplug the drive when asked, plug it back in), then "Free … from the phone"; then restore 10 of those files from the Trash | Home | waiting for owner (after PR A) |
 | D10-4 | M10 | Notifications: deny on first backup → backup still runs, progress shows in the app; allow → progress notification with Pause/Stop works | Home | waiting for owner |
 
 ## Blockers and decisions needed
@@ -73,7 +83,7 @@ Accepted on 2026-11-01: [ADR 0011](adr/0011-network-and-cloud-targets.md) with G
 - Local builds in the sandbox use a Maven Central mirror via `~/.gradle/init.d/mirror.gradle.kts` and `keepclear.robolectricRepoUrl` in `~/.gradle/gradle.properties` (Central returns HTTP 429 here). Not part of the repo; CI uses normal repositories.
 - Android SDK at `/opt/android-sdk` (platform `android-37.0`, build-tools 37.0.0); `local.properties` is git-ignored.
 - Write `gradle/verification-metadata.xml` with `--no-configuration-cache` after deleting `.gradle/`, `build-logic/.gradle`, `build-logic/build` (otherwise the included build's plugin classpath isn't re-resolved and CI fails), then run `scripts/verification-extras.py`.
-- MVP milestones M0–M10 are merged. Next per tasks.md (order updated 2026-11-01): M11 phone-first polish, then `play` backend, Apps, SMB, Google Drive, restore. Nothing is in progress; each milestone waits for the owner's OK.
+- MVP milestones M0–M10 are merged. Review PRs A–C (above) come first; M11 waits for them. Then per tasks.md (order updated 2026-11-01): M11 phone-first polish, then `play` backend, Apps, SMB, Google Drive, restore. Nothing is in progress; each milestone waits for the owner's OK.
 - Lessons from the overnight run: always `git add -A` before committing new files; pure-JVM modules aren't linted for Android API levels (Konsist now forbids `readNBytes`/`skipNBytes`/`transferTo`); every PR gets a Codex review a minute after opening, so read the threads before merging.
 - **Merge gate (since #5):** CI green on the head commit **and** every Codex review thread answered (fixed, or explained). PRs #2–#4 were merged before their review threads were read; all their findings were verified and fixed in #5, with replies on each thread.
 - Never run two Gradle builds at once in this sandbox (15 GB RAM): the daemon gets killed. Stop daemons with `./gradlew --stop` and kill leftover `java` PIDs by number (pattern-based `pkill` also kills the shell).

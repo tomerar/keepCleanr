@@ -55,9 +55,13 @@ class MoveEngine(
             return job.copy(state = JobState.PAUSED, pauseReason = e.reason).also { store.putJob(it) }
         } catch (e: StorageException) {
             // Anything not mapped above: pause and keep every checkpoint; never crash the service (review Low).
-            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also { store.putJob(it) }
+            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also {
+                store.putJob(it)
+            }
         } catch (e: java.io.IOException) {
-            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also { store.putJob(it) }
+            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also {
+                store.putJob(it)
+            }
         } catch (e: CancellationException) {
             // Paused from outside (user, system time limit). The current temp file is removed on resume (E-MOVE-1).
             withContext(NonCancellable) {

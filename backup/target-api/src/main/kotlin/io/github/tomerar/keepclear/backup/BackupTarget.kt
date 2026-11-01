@@ -7,7 +7,12 @@ import java.io.OutputStream
 
 /** What a backup target can do and what it can't store (design.md §6.1, MOVE-5). */
 data class TargetCaps(
-    /** True when KeepClear can read the copy back from the real medium (L3 verify, MOVE-14). */
+    /**
+     * True when KeepClear can read the copy back **from the medium itself** (L3, MOVE-14): only a removable drive
+     * through Android's external-storage provider. A read right after writing may still come from the page
+     * cache, so freeing also needs the second, uncached pass (ADR 0007 amendment, H1). False for cloud and
+     * unknown providers.
+     */
     val canReadBack: Boolean,
     /** Largest file the medium accepts (FAT32: 4 GiB − 1), or null if unknown/unlimited. */
     val maxFileSize: Long? = null,

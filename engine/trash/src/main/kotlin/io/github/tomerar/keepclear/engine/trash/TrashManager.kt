@@ -235,7 +235,10 @@ class TrashManager(
      */
     private suspend fun withUptime(entry: TrashEntry, now: Long, uptime: Long): TrashEntry {
         if (entry.deletedAtUptime != null) return entry
-        val credited = (now - entry.deletedAt).coerceIn(0, TrashPolicy.RETENTION_MILLIS - TrashPolicy.MIN_ELAPSED_BEFORE_PURGE)
+        val credited = (now - entry.deletedAt).coerceIn(
+            0,
+            TrashPolicy.RETENTION_MILLIS - TrashPolicy.MIN_ELAPSED_BEFORE_PURGE,
+        )
         return entry.copy(deletedAtUptime = uptime - credited).also { index.put(it) }
     }
 

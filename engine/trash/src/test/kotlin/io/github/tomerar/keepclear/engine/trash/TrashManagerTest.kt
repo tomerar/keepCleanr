@@ -118,7 +118,8 @@ class TrashManagerTest {
     @Test
     fun `a same-boot clock jump is refused and logged (E-DEL-10)`(): Unit = runBlocking {
         val jumps = mutableListOf<ClockJump>()
-        val m = TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
+        val m =
+            TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
         trashOne()
         m.purgeExpired() shouldBe 0
         clock.wall += 365L * 24 * 3_600_000 // clock jumps a year, uptime barely moves
@@ -148,7 +149,8 @@ class TrashManagerTest {
     @Test
     fun `a clock set backwards is refused and logged (E-DEL-10)`(): Unit = runBlocking {
         val jumps = mutableListOf<ClockJump>()
-        val m = TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
+        val m =
+            TrashManager(fake, index, signer, clock, protectedPaths, listOf(root, sd), onClockJump = { jumps += it })
         trashOne()
         m.purgeExpired()
         clock.wall -= 2 * TrashPolicy.CLOCK_JUMP_TOLERANCE
@@ -365,7 +367,10 @@ class TrashManagerTest {
 
             val other = "$root/DCIM/Camera/IMG_2.jpg"
             fake.addFile(other, ByteArray(100) { 1 }, mtime = 10)
-            val e2 = trashOne(other).let { index.put(it.copy(sha256 = "0".repeat(64))); index.get(it.id)!! }
+            val e2 = trashOne(other).let {
+                index.put(it.copy(sha256 = "0".repeat(64)))
+                index.get(it.id)!!
+            }
             run(op(e2.trashedPath, OpKind.RESTORE)).done.shouldBeEmpty()
             fake.exists(other) shouldBe false
         }

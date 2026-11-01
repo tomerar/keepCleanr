@@ -26,11 +26,14 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-MOVE-11 | Illegal characters / reserved names / trailing dots for FAT/exFAT/NTFS/SMB | Sanitize (`<>:"\|?*` and control chars → `_`, `CON`, `NUL`… → `_CON`), record original in manifest. | U (table) |
 | E-MOVE-12 | Path too long (Windows SMB 260, FAT 255 per component) | Truncate the stem (keep extension, add short hash), record mapping. | U |
 | E-MOVE-13 | Hebrew / emoji / NFD filenames | Normalize target names to NFC; compare names by NFC; keep original bytes in manifest. Test a file named `תמונה של אמא 🎂.jpg` and an NFD-decomposed name. | U, D |
-| E-MOVE-14 | SAF provider reports success but data not durable (async cloud providers, e.g. Drive) | Provider not on read-back allowlist → copy allowed, delete disabled (MOVE-14), explained. | U |
+| E-MOVE-14 | SAF provider reports success but data not durable (async cloud providers, e.g. Drive) | Provider not on read-back allowlist → copy allowed, delete disabled (MOVE-14), explained. Unknown providers too. | U |
+| E-MOVE-23 | Fake-capacity USB stick (reports more space than it has; writes wrap around) or a read served from the page cache | The first read-back can pass. Freeing needs "Check backup" after unplug + replug (or a reboot); wrapped files then fail and go back to "copy again"; the copy is re-hashed again at free time (H1). | U (`FakeCapacityDrive`) |
+| E-MOVE-24 | Unexpected storage error during a job | Job pauses ("paused after an unexpected error"), every checkpoint kept; the service never crashes. | U |
+| E-MOVE-25 | Manifest on the drive is huge or has giant lines | Streamed line by line (8 KB per line, 16 MB total); over the cap → left untouched, this job writes its own manifest file. | U |
 | E-MOVE-15 | Android 15 `dataSync` FGS 6 h limit hit | `onTimeout` → checkpoint, stop FGS, notification "Paused by Android after 6 hours. Tap to continue." | I |
 | E-MOVE-16 | Battery low / overheating | Pause below 15% unless charging; pause on `THERMAL_STATUS_SEVERE`; auto-resume when OK. | U (fake power), D |
 | E-MOVE-17 | User revokes SAF grant to target mid-job | SecurityException → PAUSED("Access to the drive was removed") → re-pick same drive (marker check). | I |
-| E-MOVE-18 | Target drive is also the source (user picks SD card that holds DCIM) | Pre-flight refuses: "This drive is where the photos are now." | U |
+| E-MOVE-18 | Target drive is also the source (user picks SD card that holds DCIM) | Pre-flight refuses: "This drive is where the photos are now." Volumes come from the target tree and the source paths (the app used to pass an empty set; review H3). Internal-storage roots (`primary:`, `home:`, Downloads, Media providers) are "on this phone". The backup folder is PROTECTED at the choke point. | U |
 | E-MOVE-19 | Two MOVE jobs at once | Only one active job; second is queued. | U |
 | E-MOVE-20 | Very many small files (10k JPEG) | Single sequential stream; manifest appended in batches of 500; progress by bytes and files. Benchmark target in NFR-3. | U (perf), D |
 | E-MOVE-21 | Live Photos / motion photos / burst groups / RAW+JPEG pairs | Move all parts of a group together (same base name + known sidecars `.xmp`, `.dng`, `MVIMG_`/`PXL_*.MP` embedded). A group is deletable only if all parts verified. | U |
@@ -46,10 +49,13 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-DEL-4 | Batch > 2,000 URIs (target 36 cap) | Chunk into ≤ 2,000; one dialog per chunk unless `MANAGE_MEDIA`; progress "batch 2 of 4". | U, I |
 | E-DEL-5 | SAF provider doesn't support move (`FLAG_SUPPORTS_MOVE` absent) | Item shown as "can't be put in trash here"; no hard delete fallback. User may choose "Back up then delete" (MOVE) instead. | U, I |
 | E-DEL-6 | Restore target path is occupied (user saved a new file with same name) | Restore as `name (restored).ext`; tell the user. | U |
+| E-DEL-16 | The file in the trash was swapped or changed (size or SHA-256 differs from the record) | Restore refuses; the item stays in the trash (T1.6). | U |
+| E-DEL-17 | A folder inside the trash is a symlink, or a user folder elsewhere is named `.KeepClearTrash` | Purge only inside `<volume root>/.KeepClearTrash` with every folder on the way a real folder; otherwise refused. | U (real FS) |
+| E-DEL-18 | A duplicate's other copy was deleted between scan and Clean | Executor re-stats the witness and skips the item ("its other copy is gone"). | U |
 | E-DEL-7 | Restore target folder no longer exists | Recreate folder (if allowed) else restore to `Download/KeepClear Restored/`. | U |
 | E-DEL-8 | Trash index (Room) lost (app data cleared / reinstall) | On start, `TrashManager.recover()` scans `.KeepClearTrash/*/*.json` sidecars and MediaStore `IS_TRASHED` items owned by us, rebuilds index. | U, I |
 | E-DEL-9 | User or another cleaner deletes `.KeepClearTrash` | Index entries whose files are missing are dropped with a one-time notice. | U |
-| E-DEL-10 | Device clock jumped forward 1 year (purge too early) | Never purge items trashed < 24 h of elapsed realtime ago; purge job logs clock anomalies. | U |
+| E-DEL-10 | Device clock jumped forward 1 year (purge too early), also across a reboot | Purge needs 30 days of wall time **and** 30 days of stored uptime (elapsed realtime added up across reboots; power-off time only delays). A run where the wall clock moved backwards, or forward faster than uptime within one boot, is refused and logged. Entries without an uptime stamp (recovered, older versions) get one conservatively and wait at least 24 h of real time. | U |
 | E-DEL-11 | Partial success (some items failed: locked, permission, vanished) | Result screen lists succeeded/failed with reasons; totals only count succeeded. | U |
 | E-DEL-12 | App uninstalled with non-empty trash | Trash folder remains (shared storage) → survives; after reinstall, recover() finds it. About screen and Trash screen explain this. | D |
 | E-DEL-13 | Item is in MediaStore *and* a `.nomedia` folder edge (indexed before `.nomedia` added) | Prefer MediaStore trash if a row exists and file is at that path; else FolderTrash. | U |
