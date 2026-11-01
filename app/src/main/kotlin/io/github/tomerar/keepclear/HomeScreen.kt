@@ -226,6 +226,21 @@ fun HomeScreen(
                         primary = false,
                     )
                 }
+                if (state.cloned.hidden) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    ActionCard(
+                        title = stringResource(R.string.cloned_hidden_title),
+                        body = stringResource(R.string.cloned_hidden_body),
+                        button = stringResource(R.string.cloned_hidden_button),
+                        tag = "clonedHidden",
+                        onClick = {
+                            runCatching {
+                                context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS))
+                            }
+                        },
+                        primary = false,
+                    )
+                }
                 if (summary != null) Areas(summary)
                 TextButton(onClick = actions.onOpenApps, modifier = Modifier.testTag("openApps")) {
                     Text(stringResource(R.string.apps_open))

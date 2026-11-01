@@ -543,6 +543,14 @@ fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit, actions: PreviewActi
                 Text(ByteSize.format(item.item.size, locale), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.preview_modified, date), style = MaterialTheme.typography.bodyMedium)
                 AssistChip(onClick = {}, enabled = false, label = { Text(riskText(item)) })
+                if (ClonedApps.isCloned(item.item.path)) {
+                    AssistChip(
+                        onClick = {},
+                        enabled = false,
+                        label = { Text(stringResource(R.string.cloned_label)) },
+                        modifier = Modifier.testTag("clonedChip"),
+                    )
+                }
                 if (item.keepSignal) {
                     Text(
                         stringResource(R.string.keep_signal_note),

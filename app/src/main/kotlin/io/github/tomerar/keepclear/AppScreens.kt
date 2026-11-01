@@ -2,13 +2,20 @@
 package io.github.tomerar.keepclear
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /** Test mode (SAFETY-9) for [AppScreens]: the banner on every screen and the Settings switch. */
 class TestModeUi(val on: Boolean = false, val turnOn: () -> Unit = {}, val turnOff: () -> Unit = {})
@@ -42,29 +49,48 @@ fun AppScreens(
         if (testMode.on) TestModeBanner()
         // The banner already pads for the status bar; the screens below must not pad for it again.
         Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
-            ScreenContent(
-                state,
-                onOpen,
-                onBack,
-                home,
-                onRestore,
-                onPurge,
-                safeActions,
-                move,
-                moveActions,
-                notificationsOff,
-                testMode,
-                settingsActions,
-                appActions,
-                appsActions,
-                previewActions,
-            )
+            ReadableWidth {
+                ScreenContent(
+                    state,
+                    onOpen,
+                    onBack,
+                    home,
+                    onRestore,
+                    onPurge,
+                    safeActions,
+                    move,
+                    moveActions,
+                    notificationsOff,
+                    testMode,
+                    settingsActions,
+                    appActions,
+                    appsActions,
+                    previewActions,
+                )
+            }
         }
     }
     state.lastCopy?.let { ops ->
         LastCopyDialog(ops, onConfirm = safeActions.onConfirmLastCopy, onDismiss = safeActions.onDismissLastCopy)
     }
 }
+
+/**
+ * UI-2: on a tablet, an unfolded foldable or in landscape, the screens keep a readable width in the middle instead
+ * of stretching edge to edge. Phones are unchanged.
+ */
+@Composable
+fun ReadableWidth(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Box(Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxWidth()) { content() }
+    }
+}
+
+/** UI-2: wider than this, content is centered (Material's "medium" width class ends at 840dp). */
+val MAX_CONTENT_WIDTH = 840.dp
 
 /** Shows the top of the navigation stack; system back pops it. */
 @Composable

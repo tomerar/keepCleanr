@@ -485,4 +485,8 @@
     <string name="reminder_title">Space is getting low</string>
     <string name="reminder_text">%1$s free. Open KeepClear to see what can go.</string>
     <string name="reminder_text_junk">%1$s free. The last check found %2$s of junk ready to clean.</string>
+    <string name="cloned_label">Cloned app</string>
+    <string name="cloned_hidden_title">Cloned apps</string>
+    <string name="cloned_hidden_body">KeepClear can\'t see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app.</string>
+    <string name="cloned_hidden_button">Open phone settings</string>
 </resources>

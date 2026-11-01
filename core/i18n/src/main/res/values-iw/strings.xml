@@ -515,4 +515,8 @@
     <string name="reminder_title">המקום בטלפון מתמלא</string>
     <string name="reminder_text">%1$s פנויים. אפשר לפתוח את KeepClear כדי לראות מה אפשר לפנות.</string>
     <string name="reminder_text_junk">%1$s פנויים. בבדיקה האחרונה נמצאו %2$s של זבל שמוכן לניקוי.</string>
+    <string name="cloned_label">אפליקציה משוכפלת</string>
+    <string name="cloned_hidden_title">אפליקציות משוכפלות</string>
+    <string name="cloned_hidden_body">ל-KeepClear אין גישה לקבצים של אפליקציות משוכפלות (אפליקציות מקבילות או אפליקציות כפולות). אפשר לנקות אותם בתוך כל אפליקציה משוכפלת.</string>
+    <string name="cloned_hidden_button">לפתוח את הגדרות הטלפון</string>
 </resources>
