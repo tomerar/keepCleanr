@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.toList
  */
 fun interface ActionHandler {
     suspend fun perform(op: PlannedOp, gateway: StorageGateway)
+
+    /** Handler-specific reason to skip [op] before anything changes (e.g. the trash's last-copy check). */
+    suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? = null
 }
 
 /** Outcome per op (E-DEL-11: partial success is normal and reported). */
@@ -43,6 +46,12 @@ enum class SkipReason {
 
     /** The other copy this item was redundant with is gone or changed (H2, SAFETY-8). */
     WITNESS_GONE,
+
+    /**
+     * A copy of this file is already in the trash because this file existed; deleting it too needs the user's
+     * explicit "this is the last copy" confirmation (owner decision 1.3, SAFETY-8).
+     */
+    LAST_COPY,
 }
 
 sealed interface ExecutionReport {
@@ -100,7 +109,7 @@ class ActionExecutor(
     }
 
     private suspend fun runOne(op: PlannedOp): OpResult = try {
-        precheck(op) ?: run {
+        precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
             if (isDryRun()) {
                 OpResult.Simulated(op)
             } else {
@@ -114,7 +123,8 @@ class ActionExecutor(
 
     /** Returns a skip result, or null when the op may proceed. */
     private suspend fun precheck(op: PlannedOp): OpResult? {
-        if (op.kind == OpKind.RESTORE) return null // restore validation lives in the trash module (SEC-1)
+        // Restore validation lives in the trash module (SEC-1).
+        if (op.kind == OpKind.RESTORE || op.kind == OpKind.RESTORE_CHANGED) return null
         val stat = gateway.stat(op.ref) ?: return OpResult.Skipped(op, SkipReason.MISSING)
         if (stat.isSymlink) return OpResult.Skipped(op, SkipReason.SYMLINK)
         if (stat.isDirectory != op.isDirectory) return OpResult.Skipped(op, SkipReason.CHANGED)

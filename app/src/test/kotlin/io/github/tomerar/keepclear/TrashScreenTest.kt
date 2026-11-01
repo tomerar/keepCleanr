@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
@@ -98,5 +99,52 @@ class TrashScreenTest {
             ),
         )
         compose.onNodeWithTag("restoreTo_a").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a changed item says so and restores only to a separate folder after a confirm (owner 1-2)`() {
+        var restoredChanged: TrashEntry? = null
+        val a = entry("a")
+        compose.setContent {
+            KeepClearTheme {
+                TrashScreen(
+                    TrashUi(listOf(a), changed = setOf("a")),
+                    onRestore = { restored = it },
+                    onPurge = {},
+                    onBack = {},
+                    onRestoreChanged = { restoredChanged = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("changed_a").assertIsDisplayed()
+        compose.onNodeWithTag("restore_a").assertDoesNotExist()
+        compose.onNodeWithTag("restoreChanged_a").performClick()
+        assertEquals(null, restoredChanged)
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmRestoreChanged").fetchSemanticsNodes().any {
+                androidx.compose.ui.semantics.SemanticsProperties.Disabled !in it.config
+            }
+        }
+        compose.onNodeWithTag("confirmRestoreChanged").performClick()
+        assertEquals(a, restoredChanged)
+        assertEquals(null, restored)
+    }
+
+    @Test
+    fun `last-copy dialog needs an explicit confirm (owner 1-3)`() {
+        var confirmed = 0
+        var kept = 0
+        val op = io.github.tomerar.keepclear.core.safety.PlannedOp(
+            io.github.tomerar.keepclear.core.storage.KPath.Local("/storage/emulated/0/DCIM/Camera/IMG_7.jpg"),
+            "/storage/emulated/0/DCIM/Camera/IMG_7.jpg",
+            io.github.tomerar.keepclear.core.safety.OpKind.TRASH,
+            false,
+            1,
+            1,
+        )
+        compose.setContent { KeepClearTheme { LastCopyDialog(listOf(op), { confirmed++ }, { kept++ }) } }
+        compose.onNodeWithTag("keepLastCopy").performClick()
+        assertEquals(1, kept)
+        assertEquals(0, confirmed)
     }
 }

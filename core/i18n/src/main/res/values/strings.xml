@@ -43,6 +43,10 @@
     <string name="scan_cancel">Cancel</string>
     <string name="low_space_light">Your phone is almost full. KeepClear is using as little space as possible.</string>
     <string name="low_space_minimal">Less than 100 MB left. KeepClear isn\'t saving anything until there\'s more room.</string>
+    <plurals name="last_copy_body">
+        <item quantity="one">A copy of this file is already in the trash because this file existed. If you delete it too, no copy is left outside the trash.</item>
+        <item quantity="other">Copies of these %1$s files are already in the trash because these files existed. If you delete them too, no copy is left outside the trash.</item>
+    </plurals>
     <plurals name="file_count">
         <item quantity="one">%s file</item>
         <item quantity="other">%s files</item>
@@ -76,6 +80,13 @@
     <string name="trash_empty_state">The trash is empty.</string>
     <string name="trash_frees_on">Freed on %1$s</string>
     <string name="trash_restore">Restore</string>
+    <string name="trash_changed">Changed since it was deleted</string>
+    <string name="trash_restore_changed">Restore to a separate folder</string>
+    <string name="trash_restore_changed_title">Restore a changed file?</string>
+    <string name="trash_restore_changed_body">This file is not the same as when it was deleted. It goes to the folder KeepClear/Restored-changed, never in place of another file.</string>
+    <string name="last_copy_title">This is the last copy</string>
+    <string name="last_copy_confirm">Delete the last copy too</string>
+    <string name="last_copy_keep">Keep it</string>
     <string name="trash_restore_all">Restore all</string>
     <string name="trash_empty_now">Empty trash now</string>
     <string name="trash_release_now">Release now (verified copy exists)</string>

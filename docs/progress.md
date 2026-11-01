@@ -25,6 +25,7 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 | PR | Status | Contents |
 |---|---|---|
 | A Data safety | ✅ merged ([#15](https://github.com/tomerar/keepCleanr/pull/15)); 1 Codex finding fixed (an unplugged drive during Check backup no longer crashes) | H1 second uncached backup check (unplug + replug, or reboot) before freeing, copy re-hashed at free time, unknown providers copy-only, fake-capacity drive test; H2 witnesses never in trash / removable / backup folders, duplicate groups + witnesses in plans, executor re-stat; H3 same-volume block from paths, backup folders PROTECTED, `home:`/Downloads/Media roots on-phone; M2 purge needs 30 days of stored uptime too, clock jumps refused and logged; Lows: restore checks size/SHA, newer sidecars surface as untrusted, canonical purge containment, MOVE pauses on unexpected errors, manifests streamed with caps. Room v4. ADR 0007 amended. |
+| A2 Owner decisions on PR A | 🔄 in review | Changed file in the trash: marked "השתנה מאז שנמחק", restored only to `KeepClear/Restored-changed/` after a confirm. Last-copy guard: trashing a file that is the witness of a trashed duplicate needs "This is the last copy" (test fails without it). Manifest cap 16 MB approved. Google Drive postponed by owner (tasks.md M14). Room v5. |
 | B Hardening | ⬜ | Obscured-touch rejection in confirm buttons (E-SEC-10), debug `applicationIdSuffix`, no paths in logcat, plans confirmed where the user taps, Gradle wrapper file repaired, `persist-credentials: false`. |
 | C UX for non-technical users | ⬜ | Intro, one primary action on Home, measured results, free-after-backup flow, no jargon, Hebrew plurals and rewrites, colours, MOVE progress, review grid accessibility, bidi, Settings. Then a new test APK. |
 
@@ -65,6 +66,12 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | D10-2 | M10 | The receipt says every file was checked. *Optional (developer): `sha256sum -c SHA256SUMS` on a PC.* In-app "Check backup" comes in M11 | Home | waiting for owner |
 | D10-3 | M10 | After the receipt: **Check backup** (unplug the drive when asked, plug it back in), then "Free … from the phone"; then restore 10 of those files from the Trash | Home | waiting for owner (after PR A) |
 | D10-4 | M10 | Notifications: deny on first backup → backup still runs, progress shows in the app; allow → progress notification with Pause/Stop works | Home | waiting for owner |
+
+## Decided conservatively, please review
+
+| # | Decision |
+|---|---|
+| C1 | Last-copy guard (owner 1.3): when a trashed archive lists this file as an extracted witness (sizes differ, so no same-hash check is possible), the file is also treated as the last copy and needs the confirm. |
 
 ## Blockers and decisions needed
 

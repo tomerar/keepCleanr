@@ -47,6 +47,9 @@ fun AppScreens(
             )
         }
     }
+    state.lastCopy?.let { ops ->
+        LastCopyDialog(ops, onConfirm = safeActions.onConfirmLastCopy, onDismiss = safeActions.onDismissLastCopy)
+    }
 }
 
 /** Shows the top of the navigation stack; system back pops it. */
@@ -149,7 +152,7 @@ private fun ScreenContent(
         }
 
         Screen.Trash -> {
-            TrashScreen(state.trash, onRestore, onPurge, onBack)
+            TrashScreen(state.trash, onRestore, onPurge, onBack, onRestoreChanged = safeActions.onRestoreChanged)
         }
 
         is Screen.Preview -> {
@@ -167,4 +170,9 @@ class SafeActions(
     val onTrim: () -> Unit = {},
     val onClearExternalCaches: () -> Unit = {},
     val onOpenTrash: () -> Unit = {},
+    /** Owner decision 1.2: put a changed trashed item into a separate folder, after a confirm. */
+    val onRestoreChanged: (io.github.tomerar.keepclear.engine.trash.TrashEntry) -> Unit = {},
+    /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
+    val onConfirmLastCopy: () -> Unit = {},
+    val onDismissLastCopy: () -> Unit = {},
 )

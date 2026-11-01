@@ -11,7 +11,8 @@ import androidx.room.RoomDatabase
  * App database. MIG-1: explicit migrations only; never `fallbackToDestructiveMigration`.
  * Version history: 1 = M3 (scan index, hash cache); 2 = M6 (trash_entry, auto-migration 1→2);
  * 3 = M10 (move_job, move_file, auto-migration 2→3); 4 = review PR A (move_job.verifyBootId,
- * move_file.confirmedAt, trash_entry.deletedAtUptime; nullable columns, auto-migration 3→4).
+ * move_file.confirmedAt, trash_entry.deletedAtUptime; nullable columns, auto-migration 3→4); 5 = trash_entry.witnessPaths
+ * (owner decision 1.3, auto-migration 4→5).
  */
 @Database(
     entities = [
@@ -22,12 +23,13 @@ import androidx.room.RoomDatabase
         MoveJobEntity::class,
         MoveFileEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
     ],
 )
 abstract class KeepClearDatabase : RoomDatabase() {

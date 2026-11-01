@@ -40,6 +40,11 @@ data class TrashEntry(
      * an older version; [TrashManager.purgeExpired] fills it in conservatively the first time it sees one.
      */
     val deletedAtUptime: Long? = null,
+    /**
+     * Files this item was redundant with when it was trashed (H2 witnesses). If one of them is deleted later, it
+     * may be the last copy (owner decision 1.3). Room only; sidecars don't carry it.
+     */
+    val witnessPaths: List<String> = emptyList(),
 )
 
 /** Port: persisted trash index (Room in the app, in-memory in tests). */
