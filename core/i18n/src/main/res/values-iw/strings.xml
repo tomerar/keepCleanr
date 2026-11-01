@@ -366,4 +366,5 @@
         <item quantity="two">הגיבוי הסתיים: נבדקו שני קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
         <item quantity="other">הגיבוי הסתיים: נבדקו %1$d קבצים. אפשר לפתוח את KeepClear כדי לבדוק את הגיבוי פעם נוספת ולפנות מקום.</item>
     </plurals>
+    <string name="move_guide_anyway">לבחור מקום אחר</string>
 </resources>

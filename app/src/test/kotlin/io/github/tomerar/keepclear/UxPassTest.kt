@@ -229,6 +229,9 @@ class UxPassTest {
         compose.onNodeWithTag("guideContinue").performClick()
         compose.onNodeWithTag("noDrive").assertExists()
         assertEquals(false, picked)
+        // Advisory: another place (e.g. a cloud folder) can still be chosen.
+        compose.onNodeWithTag("guideAnyway").performClick()
+        assertEquals(true, picked)
     }
 
     @Test
@@ -295,6 +298,21 @@ class UxPassTest {
         assertEquals(3, restored!!.size)
         compose.onNodeWithTag("emptyNow").performClick()
         compose.onNodeWithTag("emptyBody").assertExists()
+    }
+
+    @Test
+    fun `opening a large trash group composes only the rows on screen`() {
+        val many = (0 until 500).map { entry("e$it", "thumbnails") }
+        compose.setContent {
+            KeepClearTheme { TrashScreen(TrashUi(many), onRestore = { _, _ -> }, onPurge = { _, _ -> }, onBack = {}) }
+        }
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("toggleGroup_CLEAN"))
+        compose.onNodeWithTag("toggleGroup_CLEAN").performClick()
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("entry_e0"))
+        val composed = (0 until 500).count {
+            compose.onAllNodesWithTag("entry_e$it").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue("composed $composed of 500", composed in 1..50)
     }
 
     // 12. Settings

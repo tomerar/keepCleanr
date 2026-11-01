@@ -346,4 +346,5 @@
         <item quantity="one">Backup finished: %1$d file checked. Open KeepClear to check the backup once more and free up space.</item>
         <item quantity="other">Backup finished: %1$d files checked. Open KeepClear to check the backup once more and free up space.</item>
     </plurals>
+    <string name="move_guide_anyway">Choose another place</string>
 </resources>

@@ -620,6 +620,10 @@ private fun PickGuideDialog(hasDrive: () -> Boolean, onContinue: () -> Unit, onD
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("noDrive"),
                     )
+                    // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
+                    TextButton(onClick = onContinue, modifier = Modifier.testTag("guideAnyway")) {
+                        Text(stringResource(R.string.move_guide_anyway))
+                    }
                 }
             }
         },

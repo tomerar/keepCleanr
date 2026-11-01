@@ -186,6 +186,8 @@ fun TrashScreen(
     fun count(n: Int) = pluralStringResource(R.plurals.file_count, n, NumberFormat.getIntegerInstance(locale).format(n))
 
     val groups = trash.entries.groupBy { trashGroupOf(it) }.toSortedMap()
+    // Groups the user opened or closed (small groups start open, large ones closed).
+    var toggled by rememberSaveable { mutableStateOf(setOf<TrashGroup>()) }
     Scaffold { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("trash"),
@@ -245,10 +247,11 @@ fun TrashScreen(
                     }
                 }
             }
-            // Review PR C: rows grouped by the action that sent them here, not one card per file.
+            // Review PR C: rows grouped by the action that sent them here, not one card per file. Each row stays
+            // its own lazy item, so opening a group of thousands composes only what is on screen.
             groups.forEach { (group, entries) ->
+                val open = (entries.size <= GROUP_OPEN_MAX) != (group in toggled)
                 item(key = "group_$group") {
-                    var open by rememberSaveable(group) { mutableStateOf(entries.size <= GROUP_OPEN_MAX) }
                     Card(modifier = Modifier.fillMaxWidth().testTag("trashGroup_$group")) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(stringResource(group.title), style = MaterialTheme.typography.titleMedium)
@@ -268,9 +271,10 @@ fun TrashScreen(
                                         modifier = Modifier.testTag("restoreGroup_$group"),
                                     ) { Text(stringResource(R.string.trash_restore_group)) }
                                 }
-                                TextButton(onClick = {
-                                    open = !open
-                                }, modifier = Modifier.testTag("toggleGroup_$group")) {
+                                TextButton(
+                                    onClick = { toggled = if (group in toggled) toggled - group else toggled + group },
+                                    modifier = Modifier.testTag("toggleGroup_$group"),
+                                ) {
                                     Text(
                                         stringResource(
                                             if (open) R.string.trash_hide_files else R.string.trash_show_files,
@@ -278,10 +282,14 @@ fun TrashScreen(
                                     )
                                 }
                             }
-                            if (open) {
-                                entries.forEach { entry ->
-                                    TrashRow(entry, trash, locale, busy, onRestore, onPending = { pending = it })
-                                }
+                        }
+                    }
+                }
+                if (open) {
+                    items(entries, key = { it.id }) { entry ->
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                TrashRow(entry, trash, locale, busy, onRestore, onPending = { pending = it })
                             }
                         }
                     }

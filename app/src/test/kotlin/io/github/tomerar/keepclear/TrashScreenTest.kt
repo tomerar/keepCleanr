@@ -67,6 +67,7 @@ class TrashScreenTest {
     fun `restore one item`() {
         val a = entry("a")
         show(TrashUi(listOf(a, entry("b"))))
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("restore_a"))
         compose.onNodeWithTag("restore_a").performClick()
         assertEquals(listOf(a), restored)
     }
@@ -108,6 +109,7 @@ class TrashScreenTest {
                 restoreTo = mapOf("a" to "/storage/emulated/0/Download/KeepClear Restored/IMG_a.jpg"),
             ),
         )
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("restoreTo_a"))
         compose.onNodeWithTag("restoreTo_a").assertIsDisplayed()
     }
 
@@ -126,6 +128,7 @@ class TrashScreenTest {
                 )
             }
         }
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("changed_a"))
         compose.onNodeWithTag("changed_a").assertIsDisplayed()
         compose.onNodeWithTag("restore_a").assertDoesNotExist()
         compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("restoreChanged_a"))
