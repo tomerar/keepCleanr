@@ -148,6 +148,17 @@
     <string name="move_paused_time">הושהה בגלל מגבלת הזמן של Android למשימות ארוכות. אפשר ללחוץ על „המשך”.</string>
     <string name="move_paused_interrupted">הושהה כי KeepClear נסגר או עודכן. אפשר ללחוץ על „המשך”.</string>
     <string name="move_paused_wrong">מחובר כונן אחר. צריך לחבר את %1$s.</string>
+    <string name="move_paused_unexpected">הגיבוי נעצר בגלל שגיאה לא צפויה. כל מה שהועתק עד עכשיו נשמר.</string>
+    <string name="move_check_needed">לפני שמפנים מקום, צריך לבדוק את הגיבוי פעם נוספת, בקריאה ישירה מהכונן.</string>
+    <string name="move_check_button">לבדוק את הגיבוי</string>
+    <string name="move_check_unplug">עכשיו לנתק את %1$s ולחבר אותו שוב.</string>
+    <string name="move_check_plug_back">עכשיו לחבר שוב את %1$s.</string>
+    <string name="move_check_checking">בודקים כל קובץ בכונן…</string>
+    <string name="move_check_ok">%1$s נבדקו: זהים למקור.</string>
+    <string name="move_check_bad">%1$s פגומים או חסרים בכונן. הם יישארו בטלפון ויועתקו שוב.</string>
+    <string name="move_check_timeout">הכונן לא חובר שוב. שום דבר לא השתנה. אפשר לנסות שוב כשהוא מחובר.</string>
+    <string name="move_check_why">למה: מיד אחרי ההעתקה הטלפון עשוי לענות מהזיכרון שלו ולא מהכונן. ניתוק וחיבור מחדש מנקים את זה.</string>
+    <string name="move_check_close">לסגור</string>
     <string name="move_paused_user">הושהה.</string>
     <string name="move_receipt_title">הועתק אל %1$s</string>
     <string name="move_receipt_verified">%1$s הועתקו ונבדקו (נקראו בחזרה מהכונן, SHA-256).</string>

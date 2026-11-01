@@ -148,6 +148,7 @@ class MoveEngineTest {
     fun `originals plan only has verified, unchanged files whose copy is present (MOVE-10)`(): Unit = runBlocking {
         val rig = Rig(files = 3)
         rig.engine().run(rig.newJob())
+        rig.engine().confirm("job1", FreshRead.REATTACHED).ok shouldBe 3
         rig.fake.modify(rig.items[0].path, FakeStorageGateway.Content.Bytes(ByteArray(3)), mtime = 9)
         rig.fake.delete(KPath.Local("$USB/${rig.store.files.values.single { it.index == 1 }.relTarget}"))
         val plan = rig.engine().originalsPlan("job1")
@@ -162,6 +163,15 @@ class MoveEngineTest {
         val rig = Rig(caps = TargetCaps(canReadBack = false))
         rig.engine().run(rig.newJob())
         rig.engine().originalsPlan("job1").shouldBeEmpty()
+    }
+
+    @Test
+    fun `an unexpected storage error pauses the job instead of crashing (review Low)`(): Unit = runBlocking {
+        val rig = Rig()
+        rig.fake.fail(Op.MKDIR, matches = { it.toString().startsWith(USB) }) { StorageException.Unsupported(it, "odd") }
+        val end = rig.engine().run(rig.newJob())
+        end.state shouldBe JobState.PAUSED
+        end.pauseReason shouldBe PauseReason.UNEXPECTED_ERROR
     }
 
     @Test

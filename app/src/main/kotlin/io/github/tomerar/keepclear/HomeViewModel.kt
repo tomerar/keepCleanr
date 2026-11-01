@@ -18,6 +18,9 @@ import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Classifier
 import io.github.tomerar.keepclear.engine.classify.Total
+import io.github.tomerar.keepclear.engine.enrich.CleanPlanner
+import io.github.tomerar.keepclear.engine.enrich.Enrichment
+import io.github.tomerar.keepclear.engine.enrich.Evidence
 import io.github.tomerar.keepclear.engine.enrich.FactEnricher
 import io.github.tomerar.keepclear.engine.scan.ScanEvent
 import io.github.tomerar.keepclear.engine.scan.ScanItem
@@ -158,14 +161,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Why each redundant item is redundant (H2); goes into the plan so the executor can re-check it. */
+    private var evidence: Map<String, Evidence> = emptyMap()
+
     private suspend fun classify(items: List<ScanItem>) {
-        val summary = withContext(Dispatchers.Default) {
+        val (summary, ev) = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
             // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
-            val facts = runCatching { FactEnricher(app.fileGateway).facts(items.filter { it.ref is KPath.Local }) }
-                .getOrDefault(emptyMap())
-            ClassificationSummary.of(items.map { classifier.classify(it, facts[it.path].orEmpty(), now) })
+            val enrichment = runCatching { FactEnricher(app.fileGateway).enrich(items.filter { it.ref is KPath.Local }) }
+                .getOrDefault(Enrichment(emptyMap(), emptyMap()))
+            ClassificationSummary.of(
+                items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
+            ) to enrichment.evidence
         }
+        evidence = ev
         _state.update { it.copy(summary = summary) }
     }
 
@@ -220,30 +229,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Only path-addressable files can go to KeepClear's trash in this version (ADR 0010). MediaStore-only
             // items (no All files access, `play`) are reported as skipped instead of being acted on.
             val (local, unsupported) = items.partition { it.item.ref is KPath.Local }
-            // SAFETY-6: the plan carries what was scanned and classified, not what is there now; the executor
-            // re-checks size, mtime and identity against it and skips anything that changed since.
-            val ops = local.map { c ->
-                PlannedOp(
-                    c.item.ref,
-                    c.item.path,
-                    OpKind.TRASH,
-                    false,
-                    c.item.size,
-                    c.item.mtimeMillis,
-                    c.item.identity,
-                    ruleId = c.ruleId,
-                )
-            }
+            // SAFETY-6/8, H2: built from the scan snapshot with duplicate groups and witnesses (CleanPlanner).
+            val unconfirmed = CleanPlanner.plan(UUID.randomUUID().toString(), local, evidence, "clean")
+            val ops = unconfirmed.ops
             var done = emptyList<PlannedOp>()
             var simulated = false
             var skipped = unsupported.size
             var failed = 0
             if (ops.isNotEmpty()) {
-                val plan = ActionPlan(
-                    UUID.randomUUID().toString(),
-                    ops,
-                    "clean",
-                ).confirm(System.currentTimeMillis(), app.sessionId)
+                val plan = unconfirmed.confirm(System.currentTimeMillis(), app.sessionId)
                 when (val report = app.executor().run(plan)) {
                     is ExecutionReport.Ran -> {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }

@@ -30,6 +30,12 @@ interface BackupTarget {
     val label: String
     val caps: TargetCaps
 
+    /**
+     * Volume the target lives on, in the same terms as source files: "primary" for the phone's shared storage,
+     * the volume UUID for a card or USB drive, null when unknown (cloud). Used to block same-volume backups (H3).
+     */
+    val volumeId: String? get() = null
+
     suspend fun freeBytes(): Long?
 
     suspend fun mkdirs(rel: String)

@@ -31,6 +31,7 @@ data class TrashEntryEntity(
     val state: String,
     val trusted: Boolean,
     val verifiedCopy: String?,
+    @androidx.room.ColumnInfo(defaultValue = "NULL") val deletedAtUptime: Long? = null,
 )
 
 @Dao
@@ -79,6 +80,7 @@ class RoomTrashIndex(private val dao: TrashDao) : TrashIndex {
         state.name,
         trusted,
         verifiedCopy,
+        deletedAtUptime,
     )
 
     private fun TrashEntryEntity.toEntry() = TrashEntry(
@@ -98,5 +100,6 @@ class RoomTrashIndex(private val dao: TrashDao) : TrashIndex {
         TrashState.valueOf(state),
         trusted,
         verifiedCopy,
+        deletedAtUptime,
     )
 }

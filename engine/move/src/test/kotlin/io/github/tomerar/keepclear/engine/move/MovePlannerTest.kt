@@ -65,6 +65,8 @@ class MovePlannerTest {
         val issues = MovePlanner.preflight(
             files,
             object : io.github.tomerar.keepclear.backup.BackupTarget by rig.target {
+                override val volumeId = "usb-1"
+
                 override suspend fun freeBytes() = 10L
             },
             sourceVolumeIds = setOf("usb-1"),
@@ -79,6 +81,28 @@ class MovePlannerTest {
         MovePlanner.preflight(files, rig.target, emptySet(), 100, false).filter { it.blocking } shouldBe emptyList()
         issues.first { it is MovePlanner.Issue.TargetIsSource }.shouldBeInstanceOf<MovePlanner.Issue>()
     }
+
+    @Test
+    fun `a backup folder on the same card as the photos is blocked, from the file paths alone (H3)`(): Unit =
+        runBlocking {
+            val rig = Rig()
+            val onCard = rig.items.map {
+                it.copy(path = it.path.replace("/storage/emulated/0", "/storage/1234-ABCD"))
+            }
+            val files = MovePlanner.plan("j", onCard, "d", "Camera", rig.target.caps)
+            val sameCard = object : io.github.tomerar.keepclear.backup.BackupTarget by rig.target {
+                override val volumeId = "1234-ABCD"
+            }
+            MovePlanner.preflight(files, sameCard, emptySet(), 100, true) shouldContain MovePlanner.Issue.TargetIsSource
+            val phoneFiles = MovePlanner.plan("j", rig.items, "d", "Camera", rig.target.caps)
+            MovePlanner.preflight(phoneFiles, sameCard, emptySet(), 100, true).filter { it.blocking } shouldBe
+                emptyList()
+            val phoneTarget = object : io.github.tomerar.keepclear.backup.BackupTarget by rig.target {
+                override val volumeId = "primary"
+            }
+            MovePlanner.preflight(phoneFiles, phoneTarget, emptySet(), 100, true) shouldContain
+                MovePlanner.Issue.TargetIsSource
+        }
 
     @Test
     fun `target folders use ASCII digits on every device locale`() {

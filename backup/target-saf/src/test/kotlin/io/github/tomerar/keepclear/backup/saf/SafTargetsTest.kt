@@ -24,6 +24,38 @@ class SafTargetsTest {
     }
 
     @Test
+    fun `an unknown provider is copy-only - it may answer reads from a cache (H1)`() {
+        val unknown = SafTargets.classify("org.example.docs", "x")!!
+        assertEquals(TargetKind.UNKNOWN_PROVIDER, unknown.first)
+        assertEquals(false, unknown.second.canReadBack)
+        assertEquals(false, SafTargets.classify(null, "x")!!.second.canReadBack)
+        // Debug builds' fake USB provider is declared removable explicitly.
+        val test = SafTargets.classify("app.testusb", "root", removableAuthorities = setOf("app.testusb"))!!
+        assertEquals(TargetKind.REMOVABLE, test.first)
+        assertEquals(true, test.second.canReadBack)
+    }
+
+    @Test
+    fun `phone-side document roots are on this phone, not removable (H3)`() {
+        val ext = SafTargets.EXTERNAL_STORAGE
+        assertNull(SafTargets.classify(ext, "home:"))
+        assertNull(SafTargets.classify(ext, "home:Backups"))
+        assertNull(SafTargets.classify(ext, "primary"))
+        assertNull(SafTargets.classify("com.android.providers.downloads.documents", "raw:/storage/emulated/0/Download"))
+        assertNull(SafTargets.classify("com.android.providers.media.documents", "x"))
+    }
+
+    @Test
+    fun `volume id and on-phone path of a tree (H3)`() {
+        val ext = SafTargets.EXTERNAL_STORAGE
+        assertEquals("1234-ABCD", SafTargets.volumeId(ext, "1234-ABCD:Backups"))
+        assertEquals("/storage/1234-ABCD/Backups", SafTargets.localPath(ext, "1234-ABCD:Backups"))
+        assertEquals("/storage/1234-ABCD", SafTargets.localPath(ext, "1234-ABCD:"))
+        assertNull(SafTargets.localPath("org.example.docs", "1234-ABCD:Backups"))
+        assertNull(SafTargets.localPath(ext, "1234-ABCD:../x"))
+    }
+
+    @Test
     fun `marker parsing accepts only our format`() {
         val good = "0123456789abcdef0123456789abcdef"
         assertEquals(good, SafTargets.parseMarker(good.toByteArray()))

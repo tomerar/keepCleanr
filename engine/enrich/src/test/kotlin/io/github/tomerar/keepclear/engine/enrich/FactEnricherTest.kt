@@ -128,4 +128,36 @@ class FactEnricherTest {
         g.addFile("$root/Download/a/x.txt", "hello".toByteArray())
         FactEnricher(g).facts(scan(g)) shouldBe emptyMap()
     }
+
+    private suspend fun scanAll(g: FakeStorageGateway, vararg roots: String): List<ScanItem> =
+        Scanner(g).scan(roots.map { KPath.Local(it) }).filterIsInstance<ScanEvent.Batch>().toList().flatMap { it.items }
+
+    @Test
+    fun `a copy in our own trash, on a removable volume or in a backup folder is no witness (H2)`(): Unit =
+        runBlocking {
+            val sd = "/storage/1234-ABCD"
+            val g = FakeStorageGateway(caseInsensitive = true, volumeRoots = listOf(root, sd))
+            val bytes = ByteArray(3_000) { 6 }
+            val sent = "$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/Sent/IMG_7.jpg"
+            g.addFile(sent, bytes)
+            g.addFile("$root/.KeepClearTrash/20261101/00000000-0000-4000-8000-000000000001/IMG_7.jpg", bytes)
+            g.addFile("$sd/DCIM/IMG_7.jpg", bytes)
+            g.addFile("$root/KeepClear/OnePlus 10T/Camera/IMG_7.jpg", bytes)
+            FactEnricher(g).facts(scanAll(g, root, sd)) shouldBe emptyMap()
+            g.addFile("$root/DCIM/Camera/IMG_7.jpg", bytes)
+            val e = FactEnricher(g).enrich(scanAll(g, root, sd))
+            e.facts.keys shouldBe setOf(sent)
+            e.evidence.getValue(sent).witnesses.map { it.path } shouldBe listOf("$root/DCIM/Camera/IMG_7.jpg")
+        }
+
+    @Test
+    fun `an extracted archive's evidence lists every extracted file (H2)`(): Unit = runBlocking {
+        val g = FakeStorageGateway(caseInsensitive = true)
+        g.addFile("$root/Download/a.zip", zip("x.txt" to "hello".toByteArray(), "d/y.txt" to "world".toByteArray()))
+        g.addFile("$root/Download/a/x.txt", "hello".toByteArray())
+        g.addFile("$root/Download/a/d/y.txt", "world".toByteArray())
+        val ev = FactEnricher(g).enrich(scan(g)).evidence.getValue("$root/Download/a.zip")
+        ev.witnesses.map { it.path }.toSet() shouldBe setOf("$root/Download/a/x.txt", "$root/Download/a/d/y.txt")
+        ev.witnesses.map { it.size }.toSet() shouldBe setOf(5L)
+    }
 }

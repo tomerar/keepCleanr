@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.core.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Insert
@@ -30,6 +31,7 @@ data class MoveJobEntity(
     val state: String,
     val pauseReason: String?,
     val targetRef: String?,
+    @ColumnInfo(defaultValue = "NULL") val verifyBootId: String? = null,
 )
 
 @Entity(tableName = "move_file", primaryKeys = ["jobId", "fileIndex"])
@@ -50,6 +52,7 @@ data class MoveFileEntity(
     val verifiedAt: Long?,
     val nameChanged: Boolean,
     val reusedExisting: Boolean,
+    @ColumnInfo(defaultValue = "NULL") val confirmedAt: Long? = null,
 )
 
 @Dao
@@ -94,7 +97,17 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
 
     companion object {
         fun MoveJob.toEntity() =
-            MoveJobEntity(id, targetId, targetLabel, rootRel, createdAt, state.name, pauseReason?.name, targetRef)
+            MoveJobEntity(
+                id,
+                targetId,
+                targetLabel,
+                rootRel,
+                createdAt,
+                state.name,
+                pauseReason?.name,
+                targetRef,
+                verifyBootId,
+            )
 
         fun MoveJobEntity.toJob() = MoveJob(
             id = id,
@@ -106,6 +119,7 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
             state = enumOrNull<JobState>(state) ?: JobState.READY,
             pauseReason = pauseReason?.let { enumOrNull<PauseReason>(it) },
             targetRef = targetRef,
+            verifyBootId = verifyBootId,
         )
 
         fun MoveFile.toEntity() = MoveFileEntity(
@@ -124,6 +138,7 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
             verifiedAt = verifiedAt,
             nameChanged = nameChanged,
             reusedExisting = reusedExisting,
+            confirmedAt = confirmedAt,
         )
 
         fun MoveFileEntity.toFile(): MoveFile {
@@ -145,6 +160,8 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
                 verifiedAt = if (known == MoveFileState.VERIFIED) verifiedAt else null,
                 nameChanged = nameChanged,
                 reusedExisting = reusedExisting,
+                // H1: a second-pass claim only counts on a file that is still VERIFIED.
+                confirmedAt = if (known == MoveFileState.VERIFIED) confirmedAt else null,
             )
         }
 

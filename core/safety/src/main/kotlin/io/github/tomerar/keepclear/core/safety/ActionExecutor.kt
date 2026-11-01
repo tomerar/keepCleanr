@@ -40,6 +40,9 @@ enum class SkipReason {
 
     /** Access was lost earlier in this run (permission revoked, volume gone): not attempted (E-PERM-2). */
     STOPPED,
+
+    /** The other copy this item was redundant with is gone or changed (H2, SAFETY-8). */
+    WITNESS_GONE,
 }
 
 sealed interface ExecutionReport {
@@ -124,6 +127,12 @@ class ActionExecutor(
         }
         if (stat.isDirectory && op.kind != OpKind.PURGE && subtreeHasProtected(stat)) {
             return OpResult.Skipped(op, SkipReason.CONTAINS_PROTECTED)
+        }
+        for (w in op.witnesses) {
+            val ws = gateway.stat(w.ref)
+            if (ws == null || !ws.isFile || ws.size != w.size || ws.path == stat.path) {
+                return OpResult.Skipped(op, SkipReason.WITNESS_GONE)
+            }
         }
         if (op.kind == OpKind.MOVE_DELETE_ORIGINAL && strictRehash) {
             val actual = gateway.openRead(op.ref).use { Sha256.of(it) }

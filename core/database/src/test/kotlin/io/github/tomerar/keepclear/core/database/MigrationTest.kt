@@ -37,7 +37,7 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -53,7 +53,7 @@ class MigrationTest {
                     "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("m12", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m12", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -74,7 +74,7 @@ class MigrationTest {
                     "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
             )
         }
-        helper.runMigrationsAndValidate("m23", 3, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m23", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -82,6 +82,43 @@ class MigrationTest {
             db.query("SELECT COUNT(*) FROM move_file").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 0
+            }
+        }
+    }
+
+    @Test
+    fun `3 to 4 adds the second-pass and uptime columns as null and keeps every row (H1, M2)`() {
+        helper.createDatabase("m34", 3).use { db ->
+            db.execSQL(
+                "INSERT INTO trash_entry (id, originalPath, trashedPath, volumeRoot, size, mtimeMillis, sha256, " +
+                    "ruleId, reason, deletedAt, expiresAt, deletedAtElapsed, bootId, state, trusted, verifiedCopy) " +
+                    "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO move_job (id, targetId, targetLabel, rootRel, createdAt, state, pauseReason, targetRef) " +
+                    "VALUES ('j', 't', 'USB', 'KeepClear/P', 1, 'DONE', NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO move_file (jobId, fileIndex, source, sourcePath, sourceSize, sourceMtime, " +
+                    "sourceIdentity, relTarget, state, sourceSha256, attempts, failReason, verifiedAt, nameChanged, " +
+                    "reusedExisting) VALUES ('j', 0, 'local:/a', '/a', 1, 1, NULL, 'KeepClear/P/a', 'VERIFIED', " +
+                    "NULL, 0, NULL, 5, 0, 0)",
+            )
+        }
+        helper.runMigrationsAndValidate("m34", 4, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            db.query("SELECT deletedAtUptime FROM trash_entry").use { c ->
+                c.moveToFirst()
+                c.isNull(0) shouldBe true
+            }
+            db.query("SELECT verifyBootId FROM move_job").use { c ->
+                c.moveToFirst()
+                c.isNull(0) shouldBe true
+            }
+            // A file verified before this version is NOT confirmed: it must be checked again before freeing.
+            db.query("SELECT confirmedAt, state FROM move_file").use { c ->
+                c.moveToFirst()
+                c.isNull(0) shouldBe true
+                c.getString(1) shouldBe "VERIFIED"
             }
         }
     }

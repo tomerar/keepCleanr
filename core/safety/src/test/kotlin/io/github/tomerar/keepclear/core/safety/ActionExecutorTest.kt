@@ -183,4 +183,20 @@ class ActionExecutorTest {
         ex.run(plan(fake.op(db))).shouldBeInstanceOf<ExecutionReport.Rejected>()
         handler.performed.shouldBeEmpty()
     }
+
+    @Test
+    fun `a duplicate whose witness vanished or changed is skipped (H2, SAFETY-8)`(): Unit = runBlocking {
+        val witness = Witness(KPath.Local(b), "b", size = 2000)
+        val report = ran(executor().run(plan(fake.op(a).copy(witnesses = listOf(witness)))))
+        report.done.size shouldBe 1
+
+        fake.addFile(a, size = 1000, mtime = 10)
+        fake.modify(b, FakeStorageGateway.Content.Bytes(ByteArray(5)), mtime = 21)
+        val changed = ran(executor().run(plan(fake.op(a).copy(witnesses = listOf(witness)))))
+        (changed.results.single() as OpResult.Skipped).reason shouldBe SkipReason.WITNESS_GONE
+        fake.delete(KPath.Local(b))
+        val gone = ran(executor().run(plan(fake.op(a).copy(witnesses = listOf(witness)))))
+        (gone.results.single() as OpResult.Skipped).reason shouldBe SkipReason.WITNESS_GONE
+        fake.exists(a) shouldBe true
+    }
 }

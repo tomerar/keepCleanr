@@ -7,7 +7,6 @@ import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
-import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -33,6 +32,8 @@ class MoveEngine(
     private val onProgress: (MoveFile) -> Unit = {},
     /** Why the job stopped when its coroutine is cancelled from outside. */
     private val cancelReason: () -> PauseReason = { PauseReason.PAUSED_BY_USER },
+    /** Identifies this boot; the page cache doesn't survive a reboot (H1, [FreshRead.REBOOTED]). */
+    private val bootId: () -> String = { "unknown-boot" },
 ) {
     suspend fun run(jobId: String): MoveJob {
         var job = store.job(jobId) ?: error("unknown job $jobId")
@@ -52,6 +53,11 @@ class MoveEngine(
             writeManifest(job)
         } catch (e: Pause) {
             return job.copy(state = JobState.PAUSED, pauseReason = e.reason).also { store.putJob(it) }
+        } catch (e: StorageException) {
+            // Anything not mapped above: pause and keep every checkpoint; never crash the service (review Low).
+            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also { store.putJob(it) }
+        } catch (e: java.io.IOException) {
+            return job.copy(state = JobState.PAUSED, pauseReason = PauseReason.UNEXPECTED_ERROR).also { store.putJob(it) }
         } catch (e: CancellationException) {
             // Paused from outside (user, system time limit). The current temp file is removed on resume (E-MOVE-1).
             withContext(NonCancellable) {
@@ -59,6 +65,7 @@ class MoveEngine(
             }
             throw e
         }
+        job = job.copy(verifyBootId = bootId())
         val unfinished = store.files(jobId).any {
             it.state !in setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED)
         }
@@ -161,7 +168,10 @@ class MoveEngine(
         }
         val hash = if (stat?.size == file.sourceSize) readBackHash(file.relTarget) else null
         if (hash != null && hash == file.sourceSha256) {
-            return put(file.copy(state = MoveFileState.VERIFIED, verifiedAt = clock(), failReason = null))
+            // First pass only: this read may have come from the page cache (H1). Freeing needs confirm().
+            return put(
+                file.copy(state = MoveFileState.VERIFIED, verifiedAt = clock(), failReason = null, confirmedAt = null),
+            )
         }
         val attempts = file.attempts + 1
         if (file.reusedExisting) {
@@ -251,20 +261,20 @@ class MoveEngine(
      * [Manifest.MAX_BYTES]), it is left untouched and this job's lines go to a separate `<name>-<jobId>` file,
      * so earlier entries are never lost.
      */
-    private suspend fun writeMerged(job: MoveJob, name: String, merge: (String?) -> String) {
+    private suspend fun writeMerged(job: MoveJob, name: String, merge: (List<String>?) -> String) {
         val rel = "${job.rootRel}/$name"
         val existing = readWhole(rel)
         if (existing is Existing.Unusable) {
             replace("$rel-${job.id}", merge(null))
         } else {
-            replace(rel, merge((existing as? Existing.Text)?.text))
+            replace(rel, merge((existing as? Existing.Lines)?.lines))
         }
     }
 
     private sealed interface Existing {
         data object None : Existing
 
-        data class Text(val text: String) : Existing
+        data class Lines(val lines: List<String>) : Existing
 
         data object Unusable : Existing
     }
@@ -280,12 +290,7 @@ class MoveEngine(
             stat.size > Manifest.MAX_BYTES -> Existing.Unusable
 
             else -> target.openRead(name).use { input ->
-                val bytes = input.readUpTo(Manifest.MAX_BYTES + 1)
-                if (bytes.size > Manifest.MAX_BYTES) {
-                    Existing.Unusable
-                } else {
-                    Existing.Text(bytes.toString(Charsets.UTF_8))
-                }
+                Manifest.readLines(input)?.let { Existing.Lines(it) } ?: Existing.Unusable
             }
         }
     } catch (e: StorageException) {
@@ -327,11 +332,15 @@ class MoveEngine(
     suspend fun originalsPlan(jobId: String): List<PlannedOp> {
         if (!target.caps.canReadBack) return emptyList()
         val job = store.job(jobId) ?: return emptyList()
-        return store.files(
-            jobId,
-        ).filter { it.state == MoveFileState.VERIFIED && it.sourceSha256 != null }.mapNotNull { f ->
+        return store.files(jobId).filter {
+            // H1: verified twice, the second time with a read that couldn't come from the page cache.
+            it.state == MoveFileState.VERIFIED && it.sourceSha256 != null && it.confirmedAt != null
+        }.mapNotNull { f ->
             val copy = runCatching { target.stat(f.relTarget) }.getOrNull()
             if (copy?.size != f.sourceSize) return@mapNotNull null
+            // Re-hash the copy at free time, not just its size (H1).
+            val copyHash = runCatching { readBackHash(f.relTarget) }.getOrNull()
+            if (copyHash != f.sourceSha256) return@mapNotNull null
             val now = source.stat(f.source) ?: return@mapNotNull null
             if (now.size != f.sourceSize || now.mtimeMillis != f.sourceMtime) return@mapNotNull null
             PlannedOp(
@@ -346,5 +355,41 @@ class MoveEngine(
                 verifiedCopy = "${job.targetLabel}: ${f.relTarget}",
             )
         }
+    }
+
+    /**
+     * Second pass ("Check backup", MOVE-15; H1): re-reads every verified copy with a read that can't be served
+     * from the page cache, as attested by [evidence]. Matching copies become freeable; missing or damaged ones go
+     * back to "copy again" (never freed). [FreshRead.REBOOTED] is checked here against [bootId].
+     */
+    suspend fun confirm(jobId: String, evidence: FreshRead): CheckResult {
+        val job = store.job(jobId) ?: error("unknown job $jobId")
+        if (evidence == FreshRead.REBOOTED) {
+            check(job.verifyBootId == null || job.verifyBootId != bootId()) {
+                "same boot as the first check: the drive must be unplugged and plugged back in"
+            }
+        }
+        var ok = 0
+        var damaged = 0
+        var missing = 0
+        for (f in store.files(jobId).filter { it.state == MoveFileState.VERIFIED }) {
+            currentCoroutineContext().ensureActive()
+            val stat = target.stat(f.relTarget)
+            val hash = if (stat?.size == f.sourceSize) readBackHash(f.relTarget) else null
+            when {
+                hash != null && hash == f.sourceSha256 -> {
+                    ok++
+                    put(f.copy(confirmedAt = clock()))
+                }
+
+                else -> {
+                    if (stat == null) missing++ else damaged++
+                    // Never delete a copy here: it may be the user's only one if the original is already gone.
+                    put(f.copy(state = MoveFileState.PENDING, confirmedAt = null, verifiedAt = null, attempts = 0))
+                }
+            }
+        }
+        if (damaged + missing > 0) store.putJob(job.copy(state = JobState.READY))
+        return CheckResult(ok, damaged, missing)
     }
 }

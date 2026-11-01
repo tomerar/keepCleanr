@@ -38,7 +38,19 @@ enum class PauseReason {
 
     /** A different drive or folder is attached than the one this job started on (E-MOVE-2). */
     WRONG_TARGET,
+
+    /** An unexpected storage error; the job pauses instead of failing (low-severity review item). */
+    UNEXPECTED_ERROR,
 }
+
+/**
+ * H1: proof that a re-read can't come from the phone's page cache. [REATTACHED]: the app watched the drive
+ * disappear and come back (unmount drops the cache). [REBOOTED]: the phone restarted since the first check.
+ */
+enum class FreshRead { REATTACHED, REBOOTED }
+
+/** Result of the second pass ("Check backup", MOVE-15). */
+data class CheckResult(val ok: Int, val damaged: Int, val missing: Int)
 
 data class MoveJob(
     val id: String,
@@ -51,6 +63,8 @@ data class MoveJob(
     val pauseReason: PauseReason? = null,
     /** Opaque locator the app uses to reopen the target (a SAF tree URI). Never trusted on its own (E-MOVE-2). */
     val targetRef: String? = null,
+    /** Boot of the last first-pass verification; a second pass in another boot is uncached (H1). */
+    val verifyBootId: String? = null,
 )
 
 data class MoveFile(
@@ -75,6 +89,11 @@ data class MoveFile(
      * write it, so it is never deleted, even if a later read-back fails.
      */
     val reusedExisting: Boolean = false,
+    /**
+     * H1: when a **second**, uncached read of the copy matched ([FreshRead]). Only files with this set may be
+     * freed. Cleared whenever the file is copied or verified again.
+     */
+    val confirmedAt: Long? = null,
 ) {
     val tempRel: String get() = relTarget.substringBeforeLast('/') + "/.kc-tmp-$jobId-$index"
 }
@@ -103,6 +122,9 @@ data class Receipt(
     val namesChanged: Int,
     /** Copied but not checkable (MOVE-14); never offered for freeing. */
     val unverified: Int = 0,
+    /** Verified twice, the second time uncached (H1); only these may be freed. */
+    val confirmed: Int = 0,
+    val confirmedBytes: Long = 0,
     val total: Int = verified + failed.values.sum() + changed + pending + unverified,
 ) {
     val complete: Boolean get() = pending == 0
@@ -131,6 +153,8 @@ data class Receipt(
                 pending = files.count { it.state !in DONE_STATES },
                 namesChanged = files.count { it.nameChanged },
                 unverified = files.count { it.state == MoveFileState.COPIED_UNVERIFIED },
+                confirmed = verified.count { it.confirmedAt != null },
+                confirmedBytes = verified.filter { it.confirmedAt != null }.sumOf { it.sourceSize },
                 total = files.size,
             )
         }

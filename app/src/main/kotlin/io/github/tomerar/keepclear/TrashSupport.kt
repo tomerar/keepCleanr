@@ -13,6 +13,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.github.tomerar.keepclear.engine.trash.SidecarSigner
+import androidx.core.content.edit
+import io.github.tomerar.keepclear.engine.trash.ClockMark
 import io.github.tomerar.keepclear.engine.trash.TrashClock
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -53,12 +55,63 @@ class KeystoreSidecarSigner : SidecarSigner {
     }
 }
 
-class SystemTrashClock(private val resolver: ContentResolver) : TrashClock {
+/**
+ * Clocks for the trash (E-DEL-10, M2). [uptimeMillis] adds up `elapsedRealtime` (which includes sleep) across
+ * reboots and is stored, so it keeps counting real time the user can't set. Time lost between the last save and
+ * a power-off only delays purges.
+ */
+class SystemTrashClock(
+    private val resolver: ContentResolver,
+    context: Context,
+    private val elapsed: () -> Long = SystemClock::elapsedRealtime,
+    private val boot: (() -> String)? = null,
+) : TrashClock {
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     override fun wallMillis() = System.currentTimeMillis()
 
-    override fun elapsedMillis() = SystemClock.elapsedRealtime()
+    override fun elapsedMillis() = elapsed()
 
-    override fun bootId(): String = Settings.Global.getInt(resolver, Settings.Global.BOOT_COUNT, -1).toString()
+    override fun bootId(): String =
+        boot?.invoke() ?: Settings.Global.getInt(resolver, Settings.Global.BOOT_COUNT, -1).toString()
+
+    @Synchronized
+    override fun uptimeMillis(): Long {
+        val now = elapsed()
+        val bootNow = bootId()
+        var base = prefs.getLong(K_BASE, 0)
+        val lastBoot = prefs.getString(K_BOOT, null)
+        if (lastBoot != null && lastBoot != bootNow) base += prefs.getLong(K_LAST_ELAPSED, 0) // a reboot happened
+        // Same boot but elapsed went backwards can't happen; if it does, treat it as a reboot (never lose time).
+        if (lastBoot == bootNow && now < prefs.getLong(K_LAST_ELAPSED, 0)) base += prefs.getLong(K_LAST_ELAPSED, 0)
+        prefs.edit(commit = true) {
+            putLong(K_BASE, base)
+            putString(K_BOOT, bootNow)
+            putLong(K_LAST_ELAPSED, now)
+        }
+        return base + now
+    }
+
+    override fun lastMark(): ClockMark? {
+        val boot = prefs.getString(K_MARK_BOOT, null) ?: return null
+        return ClockMark(prefs.getLong(K_MARK_WALL, 0), prefs.getLong(K_MARK_UP, 0), boot)
+    }
+
+    override fun saveMark(mark: ClockMark) = prefs.edit(commit = true) {
+        putLong(K_MARK_WALL, mark.wallMillis)
+        putLong(K_MARK_UP, mark.uptimeMillis)
+        putString(K_MARK_BOOT, mark.bootId)
+    }
+
+    companion object {
+        const val PREFS = "trash_clock"
+        private const val K_BASE = "uptimeBase"
+        private const val K_BOOT = "uptimeBoot"
+        private const val K_LAST_ELAPSED = "uptimeLastElapsed"
+        private const val K_MARK_WALL = "markWall"
+        private const val K_MARK_UP = "markUptime"
+        private const val K_MARK_BOOT = "markBoot"
+    }
 }
 
 /**
