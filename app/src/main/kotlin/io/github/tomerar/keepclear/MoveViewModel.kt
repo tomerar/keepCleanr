@@ -369,7 +369,12 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The opened backup place; released when the flow closes (a network drive's connection, PR #25 lesson). */
+    private var restoreTarget: io.github.tomerar.keepclear.backup.BackupTarget? = null
+
     fun closeRestore() {
+        restoreTarget?.let { t -> viewModelScope.launch { withContext(Dispatchers.IO) { t.useTarget { } } } }
+        restoreTarget = null
         restoreEngine = null
         restoreEntries = emptyList()
         _state.update { it.copy(restore = null) }
@@ -393,7 +398,9 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             app.protectedPaths,
             android.os.Environment.getExternalStorageDirectory().absolutePath,
         )
+        restoreTarget?.useTarget { }
         restoreEngine = engine
+        restoreTarget = check.target
         val roots = withContext(Dispatchers.IO) { engine.backups() }
         when (roots.size) {
             0 -> _state.update { it.copy(restore = RestoreStep.NoBackup) }
