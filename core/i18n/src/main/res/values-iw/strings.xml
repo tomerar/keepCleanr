@@ -481,4 +481,11 @@
         <item quantity="two">%1$s לא שוחזרו</item>
         <item quantity="other">%1$s לא שוחזרו</item>
     </plurals>
+    <string name="choice_keep">זה חשוב לי – לא לגעת בזה אף פעם</string>
+    <string name="choice_always_junk">להתייחס תמיד לתיקייה הזו כזבל</string>
+    <string name="choice_always_junk_body">קבצים בתיקייה %1$s יוצעו כזבל בניקוי המהיר מהסריקה הבאה. קבצים חדשים עדיין יחכו לבדיקה, וכל קובץ עדיין עובר קודם לסל המחזור ל-30 יום. אפשר לבטל את זה בהגדרות › נשמר לבקשתך.</string>
+    <string name="choice_always_junk_confirm">להתייחס כזבל</string>
+    <string name="choice_kept_label">לא נוגעים</string>
+    <string name="choice_junk_label">תמיד זבל</string>
+    <string name="choice_remove">הסרה</string>
 </resources>

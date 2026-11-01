@@ -73,6 +73,24 @@ class ActionExecutorTest {
     }
 
     @Test
+    fun `a path kept while the plan runs is skipped (CLS-7)`(): Unit = runBlocking {
+        val kept = mutableSetOf<String>()
+        val executor = ActionExecutor(
+            fake,
+            SafetyGuard(protectedPaths),
+            protectedPaths,
+            handler,
+            SESSION,
+            onResult = { kept += b }, // the user keeps b right after the first operation
+            keptNow = { it in kept },
+        )
+        val report = ran(executor.run(plan(fake.op(a), fake.op(b))))
+        report.results[0].shouldBeInstanceOf<OpResult.Done>()
+        (report.results[1] as OpResult.Skipped).reason shouldBe SkipReason.CONTAINS_PROTECTED
+        fake.exists(b) shouldBe true
+    }
+
+    @Test
     fun `changed size or mtime is skipped (SAFETY-6, E-DEL-1)`(): Unit = runBlocking {
         val opA = fake.op(a)
         val opB = fake.op(b)

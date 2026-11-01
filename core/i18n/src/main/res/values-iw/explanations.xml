@@ -92,4 +92,10 @@
     <string name="group_app_content">בתוך התיקיות של אפליקציות</string>
     <string name="why_app_content">הקבצים האלה שייכים לאפליקציה אחרת (למשל מוזיקה או סרטונים שהיא הורידה). האפליקציה הזו מנהלת אותם.</string>
     <string name="if_deleted_app_content">‏KeepClear לא מוחק אותם. אפשר לפתוח את האפליקציה ולהסיר את ההורדות שם, כדי שהיא תדע שהן נמחקו.</string>
+    <string name="group_user_kept">נשמר לבקשתך</string>
+    <string name="why_user_kept">סימנת שזה חשוב. KeepClear אף פעם לא מציעה למחוק או להעביר את זה.</string>
+    <string name="if_deleted_user_kept">KeepClear לא תמחק את זה. כדי לשנות, יש לפתוח את ההגדרות › נשמר לבקשתך.</string>
+    <string name="group_user_junk">סומן כזבל לבקשתך</string>
+    <string name="why_user_junk">ביקשת מ-KeepClear להתייחס תמיד לקבצים בתיקייה הזו כזבל.</string>
+    <string name="if_deleted_user_junk">הקובץ עובר קודם לסל המחזור ל-30 יום, כך שאפשר להחזיר אותו. כדי להפסיק, יש לפתוח את ההגדרות › נשמר לבקשתך.</string>
 </resources>

@@ -148,7 +148,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state
     private var scanJob: Job? = null
-    private val classifier = Classifier()
+
+    /** CLS-7: the user's kept and always-junk choices apply to every classification. */
+    private fun classifier(): Classifier = app.userChoices.state.value.let {
+        Classifier(protectedPaths = app.protectedPaths, keptByUser = it.kept, junkFolders = it.junk)
+    }
+
+    /** The last scan's items, so a choice can be applied without scanning again. */
+    private var lastItems: List<ScanItem> = emptyList()
+
+    /** CLS-7 "This is important to me". */
+    fun keep(path: String) {
+        if (app.userChoices.keep(path)) reclassify()
+    }
+
+    /** CLS-7 "Always treat this folder as junk". */
+    fun alwaysJunk(folder: String) {
+        if (app.userChoices.alwaysJunk(folder)) reclassify()
+    }
+
+    fun removeKept(path: String) {
+        app.userChoices.removeKept(path)
+        reclassify()
+    }
+
+    fun removeJunk(folder: String) {
+        app.userChoices.removeJunk(folder)
+        reclassify()
+    }
+
+    private fun reclassify() {
+        val items = lastItems
+        if (items.isNotEmpty()) viewModelScope.launch { classify(items) }
+    }
 
     /** SAFE-10: the app whose info screen the user opened, and the free space just before. */
     private var appInfoOpened: Pair<String, Long>? = null
@@ -252,7 +284,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Why each redundant item is redundant (H2); goes into the plan so the executor can re-check it. */
     private var evidence: Map<String, Evidence> = emptyMap()
 
+    /** PR #27 review: a classification started earlier must never overwrite a newer one's result. */
+    private val classifyRuns = LatestRun()
+
     private suspend fun classify(items: List<ScanItem>) {
+        lastItems = items
+        val run = classifyRuns.start()
+        val classifier = classifier()
         val (summary, ev) = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
             // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
@@ -264,6 +302,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
             ) to enrichment.evidence
         }
+        if (!classifyRuns.isLatest(run)) return
         evidence = ev
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
@@ -629,4 +668,13 @@ fun lastCopyPlan(id: String, ops: List<PlannedOp>, groupSizes: Map<String, Int>)
         "clean",
         duplicateGroupSizes = groupSizes.filterKeys { it in groups },
     )
+}
+
+/** Numbers each run so only the newest one may publish its result (main thread only). */
+class LatestRun {
+    private var latest = 0L
+
+    fun start(): Long = ++latest
+
+    fun isLatest(run: Long) = run == latest
 }

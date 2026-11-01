@@ -114,6 +114,12 @@ class ActionExecutor(
     /** Strict mode (SEC-4, owner decision Q13): re-hash MOVE originals right before trashing. */
     private val strictRehash: Boolean = true,
     private val onResult: (OpResult) -> Unit = {},
+    /**
+     * CLS-7 (PR #27 review): asked right before **each** destructive operation, so a file the user keeps while a
+     * long plan runs is skipped even though the plan was accepted before. Only trash and move-original ops are
+     * checked; purge and restore act on items already in the trash.
+     */
+    private val keptNow: (String) -> Boolean = { false },
 ) {
     suspend fun run(plan: ActionPlan): ExecutionReport {
         when (val verdict = guard.check(plan, currentSession)) {
@@ -142,14 +148,19 @@ class ActionExecutor(
     }
 
     private suspend fun runOne(op: PlannedOp): OpResult = try {
-        precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
-            if (isDryRun()) {
-                OpResult.Simulated(op)
-            } else if (handler.needsConsent(op)) {
-                OpResult.NeedsConsent(op)
-            } else {
-                handler.perform(op, gateway)
-                OpResult.Done(op)
+        val removes = op.kind == OpKind.TRASH || op.kind == OpKind.MOVE_DELETE_ORIGINAL
+        if (removes && (keptNow(op.displayPath) || op.shownAs?.let(keptNow) == true)) {
+            OpResult.Skipped(op, SkipReason.CONTAINS_PROTECTED)
+        } else {
+            precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
+                if (isDryRun()) {
+                    OpResult.Simulated(op)
+                } else if (handler.needsConsent(op)) {
+                    OpResult.NeedsConsent(op)
+                } else {
+                    handler.perform(op, gateway)
+                    OpResult.Done(op)
+                }
             }
         }
     } catch (e: StorageException) {

@@ -92,4 +92,10 @@
     <string name="group_app_content">Inside apps\' own folders</string>
     <string name="why_app_content">These files belong to another app (for example music or videos it downloaded). That app manages them.</string>
     <string name="if_deleted_app_content">KeepClear doesn\'t delete them. Open the app and remove downloads there, so the app knows they are gone.</string>
+    <string name="group_user_kept">Kept by you</string>
+    <string name="why_user_kept">You marked this as important. KeepClear never offers it for deleting or moving.</string>
+    <string name="if_deleted_user_kept">KeepClear won\'t delete it. To change this, open Settings › Kept by you.</string>
+    <string name="group_user_junk">Marked as junk by you</string>
+    <string name="why_user_junk">You asked KeepClear to always treat files in this folder as junk.</string>
+    <string name="if_deleted_user_junk">It goes to the trash for 30 days first, so you can get it back. To stop, open Settings › Kept by you.</string>
 </resources>

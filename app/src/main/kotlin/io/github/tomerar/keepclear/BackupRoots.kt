@@ -18,6 +18,10 @@ object BackupRoots {
         SafTargets.localPath(uri.authority, docId)
     }.distinct()
 
-    fun protectedPaths(jobs: List<MoveJob>, ownPackage: String = "io.github.tomerar.keepclear") =
-        ProtectedPaths(extraRoots = of(jobs), ownPackage = ownPackage)
+    fun protectedPaths(
+        jobs: List<MoveJob>,
+        ownPackage: String = "io.github.tomerar.keepclear",
+        /** CLS-7: files and folders the user kept. */
+        kept: Collection<String> = emptyList(),
+    ) = ProtectedPaths(extraRoots = of(jobs) + kept, ownPackage = ownPackage)
 }

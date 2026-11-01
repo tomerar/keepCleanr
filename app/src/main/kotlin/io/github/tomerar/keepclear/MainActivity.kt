@@ -139,10 +139,14 @@ class MainActivity : ComponentActivity() {
                 }
                 // M15: Settings shows the only address KeepClear may connect to (PRIVACY.md "Network").
                 val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
+                val choices by app.userChoices.state.collectAsStateWithLifecycle()
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
                         settingsActions = SettingsActions(
                             networkHost = networkHost,
+                            choices = choices,
+                            onRemoveKept = vm::removeKept,
+                            onRemoveJunk = vm::removeJunk,
                             onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             currentLanguage = currentLanguage(),
                             onLanguage = ::setLanguage,
@@ -155,6 +159,7 @@ class MainActivity : ComponentActivity() {
                                 vm.open(Screen.Trash)
                             },
                         ),
+                        previewActions = PreviewActions(onKeep = vm::keep, onAlwaysJunk = vm::alwaysJunk),
                         appsActions = AppsActions(
                             onAllowUsageAccess = {
                                 runCatching {

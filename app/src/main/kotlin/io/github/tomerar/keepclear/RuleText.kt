@@ -10,6 +10,8 @@ object RuleText {
 
     val byRule: Map<String, Ids> = mapOf(
         "protected" to Ids(R.string.group_protected, R.string.why_protected, R.string.if_deleted_protected),
+        "user_kept" to Ids(R.string.group_user_kept, R.string.why_user_kept, R.string.if_deleted_user_kept),
+        "user_junk" to Ids(R.string.group_user_junk, R.string.why_user_junk, R.string.if_deleted_user_junk),
         "other_app_bin" to
             Ids(R.string.group_other_app_bin, R.string.why_other_app_bin, R.string.if_deleted_other_app_bin),
         "wa_status_old" to

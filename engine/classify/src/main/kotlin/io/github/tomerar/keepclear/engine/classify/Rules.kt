@@ -171,6 +171,24 @@ object Rules {
     /** Fallback (CLS-6): we don't know what it is, so the user decides. */
     val unknown = Rule("unknown", Category.REVIEW, RiskChip.UNKNOWN) { true }
 
+    /** CLS-7: a file or folder the user marked "This is important to me" (PROTECTED, SET-2). */
+    const val USER_KEPT = "user_kept"
+
+    /** CLS-7: a folder the user marked "Always treat as junk". */
+    const val USER_JUNK = "user_junk"
+
+    /**
+     * CLS-7 "Always treat as junk": files inside [folders] are SAFE. It never overrides PROTECTED (the classifier
+     * asks `core:safety` first) and, like every SAFE rule, recent files still need review (B1).
+     */
+    fun userJunk(folders: Collection<String>): Rule? {
+        val roots = folders.mapNotNull { CanonicalPath.of(it) }
+        if (roots.isEmpty()) return null
+        return Rule(USER_JUNK, Category.SAFE, RiskChip.UNKNOWN) { input ->
+            roots.any { input.canonical.startsWith("$it/") }
+        }
+    }
+
     /** PROTECTED explanation keys (`why_protected`, ...). */
     const val PROTECTED_RULE_ID = "protected"
 
