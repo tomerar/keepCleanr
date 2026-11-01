@@ -41,6 +41,24 @@ backups (no computer), which means network and cloud targets. Research [08](../r
 - **Flavors:** all targets in both flavors. If F-Droid insists on NonFreeNet, accept the label or offer a build property that leaves the
   proprietary-cloud modules out.
 
+### Amendment (2026-11-01, M17a WebDAV/Nextcloud engine; proposed, awaiting the owner's OK)
+Building `backup:target-webdav` showed two points where the decision above needs detail or a change:
+- **No OkHttp for WebDAV.** Android's `HttpURLConnection` refuses the WebDAV methods (PROPFIND, MKCOL, MOVE) and
+  `java.net.http` does not exist on Android, so `backup:target-webdav` speaks HTTP/1.1 itself over the JDK's
+  sockets and TLS (`MiniHttp`): no new dependency (PRIV-1), no redirects followed (credentials never leave the
+  typed host), bounded responses, system CAs plus host-name check, never "trust all". The shared `backup:net`
+  (OkHttp) is decided again with the first OAuth cloud (Dropbox), where it may still be the better choice.
+  Self-signed home servers are refused for now; pinning a certificate on first use is a later step.
+- **How a server digest is used.** `TargetCaps.serverDigests` (empty by default) says which kinds the server
+  computes; `BackupTarget.serverDigest(rel, kind)` returns the value the server answered for this target's own
+  upload (Nextcloud `X-Hash-SHA256` for `X-Hash: sha256`, followed through the rename to the final name). It
+  can't be asked again later. The MOVE engine verifies with it instead of a read-back when it is there, and
+  marks the copy confirmed at once (the server hashed what it stored; no phone cache is involved). A missing or
+  malformed value falls back to read-back; a wrong one is a mismatch. **At free time the copy is still read back
+  and re-hashed** (stricter than "re-query presence + size + digest" above, because `X-Hash` can't be
+  re-queried). Generic WebDAV has no server digest and works like SMB (read-back, "Check backup" over a new
+  connection). Recording the method per file needs a Room migration and comes with the app wiring (M17b).
+
 ## Consequences
 - Phone-only users get a verified MOVE target. Drive, Dropbox and Nextcloud verify without doubling traffic; SMB, OneDrive and generic WebDAV
   pay a read-back.
