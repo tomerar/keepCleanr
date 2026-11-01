@@ -195,7 +195,19 @@ class KeepClearApplication : Application() {
                 TestMode.log(result)
                 onResult(result)
             },
+            // CLS-7: a file kept while the plan runs is skipped too (PR #27 review).
+            keptNow = { path -> keptNow(path) },
         )
+    }
+
+    private var keptCache: Pair<Set<String>, io.github.tomerar.keepclear.core.safety.ProtectedPaths>? = null
+
+    private fun keptNow(path: String): Boolean {
+        val kept = userChoices.state.value.kept
+        if (kept.isEmpty()) return false
+        val cached = keptCache?.takeIf { it.first === kept }
+            ?: (kept to BackupRoots.protectedPaths(emptyList(), packageName, kept)).also { keptCache = it }
+        return cached.second.isProtected(path)
     }
 
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */

@@ -284,8 +284,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Why each redundant item is redundant (H2); goes into the plan so the executor can re-check it. */
     private var evidence: Map<String, Evidence> = emptyMap()
 
+    /** PR #27 review: a classification started earlier must never overwrite a newer one's result. */
+    private val classifyRuns = LatestRun()
+
     private suspend fun classify(items: List<ScanItem>) {
         lastItems = items
+        val run = classifyRuns.start()
         val classifier = classifier()
         val (summary, ev) = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
@@ -298,6 +302,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
             ) to enrichment.evidence
         }
+        if (!classifyRuns.isLatest(run)) return
         evidence = ev
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
@@ -663,4 +668,13 @@ fun lastCopyPlan(id: String, ops: List<PlannedOp>, groupSizes: Map<String, Int>)
         "clean",
         duplicateGroupSizes = groupSizes.filterKeys { it in groups },
     )
+}
+
+/** Numbers each run so only the newest one may publish its result (main thread only). */
+class LatestRun {
+    private var latest = 0L
+
+    fun start(): Long = ++latest
+
+    fun isLatest(run: Long) = run == latest
 }
