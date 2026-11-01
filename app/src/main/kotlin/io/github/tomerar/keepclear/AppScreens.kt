@@ -33,6 +33,7 @@ fun AppScreens(
     moveActions: MoveActions = MoveActions(),
     notificationsOff: Boolean = false,
     testMode: TestModeUi = TestModeUi(),
+    settingsActions: SettingsActions = SettingsActions(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -50,6 +51,7 @@ fun AppScreens(
                 moveActions,
                 notificationsOff,
                 testMode,
+                settingsActions,
             )
         }
     }
@@ -78,10 +80,14 @@ private fun ScreenContent(
     moveActions: MoveActions,
     notificationsOff: Boolean,
     testMode: TestModeUi,
+    settingsActions: SettingsActions,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
-    when (val screen = state.screens.last()) {
+    val current = state.screens.last()
+    // Review PR C: a result belongs to the screen it came from (no stale Undo elsewhere).
+    val result = state.cleanResult?.takeIf { it.origin == null || it.origin == current }
+    when (val screen = current) {
         Screen.Home -> {
             home()
         }
@@ -92,7 +98,7 @@ private fun ScreenContent(
 
                 screen.category == io.github.tomerar.keepclear.core.model.Category.SAFE -> SafeScreen(
                     summary = summary,
-                    result = state.cleanResult,
+                    result = result,
                     trimResult = state.trimResult,
                     showExternalCacheClear = state.allFiles == true,
                     onClean = safeActions.onClean,
@@ -102,6 +108,7 @@ private fun ScreenContent(
                     onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
                     onOpenTrash = safeActions.onOpenTrash,
                     onBack = onBack,
+                    busy = state.busy,
                 )
 
                 screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> MoveScreen(
@@ -109,18 +116,8 @@ private fun ScreenContent(
                     state = move,
                     now = System.currentTimeMillis(),
                     notificationsOff = notificationsOff,
-                    actions = MoveActions(
-                        onPickTarget = moveActions.onPickTarget,
-                        onStart = moveActions.onStart,
-                        onCancelPick = moveActions.onCancelPick,
-                        onPause = moveActions.onPause,
-                        onStop = moveActions.onStop,
-                        onResume = moveActions.onResume,
-                        onFree = moveActions.onFree,
-                        onShare = moveActions.onShare,
-                        onOpenGooglePhotos = moveActions.onOpenGooglePhotos,
-                        onOpenGroup = { onOpen(Screen.Group(it, screen.category)) },
-                    ),
+                    // Every action is forwarded (a field-by-field copy once dropped "Check backup").
+                    actions = moveActions.withOpenGroup { onOpen(Screen.Group(it, screen.category)) },
                     onBack = onBack,
                 )
 
@@ -137,7 +134,7 @@ private fun ScreenContent(
             // After deleting a whole group the rescan drops it; keep showing it (empty) while the result and its
             // Undo are there.
             val group = summary?.group(screen.ruleId, screen.category)
-                ?: state.cleanResult?.let {
+                ?: result?.let {
                     io.github.tomerar.keepclear.engine.classify.GroupSummary(
                         screen.ruleId,
                         screen.category,
@@ -153,18 +150,26 @@ private fun ScreenContent(
                     onOpenItem = { onOpen(Screen.Preview(it.item.path, screen.ruleId, screen.category)) },
                     onBack = onBack,
                     onDelete = safeActions.onClean,
-                    result = state.cleanResult,
+                    result = result,
                     onUndo = safeActions.onUndo,
                 )
             }
         }
 
         Screen.Settings -> {
-            SettingsScreen(testMode.on, testMode.turnOn, testMode.turnOff, onBack)
+            SettingsScreen(testMode.on, testMode.turnOn, testMode.turnOff, onBack, settingsActions)
         }
 
         Screen.Trash -> {
-            TrashScreen(state.trash, onRestore, onPurge, onBack, onRestoreChanged = safeActions.onRestoreChanged)
+            TrashScreen(
+                state.trash,
+                onRestore,
+                onPurge,
+                onBack,
+                onRestoreChanged = safeActions.onRestoreChanged,
+                measured = state.measured?.takeIf { it.origin == Screen.Trash },
+                busy = state.busy,
+            )
         }
 
         is Screen.Preview -> {

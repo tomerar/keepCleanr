@@ -4,6 +4,7 @@ package io.github.tomerar.keepclear
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,6 +46,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
@@ -81,7 +90,8 @@ fun totalText(total: Total): String {
             total.files,
             NumberFormat.getIntegerInstance(locale).format(total.files),
         )
-    return stringResource(R.string.total_value, ByteSize.format(total.bytes, locale), Bidi.isolate(count))
+    // Both parts isolated: a line that starts with "7.9 GB" still takes the UI's direction (review PR C).
+    return stringResource(R.string.total_value, Bidi.isolate(ByteSize.format(total.bytes, locale)), Bidi.isolate(count))
 }
 
 @Composable
@@ -161,36 +171,22 @@ fun GroupScreen(
     val selectedItems = group.items.filter { it.item.path in selected }
     Scaffold(
         bottomBar = {
-            when {
-                !selectable -> Button(onClick = {
-                }, enabled = false, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("deleteDisabled")) {
-                    Text(stringResource(R.string.move_coming_soon))
-                }
-
-                else -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            // Review PR C: no action bar until something is selected; padded above the navigation bar.
+            if (selectable && selectedItems.isNotEmpty()) {
+                Button(
+                    onClick = { confirming = selectedItems },
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).testTag("deleteSelected"),
                 ) {
-                    Button(
-                        onClick = { confirming = selectedItems },
-                        enabled = selectedItems.isNotEmpty(),
-                        modifier = Modifier.weight(1f).testTag("deleteSelected"),
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.review_delete,
-                                totalText(
-                                    selectedItems.fold(Total()) { t, i ->
-                                        t +
-                                            i
-                                    },
-                                ),
+                    Text(
+                        stringResource(
+                            R.string.review_delete,
+                            totalText(
+                                selectedItems.fold(Total()) { t, i ->
+                                    t + i
+                                },
                             ),
-                        )
-                    }
-                    OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.testTag("moveInstead")) {
-                        Text(stringResource(R.string.review_move_instead))
-                    }
+                        ),
+                    )
                 }
             }
         },
@@ -206,6 +202,24 @@ fun GroupScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     BackRow(stringResource(text.group), onBack)
                     Text(totalText(group.total), style = MaterialTheme.typography.bodyLarge)
+                    if (selectable) {
+                        val all = group.items.map { it.item.path }.toSet()
+                        val allSelected = all.isNotEmpty() && selected.containsAll(all)
+                        TextButton(
+                            onClick = { selected = if (allSelected) emptySet() else all },
+                            modifier = Modifier.testTag("selectAll"),
+                        ) {
+                            Text(
+                                stringResource(
+                                    if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
+                                ),
+                            )
+                        }
+                        Text(
+                            stringResource(R.string.review_long_press_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     result?.let { r ->
                         Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -264,12 +278,9 @@ fun GroupScreen(
                     Tile(
                         item,
                         selected = isSelected,
-                        modifier = Modifier.clickable {
-                            if (selectable) {
-                                selected = if (isSelected) selected - item.item.path else selected + item.item.path
-                            } else {
-                                onOpenItem(item)
-                            }
+                        selectable = selectable,
+                        onToggle = {
+                            selected = if (isSelected) selected - item.item.path else selected + item.item.path
                         },
                         onPreview = { onOpenItem(item) },
                     )
@@ -321,7 +332,7 @@ private fun EditableConfirm(
                             ) { Thumb(item, 48, showName = false) }
                             Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                                 Text(
-                                    Bidi.isolate(item.item.path.substringAfterLast('/')),
+                                    Bidi.fileName(item.item.path.substringAfterLast('/')),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -333,9 +344,14 @@ private fun EditableConfirm(
                                     modifier = Modifier.testTag("confirmFolder"),
                                 )
                             }
-                            TextButton(onClick = {
-                                onRemove(item)
-                            }, modifier = Modifier.testTag("remove_${item.item.path.substringAfterLast('/')}")) {
+                            val keep = stringResource(R.string.review_remove_from_list)
+                            TextButton(
+                                onClick = {
+                                    onRemove(item)
+                                },
+                                modifier = Modifier.semantics { contentDescription = keep }
+                                    .testTag("remove_${item.item.path.substringAfterLast('/')}"),
+                            ) {
                                 Text("✕")
                             }
                         }
@@ -348,22 +364,46 @@ private fun EditableConfirm(
                 stringResource(R.string.clean_confirm_yes),
                 onClick = onConfirm,
                 modifier = Modifier.testTag("confirmDelete"),
+                permanent = false,
             )
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.trash_cancel)) } },
     )
 }
 
+/**
+ * One picture (REV-2). Review PR C: for TalkBack it is a checkbox with the file name and its state; a tap
+ * toggles it, a long press (or ⤢) shows it large.
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun Tile(
     item: ClassifiedItem,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    selectable: Boolean = true,
+    onToggle: () -> Unit = {},
     onPreview: () -> Unit = {},
 ) {
+    val name = item.item.path.substringAfterLast('/')
+    val state = stringResource(if (selected) R.string.review_tile_selected else R.string.review_tile_not_selected)
+    val previewLabel = stringResource(R.string.review_preview)
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            .combinedClickable(
+                onClick = { if (selectable) onToggle() else onPreview() },
+                onLongClick = onPreview,
+                onLongClickLabel = previewLabel,
+                role = if (selectable) Role.Checkbox else Role.Image,
+            )
+            .semantics(mergeDescendants = true) {
+                contentDescription = Bidi.strip(name)
+                if (selectable) {
+                    toggleableState = ToggleableState(selected)
+                    stateDescription = state
+                }
+            }
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
             )
@@ -375,14 +415,19 @@ private fun Tile(
             Text(
                 "✓",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).clearAndSetSemantics { },
             )
         }
-        TextButton(
-            onClick = onPreview,
-            modifier = Modifier.align(Alignment.BottomEnd).testTag("preview_${item.item.path.substringAfterLast('/')}"),
+        // A small corner target, so a tap anywhere else on the tile selects it; long press also previews.
+        Box(
+            modifier = Modifier.align(Alignment.BottomEnd)
+                .size(32.dp)
+                .clickable(onClickLabel = previewLabel, role = Role.Button, onClick = onPreview)
+                .semantics { contentDescription = previewLabel }
+                .testTag("preview_${item.item.path.substringAfterLast('/')}"),
+            contentAlignment = Alignment.Center,
         ) {
-            Text("⤢")
+            Text("⤢", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -405,7 +450,7 @@ private fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
         )
     } else if (showName) {
         Text(
-            Bidi.isolate(item.item.path.substringAfterLast('/')),
+            Bidi.fileName(item.item.path.substringAfterLast('/')),
             style = MaterialTheme.typography.labelSmall,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,

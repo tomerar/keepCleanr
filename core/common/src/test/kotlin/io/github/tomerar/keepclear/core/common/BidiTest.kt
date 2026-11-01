@@ -34,4 +34,20 @@ class BidiTest {
             out.last() shouldBe Bidi.PDI
         }
     }
+
+    @Test
+    fun `a Hebrew file name keeps its number and extension together (review PR C)`() {
+        Bidi.fileName("צילום מסך 2023.png") shouldBe "${Bidi.FSI}צילום מסך ${Bidi.LRI}2023.png${Bidi.PDI}${Bidi.PDI}"
+        Bidi.fileName("IMG_1.jpg") shouldBe "${Bidi.FSI}${Bidi.LRI}IMG_1.jpg${Bidi.PDI}${Bidi.PDI}"
+        Bidi.fileName("תמונה.jpg") shouldBe Bidi.isolate("תמונה.jpg")
+        Bidi.fileName("README") shouldBe Bidi.isolate("README")
+    }
+
+    @Test
+    fun `file names always have balanced isolates`(): Unit = runBlocking {
+        checkAll(Arb.string(0..40)) { s ->
+            val out = Bidi.fileName(s)
+            out.count { it == Bidi.FSI || it == Bidi.LRI } shouldBe out.count { it == Bidi.PDI }
+        }
+    }
 }

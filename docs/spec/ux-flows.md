@@ -21,6 +21,18 @@ Notation: `[Button]`, `(chip)`, `›` = navigates to. Copy shown en / he. Hebrew
 
 ---
 
+### Review PR C (2026-11-01): what changed on screen
+
+- **Home:** one primary action (SAFE card's filled "לנקות X GB"); REVIEW renamed "לבחור מה להשאיר"; before a scan cards say "סופרים…" or "צריך גישה" (never "בקרוב"); scan status is one line; "לנקות קבצים זמניים של אפליקציות" is always on Home, even with no permission (ONB-3); the all-files card sits below the categories.
+- **Results:** every action that frees space shows a measured line ("פונו X · עכשיו פנויים Y (היו Z)"); results and Undo belong to the screen they came from and are cleared on navigation; buttons are disabled while an action runs. A 0-byte trim explains why.
+- **Words:** test mode is "מצב ניסיון", so "בדיקה" means only backup checking; buttons are infinitives; count sentences use one/two/other plurals; zero counts are hidden; SHA-256, `sha256sum`, the manifest and `.keepclear-target` live under "פרטים" (copy lint in CI).
+- **Colours:** moving to the 30-day trash is never red; permanent deletion is never a green primary button; the theme sets every Material role (contrast test).
+- **MOVE:** progress in bytes with phase and time left; Stop asks first, and Pause vs Stop is explained; two plain steps (and a drive check) before Android's folder picker; the preflight is a scrollable ✓/✕ checklist; the receipt offers "לפנות את המקום עכשיו"; the done notification says what to do next; the Google Photos note sits below the selection.
+- **Review grid:** each tile is a TalkBack checkbox with name and state; long press previews; "select all"; no action bar at 0 selected; the "move instead" stub is gone. SAFE rows are one touch target.
+- **Trash:** grouped by what sent items there (clean / chosen / backed up); restore a group; "free everything that has a checked copy"; Restore all asks first (it needs no extra space: files are already on the phone); the empty-trash confirm separates items with a checked copy from items with no copy.
+- **Settings:** language, how to get files back, About + privacy policy (PRIV-5), show the intro again. The intro (ONB-1) has 3 screens.
+- **Bidi:** file names keep "2023.png" together in Hebrew; sizes are isolated so lines that start with a number still read right-to-left. Bottom bars pad for the navigation bar.
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)

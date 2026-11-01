@@ -31,6 +31,7 @@ tasks.register("ciCheck") {
     dependsOn(
         "spotlessCheck",
         "checkStringParity",
+        "checkCopy",
         subprojects.filter { it.buildFile.exists() }.map { "${it.path}:check" },
         ":app:assembleFossDebug",
         ":app:assemblePlayDebug",

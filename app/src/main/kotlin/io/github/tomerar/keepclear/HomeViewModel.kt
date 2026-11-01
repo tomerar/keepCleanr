@@ -64,7 +64,14 @@ data class HomeUiState(
     val trimResult: Long? = null,
     /** Navigation stack; last is visible. */
     val screens: List<Screen> = listOf(Screen.Home),
+    /** An action is running; buttons that start another one are disabled (review PR C). */
+    val busy: Boolean = false,
+    /** Free space measured before and after the last action that frees space (review PR C). */
+    val measured: Measured? = null,
 )
+
+/** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
+data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val origin: Screen)
 
 /** Simple in-memory navigation (no navigation library needed yet). */
 sealed interface Screen {
@@ -265,7 +272,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             loadTrash()
             return
         }
+        if (_state.value.busy) return
+        val origin = currentScreen()
+        _state.update { it.copy(busy = true) }
         viewModelScope.launch {
+            val before = freeNow()
             // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
             app.trashManager.forgetMissing(entries)
             val ops = entries.mapNotNull { e ->
@@ -286,6 +297,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
                 app.executor().run(plan)
             }
+            val after = freeNow()
+            _state.update {
+                it.copy(
+                    busy = false,
+                    // Review PR C: a measured result after emptying, on the screen it came from.
+                    measured = if (kind == OpKind.PURGE) {
+                        Measured((after - before).coerceAtLeast(0), after, before, origin)
+                    } else {
+                        it.measured
+                    },
+                )
+            }
+            refresh()
             loadTrash()
             if (kind == OpKind.RESTORE || kind == OpKind.RESTORE_CHANGED) scan()
         }
@@ -293,6 +317,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
     fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) {
+        if (_state.value.busy) return
+        val origin = currentScreen()
+        _state.update { it.copy(busy = true, cleanResult = null) }
         viewModelScope.launch {
             // Only path-addressable files can go to KeepClear's trash in this version (ADR 0010). MediaStore-only
             // items (no All files access, `play`) are reported as skipped instead of being acted on.
@@ -336,9 +363,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         // Nothing to undo in test mode: nothing was moved.
                         trashedPaths = if (simulated) emptyList() else done.map { op -> op.displayPath },
                         simulated = simulated,
+                        origin = origin,
                     ),
+                    busy = false,
                 )
             }
+            refresh()
             loadTrash()
             scan()
         }
@@ -361,23 +391,46 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(trimResult = TestMode.TRIM_SKIPPED) }
             return
         }
+        if (_state.value.busy) return
+        val origin = currentScreen()
+        _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val freed = withContext(Dispatchers.IO) {
+            val before = freeNow()
+            withContext(Dispatchers.IO) {
                 val sm = app.getSystemService(StorageManager::class.java)
-                val before = StatFs(app.filesDir.absolutePath).availableBytes
                 runCatching {
                     sm.allocateBytes(StorageManager.UUID_DEFAULT, sm.getAllocatableBytes(StorageManager.UUID_DEFAULT))
                 }
-                (StatFs(app.filesDir.absolutePath).availableBytes - before).coerceAtLeast(0)
             }
-            _state.update { it.copy(trimResult = freed) }
+            val after = freeNow()
+            val freed = (after - before).coerceAtLeast(0)
+            _state.update {
+                it.copy(
+                    busy = false,
+                    trimResult = freed,
+                    measured = if (freed > 0) Measured(freed, after, before, origin) else null,
+                )
+            }
             refresh()
         }
     }
 
-    fun open(screen: Screen) = _state.update { it.copy(screens = it.screens + screen) }
+    /** Results belong to the screen they came from; leaving it clears them, so no stale Undo shows elsewhere. */
+    fun open(screen: Screen) = _state.update {
+        it.copy(screens = it.screens + screen, cleanResult = null, measured = null, trimResult = null)
+    }
 
-    fun back() = _state.update { if (it.screens.size > 1) it.copy(screens = it.screens.dropLast(1)) else it }
+    fun back() = _state.update {
+        if (it.screens.size > 1) {
+            it.copy(screens = it.screens.dropLast(1), cleanResult = null, measured = null, trimResult = null)
+        } else {
+            it
+        }
+    }
+
+    private fun freeNow(): Long = StatFs(app.filesDir.absolutePath).availableBytes
+
+    private fun currentScreen(): Screen = _state.value.screens.last()
 
     fun cancelScan() {
         scanJob?.cancel()

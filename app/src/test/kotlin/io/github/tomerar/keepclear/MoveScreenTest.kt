@@ -110,6 +110,9 @@ class MoveScreenTest {
         compose.onNodeWithTag("source_camera").performClick()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").assertIsEnabled().performClick()
+        // Review PR C: two plain steps before Android's folder picker.
+        compose.onNodeWithTag("pickGuide").assertExists()
+        compose.onNodeWithTag("guideContinue").performClick()
         assertEquals(setOf("old.jpg", "older.jpg"), picked!!.map { it.item.path.substringAfterLast('/') }.toSet())
     }
 

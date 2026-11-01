@@ -4,6 +4,7 @@ package io.github.tomerar.keepclear
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
@@ -52,6 +54,7 @@ class HomeActions(
     val onScanAgain: () -> Unit = {},
     val onCancelScan: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    val onTrim: () -> Unit = {},
 )
 
 /**
@@ -120,6 +123,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+                state.measured?.takeIf { it.origin == Screen.Home }?.let { MeasuredBanner(it) }
                 when (state.spaceMode) {
                     SpaceMode.LIGHT -> Banner(stringResource(R.string.low_space_light))
                     SpaceMode.MINIMAL -> Banner(stringResource(R.string.low_space_minimal))
@@ -150,29 +154,47 @@ fun HomeScreen(
                             explainer = Explainer.MEDIA
                         }
                     }
-                    ScanCard(state, actions, ::size)
-                    if (state.allFiles == false) {
-                        ActionCard(
-                            title = stringResource(R.string.allfiles_card_title),
-                            body = stringResource(R.string.allfiles_card_body),
-                            button = stringResource(R.string.allfiles_card_button),
-                            tag = "allowAllFiles",
-                            onClick = { explainer = Explainer.ALL_FILES },
-                        )
-                    }
+                    ScanLine(state, actions, ::size)
                 }
 
+                // Review PR C: one primary action. Before a scan the cards say what is happening, never "soon".
                 val summary = state.summary
-                if (summary == null) {
-                    CategoryCard(R.string.home_card_safe_title, R.string.home_card_safe_body)
-                    CategoryCard(R.string.home_card_review_title, R.string.home_card_review_body)
-                    CategoryCard(R.string.home_card_move_title, R.string.home_card_move_body)
+                val pending = if (state.mediaAccess == MediaAccess.NONE) {
+                    R.string.home_card_needs_access
                 } else {
-                    TotalCard(Category.SAFE, summary, R.string.home_total_safe_body, actions.onOpenCategory)
+                    R.string.home_card_counting
+                }
+                if (summary == null) {
+                    CategoryCard(R.string.home_card_safe_title, R.string.home_card_safe_body, pending, Category.SAFE)
+                    CategoryCard(
+                        R.string.home_card_review_title,
+                        R.string.home_card_review_body,
+                        pending,
+                        Category.REVIEW,
+                    )
+                    CategoryCard(R.string.home_card_move_title, R.string.home_card_move_body, pending, Category.MOVE)
+                } else {
+                    SafeCard(summary, enabled = !state.busy, onOpen = { actions.onOpenCategory(Category.SAFE) })
                     TotalCard(Category.REVIEW, summary, R.string.home_total_review_body, actions.onOpenCategory)
                     TotalCard(Category.MOVE, summary, R.string.home_total_move_body, actions.onOpenCategory)
-                    Areas(summary)
                 }
+                // ONB-3 / SAFE-5: always available, even with no permission at all.
+                TrimCard(
+                    result = state.trimResult.takeIf { state.screens.last() == Screen.Home },
+                    enabled = !state.busy,
+                    onTrim = actions.onTrim,
+                )
+                if (state.mediaAccess != MediaAccess.NONE && state.allFiles == false && explainer == null) {
+                    ActionCard(
+                        title = stringResource(R.string.allfiles_card_title),
+                        body = stringResource(R.string.allfiles_card_body),
+                        button = stringResource(R.string.allfiles_card_button),
+                        tag = "allowAllFiles",
+                        onClick = { explainer = Explainer.ALL_FILES },
+                        primary = false,
+                    )
+                }
+                if (summary != null) Areas(summary)
                 Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = actions.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                     Text(stringResource(R.string.settings_title))
@@ -185,48 +207,145 @@ fun HomeScreen(
     }
 }
 
+/** Review PR C: the scan status is one line, not a card. */
 @Composable
-private fun ScanCard(state: HomeUiState, actions: HomeActions, size: (Long) -> String) {
+private fun ScanLine(state: HomeUiState, actions: HomeActions, size: (Long) -> String) {
     val numbers = NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0])
 
     @Composable
-    fun files(n: Int) = pluralStringResource(R.plurals.file_count, n, numbers.format(n))
-    Card(modifier = Modifier.fillMaxWidth().testTag("scanCard")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    fun files(n: Int) = Bidi.isolate(pluralStringResource(R.plurals.file_count, n, numbers.format(n)))
+    Column(modifier = Modifier.fillMaxWidth().testTag("scanLine")) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             when (val scan = state.scan) {
                 is ScanState.Running -> {
                     Text(
-                        stringResource(R.string.scan_running, files(scan.files)),
-                        style = MaterialTheme.typography.bodyLarge,
+                        stringResource(R.string.scan_status_running, files(scan.files)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
                     )
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     TextButton(onClick = actions.onCancelScan) { Text(stringResource(R.string.scan_cancel)) }
                 }
 
                 is ScanState.Done -> {
                     Text(
-                        stringResource(R.string.scan_done, files(scan.files), size(scan.bytes)),
-                        style = MaterialTheme.typography.titleMedium,
+                        stringResource(R.string.scan_status_done, files(scan.files), Bidi.isolate(size(scan.bytes))),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
                     )
-                    if (!scan.complete) {
-                        Text(
-                            stringResource(R.string.scan_incomplete),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                    TextButton(onClick = actions.onScanAgain, modifier = Modifier.testTag("scanAgain")) {
+                        Text(stringResource(R.string.scan_again))
                     }
-                    if (state.allFiles !=
-                        true
-                    ) {
-                        Text(stringResource(R.string.media_only_note), style = MaterialTheme.typography.bodySmall)
-                    }
-                    OutlinedButton(onClick = actions.onScanAgain) { Text(stringResource(R.string.scan_again)) }
                 }
 
                 ScanState.Idle -> {
-                    OutlinedButton(onClick = actions.onScanAgain) { Text(stringResource(R.string.scan_again)) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = actions.onScanAgain, modifier = Modifier.testTag("scanAgain")) {
+                        Text(stringResource(R.string.scan_again))
+                    }
                 }
             }
         }
+        if (state.scan is ScanState.Running) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        val done = state.scan as? ScanState.Done
+        if (done != null && !done.complete) {
+            Text(stringResource(R.string.scan_incomplete), style = MaterialTheme.typography.bodySmall)
+        }
+        if (done != null && state.allFiles != true) {
+            Text(stringResource(R.string.media_only_note), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)" (review PR C). */
+@Composable
+fun MeasuredBanner(m: Measured) {
+    val locale = LocalConfiguration.current.locales[0]
+
+    fun s(b: Long) = Bidi.isolate(ByteSize.format(b, locale))
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("measured"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Text(
+            stringResource(R.string.result_freed, s(m.freed), s(m.nowFree), s(m.wasFree)),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+
+/** SAFE on Home: the one filled button (review PR C). */
+@Composable
+private fun SafeCard(summary: ClassificationSummary, enabled: Boolean, onOpen: () -> Unit) {
+    val total = summary.total(Category.SAFE)
+    Card(modifier = Modifier.fillMaxWidth().testTag("total_SAFE")) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(categoryTitle(Category.SAFE), style = MaterialTheme.typography.titleMedium)
+            Text(totalText(total), style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.home_total_safe_body), style = MaterialTheme.typography.bodyMedium)
+            if (total.files > 0) {
+                Button(
+                    onClick = onOpen,
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth().testTag("open_SAFE"),
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.home_clean_button,
+                            Bidi.isolate(ByteSize.format(total.bytes, LocalConfiguration.current.locales[0])),
+                        ),
+                    )
+                }
+            } else {
+                Text(stringResource(R.string.home_clean_nothing), modifier = Modifier.testTag("nothingToClean"))
+            }
+        }
+    }
+}
+
+/** ONB-3 / SAFE-5: "Clear apps' temporary files", on Home always. */
+@Composable
+private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit) {
+    var confirm by rememberSaveable { mutableStateOf(false) }
+    val locale = LocalConfiguration.current.locales[0]
+    Card(modifier = Modifier.fillMaxWidth().testTag("trimCard")) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.trim_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
+            result?.let {
+                Text(
+                    when {
+                        it == TestMode.TRIM_SKIPPED -> stringResource(R.string.test_mode_caches_not_cleared)
+                        it <= 0L -> stringResource(R.string.trim_result_zero)
+                        else -> stringResource(R.string.trim_result, Bidi.isolate(ByteSize.format(it, locale)))
+                    },
+                    modifier = Modifier.testTag("homeTrimResult"),
+                )
+            }
+            OutlinedButton(onClick = { confirm = true }, enabled = enabled, modifier = Modifier.testTag("homeTrim")) {
+                Text(stringResource(R.string.trim_button))
+            }
+        }
+    }
+    if (confirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text(stringResource(R.string.trim_title)) },
+            text = { Text(stringResource(R.string.trim_confirm_body)) },
+            confirmButton = {
+                SafeConfirmButton(
+                    stringResource(R.string.trim_button),
+                    onClick = {
+                        confirm = false
+                        onTrim()
+                    },
+                    modifier = Modifier.testTag("confirmHomeTrim"),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.trash_cancel)) }
+            },
+        )
     }
 }
 
@@ -275,12 +394,23 @@ private fun Labeled(label: Int, text: Int) {
 }
 
 @Composable
-private fun ActionCard(title: String, body: String, button: String, tag: String, onClick: () -> Unit) {
+private fun ActionCard(
+    title: String,
+    body: String,
+    button: String,
+    tag: String,
+    onClick: () -> Unit,
+    primary: Boolean = true,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(body, style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(button) }
+            if (primary) {
+                Button(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(button) }
+            } else {
+                OutlinedButton(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(button) }
+            }
         }
     }
 }
@@ -333,13 +463,19 @@ private fun Areas(summary: ClassificationSummary) {
     }
 }
 
+/** Before a scan: what the card will hold, and why it's empty now ("Counting…" or "Needs access"). */
 @Composable
-private fun CategoryCard(title: Int, body: Int) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun CategoryCard(title: Int, body: Int, status: Int, category: Category) {
+    Card(modifier = Modifier.fillMaxWidth().testTag("pending_$category")) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)
-            AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(R.string.home_coming_soon)) })
+            Text(
+                stringResource(status),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("pendingStatus_$category"),
+            )
         }
     }
 }

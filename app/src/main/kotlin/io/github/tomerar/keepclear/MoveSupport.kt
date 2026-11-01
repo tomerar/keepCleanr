@@ -252,7 +252,7 @@ object MoveNotifications {
         if (!allowed(context)) return
         ensureChannel(context)
         val text = if (job.state == JobState.DONE) {
-            context.getString(R.string.move_notification_done, verified)
+            context.resources.getQuantityString(R.plurals.move_notification_done, verified, verified)
         } else {
             context.getString(R.string.move_notification_paused)
         }

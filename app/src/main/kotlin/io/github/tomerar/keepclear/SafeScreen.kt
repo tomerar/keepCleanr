@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
@@ -47,6 +50,8 @@ data class CleanResult(
     val trashedPaths: List<String>,
     /** Test mode (SAFETY-9): nothing was changed; [done] is what would have been freed. */
     val simulated: Boolean = false,
+    /** The screen the action was started from; the result (and its Undo) shows only there (review PR C). */
+    val origin: Screen? = null,
 )
 
 /**
@@ -67,6 +72,8 @@ fun SafeScreen(
     onOpenGroup: (String) -> Unit,
     onOpenTrash: () -> Unit,
     onBack: () -> Unit,
+    /** An action is running: buttons can't be tapped twice (review PR C). */
+    busy: Boolean = false,
 ) {
     val groups = summary.groups(Category.SAFE)
     var unselected by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -80,8 +87,8 @@ fun SafeScreen(
         bottomBar = {
             Button(
                 onClick = { confirmClean = true },
-                enabled = selectedItems.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("cleanButton"),
+                enabled = selectedItems.isNotEmpty() && !busy,
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).testTag("cleanButton"),
             ) { Text(stringResource(R.string.clean_button, totalText(selectedTotal))) }
         },
     ) { padding ->
@@ -114,11 +121,11 @@ fun SafeScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 Text(
-                                    stringResource(R.string.clean_done_space),
+                                    stringResource(R.string.clean_done_space, trashDate()),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
-                            if (r.skipped > 0) Text(stringResource(R.string.clean_skipped, r.skipped.toString()))
+                            if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
                             if (!r.simulated) {
                                 UndoRow(onUndo = {
                                     onUndo(r, userConfirmed(r.trashedPaths))
@@ -138,21 +145,27 @@ fun SafeScreen(
                 val text = RuleText.of(group.ruleId)
                 val checked = group.ruleId !in unselected
                 Card(modifier = Modifier.fillMaxWidth().testTag("safe_${group.ruleId}")) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { on ->
-                                unselected =
-                                    if (on) unselected - group.ruleId else unselected + group.ruleId
-                            },
-                            modifier = Modifier.testTag("check_${group.ruleId}"),
-                        )
-                        Column(modifier = Modifier.weight(1f).clickable { onOpenGroup(group.ruleId) }) {
+                    // Review PR C: checkbox and text are one touch target (and one TalkBack checkbox).
+                    Row(
+                        modifier = Modifier
+                            .toggleable(value = checked, role = Role.Checkbox) { on ->
+                                unselected = if (on) unselected - group.ruleId else unselected + group.ruleId
+                            }
+                            .padding(12.dp)
+                            .testTag("check_${group.ruleId}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(checked = checked, onCheckedChange = null)
+                        Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                             Text(stringResource(text.group), style = MaterialTheme.typography.titleSmall)
                             Text(totalText(group.total), style = MaterialTheme.typography.bodyMedium)
                             Text(stringResource(text.why), style = MaterialTheme.typography.bodySmall)
                         }
                     }
+                    TextButton(
+                        onClick = { onOpenGroup(group.ruleId) },
+                        modifier = Modifier.padding(start = 8.dp).testTag("open_${group.ruleId}"),
+                    ) { Text(stringResource(R.string.action_look)) }
                 }
             }
             item {
@@ -162,10 +175,13 @@ fun SafeScreen(
                         Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
                         trimResult?.let {
                             Text(
-                                if (it == TestMode.TRIM_SKIPPED) {
-                                    stringResource(R.string.test_mode_caches_not_cleared)
-                                } else {
-                                    stringResource(R.string.trim_result, ByteSize.format(it, locale))
+                                when {
+                                    it == TestMode.TRIM_SKIPPED -> stringResource(R.string.test_mode_caches_not_cleared)
+
+                                    // Review PR C: say why instead of "Android freed 0 B".
+                                    it <= 0L -> stringResource(R.string.trim_result_zero)
+
+                                    else -> stringResource(R.string.trim_result, ByteSize.format(it, locale))
                                 },
                                 modifier = Modifier.testTag("trimResult"),
                             )
@@ -200,6 +216,7 @@ fun SafeScreen(
                         onClean(selectedItems, userConfirmed(selectedItems.map { it.item.path }))
                     },
                     modifier = Modifier.testTag("confirmClean"),
+                    permanent = false,
                 )
             },
             dismissButton = {
@@ -235,6 +252,9 @@ private fun UndoRow(onUndo: () -> Unit, onOpenTrash: () -> Unit) {
         OutlinedButton(onClick = onUndo, modifier = Modifier.testTag("undo")) {
             Text(stringResource(R.string.clean_undo))
         }
-        TextButton(onClick = onOpenTrash) { Text(stringResource(R.string.clean_open_trash)) }
+        // "Need the space now? Empty now" opens the trash, where emptying is confirmed separately.
+        TextButton(onClick = onOpenTrash, modifier = Modifier.testTag("emptyNowLink")) {
+            Text(stringResource(R.string.clean_empty_now))
+        }
     }
 }

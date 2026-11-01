@@ -114,7 +114,7 @@ class ReviewScreensTest {
         compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
         compose.onNodeWithTag("group_screenshots").performClick()
         compose.onNodeWithTag("grid").assertIsDisplayed()
-        compose.onNodeWithTag("deleteSelected").assertIsNotEnabled()
+        compose.onNodeWithTag("deleteSelected").assertDoesNotExist()
         compose.onAllNodesWithTag("tile")[0].assertExists()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_0.png"))
         compose.onNodeWithTag("preview_Screenshot_0.png").performClick()
@@ -142,7 +142,7 @@ class ReviewScreensTest {
         compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
         compose.onNodeWithTag("group_screenshots").performClick()
         compose.onAllNodesWithTag("tileSelected").assertCountEquals(0)
-        compose.onNodeWithTag("deleteSelected").assertIsNotEnabled()
+        compose.onNodeWithTag("deleteSelected").assertDoesNotExist()
     }
 
     @Test

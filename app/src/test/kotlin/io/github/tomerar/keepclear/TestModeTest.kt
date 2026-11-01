@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import org.junit.Assert.assertEquals
@@ -51,7 +52,7 @@ class TestModeTest {
                 SettingsScreen(testModeOn = true, onTestModeOn = {}, onTestModeOff = { off++ }, onBack = {})
             }
         }
-        compose.onNodeWithTag("testModeSwitch").performClick()
+        compose.onNodeWithTag("testModeSwitch").performScrollTo().performClick()
         assertEquals(0, off)
         compose.onNodeWithTag("testModeOff1").performClick()
         assertEquals(0, off)

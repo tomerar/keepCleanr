@@ -92,6 +92,8 @@ class ReviewActionsTest {
     fun `tapping a tile toggles it`() {
         show()
         compose.onAllNodesWithTag("tile")[0].performClick()
+        // The action bar appears and the grid gets shorter: bring the tile back into view.
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("tileSelected"))
         compose.onAllNodesWithTag("tileSelected").assertCountEquals(1)
         compose.onAllNodesWithTag("tileSelected")[0].performClick()
         compose.onAllNodesWithTag("tileSelected").assertCountEquals(0)
@@ -100,7 +102,7 @@ class ReviewActionsTest {
     @Test
     fun `MOVE groups are not deletable here`() {
         show(Category.MOVE)
-        compose.onNodeWithTag("deleteDisabled").assertIsNotEnabled()
+        compose.onNodeWithTag("deleteSelected").assertDoesNotExist()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("bucket_2023-03"))
         compose.onNodeWithTag("selectMonth_2023-03").assertDoesNotExist()
     }

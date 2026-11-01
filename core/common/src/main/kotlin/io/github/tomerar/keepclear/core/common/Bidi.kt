@@ -36,6 +36,26 @@ object Bidi {
     /** Wraps [value] in LRI…PDI (paths, URIs). */
     fun isolateLtr(value: String): String = "$LRI${strip(value)}$PDI"
 
+    /**
+     * A file name inside Hebrew text (review PR C): the trailing left-to-right token that holds the extension,
+     * e.g. `2023.png`, is kept together in its own LTR isolate, so "צילום מסך 2023.png" never shows as
+     * "צילום מסך png.2023".
+     */
+    fun fileName(name: String): String {
+        val clean = strip(name)
+        val dot = clean.lastIndexOf('.')
+        if (dot <= 0 || dot == clean.lastIndex) return isolate(clean)
+        val start = clean.lastIndexOf(' ', dot) + 1
+        val tail = clean.substring(start)
+        if (tail.any { Character.getDirectionality(it) in RTL }) return isolate(clean)
+        return "$FSI${clean.substring(0, start)}$LRI$tail$PDI$PDI"
+    }
+
+    private val RTL = setOf(
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
+    )
+
     /** Removes bidi control characters (also used before PROTECTED-path matching, SEC-6). */
     fun strip(value: String): String = value.filterNot { it in controlCharacters }
 }

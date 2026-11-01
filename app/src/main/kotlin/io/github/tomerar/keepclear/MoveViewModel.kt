@@ -64,6 +64,11 @@ data class JobView(
     val canReadBack: Boolean,
     /** Originals the user is offered to free: confirmed copies (H1). The confirm tap names exactly these. */
     val freeablePaths: Set<String> = emptySet(),
+    /** Review PR C: progress by bytes, the current phase and an estimate of the time left. */
+    val totalBytes: Long = 0,
+    val doneBytes: Long = 0,
+    val phase: MovePhase = MovePhase.COPYING,
+    val etaMillis: Long? = null,
 ) {
     /**
      * MOVE-9, H1: freeing is offered only once every file is settled and copies passed the second check
@@ -73,6 +78,16 @@ data class JobView(
 
     /** Verified copies that still need the second check before their originals may be freed (H1). */
     val needsCheck: Boolean get() = canReadBack && receipt.complete && receipt.verified > receipt.confirmed
+}
+
+enum class MovePhase { COPYING, CHECKING }
+
+/** Bytes per millisecond since [startAt]; null until there is enough to say anything honest. */
+fun etaMillis(startAt: Long, startBytes: Long, now: Long, doneBytes: Long, totalBytes: Long): Long? {
+    val elapsed = now - startAt
+    val moved = doneBytes - startBytes
+    if (elapsed < 10_000 || moved <= 0) return null
+    return ((totalBytes - doneBytes) * elapsed / moved).coerceAtLeast(0)
 }
 
 /** H1: the second check, step by step (MOVE-15). */
@@ -143,11 +158,34 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 val freeable = files.filter {
                     it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED && it.confirmedAt != null
                 }.map { it.sourcePath }.toSet()
-                JobView(job, Receipt.of(job, files), canReadBack(job), freeable)
+                val total = files.sumOf { it.sourceSize }
+                val done = files.filter { it.state in Receipt.DONE_STATES }.sumOf { it.sourceSize }
+                val checking = files.any { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.PLACED }
+                val now = System.currentTimeMillis()
+                val eta = if (job.id == controller.running.value) {
+                    val start =
+                        runStart.takeIf { it?.first == job.id } ?: Triple(job.id, now, done).also { runStart = it }
+                    etaMillis(start.second, start.third, now, done, total)
+                } else {
+                    null
+                }
+                JobView(
+                    job,
+                    Receipt.of(job, files),
+                    canReadBack(job),
+                    freeable,
+                    totalBytes = total,
+                    doneBytes = done,
+                    phase = if (checking) MovePhase.CHECKING else MovePhase.COPYING,
+                    etaMillis = eta,
+                )
             }
         }
         _state.update { it.copy(jobs = jobs) }
     }
+
+    /** When and at how many bytes the running job was first seen, for the time-left estimate. */
+    private var runStart: Triple<String, Long, Long>? = null
 
     /** What the user selected before opening the folder picker; survives configuration changes. */
     var pendingItems: List<ClassifiedItem> = emptyList()

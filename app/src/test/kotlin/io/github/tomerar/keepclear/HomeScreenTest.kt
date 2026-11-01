@@ -85,7 +85,8 @@ class HomeScreenTest {
     fun `minimal space banner (LOW-2)`() {
         show(HomeUiState(spaceMode = SpaceMode.MINIMAL))
         compose.onNodeWithText(
-            "Less than 100 MB left. KeepClear isn't saving anything until there's more room.",
+            "Less than 100 MB left. To avoid filling the phone, KeepClear isn't saving any data until there's room. " +
+                "Start by clearing apps' temporary files.",
         ).assertIsDisplayed()
     }
 }

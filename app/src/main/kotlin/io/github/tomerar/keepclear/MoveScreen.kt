@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -65,7 +67,28 @@ class MoveActions(
     val onShare: (String) -> Unit = {},
     val onOpenGooglePhotos: () -> Unit = {},
     val onOpenGroup: (String) -> Unit = {},
-)
+    /** Whether a USB drive or memory card is mounted now (checked before Android's folder picker). */
+    val hasRemovableDrive: () -> Boolean = { true },
+    val onOpenTrash: () -> Unit = {},
+) {
+    /** The same actions with [open] for "Show group": nothing else can be lost on the way. */
+    fun withOpenGroup(open: (String) -> Unit) = MoveActions(
+        onPickTarget,
+        onStart,
+        onCancelPick,
+        onPause,
+        onStop,
+        onResume,
+        onFree,
+        onCheck,
+        onCancelCheck,
+        onShare,
+        onOpenGooglePhotos,
+        open,
+        hasRemovableDrive,
+        onOpenTrash,
+    )
+}
 
 /** Items of [ruleIds] old enough for [age], never favourites (MOVE-1). */
 fun moveSelection(
@@ -96,6 +119,8 @@ fun MoveScreen(
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
     var age by rememberSaveable { mutableStateOf(MoveAge.OLDER_12) }
     var confirmFree by remember { mutableStateOf<JobView?>(null) }
+    var guide by remember { mutableStateOf(false) }
+    var confirmStop by remember { mutableStateOf(false) }
     val items = moveSelection(summary, selected, age, now)
     val total = items.fold(Total()) { t, i -> t + i }
     val busy = state.running != null
@@ -107,12 +132,11 @@ fun MoveScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { BackRow(stringResource(R.string.move_title), onBack) }
-            item { PhotosNote(actions.onOpenGooglePhotos) }
             if (notificationsOff && busy) {
                 item { Text(stringResource(R.string.move_notif_warning), modifier = Modifier.testTag("notifWarning")) }
             }
             state.problem?.let { problem -> item { ProblemCard(problem) } }
-            state.freeResult?.let { r -> item { FreeResultCard(r) } }
+            state.freeResult?.let { r -> item { FreeResultCard(r, actions.onOpenTrash) } }
             state.check?.let { check ->
                 val label = state.jobs.firstOrNull { it.job.id == check.jobId }?.job?.targetLabel.orEmpty()
                 item { CheckCard(check, label, actions) }
@@ -125,6 +149,7 @@ fun MoveScreen(
                         canResume = !busy,
                         actions = actions,
                         onFree = { confirmFree = latest },
+                        onStop = { confirmStop = true },
                     )
                 }
             }
@@ -168,11 +193,12 @@ fun MoveScreen(
                     modifier = Modifier.testTag("moveSelected"),
                 )
                 Button(
-                    onClick = { actions.onPickTarget(items) },
+                    onClick = { guide = true },
                     enabled = items.isNotEmpty() && !busy && !state.busy,
                     modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
                 ) { Text(stringResource(R.string.move_pick_target)) }
             }
+            item { PhotosNote(actions.onOpenGooglePhotos) }
             if (state.jobs.size > 1) {
                 item { Text(stringResource(R.string.move_history), style = MaterialTheme.typography.titleMedium) }
                 items(state.jobs.drop(1), key = { it.job.id }) { view ->
@@ -183,6 +209,7 @@ fun MoveScreen(
                         canResume = !busy,
                         actions = actions,
                         onFree = { confirmFree = view },
+                        onStop = { confirmStop = true },
                     )
                 }
             }
@@ -192,6 +219,34 @@ fun MoveScreen(
     state.picked?.let { picked ->
         PickedDialog(picked, actions)
     }
+    if (guide) {
+        PickGuideDialog(
+            hasDrive = actions.hasRemovableDrive,
+            onContinue = {
+                guide = false
+                actions.onPickTarget(items)
+            },
+            onDismiss = { guide = false },
+        )
+    }
+    if (confirmStop) {
+        AlertDialog(
+            onDismissRequest = { confirmStop = false },
+            title = { Text(stringResource(R.string.move_stop_confirm_title)) },
+            text = { Text(stringResource(R.string.move_stop_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmStop = false
+                    actions.onStop()
+                }, modifier = Modifier.testTag("confirmStop")) { Text(stringResource(R.string.move_stop_confirm_yes)) }
+            },
+            dismissButton = {
+                Button(onClick = { confirmStop = false }, modifier = Modifier.testTag("keepGoing")) {
+                    Text(stringResource(R.string.move_keep_going))
+                }
+            },
+        )
+    }
     confirmFree?.let { view ->
         AlertDialog(
             onDismissRequest = { confirmFree = null },
@@ -200,11 +255,12 @@ fun MoveScreen(
                 Text(
                     stringResource(
                         R.string.move_free_confirm_body,
-                        totalText(Total(view.receipt.verified, view.receipt.verifiedBytes)),
+                        totalText(Total(view.receipt.confirmed, view.receipt.confirmedBytes)),
                     ),
                 )
             },
             confirmButton = {
+                // Recoverable (30-day trash): not styled as destructive (review PR C).
                 SafeConfirmButton(
                     stringResource(R.string.move_free_confirm_yes),
                     onClick = {
@@ -212,6 +268,7 @@ fun MoveScreen(
                         actions.onFree(view.job.id, userConfirmed(view.freeablePaths))
                     },
                     modifier = Modifier.testTag("confirmFree"),
+                    permanent = false,
                 )
             },
             dismissButton = {
@@ -258,56 +315,100 @@ private fun ProblemCard(problem: TargetProblem) {
 }
 
 @Composable
-private fun FreeResultCard(r: FreeResult) {
-    val locale = LocalConfiguration.current.locales[0]
-    val nf = NumberFormat.getIntegerInstance(locale)
+private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit) {
     Card(Modifier.fillMaxWidth().testTag("freeResult")) {
-        if (r.simulated) {
-            Text(
-                stringResource(R.string.test_mode_would_free, totalText(Total(r.done, r.bytes))),
-                modifier = Modifier.padding(12.dp).testTag("simulatedResult"),
-            )
-            return@Card
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (r.simulated) {
+                Text(
+                    stringResource(R.string.test_mode_would_free, totalText(Total(r.done, r.bytes))),
+                    modifier = Modifier.testTag("simulatedResult"),
+                )
+                return@Column
+            }
+            Text(stringResource(R.string.move_free_done, totalText(Total(r.done, r.bytes))))
+            // Zero counts are not shown (review PR C).
+            if (r.skipped > 0) {
+                Text(countSentence(R.plurals.move_free_skipped, r.skipped), Modifier.testTag("freeSkipped"))
+            }
+            if (r.failed > 0) Text(countSentence(R.plurals.move_free_failed, r.failed))
+            if (r.done > 0) {
+                Text(stringResource(R.string.clean_done_space, trashDate()))
+                TextButton(onClick = onOpenTrash, modifier = Modifier.testTag("freeEmptyNow")) {
+                    Text(stringResource(R.string.clean_empty_now))
+                }
+            }
         }
-        Text(
-            stringResource(
-                R.string.move_free_result,
-                totalText(Total(r.done, r.bytes)),
-                Bidi.isolate(nf.format(r.skipped)),
-                Bidi.isolate(nf.format(r.failed)),
-            ),
-            modifier = Modifier.padding(12.dp),
-        )
     }
 }
 
+/** When something trashed now is purged (TRASH-2), for "the space comes back on …". */
 @Composable
-private fun JobCard(view: JobView, running: Boolean, canResume: Boolean, actions: MoveActions, onFree: () -> Unit) {
+fun trashDate(): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val date = java.time.LocalDate.now().plusDays(30)
+    val format = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    return Bidi.isolate(date.format(format.withLocale(locale)))
+}
+
+@Composable
+private fun JobCard(
+    view: JobView,
+    running: Boolean,
+    canResume: Boolean,
+    actions: MoveActions,
+    onFree: () -> Unit,
+    onStop: () -> Unit = actions.onStop,
+) {
     val r = view.receipt
     when {
         running -> {
             Card(Modifier.fillMaxWidth().testTag("jobRunning")) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val locale = LocalConfiguration.current.locales[0]
+                    val nf = NumberFormat.getIntegerInstance(locale)
                     Text(
                         stringResource(
                             R.string.move_running,
                             Bidi.isolate(view.job.targetLabel),
-                            Bidi.isolate(r.verified.toString()),
-                            Bidi.isolate(r.total.toString()),
+                            Bidi.isolate(nf.format(r.verified)),
+                            Bidi.isolate(nf.format(r.total)),
                         ),
                     )
+                    // Review PR C: phase, bytes and time left, not just a file count.
+                    val phase = stringResource(
+                        if (view.phase ==
+                            MovePhase.CHECKING
+                        ) {
+                            R.string.move_phase_checking
+                        } else {
+                            R.string.move_phase_copying
+                        },
+                    )
+                    val bytes = stringResource(
+                        R.string.move_progress_bytes,
+                        sizeText(view.doneBytes),
+                        sizeText(view.totalBytes),
+                    )
+                    Text("$phase · $bytes", modifier = Modifier.testTag("moveProgress"))
+                    view.etaMillis?.let { eta ->
+                        Text(
+                            stringResource(R.string.move_time_left, durationText(eta)),
+                            modifier = Modifier.testTag("moveEta"),
+                        )
+                    }
                     LinearProgressIndicator(
-                        progress = { if (r.total == 0) 0f else r.verified.toFloat() / r.total },
+                        progress = { if (view.totalBytes == 0L) 0f else view.doneBytes.toFloat() / view.totalBytes },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = actions.onPause, modifier = Modifier.testTag("pause")) {
                             Text(stringResource(R.string.move_pause))
                         }
-                        OutlinedButton(onClick = actions.onStop, modifier = Modifier.testTag("stop")) {
+                        OutlinedButton(onClick = onStop, modifier = Modifier.testTag("stop")) {
                             Text(stringResource(R.string.move_stop))
                         }
                     }
+                    Text(stringResource(R.string.move_pause_stop_help), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -362,29 +463,37 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                stringResource(R.string.move_receipt_verified, totalText(Total(r.verified, r.verifiedBytes))),
+                countSentence(R.plurals.move_receipt_verified, r.verified, sizeText(r.verifiedBytes)),
                 modifier = Modifier.testTag("receiptVerified"),
             )
             r.failed.forEach { (reason, count) ->
-                Text(
-                    stringResource(failText(reason), countText(count)),
-                    modifier = Modifier.testTag("failed_${reason.name}"),
-                )
+                Text(countSentence(failText(reason), count), modifier = Modifier.testTag("failed_${reason.name}"))
             }
             if (r.unverified > 0) {
                 Text(
-                    stringResource(R.string.move_receipt_unverified, countText(r.unverified)),
+                    countSentence(R.plurals.move_receipt_unverified, r.unverified),
                     modifier = Modifier.testTag("receiptUnverified"),
                 )
             }
-            if (r.changed > 0) Text(stringResource(R.string.move_receipt_changed, countText(r.changed)))
-            if (r.pending > 0) Text(stringResource(R.string.move_receipt_pending, countText(r.pending)))
-            if (r.namesChanged > 0) Text(stringResource(R.string.move_receipt_names, countText(r.namesChanged)))
+            if (r.changed > 0) Text(countSentence(R.plurals.move_receipt_changed, r.changed))
+            if (r.pending > 0) Text(countSentence(R.plurals.move_receipt_pending, r.pending))
+            if (r.namesChanged > 0) Text(countSentence(R.plurals.move_receipt_names, r.namesChanged))
             Text(
                 stringResource(R.string.move_receipt_how_back, Bidi.isolate(r.targetLabel), Bidi.isolateLtr(r.rootRel)),
                 modifier = Modifier.testTag("howBack"),
             )
-            Text(stringResource(R.string.move_receipt_check_pc), style = MaterialTheme.typography.bodySmall)
+            // P-2: developer checks live under Details, not on the default path.
+            var details by remember { mutableStateOf(false) }
+            TextButton(onClick = { details = !details }, modifier = Modifier.testTag("receiptDetails")) {
+                Text(stringResource(R.string.details))
+            }
+            if (details) {
+                Text(
+                    stringResource(R.string.details_check_pc),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("detailsCheckPc"),
+                )
+            }
             Text(
                 stringResource(R.string.move_receipt_unencrypted),
                 style = MaterialTheme.typography.bodySmall,
@@ -442,15 +551,12 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
 
                 is BackupCheck.Done -> {
                     Text(
-                        stringResource(R.string.move_check_ok, countText(check.result.ok)),
+                        countSentence(R.plurals.move_check_ok, check.result.ok),
                         modifier = Modifier.testTag("checkOk"),
                     )
                     val bad = check.result.damaged + check.result.missing
                     if (bad > 0) {
-                        Text(
-                            stringResource(R.string.move_check_bad, countText(bad)),
-                            modifier = Modifier.testTag("checkBad"),
-                        )
+                        Text(countSentence(R.plurals.move_check_bad, bad), modifier = Modifier.testTag("checkBad"))
                     }
                 }
 
@@ -478,20 +584,56 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
     }
 }
 
-@Composable
-private fun countText(count: Int): String {
-    val locale = LocalConfiguration.current.locales[0]
-    return Bidi.isolate(
-        pluralStringResource(R.plurals.file_count, count, NumberFormat.getIntegerInstance(locale).format(count)),
-    )
+private fun failText(reason: FailReason) = when (reason) {
+    FailReason.SOURCE_MISSING -> R.plurals.move_receipt_failed_missing
+    FailReason.SOURCE_UNREADABLE -> R.plurals.move_receipt_failed_unreadable
+    FailReason.TOO_LARGE_FOR_TARGET -> R.plurals.move_receipt_failed_too_large
+    FailReason.HASH_MISMATCH -> R.plurals.move_receipt_failed_hash
+    FailReason.TARGET_ERROR -> R.plurals.move_receipt_failed_target
 }
 
-private fun failText(reason: FailReason) = when (reason) {
-    FailReason.SOURCE_MISSING -> R.string.move_receipt_failed_missing
-    FailReason.SOURCE_UNREADABLE -> R.string.move_receipt_failed_unreadable
-    FailReason.TOO_LARGE_FOR_TARGET -> R.string.move_receipt_failed_too_large
-    FailReason.HASH_MISMATCH -> R.string.move_receipt_failed_hash
-    FailReason.TARGET_ERROR -> R.string.move_receipt_failed_target
+/** "2 hours", "15 minutes" in the user's language (review PR C). */
+@Composable
+fun durationText(millis: Long): String {
+    val minutes = (millis / 60_000).coerceAtLeast(1)
+    return if (minutes >= 90) {
+        countSentence(R.plurals.duration_hours, ((minutes + 30) / 60).toInt())
+    } else {
+        countSentence(R.plurals.duration_minutes, minutes.toInt())
+    }
+}
+
+/** Review PR C: two plain steps before Android's folder picker, and a check that a drive is attached. */
+@Composable
+private fun PickGuideDialog(hasDrive: () -> Boolean, onContinue: () -> Unit, onDismiss: () -> Unit) {
+    var noDrive by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.move_guide_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("pickGuide")) {
+                Text(stringResource(R.string.move_guide_1))
+                Text(stringResource(R.string.move_guide_2))
+                if (noDrive) {
+                    Text(
+                        stringResource(R.string.move_guide_no_drive),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("noDrive"),
+                    )
+                    // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
+                    TextButton(onClick = onContinue, modifier = Modifier.testTag("guideAnyway")) {
+                        Text(stringResource(R.string.move_guide_anyway))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (hasDrive()) onContinue() else noDrive = true
+            }, modifier = Modifier.testTag("guideContinue")) { Text(stringResource(R.string.move_guide_continue)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
+    )
 }
 
 @Composable
@@ -501,7 +643,11 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
         onDismissRequest = actions.onCancelPick,
         title = { Text(stringResource(R.string.move_target_title, Bidi.isolate(picked.label))) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.testTag("preflight")) {
+            // Review PR C: scrollable checklist; blocking vs notes by symbol and words, not colour only.
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.testTag("preflight").verticalScroll(rememberScrollState()),
+            ) {
                 val files = picked.files.size
                 val bytes = picked.files.sumOf { it.sourceSize }
                 Text(totalText(Total(files, bytes)))
@@ -524,28 +670,43 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
                             Bidi.isolate(ByteSize.format(issue.free, locale)),
                         )
 
-                        is MovePlanner.Issue.TooLargeForTarget -> stringResource(
+                        is MovePlanner.Issue.TooLargeForTarget -> countSentence(
                             if (picked.format == io.github.tomerar.keepclear.backup.saf.DriveFormat.UNKNOWN) {
-                                R.string.move_issue_too_large_unknown
+                                R.plurals.move_issue_too_large_unknown
                             } else {
-                                R.string.move_issue_too_large
+                                R.plurals.move_issue_too_large
                             },
-                            countText(issue.files.size),
+                            issue.files.size,
                         )
 
                         MovePlanner.Issue.BatteryLow -> stringResource(R.string.move_issue_battery)
 
-                        is MovePlanner.Issue.NamesChanged -> stringResource(
-                            R.string.move_issue_names,
-                            countText(issue.count),
-                        )
+                        is MovePlanner.Issue.NamesChanged -> countSentence(R.plurals.move_issue_names, issue.count)
 
                         MovePlanner.Issue.CannotVerify -> stringResource(R.string.move_issue_cannot_verify)
 
                         MovePlanner.Issue.TargetIsSource -> stringResource(R.string.move_problem_phone)
                     }
-                    val colors = MaterialTheme.colorScheme
-                    Text(text, color = if (issue.blocking) colors.error else colors.onSurface)
+                    val label = stringResource(
+                        if (issue.blocking) R.string.move_preflight_blocks else R.string.move_preflight_note,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val colors = MaterialTheme.colorScheme
+                        Text(
+                            if (issue.blocking) "✕" else "!",
+                            color = if (issue.blocking) colors.error else colors.onSurface,
+                        )
+                        Text(
+                            "$label: $text",
+                            modifier = Modifier.testTag(if (issue.blocking) "preflightBlock" else "preflightNote"),
+                        )
+                    }
+                }
+                if (!picked.blocked) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("✓", color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.move_preflight_ok), modifier = Modifier.testTag("preflightOk"))
+                    }
                 }
             }
         },
