@@ -51,6 +51,34 @@ class SpaceReminderTest {
     }
 
     @Test
+    fun `English and Hebrew texts use no fear or boost words`() {
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val banned = listOf("boost", "urgent", "danger", "critical", "warning", "דחוף", "סכנה", "אזהרה", "קריטי")
+        for (tag in listOf("en", "iw")) {
+            val config = android.content.res.Configuration(base.resources.configuration)
+            config.setLocale(Locale.forLanguageTag(tag))
+            val context = base.createConfigurationContext(config)
+            val texts = listOf(
+                SpaceReminder.text(context, 8 * gb, 3 * gb, Locale.forLanguageTag(tag)),
+                SpaceReminder.text(context, 8 * gb, 0, Locale.forLanguageTag(tag)),
+                context.getString(io.github.tomerar.keepclear.core.i18n.R.string.reminder_title),
+            )
+            for (t in texts) {
+                assertTrue("$tag: $t", banned.none { t.lowercase().contains(it) })
+            }
+        }
+        val he = android.content.res.Configuration(base.resources.configuration)
+        he.setLocale(Locale.forLanguageTag("iw"))
+        val heText = SpaceReminder.text(
+            base.createConfigurationContext(he),
+            8 * gb,
+            3 * gb,
+            Locale.forLanguageTag("iw"),
+        )
+        assertTrue(heText, heText.contains("8") && heText.contains("3"))
+    }
+
+    @Test
     fun `Settings switch turns reminders on (off by default)`() {
         var turnedOn: Boolean? = null
         compose.setContent {
