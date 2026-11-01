@@ -126,6 +126,7 @@
     <string name="move_target_unknown">‏KeepClear קורא כל עותק בחזרה כדי לבדוק אותו. יש אפליקציות שמציגות עותק לפני שנשמר באמת, אז אם זו אפליקציית ענן, כדאי להשאיר את המקור.</string>
     <string name="move_issue_space">אין מספיק מקום בכונן: צריך %1$s, פנוי %2$s.</string>
     <string name="move_issue_too_large">%1$s גדולים מ-4GB ולא יכולים לעבור לכונן הזה. הם נשארים בטלפון.</string>
+    <string name="move_issue_too_large_unknown">%1$s גדולים מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הם נשארים בטלפון.</string>
     <string name="move_issue_battery">הסוללה מתחת ל-20 אחוז. כדי להתחיל, צריך לחבר מטען.</string>
     <string name="move_issue_names">%1$s יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים רשומים בקובץ הרישום.</string>
     <string name="move_issue_cannot_verify">אי אפשר לקרוא מהמקום הזה בחזרה, ולכן המקור נשאר בטלפון.</string>

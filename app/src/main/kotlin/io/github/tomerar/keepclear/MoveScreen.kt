@@ -434,7 +434,11 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
                         )
 
                         is MovePlanner.Issue.TooLargeForTarget -> stringResource(
-                            R.string.move_issue_too_large,
+                            if (picked.format == io.github.tomerar.keepclear.backup.saf.DriveFormat.UNKNOWN) {
+                                R.string.move_issue_too_large_unknown
+                            } else {
+                                R.string.move_issue_too_large
+                            },
                             countText(issue.files.size),
                         )
 

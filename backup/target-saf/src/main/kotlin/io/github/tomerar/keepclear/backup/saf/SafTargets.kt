@@ -10,7 +10,12 @@ import java.security.SecureRandom
 
 /** What KeepClear can promise for a picked folder (MOVE-2, MOVE-14). */
 sealed interface TargetCheck {
-    data class Ok(val target: SafBackupTarget, val kind: TargetKind) : TargetCheck
+    data class Ok(
+        val target: SafBackupTarget,
+        val kind: TargetKind,
+        /** Removable drives only; [DriveFormat.UNKNOWN] elsewhere or when it couldn't be read. */
+        val format: DriveFormat = DriveFormat.UNKNOWN,
+    ) : TargetCheck
 
     /** The folder is on the phone's own storage: a "backup" there frees nothing and protects nothing. */
     data object OnThisPhone : TargetCheck
@@ -58,7 +63,7 @@ object SafTargets {
         }
 
         authority == EXTERNAL_STORAGE -> {
-            // The file system isn't visible through SAF; assume FAT32's 4 GiB limit (blocks, never truncates).
+            // SAF doesn't show the file system: assume FAT32's 4 GiB limit; open() lifts it via DriveFormat.
             TargetKind.REMOVABLE to TargetCaps(canReadBack = true, maxFileSize = TargetCaps.FAT32_MAX_FILE)
         }
 
@@ -88,10 +93,22 @@ object SafTargets {
      * Opens a picked tree: classifies it, reads or creates the marker file and returns a ready target.
      * Blocking; call off the main thread.
      */
-    suspend fun open(resolver: ContentResolver, treeUri: Uri, label: String): TargetCheck {
+    suspend fun open(
+        resolver: ContentResolver,
+        treeUri: Uri,
+        label: String,
+        mounts: () -> String? = DriveFormat::readMounts,
+    ): TargetCheck {
         val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
             ?: return TargetCheck.Unavailable
-        val (kind, caps) = classify(treeUri.authority, treeDocId) ?: return TargetCheck.OnThisPhone
+        val (kind, baseCaps) = classify(treeUri.authority, treeDocId) ?: return TargetCheck.OnThisPhone
+        // Q4: lift the 4 GiB limit only when the drive is known not to be FAT32.
+        val format = if (kind == TargetKind.REMOVABLE) {
+            DriveFormat.detect(treeDocId.substringBefore(':'), mounts())
+        } else {
+            DriveFormat.UNKNOWN
+        }
+        val caps = if (kind == TargetKind.REMOVABLE) baseCaps.copy(maxFileSize = format.maxFileSize) else baseCaps
         val probe = SafBackupTarget(resolver, treeUri, targetId(treeDocId, "pending"), label, caps)
         if (!probe.isAttached()) return TargetCheck.Unavailable
         val markerId = try {
@@ -105,6 +122,10 @@ object SafTargets {
         } catch (e: java.io.IOException) {
             return TargetCheck.Unavailable
         }
-        return TargetCheck.Ok(SafBackupTarget(resolver, treeUri, targetId(treeDocId, markerId), label, caps), kind)
+        return TargetCheck.Ok(
+            SafBackupTarget(resolver, treeUri, targetId(treeDocId, markerId), label, caps),
+            kind,
+            format,
+        )
     }
 }

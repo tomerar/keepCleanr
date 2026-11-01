@@ -1,6 +1,6 @@
-rulesVersion=2
-SAFE files=35 bytes=122771629
-REVIEW files=103 bytes=104613636
+rulesVersion=3
+SAFE files=40 bytes=123771629
+REVIEW files=98 bytes=103613636
 MOVE files=230 bytes=1278496811
 PROTECTED files=9 bytes=1251315000
 rule ai_images files=5 {REVIEW=5}
@@ -25,6 +25,6 @@ rule wa_received files=122 {MOVE=122}
 rule wa_sent files=11 {REVIEW=11}
 rule wa_sent_copy files=22 {SAFE=22}
 rule wa_status_fresh files=1 {REVIEW=1}
-rule wa_status_old files=5 {REVIEW=5}
+rule wa_status_old files=5 {SAFE=5}
 rule zip_extracted files=1 {SAFE=1}
 rule zip_partial files=1 {REVIEW=1}

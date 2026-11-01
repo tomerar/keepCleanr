@@ -39,6 +39,11 @@ data class Rule(
     val category: Category,
     val risk: RiskChip,
     val bucket: (RuleInput) -> String? = { null },
+    /**
+     * Owner decision B1 (CLS-5): regenerable items (thumbnails, temp files, WhatsApp statuses older than
+     * 24 h, OS junk) stay SAFE however recent they are. Favourites and lossy paths still downgrade them.
+     */
+    val regenerable: Boolean = false,
     val matches: (RuleInput) -> Boolean,
 )
 
@@ -51,7 +56,7 @@ data class Rule(
  * classify a protected path as anything else.
  */
 object Rules {
-    const val RULES_VERSION = 2
+    const val RULES_VERSION = 3
     const val SCHEMA_VERSION = 1
 
     private const val HOUR = 3_600_000L
@@ -91,7 +96,7 @@ object Rules {
             it.item.isTrashed || it.name.startsWith(".trashed-") || it.relStartsWith(".filemanagerrecycler")
         },
         // WhatsApp, all variants (CLS-4, MSG-1/3).
-        Rule("wa_status_old", Category.SAFE, RiskChip.REGENERATES) {
+        Rule("wa_status_old", Category.SAFE, RiskChip.REGENERATES, regenerable = true) {
             it.waMediaFolder() == ".statuses" && it.ageMillis > DAY
         },
         Rule("wa_status_fresh", Category.REVIEW, RiskChip.MIGHT_BE_MEMORY) { it.waMediaFolder() == ".statuses" },
@@ -111,10 +116,16 @@ object Rules {
         },
         Rule("wa_other", Category.REVIEW, RiskChip.UNKNOWN) { it.waMediaFolder() != null },
         // Regenerable junk (SAFE-2).
-        Rule("thumbnails", Category.SAFE, RiskChip.REGENERATES) { it.hasSegment(".thumbnails") },
+        Rule("thumbnails", Category.SAFE, RiskChip.REGENERATES, regenerable = true) { it.hasSegment(".thumbnails") },
         Rule("lost_dir", Category.SAFE, RiskChip.REGENERATES) { it.relStartsWith("lost.dir") },
-        Rule("temp_files", Category.SAFE, RiskChip.REGENERATES) { it.extension == "tmp" || it.extension == "temp" },
-        Rule("os_junk", Category.SAFE, RiskChip.REGENERATES) { it.name in osJunkNames || it.name.startsWith("._") },
+        Rule("temp_files", Category.SAFE, RiskChip.REGENERATES, regenerable = true) {
+            it.extension == "tmp" ||
+                it.extension == "temp"
+        },
+        Rule("os_junk", Category.SAFE, RiskChip.REGENERATES, regenerable = true) {
+            it.name in osJunkNames ||
+                it.name.startsWith("._")
+        },
         // Archives next to their extracted folder (SAFE-3), facts from M7.
         Rule("zip_extracted", Category.SAFE, RiskChip.COPY_EXISTS) { Fact.ARCHIVE_FULLY_EXTRACTED in it.facts },
         Rule("zip_partial", Category.REVIEW, RiskChip.COPY_EXISTS) { Fact.ARCHIVE_PARTIALLY_EXTRACTED in it.facts },

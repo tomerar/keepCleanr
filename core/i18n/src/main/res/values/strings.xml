@@ -126,6 +126,7 @@
     <string name="move_target_unknown">KeepClear reads every copy back to check it. Some apps show a copy before it\'s really saved, so if this is a cloud app, keep the originals.</string>
     <string name="move_issue_space">Not enough space on the drive: %1$s needed, %2$s free.</string>
     <string name="move_issue_too_large">%1$s are larger than 4 GB and can\'t go on this drive. They stay on the phone.</string>
+    <string name="move_issue_too_large_unknown">%1$s are larger than 4 GB. KeepClear can\'t tell whether this drive can hold files that big, so to be safe they stay on the phone.</string>
     <string name="move_issue_battery">Battery is below 20 percent. Connect the charger to start.</string>
     <string name="move_issue_names">%1$s get a slightly different name so the drive accepts them. The manifest lists the original names.</string>
     <string name="move_issue_cannot_verify">This place can\'t be read back, so the originals stay on the phone.</string>
