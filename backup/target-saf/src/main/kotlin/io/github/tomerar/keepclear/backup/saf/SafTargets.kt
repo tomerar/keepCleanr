@@ -39,6 +39,9 @@ enum class TargetKind {
      * matching read proves nothing; originals are never freed against it.
      */
     UNKNOWN_PROVIDER,
+
+    /** M15: a network drive (SMB) the user set up: copy, read back over the network, free originals. */
+    NETWORK,
 }
 
 object SafTargets {

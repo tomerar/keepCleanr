@@ -46,7 +46,8 @@ class DependencyAllowlistTest {
         )
         assertTrue(DependencyAllowlist.check(smb).isEmpty())
         // Other modules of the same groups still need discussion.
-        assertTrue(DependencyAllowlist.check(listOf("com.hierynomus:sshj:0.40.0")).single().contains("not on the allowlist"))
-        assertTrue(DependencyAllowlist.check(listOf("org.slf4j:slf4j-simple:2.0.18")).single().contains("not on the allowlist"))
+        for (other in listOf("com.hierynomus:sshj:0.40.0", "org.slf4j:slf4j-simple:2.0.18")) {
+            assertTrue(DependencyAllowlist.check(listOf(other)).single().contains("not on the allowlist"))
+        }
     }
 }

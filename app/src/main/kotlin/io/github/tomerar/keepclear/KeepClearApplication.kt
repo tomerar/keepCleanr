@@ -120,6 +120,27 @@ class KeepClearApplication : Application() {
     val testDriveAuthorities: Set<String>
         get() = if (BuildConfig.DEBUG) setOf("$packageName.testusb") else emptySet()
 
+    /** M15: the network drive the user set up (password sealed with a key-store key). */
+    val networkDrives by lazy {
+        NetworkDriveStore(getSharedPreferences("network-drive", MODE_PRIVATE), KeystoreSecretBox())
+    }
+
+    /** Opens the network drive at [location] (M15). Network I/O; call off the main thread. */
+    suspend fun openNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation, label: String) =
+        OpenedTarget.of(io.github.tomerar.keepclear.backup.smb.SmbTargets.open(location, label))
+
+    /**
+     * Reopens a job's target from its stored reference: a picked tree URI, or the saved network drive. A network
+     * reference opens only if it still matches the saved drive; the marker then has to match too (E-MOVE-2).
+     */
+    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = if (OpenedTarget.isNetwork(ref)) {
+        val location = networkDrives.load()
+            ?.takeIf { io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(it) == ref }
+        if (location == null) OpenedTarget.Unavailable else openNetworkDrive(location, label)
+    } else {
+        OpenedTarget.of(openTarget(android.net.Uri.parse(ref), label))
+    }
+
     /** Opens a picked backup folder (MOVE-2). Blocking I/O. */
     suspend fun openTarget(uri: android.net.Uri, label: String) =
         io.github.tomerar.keepclear.backup.saf.SafTargets.open(

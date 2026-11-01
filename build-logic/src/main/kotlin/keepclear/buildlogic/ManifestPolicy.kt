@@ -34,6 +34,7 @@ object ManifestPolicy {
         if (start < 0) return emptyList()
         return lines.drop(start + 1).takeWhile { sourceLine.containsMatchIn(it) }
     }
+
     val forbiddenInPlay = setOf(
         "android.permission.MANAGE_EXTERNAL_STORAGE",
         "android.permission.QUERY_ALL_PACKAGES",

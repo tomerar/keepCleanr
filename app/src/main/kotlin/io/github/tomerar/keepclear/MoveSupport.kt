@@ -17,7 +17,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import io.github.tomerar.keepclear.backup.saf.TargetCheck
 import io.github.tomerar.keepclear.core.database.RoomMoveJobStore
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.move.JobState
@@ -151,10 +150,10 @@ class MoveService : Service() {
     private suspend fun run(jobId: String) {
         val store = app.moveController.store
         val job = store.job(jobId) ?: return
-        val treeUri = job.targetRef?.toUri()
-        val check = treeUri?.let { app.openTarget(it, job.targetLabel) }
-        if (check !is TargetCheck.Ok || check.target.id != job.targetId) {
-            val reason = if (check is TargetCheck.Ok) PauseReason.WRONG_TARGET else PauseReason.TARGET_DISCONNECTED
+        // A picked drive/folder or the network drive (M15); identity must match the job's (E-MOVE-2).
+        val check = job.targetRef?.let { app.openTargetRef(it, job.targetLabel) }
+        if (check !is OpenedTarget.Ok || check.target.id != job.targetId) {
+            val reason = if (check is OpenedTarget.Ok) PauseReason.WRONG_TARGET else PauseReason.TARGET_DISCONNECTED
             store.putJob(job.copy(state = JobState.PAUSED, pauseReason = reason))
             MoveNotifications.result(this, store.job(jobId)!!, 0)
             return

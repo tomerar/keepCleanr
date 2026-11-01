@@ -63,6 +63,9 @@ class SettingsActions(
     /** TRASH-7: bytes in KeepClear's trash now; the uninstall note shows while it isn't empty. */
     val trashBytes: Long = 0,
     val onOpenTrash: () -> Unit = {},
+    /** M15: the network drive's address, the only place KeepClear connects to; null when none is set up. */
+    val networkHost: String? = null,
+    val onForgetNetworkDrive: () -> Unit = {},
 )
 
 /**
@@ -144,6 +147,22 @@ fun SettingsScreen(
                     )
                     TextButton(onClick = actions.onOpenPrivacy, modifier = Modifier.testTag("privacy")) {
                         Text(stringResource(R.string.settings_privacy))
+                    }
+                    actions.networkHost?.let { host ->
+                        Text(
+                            stringResource(
+                                R.string.settings_network_only,
+                                io.github.tomerar.keepclear.core.common.Bidi.isolate(host),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("networkOnly"),
+                        )
+                        TextButton(
+                            onClick = actions.onForgetNetworkDrive,
+                            modifier = Modifier.testTag("forgetNetwork"),
+                        ) {
+                            Text(stringResource(R.string.settings_network_forget))
+                        }
                     }
                 }
             }

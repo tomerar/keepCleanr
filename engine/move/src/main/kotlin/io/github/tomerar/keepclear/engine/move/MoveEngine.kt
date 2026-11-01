@@ -373,6 +373,10 @@ class MoveEngine(
                 "same boot as the first check: the drive must be unplugged and plugged back in"
             }
         }
+        if (evidence == FreshRead.NEW_SESSION) {
+            // A drive on the phone may answer from the phone's own cache; only a network drive's reads are fresh.
+            check(target.caps.readsFromServer) { "a new connection proves a fresh read only for a network drive" }
+        }
         var ok = 0
         var damaged = 0
         var missing = 0

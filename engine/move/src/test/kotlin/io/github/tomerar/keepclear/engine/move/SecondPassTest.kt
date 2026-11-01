@@ -79,6 +79,23 @@ class SecondPassTest {
     }
 
     @Test
+    fun `a new connection counts as a fresh read only for a network drive (M15)`(): Unit = runBlocking {
+        val usb = FakeCapacityDrive(realBytes = 1_000_000)
+        val id = job(usb)
+        engine(usb).run(id)
+        // A drive on the phone may answer from the phone's cache: "new connection" proves nothing there.
+        shouldThrow<IllegalStateException> { engine(usb).confirm(id, FreshRead.NEW_SESSION) }
+        engine(usb).originalsPlan(id).shouldBeEmpty()
+
+        val nas = FakeCapacityDrive(realBytes = 1_000_000, id = "nas", network = true)
+        store.putJob(MoveJob("n", nas.id, nas.label, MovePlanner.rootRel("Phone"), 1))
+        MovePlanner.plan("n", items, "Phone", "Camera", nas.caps).forEach { store.putFile(it) }
+        engine(nas).run("n")
+        engine(nas).confirm("n", FreshRead.NEW_SESSION).ok shouldBe 6
+        engine(nas).originalsPlan("n").size shouldBe 6
+    }
+
+    @Test
     fun `the copy is re-hashed at free time, not only its size`(): Unit = runBlocking {
         val drive = FakeCapacityDrive(realBytes = 1_000_000)
         val id = job(drive)

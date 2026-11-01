@@ -40,7 +40,7 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 | M12b-1 `SafGateway` + contract suite on a device | ✅ merged ([#22](https://github.com/tomerar/keepCleanr/pull/22)); 2 Codex findings fixed (a half-done two-step rename is undone; stream failures map to storage errors) | | `core:storage-saf`: StorageGateway over granted folders; never overwrites (a provider's "x (1)" copy is removed and reported), deletes only files and empty folders, moves via `moveDocument`/`renameDocument` in the order whose intermediate name is free. The M1 contract suite runs on the emulator against the fake USB drive. |
 | M12b-2 `play`: WhatsApp's folder through Android's folder picker (ONB-6) + trash inside it | ✅ merged ([#23](https://github.com/tomerar/keepCleanr/pull/23)); 3 Codex findings fixed ("Empty now" for a granted folder's trash; grants loaded for the background purge; folder trash kept when All files access is turned on) | | Home card → explainer with the 2 steps → picker opens at WhatsApp's folder; only WhatsApp's own folder (with `Media/`) is kept, otherwise "try again". The folder is mounted at its real path (`SafTreeMount` + `MountedGateway`), so scan, rules, PROTECTED paths and the trash work unchanged; its trash is `<folder>/.KeepClearTrash`. Old-phone folders: later (only WhatsApp is accepted now). |
 | M15a SMB target (network module) | 🔄 in review | | `backup:target-smb` with smbj 0.15.0 (Apache-2.0) + BouncyCastle for NTLM's MD4 (research 06 §3.1): never overwrites (`FILE_CREATE`, rename without replace), read-back verification, unreachable server = paused (never delete), wrong password = refused. 9 integration tests against a real Samba server with signing required (`scripts/samba-test-server.sh`, also in CI). INTERNET is declared only in this module; a Konsist rule keeps network imports in `backup/target-*`. Not yet in the app (M15b). |
-| M15b SMB set-up on the phone + MOVE to SMB | ⬜ | | Address/share/user/password on the phone (password encrypted with the Android Keystore), "Test connection", MOVE to the share with read-back, Settings "Network: only to <host>", PRIVACY.md + intro copy, `ACCESS_LOCAL_NETWORK` prep. |
+| M15b SMB set-up on the phone + MOVE to SMB | 🔄 next PR | | Address/share/user/password on the phone (password encrypted with the Android Keystore), "Test connection", MOVE to the share with read-back, Settings "Network: only to <host>", PRIVACY.md + intro copy, `ACCESS_LOCAL_NETWORK` prep. |
 | M13 Apps | ✅ merged ([#21](https://github.com/tomerar/keepCleanr/pull/21)); 1 Codex finding fixed (no uninstall in trial mode, SAFETY-9) | | Apps screen: usage access asked only there (ONB-7), apps by size, "not opened in about 6 months" (calendar months; apps installed less than 6 months ago never count), uninstall through Android's own window (`REQUEST_DELETE_PACKAGES`, documented in PRIVACY.md), App info for the rest; "Clear one app at a time" sorted by temporary-file size when usage access is on (SAFE-10). |
 
 ## Test build for the phone (no computer needed)
@@ -61,7 +61,7 @@ To build one on demand: Actions › CI › **Run workflow** on `main`.
 
 Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are marked *optional (developer)*. Record results in `docs/device-reports/`.
 
-**Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete), D13-1, D12-1. **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
+**Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete), D13-1, D12-1. **With a computer or NAS at home:** D15-1. **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
 
 | # | Milestone | Check | When | Status |
 |---|---|---|---|---|
@@ -72,6 +72,7 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | D5-1 | M5 | Scroll a 2,000-screenshot group: smooth, no visible jank | Now | waiting for owner |
 | D8-1 | M8 | Review › Screenshots and AI images: are the groups right? Select a month and open the confirm list, then **Cancel** (deleting waits until home) | Now (read-only part) | waiting for owner |
 | D12-1 | M12b | Needs the `play` build (W2): Home › "Photos and files from WhatsApp": does the picker open at WhatsApp's folder? After "Use this folder", does a new scan include sent photos and voice notes? Don't delete | Now (after W2) | waiting for owner |
+| D15-1 | M15 | Move › Use a network drive: type the computer's address, shared folder, user and password; Connect; back up a few photos; Check backup; then "Free … from the phone" for one of them and restore it from the Trash. Settings shows "Network: only to <address>" | Home (needs a computer or NAS that shares a folder) | waiting for owner |
 | D13-1 | M13 | Home › Apps: turn on Usage access when asked. Are app sizes close to Settings › Apps? Is "Not opened in about 6 months" right for your 11 apps? Don't tap Uninstall | Now | waiting for owner |
 | D7-1 | M7 | OnePlus File Manager bin: in the Files app, show hidden files; is there `.FileManagerRecycler` in internal storage? *Optional (developer): `adb shell ls -la /sdcard/`.* | Any time | waiting for owner |
 | D7-3 | M7 | "Clear app caches": how many bytes does it actually free? Research predicts about 0 on a 93%-full phone ([09](research/09-accessibility-cache-cleaner.md) §1.2); the result decides SAFE-10's priority | Any time (clears caches only) | waiting for owner |
@@ -93,6 +94,8 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | C5 | M12b: when a folder's access is taken back (or an SD card is out), its trash records are kept and never dropped as "file gone"; they come back when access does. |
 | C6 | M12b: in a granted folder, untrusted trash items (sidecar signed by another install) restore inside that folder, to `<folder>/Download/KeepClear Restored/`, because nothing can move out of a granted folder. |
 | C7 | M12b: the WhatsApp folder card shows only in the `play` build; in `foss`, All files access already covers WhatsApp. |
+| C8 | M15: "Check backup" for a network drive reads every copy again over a brand-new connection instead of asking to unplug anything: all SMB reads come from the server, and the phone keeps no copy. The server may still answer from its own memory; making that durable is the server's job (research 06 §3.1). |
+| C9 | M15: one network drive at a time; "Forget the network drive" in Settings removes it (and its sealed password). A job whose drive was forgotten pauses as "drive not connected" and never frees anything. |
 | C1 | Last-copy guard (owner 1.3): when a trashed archive lists this file as an extracted witness (sizes differ, so no same-hash check is possible), the file is also treated as the last copy and needs the confirm. |
 
 ## Waiting for owner

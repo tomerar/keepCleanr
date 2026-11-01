@@ -205,7 +205,7 @@ interface BackupTarget {
   suspend fun openRead(rel: String): Source           // for read-back
 }
 ```
-MVP: `SafTarget` (USB-C OTG, SD card, any tree whose provider is on the read-back allowlist: `com.android.externalstorage.documents` and verified others). v1: `SmbTarget`.
+MVP: `SafTarget` (USB-C OTG, SD card, any tree whose provider is on the read-back allowlist: `com.android.externalstorage.documents` and verified others). v1 (M15): `SmbBackupTarget` in `backup:target-smb`, caps `canReadBack` + `readsFromServer` (every read comes from the server, so "Check backup" reads again over a new connection, `FreshRead.NEW_SESSION`, instead of unplug/replug). A job stores `targetRef` (`content://…` tree URI or `smb://host:port/share/folder`); the app reopens either through `openTargetRef`, and the marker id must match (E-MOVE-2). The network drive's password is sealed with an Android Keystore AES-GCM key.
 
 ### 6.2 Job model (Room)
 

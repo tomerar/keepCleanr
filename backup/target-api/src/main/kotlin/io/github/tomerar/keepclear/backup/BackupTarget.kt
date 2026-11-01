@@ -19,6 +19,11 @@ data class TargetCaps(
     val caseSensitive: Boolean = false,
     /** Longest full path in characters (Windows/SMB: 260), or null. */
     val maxPathChars: Int? = null,
+    /**
+     * M15: every read goes to the server over the network and the phone keeps no copy of the data (SMB), so a
+     * read over a **new connection** is a fresh read of what the server stores (H1, [FreshRead] NEW_SESSION).
+     */
+    val readsFromServer: Boolean = false,
 ) {
     companion object {
         const val FAT32_MAX_FILE: Long = 4L * 1024 * 1024 * 1024 - 1

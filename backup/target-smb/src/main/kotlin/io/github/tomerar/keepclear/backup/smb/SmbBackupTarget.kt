@@ -80,7 +80,8 @@ class SmbBackupTarget(
     override val label: String,
     private val timeoutSeconds: Long = 30,
 ) : BackupTarget {
-    override val caps = TargetCaps(canReadBack = true, caseSensitive = false, maxPathChars = 260)
+    override val caps =
+        TargetCaps(canReadBack = true, caseSensitive = false, maxPathChars = 260, readsFromServer = true)
 
     private val mutex = Mutex()
     private var client: SMBClient? = null

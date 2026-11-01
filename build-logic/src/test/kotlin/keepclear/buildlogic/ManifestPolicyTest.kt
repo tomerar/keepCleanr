@@ -30,7 +30,12 @@ class ManifestPolicyTest {
         </activity>
     """
 
-    private fun check(xml: String, flavor: String = "foss", debuggable: Boolean = false, mergerReport: String? = null) =
+    private fun check(
+        xml: String,
+        flavor: String = "foss",
+        debuggable: Boolean = false,
+        mergerReport: String? = null,
+    ) =
         ManifestPolicy.check(xml, flavor, appId, privacy, debuggable, mergerReport)
 
     @Test
@@ -40,8 +45,12 @@ class ManifestPolicyTest {
 
     private fun report(vararg sources: String) = (
         listOf("uses-permission#android.permission.INTERNET") + sources.toList() +
-            listOf("\tandroid:name", "\t\tADDED from /x/AndroidManifest.xml:3:22-62", "uses-permission#android.permission.WAKE_LOCK")
-        ).joinToString("\n")
+            listOf(
+                "\tandroid:name",
+                "\t\tADDED from /x/AndroidManifest.xml:3:22-62",
+                "uses-permission#android.permission.WAKE_LOCK",
+            )
+    ).joinToString("\n")
 
     @Test
     fun `INTERNET only from a backup target module, in every flavor (ADR 0011)`() {
@@ -66,7 +75,10 @@ class ManifestPolicyTest {
     @Test
     fun `merger report sources are read for the right permission only`() {
         val r = report("ADDED from [:backup:target-smb] /x:1:1-2")
-        assertEquals(listOf("ADDED from [:backup:target-smb] /x:1:1-2"), ManifestPolicy.permissionSources(r, "android.permission.INTERNET"))
+        assertEquals(
+            listOf("ADDED from [:backup:target-smb] /x:1:1-2"),
+            ManifestPolicy.permissionSources(r, "android.permission.INTERNET"),
+        )
         assertEquals(emptyList<String>(), ManifestPolicy.permissionSources(r, "android.permission.CAMERA"))
     }
 
