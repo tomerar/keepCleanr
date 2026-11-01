@@ -66,7 +66,10 @@ keepclear/
 ├─ backup/
 │   ├─ target-api/     (JVM)    # BackupTarget interface + capabilities (canReadBack, serverDigest, fsLimits)
 │   ├─ target-saf/     (Android)# USB-C OTG, SD card, any DocumentsProvider tree
-│   └─ target-smb/     (Android, v1) # smbj; the only module allowed to open sockets (with INTERNET)
+│   ├─ target-smb/     (Android, v1) # smbj (with INTERNET)
+│   ├─ net/            (JVM, v1) # MiniHttp: the one small HTTP/1.1 client the HTTP targets share (M17)
+│   ├─ target-webdav/  (Android, v1) # Nextcloud / WebDAV over backup:net (with INTERNET)
+│   └─ target-dropbox/ (Android, v1) # Dropbox API v2, App folder, over backup:net (with INTERNET)
 ├─ privilege/
 │   ├─ shizuku/        (Android, v1) # Shizuku API, AIDL user service: Android/data listing, per-app cache clear
 │   └─ root/           (Android, later)
@@ -77,7 +80,7 @@ keepclear/
     └─ android/        # instrumented helpers: seed MediaStore, SAF test provider
 ```
 
-Dependency rule: `feature:* → engine:* → core:*-api/model`. Engines never depend on Android modules; Android implementations are bound in `app` via Hilt. `backup:target-smb` is the only module allowed `INTERNET`-using code (ADR 0008).
+Dependency rule: `feature:* → engine:* → core:*-api/model`. Engines never depend on Android modules; Android implementations are bound in `app` via Hilt. Only `backup:target-*` modules and `backup:net` may contain network code, and only target modules declare `INTERNET` (ADR 0008 as amended by ADR 0011; Konsist and the manifest check enforce it).
 
 Libraries (all GPL-3.0-compatible): Compose + Material 3, Hilt, Room, WorkManager, Coroutines/Flow, kotlinx.serialization, Coil 3 (thumbnails), smbj (v1, Apache-2.0), Shizuku API (v1, Apache-2.0/MIT). Tests: JUnit5, Kotest property testing, Turbine, Robolectric (selected), Compose UI tests, Paparazzi/Roborazzi screenshots, Konsist (architecture rules).
 
@@ -205,7 +208,7 @@ interface BackupTarget {
   suspend fun openRead(rel: String): Source           // for read-back
 }
 ```
-MVP: `SafTarget` (USB-C OTG, SD card, any tree whose provider is on the read-back allowlist: `com.android.externalstorage.documents` and verified others). v1 (M15): `SmbBackupTarget` in `backup:target-smb`, caps `canReadBack` + `readsFromServer` (every read comes from the server, so "Check backup" reads again over a new connection, `FreshRead.NEW_SESSION`, instead of unplug/replug). A job stores `targetRef` (`content://…` tree URI or `smb://host:port/share/folder`); the app reopens either through `openTargetRef`, and the marker id must match (E-MOVE-2). The network drive's password is sealed with an Android Keystore AES-GCM key. M17a: `WebDavBackupTarget` in `backup:target-webdav` (Nextcloud or any WebDAV server, HTTPS only), caps `canReadBack` + `readsFromServer`, and on Nextcloud `serverDigests = {SHA256}`: `serverDigest(rel, SHA256)` returns the `X-Hash-SHA256` the server computed for this target's own upload, which the engine uses instead of a read-back (ADR 0011 amendment); `create(rel, size)` lets it announce the length. `WebDavTargets.open` makes the folder and the marker (`davs://host/path|<marker id>`).
+MVP: `SafTarget` (USB-C OTG, SD card, any tree whose provider is on the read-back allowlist: `com.android.externalstorage.documents` and verified others). v1 (M15): `SmbBackupTarget` in `backup:target-smb`, caps `canReadBack` + `readsFromServer` (every read comes from the server, so "Check backup" reads again over a new connection, `FreshRead.NEW_SESSION`, instead of unplug/replug). A job stores `targetRef` (`content://…` tree URI or `smb://host:port/share/folder`); the app reopens either through `openTargetRef`, and the marker id must match (E-MOVE-2). The network drive's password is sealed with an Android Keystore AES-GCM key. M17a: `WebDavBackupTarget` in `backup:target-webdav` (Nextcloud or any WebDAV server, HTTPS only), caps `canReadBack` + `readsFromServer`, and on Nextcloud `serverDigests = {SHA256}`: `serverDigest(rel, SHA256)` returns the `X-Hash-SHA256` the server computed for this target's own upload, which the engine uses instead of a read-back (ADR 0011 amendment); `create(rel, size)` lets it announce the length. `WebDavTargets.open` makes the folder and the marker (`davs://host/path|<marker id>`). M17c: `DropboxBackupTarget` in `backup:target-dropbox` (App folder, HTTPS to `api.dropboxapi.com` / `content.dropboxapi.com` only), caps `canReadBack` + `readsFromServer` + `serverDigests = {DROPBOX_CONTENT_HASH}`: `serverDigest` returns the `content_hash` that `get_metadata` reports for the file now (Dropbox keeps it with the file), and the engine compares it with the block hash it computed in the same read as the SHA-256 (`MoveFile.sourceContentHash`). Uploads: one `upload` request up to 150 MB, else an upload session in 8 MiB chunks; `mode=add`, `autorename=false`. Tokens come from a `DropboxAuth` (OAuth 2 PKCE refresh token). `DropboxTargets.open` makes the folder and the marker (`dropbox:/folder|<marker id>`).
 
 ### 6.2 Job model (Room)
 

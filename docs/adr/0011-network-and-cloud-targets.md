@@ -59,6 +59,20 @@ Building `backup:target-webdav` showed two points where the decision above needs
   re-queried). Generic WebDAV has no server digest and works like SMB (read-back, "Check backup" over a new
   connection). Recording the method per file needs a Room migration and comes with the app wiring (M17b).
 
+### Amendment (2026-11-01, M17c Dropbox engine; proposed, awaiting the owner's OK)
+- **One HTTP client, no OkHttp.** `MiniHttp` moved from `backup:target-webdav` into the shared `backup:net` (pure JVM,
+  unchanged behaviour; a `repeatable` flag lets read-only Dropbox RPCs, which are POSTs, be resent once on a fresh
+  connection like GET). `backup:target-dropbox` uses it, so there is still no third-party HTTP library and one audited
+  client instead of two. OkHttp stays possible later if the owner prefers it (W3).
+- **Dropbox's digest can be asked again.** Unlike Nextcloud's `X-Hash`, `content_hash` is part of the file's metadata,
+  so `serverDigest` re-queries `get_metadata` and returns what Dropbox reports for the stored file now. The engine
+  computes the block hash in the same pass as the SHA-256 (no second read of the original) and treats a missing or
+  malformed value as "no digest" (read-back) and a wrong one as a mismatch, exactly as for Nextcloud. Free time still
+  downloads and re-hashes each copy (stricter than the re-query above).
+- **Not yet:** the `ResumableUpload` port. An upload session lives only as long as one upload stream; a paused job
+  uploads the interrupted file again from the start. The per-request `content_hash` upload argument isn't sent (the
+  comparison afterwards is the proof). Both can come with M17b.
+
 ## Consequences
 - Phone-only users get a verified MOVE target. Drive, Dropbox and Nextcloud verify without doubling traffic; SMB, OneDrive and generic WebDAV
   pay a read-back.
