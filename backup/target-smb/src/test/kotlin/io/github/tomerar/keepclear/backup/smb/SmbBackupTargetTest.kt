@@ -102,6 +102,21 @@ class SmbBackupTargetTest {
     }
 
     @Test
+    fun `a share the server dropped is reconnected, not reused forever (PR 24 review)`(): Unit = runBlocking {
+        val conf = System.getenv("KEEPCLEAR_SMB_CONF")
+        assumeTrue("needs the test server's smb.conf", conf != null)
+        target.create("$run/a").use { it.write(1) }
+        // The server closes the share but keeps the TCP connection: smbj still thinks it is connected.
+        val sudo = if (System.getProperty("user.name") == "root") emptyList() else listOf("sudo", "-n")
+        val closed = ProcessBuilder(sudo + listOf("smbcontrol", "-s", conf!!, "smbd", "close-share", env!!.share))
+            .redirectErrorStream(true).start().waitFor()
+        assertEquals(0, closed)
+        // The first call may see the dropped share (and says so); after it, KeepClear connects again.
+        runCatching { target.stat("$run/a") }
+        assertEquals(1L, target.stat("$run/a")!!.size)
+    }
+
+    @Test
     fun `free space is reported`(): Unit = runBlocking {
         assertNotNull(target.freeBytes())
         assertTrue(target.freeBytes()!! > 0)

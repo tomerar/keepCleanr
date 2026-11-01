@@ -14,6 +14,7 @@ android {
             "KEEPCLEAR_SMB_SHARE",
             "KEEPCLEAR_SMB_USER",
             "KEEPCLEAR_SMB_PASSWORD",
+            "KEEPCLEAR_SMB_CONF",
             "CI",
         )
             .forEach { name -> System.getenv(name)?.let { test.environment(name, it) } }

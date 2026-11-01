@@ -94,9 +94,16 @@ class SmbBackupTarget(
         .withSoTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .build()
 
+    // Set when any call or stream saw the connection, session or share go away. smbj's `isConnected` is only a
+    // local flag, so a server that drops the session or share (but not the TCP connection) would otherwise be
+    // reused forever (PR #24 review). The next call then connects again from scratch.
+    @Volatile
+    private var stale = false
+
     /** The share, connected on first use and again after a drop. */
     private suspend fun share(): DiskShare = mutex.withLock {
-        diskShare?.takeIf { it.isConnected }?.let { return it }
+        if (!stale) diskShare?.takeIf { it.isConnected }?.let { return it }
+        stale = false
         closeQuietly()
         val c = SMBClient(config())
         client = c
@@ -150,16 +157,32 @@ class SmbBackupTarget(
         } catch (e: StorageException) {
             throw e
         } catch (e: SMBApiException) {
-            throw map(e, path)
+            // A session or share the server dropped maps to Disconnected: reconnect next time.
+            throw map(e, path).also { if (it is StorageException.Disconnected) stale = true }
         } catch (e: IOException) {
             // Connection refused, timeout, dropped Wi-Fi: the medium is gone for now (pause, never delete).
-            mutex.withLock { closeQuietly() }
+            stale = true
             throw StorageException.Disconnected(path, e)
         } catch (e: RuntimeException) {
             // smbj wraps transport failures (TransportException, SMBRuntimeException) in runtime exceptions.
-            mutex.withLock { closeQuietly() }
+            stale = true
             throw StorageException.Disconnected(path, e)
         }
+    }
+
+    /** The same mapping for streams, which run outside [io]. */
+    private inline fun <T> mapped(path: KPath, block: () -> T): T = try {
+        block()
+    } catch (e: StorageException) {
+        throw e
+    } catch (e: SMBApiException) {
+        throw map(e, path).also { if (it is StorageException.Disconnected) stale = true }
+    } catch (e: IOException) {
+        stale = true
+        throw StorageException.Disconnected(path, e)
+    } catch (e: RuntimeException) {
+        stale = true
+        throw StorageException.Disconnected(path, e)
     }
 
     override suspend fun freeBytes(): Long? = io("") { share ->
@@ -334,18 +357,6 @@ class SmbBackupTarget(
             else -> {
                 StorageException.Io(path, e)
             }
-        }
-
-        private inline fun <T> mapped(path: KPath, block: () -> T): T = try {
-            block()
-        } catch (e: StorageException) {
-            throw e
-        } catch (e: SMBApiException) {
-            throw map(e, path)
-        } catch (e: IOException) {
-            throw StorageException.Disconnected(path, e)
-        } catch (e: RuntimeException) {
-            throw StorageException.Disconnected(path, e)
         }
     }
 }
