@@ -116,17 +116,10 @@ class TrashScreenTest {
             KeepClearTheme {
                 TrashScreen(
                     TrashUi(listOf(a), changed = setOf("a")),
-<<<<<<< HEAD
                     onRestore = { e, _ -> restored = e },
                     onPurge = { _, _ -> },
                     onBack = {},
                     onRestoreChanged = { e, _ -> restoredChanged = e },
-=======
-                    onRestore = { restored = it },
-                    onPurge = {},
-                    onBack = {},
-                    onRestoreChanged = { restoredChanged = it },
->>>>>>> origin/main
                 )
             }
         }

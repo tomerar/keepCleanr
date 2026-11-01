@@ -58,12 +58,6 @@ private sealed interface Pending {
     data class Empty(val entries: List<TrashEntry>) : Pending
 
     data class Release(val entry: TrashEntry) : Pending
-<<<<<<< HEAD
-=======
-
-    data class RestoreChanged(val entry: TrashEntry) : Pending
-}
->>>>>>> origin/main
 
     data class RestoreChanged(val entry: TrashEntry) : Pending
 }
@@ -74,11 +68,7 @@ fun TrashScreen(
     onRestore: (List<TrashEntry>, Confirmation) -> Unit,
     onPurge: (List<TrashEntry>, Confirmation) -> Unit,
     onBack: () -> Unit,
-<<<<<<< HEAD
     onRestoreChanged: (TrashEntry, Confirmation) -> Unit = { _, _ -> },
-=======
-    onRestoreChanged: (TrashEntry) -> Unit = {},
->>>>>>> origin/main
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -166,11 +156,7 @@ fun TrashScreen(
                                 }
                             } else {
                                 TextButton(onClick = {
-<<<<<<< HEAD
                                     onRestore(listOf(entry), trashConfirmed(listOf(entry)))
-=======
-                                    onRestore(listOf(entry))
->>>>>>> origin/main
                                 }, modifier = Modifier.testTag("restore_${entry.id}")) {
                                     Text(stringResource(R.string.trash_restore))
                                 }
@@ -252,11 +238,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_restore_changed),
                         onClick = {
                             pending = null
-<<<<<<< HEAD
                             onRestoreChanged(p.entry, trashConfirmed(listOf(p.entry)))
-=======
-                            onRestoreChanged(p.entry)
->>>>>>> origin/main
                         },
                         modifier = Modifier.testTag("confirmRestoreChanged"),
                     )
@@ -277,11 +259,7 @@ fun TrashScreen(
 @Composable
 fun LastCopyDialog(
     ops: List<io.github.tomerar.keepclear.core.safety.PlannedOp>,
-<<<<<<< HEAD
     onConfirm: (Confirmation) -> Unit,
-=======
-    onConfirm: () -> Unit,
->>>>>>> origin/main
     onDismiss: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -298,11 +276,7 @@ fun LastCopyDialog(
         confirmButton = {
             SafeConfirmButton(
                 stringResource(R.string.last_copy_confirm),
-<<<<<<< HEAD
                 onClick = { onConfirm(userConfirmed(ops.map { it.displayPath })) },
-=======
-                onClick = onConfirm,
->>>>>>> origin/main
                 modifier = Modifier.testTag("confirmLastCopy"),
             )
         },
@@ -314,9 +288,6 @@ fun LastCopyDialog(
         modifier = Modifier.testTag("lastCopyDialog"),
     )
 }
-<<<<<<< HEAD
 
 /** The Trash shows items by their original path, so that is what the user confirms (review PR B). */
 fun trashConfirmed(entries: List<TrashEntry>): Confirmation = userConfirmed(entries.map { it.originalPath })
-=======
->>>>>>> origin/main

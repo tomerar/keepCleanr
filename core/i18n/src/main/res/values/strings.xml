@@ -82,10 +82,7 @@
     <string name="trash_empty_state">The trash is empty.</string>
     <string name="trash_frees_on">Freed on %1$s</string>
     <string name="trash_restore">Restore</string>
-<<<<<<< HEAD
     <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
-=======
->>>>>>> origin/main
     <string name="trash_changed">Changed since it was deleted</string>
     <string name="trash_restore_changed">Restore to a separate folder</string>
     <string name="trash_restore_changed_title">Restore a changed file?</string>
