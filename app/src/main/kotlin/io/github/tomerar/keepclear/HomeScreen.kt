@@ -57,6 +57,8 @@ class HomeActions(
     val onTrim: () -> Unit = {},
     /** SAFE-10: the guided per-app list. */
     val onOneByOne: () -> Unit = {},
+    /** M13: apps and their space. */
+    val onOpenApps: () -> Unit = {},
 )
 
 /**
@@ -198,6 +200,9 @@ fun HomeScreen(
                     )
                 }
                 if (summary != null) Areas(summary)
+                TextButton(onClick = actions.onOpenApps, modifier = Modifier.testTag("openApps")) {
+                    Text(stringResource(R.string.apps_open))
+                }
                 Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = actions.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                     Text(stringResource(R.string.settings_title))

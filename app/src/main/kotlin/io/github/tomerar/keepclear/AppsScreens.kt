@@ -28,7 +28,7 @@ import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.classify.Total
 
 /** An installed app as KeepClear shows it (SAFE-9/10). */
-data class AppEntry(val pkg: String, val label: String)
+data class AppEntry(val pkg: String, val label: String, val cacheBytes: Long? = null)
 
 /** Actions that open another app or Android's app-info screen. KeepClear never taps anything inside them. */
 class AppActions(
@@ -115,7 +115,9 @@ fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions:
             item {
                 BackRow(stringResource(R.string.one_by_one_title), onBack)
                 Text(stringResource(R.string.one_by_one_body), style = MaterialTheme.typography.bodyMedium)
-                Text(stringResource(R.string.one_by_one_sizes_later), style = MaterialTheme.typography.bodySmall)
+                if (apps.none { it.cacheBytes != null }) {
+                    Text(stringResource(R.string.one_by_one_sizes_later), style = MaterialTheme.typography.bodySmall)
+                }
             }
             items(apps, key = { it.pkg }) { app ->
                 Row(
@@ -124,6 +126,13 @@ fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions:
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(Bidi.isolate(app.label), style = MaterialTheme.typography.titleSmall)
+                        app.cacheBytes?.let { bytes ->
+                            Text(
+                                stringResource(R.string.apps_cache, Bidi.isolate(ByteSize.format(bytes, locale))),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("cache_${app.pkg}"),
+                            )
+                        }
                         freed[app.pkg]?.let { bytes ->
                             Text(
                                 if (bytes > 0) {

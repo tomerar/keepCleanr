@@ -35,6 +35,7 @@ fun AppScreens(
     testMode: TestModeUi = TestModeUi(),
     settingsActions: SettingsActions = SettingsActions(),
     appActions: AppActions = AppActions(),
+    appsActions: AppsActions = AppsActions(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -54,6 +55,7 @@ fun AppScreens(
                 testMode,
                 settingsActions,
                 appActions,
+                appsActions,
             )
         }
     }
@@ -84,6 +86,7 @@ private fun ScreenContent(
     testMode: TestModeUi,
     settingsActions: SettingsActions,
     appActions: AppActions,
+    appsActions: AppsActions,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -178,6 +181,10 @@ private fun ScreenContent(
 
         Screen.OneAppAtATime -> {
             OneAppAtATimeScreen(state.apps, state.perAppFreed, appActions, onBack)
+        }
+
+        Screen.Apps -> {
+            AppsScreen(state.appsInfo, System.currentTimeMillis(), appsActions, onBack)
         }
 
         Screen.Settings -> {

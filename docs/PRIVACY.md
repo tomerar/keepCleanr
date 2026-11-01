@@ -16,6 +16,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | Folders you pick (Storage Access Framework) | To read a folder you chose (e.g. WhatsApp media) or write backups to a drive you chose. | Only to the drive or folder you picked |
 | Usage access (`PACKAGE_USAGE_STATS`) | To show how much space each app uses and when it was last opened. | No |
 | List of apps (`QUERY_ALL_PACKAGES` in `foss`; launcher apps only in `play`) | To match folders and caches to the apps that own them. | No |
+| Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps. Android asks you to confirm; KeepClear never removes an app by itself. | No |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`) | To keep a backup running while the screen is off. | No |
 | Background jobs (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, added by Android's WorkManager) | To empty trash items once their 30 days are over, also after a restart. | No |
