@@ -460,4 +460,23 @@
     <string name="choice_kept_label">Never touched</string>
     <string name="choice_junk_label">Always junk</string>
     <string name="choice_remove">Remove</string>
+    <string name="swipe_start">Go through them one by one</string>
+    <string name="swipe_progress">%1$s of %2$s</string>
+    <string name="swipe_hint">Swipe toward Delete or toward Keep, or use the buttons. Nothing is deleted until you confirm at the end.</string>
+    <string name="swipe_keep">Keep</string>
+    <string name="swipe_delete">Delete</string>
+    <string name="swipe_skip">Skip</string>
+    <string name="swipe_undo">Undo</string>
+    <string name="swipe_close">Close</string>
+    <string name="swipe_summary_delete">To delete: %1$s</string>
+    <string name="swipe_summary_note">Next you see the list and can take items out. Deleted files go to the trash for 30 days.</string>
+    <string name="swipe_review">Review and delete</string>
+    <plurals name="swipe_kept">
+        <item quantity="one">%1$s kept</item>
+        <item quantity="other">%1$s kept</item>
+    </plurals>
+    <plurals name="swipe_skipped">
+        <item quantity="one">%1$s skipped</item>
+        <item quantity="other">%1$s skipped</item>
+    </plurals>
 </resources>

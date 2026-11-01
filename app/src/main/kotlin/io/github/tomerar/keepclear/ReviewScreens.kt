@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -170,6 +171,7 @@ fun GroupScreen(
         group.ruleId != io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
+    var swiping by rememberSaveable { mutableStateOf(false) }
     val selectedItems = group.items.filter { it.item.path in selected }
     Scaffold(
         bottomBar = {
@@ -207,15 +209,24 @@ fun GroupScreen(
                     if (selectable) {
                         val all = group.items.map { it.item.path }.toSet()
                         val allSelected = all.isNotEmpty() && selected.containsAll(all)
-                        TextButton(
-                            onClick = { selected = if (allSelected) emptySet() else all },
-                            modifier = Modifier.testTag("selectAll"),
-                        ) {
-                            Text(
-                                stringResource(
-                                    if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
-                                ),
-                            )
+                        // One row, so the pictures stay where they were on small screens.
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(
+                                onClick = { selected = if (allSelected) emptySet() else all },
+                                modifier = Modifier.testTag("selectAll"),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
+                                    ),
+                                )
+                            }
+                            // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
+                            if (group.items.size > 1) {
+                                TextButton(onClick = { swiping = true }, modifier = Modifier.testTag("startSwipe")) {
+                                    Text(stringResource(R.string.swipe_start))
+                                }
+                            }
                         }
                         Text(
                             stringResource(R.string.review_long_press_hint),
@@ -295,6 +306,17 @@ fun GroupScreen(
         }
     }
 
+    if (swiping) {
+        SwipeReview(
+            items = group.items,
+            onDone = { list ->
+                swiping = false
+                selected = list.map { it.item.path }.toSet()
+                if (list.isNotEmpty()) confirming = list
+            },
+            onClose = { swiping = false },
+        )
+    }
     confirming?.let { list ->
         EditableConfirm(
             items = list,
@@ -440,7 +462,14 @@ private fun Tile(
 
 /** The thumbnail, or the file name when there is none (no loader, unsupported type, or loading failed). */
 @Composable
-private fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
+internal fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
+    // PR #28 review: a new path starts from no picture, so the previous file's bitmap never shows next to the
+    // next file's name while it loads (a quick Keep/Delete would otherwise act on a different picture).
+    androidx.compose.runtime.key(item.item.path) { ThumbContent(item, sizeDp, showName) }
+}
+
+@Composable
+private fun ThumbContent(item: ClassifiedItem, sizeDp: Int, showName: Boolean) {
     val loader = LocalThumbnailLoader.current
     val px = with(LocalDensity.current) { sizeDp.dp.roundToPx() }
     val bitmap by produceState<android.graphics.Bitmap?>(null, item.item.path, loader) {

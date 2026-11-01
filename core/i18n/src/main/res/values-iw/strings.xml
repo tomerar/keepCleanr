@@ -488,4 +488,25 @@
     <string name="choice_kept_label">לא נוגעים</string>
     <string name="choice_junk_label">תמיד זבל</string>
     <string name="choice_remove">הסרה</string>
+    <string name="swipe_start">לעבור עליהם אחד-אחד</string>
+    <string name="swipe_progress">%1$s מתוך %2$s</string>
+    <string name="swipe_hint">אפשר להחליק לכיוון \"מחיקה\" או לכיוון \"להשאיר\", או להשתמש בכפתורים. שום דבר לא נמחק עד האישור בסוף.</string>
+    <string name="swipe_keep">להשאיר</string>
+    <string name="swipe_delete">מחיקה</string>
+    <string name="swipe_skip">דילוג</string>
+    <string name="swipe_undo">ביטול</string>
+    <string name="swipe_close">סגירה</string>
+    <string name="swipe_summary_delete">למחיקה: %1$s</string>
+    <string name="swipe_summary_note">בשלב הבא מוצגת הרשימה ואפשר להוציא ממנה פריטים. קבצים שנמחקים עוברים לסל המחזור ל-30 יום.</string>
+    <string name="swipe_review">לבדוק ולמחוק</string>
+    <plurals name="swipe_kept">
+        <item quantity="one">%1$s נשאר</item>
+        <item quantity="two">%1$s נשארו</item>
+        <item quantity="other">%1$s נשארו</item>
+    </plurals>
+    <plurals name="swipe_skipped">
+        <item quantity="one">%1$s דולג</item>
+        <item quantity="two">%1$s דולגו</item>
+        <item quantity="other">%1$s דולגו</item>
+    </plurals>
 </resources>
