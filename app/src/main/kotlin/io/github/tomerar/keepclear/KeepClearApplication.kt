@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear
 
 import android.app.Application
 import android.os.storage.StorageManager
+import androidx.core.net.toUri
 import io.github.tomerar.keepclear.core.database.KeepClearDatabase
 import io.github.tomerar.keepclear.core.database.RoomTrashIndex
 import io.github.tomerar.keepclear.core.database.ScanIndex
@@ -138,7 +139,7 @@ class KeepClearApplication : Application() {
             ?.takeIf { io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(it) == ref }
         if (location == null) OpenedTarget.Unavailable else openNetworkDrive(location, label)
     } else {
-        OpenedTarget.of(openTarget(android.net.Uri.parse(ref), label))
+        OpenedTarget.of(openTarget(ref.toUri(), label))
     }
 
     /** Opens a picked backup folder (MOVE-2). Blocking I/O. */
