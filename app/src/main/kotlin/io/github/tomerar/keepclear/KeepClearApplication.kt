@@ -27,7 +27,9 @@ class KeepClearApplication : Application() {
     val scanIndex by lazy { ScanIndex(database) }
     val fileGateway by lazy { FileGateway() }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
-    val protectedPaths by lazy { ProtectedPaths() }
+
+    /** Own folders are PROTECTED under this build's real package (test builds end in `.test`). */
+    val protectedPaths by lazy { ProtectedPaths(ownPackage = packageName) }
 
     /** Mounted volume roots (internal storage, SD card, OTG). */
     fun volumeRoots(): List<String> = getSystemService(StorageManager::class.java).storageVolumes
@@ -75,7 +77,7 @@ class KeepClearApplication : Application() {
      * PROTECTED roots include every backup folder known right now (H3, safety rule 4).
      */
     suspend fun executor(onResult: (OpResult) -> Unit = {}): ActionExecutor {
-        val guarded = BackupRoots.protectedPaths(moveController.store.jobs())
+        val guarded = BackupRoots.protectedPaths(moveController.store.jobs(), packageName)
         return ActionExecutor(
             gateway = fileGateway,
             guard = SafetyGuard(guarded),

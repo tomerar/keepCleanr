@@ -68,7 +68,7 @@ class ReviewActionsTest {
                 it.copy(category = category)
             }
         }
-        KeepClearTheme { GroupScreen(group, onOpenItem = {}, onBack = {}, onDelete = { deleted = it }) }
+        KeepClearTheme { GroupScreen(group, onOpenItem = {}, onBack = {}, onDelete = { items, _ -> deleted = items }) }
     }
 
     private fun awaitEnabled(tag: String) = compose.waitUntil(5_000) {
@@ -116,7 +116,14 @@ class ReviewActionsTest {
         compose.setContent {
             val group = ClassificationSummary.of(listOf(i("Pictures/Screenshots"), i("DCIM/Screenshots")))
                 .group("screenshots", Category.REVIEW)!!
-            KeepClearTheme { GroupScreen(group, onOpenItem = {}, onBack = {}, onDelete = { deleted = it }) }
+            KeepClearTheme {
+                GroupScreen(group, onOpenItem = {}, onBack = {}, onDelete = {
+                    items,
+                    _,
+                    ->
+                    deleted = items
+                })
+            }
         }
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("selectMonth_2023-03"))
         compose.onNodeWithTag("selectMonth_2023-03").performClick()

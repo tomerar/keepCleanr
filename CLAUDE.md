@@ -26,7 +26,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 ## Identity
 
-- App name **KeepClear**, applicationId **`io.github.tomerar.keepclear`** for both flavors, one signing key (ADR 0009).
+- App name **KeepClear**, applicationId **`io.github.tomerar.keepclear`** for both flavors, one signing key (ADR 0009). Debug/test builds are `io.github.tomerar.keepclear.test` ("KeepClear test"), so the public test key can never update a real install.
 
 ## Stack
 

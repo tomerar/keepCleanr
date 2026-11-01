@@ -58,7 +58,7 @@ class MoveActions(
     val onPause: () -> Unit = {},
     val onStop: () -> Unit = {},
     val onResume: (String) -> Unit = {},
-    val onFree: (String) -> Unit = {},
+    val onFree: (String, io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = { _, _ -> },
     /** H1 / MOVE-15: the second, uncached check before freeing. */
     val onCheck: (String) -> Unit = {},
     val onCancelCheck: () -> Unit = {},
@@ -209,7 +209,7 @@ fun MoveScreen(
                     stringResource(R.string.move_free_confirm_yes),
                     onClick = {
                         confirmFree = null
-                        actions.onFree(view.job.id)
+                        actions.onFree(view.job.id, userConfirmed(view.freeablePaths))
                     },
                     modifier = Modifier.testTag("confirmFree"),
                 )

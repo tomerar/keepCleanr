@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
+import io.github.tomerar.keepclear.core.safety.Confirmation
 import io.github.tomerar.keepclear.engine.trash.TrashEntry
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
@@ -61,32 +62,13 @@ private sealed interface Pending {
     data class RestoreChanged(val entry: TrashEntry) : Pending
 }
 
-/**
- * A destructive confirm button that only enables after [delayMillis] (SEC-7, tapjacking); the activity
- * also ignores touches while another app's overlay covers it.
- */
-@Composable
-fun SafeConfirmButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, delayMillis: Long = 500) {
-    var enabled by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis)
-        enabled = true
-    }
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-        modifier = modifier,
-    ) { Text(text) }
-}
-
 @Composable
 fun TrashScreen(
     trash: TrashUi,
-    onRestore: (List<TrashEntry>) -> Unit,
-    onPurge: (List<TrashEntry>) -> Unit,
+    onRestore: (List<TrashEntry>, Confirmation) -> Unit,
+    onPurge: (List<TrashEntry>, Confirmation) -> Unit,
     onBack: () -> Unit,
-    onRestoreChanged: (TrashEntry) -> Unit = {},
+    onRestoreChanged: (TrashEntry, Confirmation) -> Unit = { _, _ -> },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -122,7 +104,7 @@ fun TrashScreen(
                     Text(stringResource(R.string.trash_summary, total), style = MaterialTheme.typography.bodyLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = {
-                            onRestore(trash.entries)
+                            onRestore(trash.entries, trashConfirmed(trash.entries))
                         }, modifier = Modifier.testTag("restoreAll")) {
                             Text(stringResource(R.string.trash_restore_all))
                         }
@@ -174,7 +156,7 @@ fun TrashScreen(
                                 }
                             } else {
                                 TextButton(onClick = {
-                                    onRestore(listOf(entry))
+                                    onRestore(listOf(entry), trashConfirmed(listOf(entry)))
                                 }, modifier = Modifier.testTag("restore_${entry.id}")) {
                                     Text(stringResource(R.string.trash_restore))
                                 }
@@ -205,7 +187,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_confirm_delete),
                         onClick = {
                             pending = null
-                            onPurge(p.entries)
+                            onPurge(p.entries, trashConfirmed(p.entries))
                         },
                         modifier = Modifier.testTag("confirmPurge"),
                     )
@@ -235,7 +217,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_confirm_delete),
                         onClick = {
                             pending = null
-                            onPurge(listOf(p.entry))
+                            onPurge(listOf(p.entry), trashConfirmed(listOf(p.entry)))
                         },
                         modifier = Modifier.testTag("confirmPurge"),
                     )
@@ -256,7 +238,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_restore_changed),
                         onClick = {
                             pending = null
-                            onRestoreChanged(p.entry)
+                            onRestoreChanged(p.entry, trashConfirmed(listOf(p.entry)))
                         },
                         modifier = Modifier.testTag("confirmRestoreChanged"),
                     )
@@ -277,7 +259,7 @@ fun TrashScreen(
 @Composable
 fun LastCopyDialog(
     ops: List<io.github.tomerar.keepclear.core.safety.PlannedOp>,
-    onConfirm: () -> Unit,
+    onConfirm: (Confirmation) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -294,7 +276,7 @@ fun LastCopyDialog(
         confirmButton = {
             SafeConfirmButton(
                 stringResource(R.string.last_copy_confirm),
-                onClick = onConfirm,
+                onClick = { onConfirm(userConfirmed(ops.map { it.displayPath })) },
                 modifier = Modifier.testTag("confirmLastCopy"),
             )
         },
@@ -306,3 +288,6 @@ fun LastCopyDialog(
         modifier = Modifier.testTag("lastCopyDialog"),
     )
 }
+
+/** The Trash shows items by their original path, so that is what the user confirms (review PR B). */
+fun trashConfirmed(entries: List<TrashEntry>): Confirmation = userConfirmed(entries.map { it.originalPath })

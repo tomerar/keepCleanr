@@ -3,6 +3,8 @@
 <!-- English source strings. Hebrew lives in values-iw; CI checks key parity (I18N-1). -->
 <resources>
     <string name="app_name" translatable="false">KeepClear</string>
+    <!-- Launcher and system label; test builds override it with "KeepClear test" (app/build.gradle.kts). -->
+    <string name="launcher_name" translatable="false">KeepClear</string>
     <string name="home_tagline">Keep what matters. Clear the rest.</string>
     <string name="home_card_safe_title">Clean now</string>
     <string name="home_card_safe_body">Junk you won\'t miss, cleaned in one tap. Everything waits 30 days in the trash.</string>
@@ -80,6 +82,7 @@
     <string name="trash_empty_state">The trash is empty.</string>
     <string name="trash_frees_on">Freed on %1$s</string>
     <string name="trash_restore">Restore</string>
+    <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
     <string name="trash_changed">Changed since it was deleted</string>
     <string name="trash_restore_changed">Restore to a separate folder</string>
     <string name="trash_restore_changed_title">Restore a changed file?</string>

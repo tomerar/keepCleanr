@@ -78,7 +78,11 @@ Out of scope: a fully compromised OS or root-level malware (it can already do an
 - Notification actions (pause/cancel MOVE) use explicit intents to a non-exported receiver with `PendingIntent.FLAG_IMMUTABLE`.
 - `FileProvider` (for previews) is non-exported, with per-URI read grants only.
 - Dry-run and debug flags exist only in `debug` builds.
-- **Tapjacking:** confirm buttons for destructive actions use `filterTouchesWhenObscured` (Compose: reject obscured touches) and a 500 ms enable delay after the sheet appears.
+- **Tapjacking:** confirm buttons for destructive actions reject touches flagged as obscured (checked per touch in `SafeConfirmButton`, which also covers dialog windows) and enable 500 ms after the sheet appears.
+- **Confirmation integrity (review PR B):** a plan is confirmed by the user's tap: the confirm UI creates a `Confirmation` naming exactly the items it showed; ViewModels can't create one (Konsist). The guard rejects any op not in the confirmation and any op whose path ref differs from the path shown.
+- **Test key:** debug/test builds are `io.github.tomerar.keepclear.test`, so the public test key can't update a real install.
+- **Logs:** no file paths or names in logcat, in any build (Konsist).
+- **CI:** checkout steps use `persist-credentials: false`; the Gradle wrapper properties are checked (plain key=value, services.gradle.org, pinned SHA-256).
 
 ### T6. Symlinks, case and Unicode tricks
 **Attack:** symlinks or bind mounts making a "junk" path resolve into a PROTECTED area; `whatsapp/DATABASES` on a case-insensitive FUSE volume; NFD or zero-width characters to dodge PROTECTED matching.

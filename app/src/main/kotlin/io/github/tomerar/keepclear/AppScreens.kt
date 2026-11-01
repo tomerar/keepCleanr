@@ -20,8 +20,14 @@ fun AppScreens(
     onOpen: (Screen) -> Unit,
     onBack: () -> Unit,
     home: @Composable () -> Unit,
-    onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
-    onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit = {},
+    onRestore: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit = { _, _ -> },
+    onPurge: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit = { _, _ -> },
     safeActions: SafeActions = SafeActions(),
     move: MoveUiState = MoveUiState(),
     moveActions: MoveActions = MoveActions(),
@@ -59,8 +65,14 @@ private fun ScreenContent(
     onOpen: (Screen) -> Unit,
     onBack: () -> Unit,
     home: @Composable () -> Unit,
-    onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit,
-    onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit,
+    onRestore: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit,
+    onPurge: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit,
     safeActions: SafeActions,
     move: MoveUiState,
     moveActions: MoveActions,
@@ -165,14 +177,20 @@ private fun ScreenContent(
 }
 
 class SafeActions(
-    val onClean: (List<io.github.tomerar.keepclear.engine.classify.ClassifiedItem>) -> Unit = {},
-    val onUndo: (CleanResult) -> Unit = {},
+    val onClean: (
+        List<io.github.tomerar.keepclear.engine.classify.ClassifiedItem>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit = { _, _ -> },
+    val onUndo: (CleanResult, io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = { _, _ -> },
     val onTrim: () -> Unit = {},
     val onClearExternalCaches: () -> Unit = {},
     val onOpenTrash: () -> Unit = {},
     /** Owner decision 1.2: put a changed trashed item into a separate folder, after a confirm. */
-    val onRestoreChanged: (io.github.tomerar.keepclear.engine.trash.TrashEntry) -> Unit = {},
+    val onRestoreChanged: (
+        io.github.tomerar.keepclear.engine.trash.TrashEntry,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit = { _, _ -> },
     /** Owner decision 1.3: the user confirmed "this is the last copy" for the held-back items. */
-    val onConfirmLastCopy: () -> Unit = {},
+    val onConfirmLastCopy: (io.github.tomerar.keepclear.core.safety.Confirmation) -> Unit = {},
     val onDismissLastCopy: () -> Unit = {},
 )

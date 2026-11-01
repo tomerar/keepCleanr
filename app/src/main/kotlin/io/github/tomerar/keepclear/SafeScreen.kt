@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.core.safety.Confirmation
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Total
@@ -59,8 +60,8 @@ fun SafeScreen(
     result: CleanResult?,
     trimResult: Long?,
     showExternalCacheClear: Boolean,
-    onClean: (List<ClassifiedItem>) -> Unit,
-    onUndo: (CleanResult) -> Unit,
+    onClean: (List<ClassifiedItem>, Confirmation) -> Unit,
+    onUndo: (CleanResult, Confirmation) -> Unit,
     onTrim: () -> Unit,
     onClearExternalCaches: () -> Unit,
     onOpenGroup: (String) -> Unit,
@@ -119,7 +120,9 @@ fun SafeScreen(
                             }
                             if (r.skipped > 0) Text(stringResource(R.string.clean_skipped, r.skipped.toString()))
                             if (!r.simulated) {
-                                UndoRow(onUndo = { onUndo(r) }, onOpenTrash = onOpenTrash)
+                                UndoRow(onUndo = {
+                                    onUndo(r, userConfirmed(r.trashedPaths))
+                                }, onOpenTrash = onOpenTrash)
                             }
                         }
                     }
@@ -194,7 +197,7 @@ fun SafeScreen(
                     stringResource(R.string.clean_confirm_yes),
                     onClick = {
                         confirmClean = false
-                        onClean(selectedItems)
+                        onClean(selectedItems, userConfirmed(selectedItems.map { it.item.path }))
                     },
                     modifier = Modifier.testTag("confirmClean"),
                 )
