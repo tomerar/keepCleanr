@@ -32,6 +32,11 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Build-logic unit tests (policy checkers)
         run: ./gradlew -p build-logic test
+      - name: Samba test server for the SMB target's integration tests (M15)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends samba
+          scripts/samba-test-server.sh | sed 's/^export //' >> "$GITHUB_ENV"
       - name: ciCheck (format, string parity, unit + screenshot tests, Konsist, lint, manifest + dependency policies, both flavors)
         run: ./gradlew ciCheck :app:assembleFossRelease :app:assemblePlayRelease
       - name: Upload reports
