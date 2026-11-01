@@ -64,7 +64,11 @@ fun SafeConfirmButton(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Button(
             onClick = {
-                if (lastDownObscured[0]) blocked = true else onClick()
+                // The flag belongs to the gesture that just ended: reset it, so a later keyboard or TalkBack
+                // activation (no touch) or an unobscured tap is not blocked by an old rejected tap.
+                val obscured = lastDownObscured[0]
+                lastDownObscured[0] = false
+                if (obscured) blocked = true else onClick()
             },
             enabled = enabled,
             colors = colors ?: ButtonDefaults.buttonColors(

@@ -5,9 +5,11 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performSemanticsAction
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -83,6 +85,15 @@ class ObscuredTouchTest {
     fun `a normal tap confirms`() {
         show()
         tap(0)
+        assertEquals(1, clicks)
+    }
+
+    @Test
+    fun `after a rejected obscured tap, TalkBack or keyboard activation still works`() {
+        show()
+        tap(MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        assertEquals(0, clicks)
+        compose.onNodeWithTag("confirm").performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, clicks)
     }
 }
