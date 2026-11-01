@@ -66,6 +66,10 @@ class SettingsActions(
     /** M15: the network drive's address, the only place KeepClear connects to; null when none is set up. */
     val networkHost: String? = null,
     val onForgetNetworkDrive: () -> Unit = {},
+    /** CLS-7 / SET-2: what the user kept or marked as junk, and how to undo it. */
+    val choices: Choices = Choices(),
+    val onRemoveKept: (String) -> Unit = {},
+    val onRemoveJunk: (String) -> Unit = {},
 )
 
 /**
@@ -128,6 +132,19 @@ fun SettingsScreen(
                         )
                         TextButton(onClick = actions.onOpenTrash, modifier = Modifier.testTag("settingsOpenTrash")) {
                             Text(stringResource(R.string.settings_open_trash))
+                        }
+                    }
+                }
+            }
+            if (actions.choices.kept.isNotEmpty() || actions.choices.junk.isNotEmpty()) {
+                Card(Modifier.fillMaxWidth().testTag("keptByYou")) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.group_user_kept), style = MaterialTheme.typography.titleSmall)
+                        actions.choices.kept.sorted().forEach { path ->
+                            ChoiceRow(path, R.string.choice_kept_label, "removeKept") { actions.onRemoveKept(path) }
+                        }
+                        actions.choices.junk.sorted().forEach { folder ->
+                            ChoiceRow(folder, R.string.choice_junk_label, "removeJunk") { actions.onRemoveJunk(folder) }
                         }
                     }
                 }
@@ -211,6 +228,22 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = { step = 0 }) { Text(stringResource(R.string.move_cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun ChoiceRow(path: String, label: Int, tag: String, onRemove: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(label), style = MaterialTheme.typography.labelMedium)
+            Text(
+                io.github.tomerar.keepclear.core.common.Bidi.isolateLtr(path),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        TextButton(onClick = onRemove, modifier = Modifier.testTag("${tag}_$path")) {
+            Text(stringResource(R.string.choice_remove))
+        }
     }
 }
 

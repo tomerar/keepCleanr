@@ -36,6 +36,7 @@ fun AppScreens(
     settingsActions: SettingsActions = SettingsActions(),
     appActions: AppActions = AppActions(),
     appsActions: AppsActions = AppsActions(),
+    previewActions: PreviewActions = PreviewActions(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -56,6 +57,7 @@ fun AppScreens(
                 settingsActions,
                 appActions,
                 appsActions,
+                previewActions,
             )
         }
     }
@@ -87,6 +89,7 @@ private fun ScreenContent(
     settingsActions: SettingsActions,
     appActions: AppActions,
     appsActions: AppsActions,
+    previewActions: PreviewActions,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -208,7 +211,7 @@ private fun ScreenContent(
             val item = summary?.group(screen.ruleId, screen.category)?.items?.firstOrNull {
                 it.item.path == screen.path
             }
-            if (item == null) home() else PreviewScreen(item, onBack)
+            if (item == null) home() else PreviewScreen(item, onBack, previewActions)
         }
     }
 }

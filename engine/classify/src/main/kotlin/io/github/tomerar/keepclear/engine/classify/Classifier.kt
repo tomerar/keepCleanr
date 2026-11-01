@@ -2,6 +2,7 @@
 package io.github.tomerar.keepclear.engine.classify
 
 import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 
@@ -17,13 +18,24 @@ class Classifier(
     private val protectedPaths: ProtectedPaths = ProtectedPaths(),
     private val rules: List<Rule> = Rules.all,
     private val recentMillis: Long = 30L * 24 * 3_600_000,
+    /** CLS-7 "This is important to me": files or folders the user keeps; never offered for anything (SET-2). */
+    keptByUser: Collection<String> = emptyList(),
+    /** CLS-7 "Always treat as junk": folders whose files the user wants offered as SAFE (after PROTECTED). */
+    junkFolders: Collection<String> = emptyList(),
 ) {
+    private val kept = keptByUser.mapNotNull { CanonicalPath.of(it) }
+    private val userRules = listOfNotNull(Rules.userJunk(junkFolders))
+
+    private fun isKept(canonical: String) = kept.any { canonical == it || canonical.startsWith("$it/") }
+
     fun classify(item: ScanItem, facts: Set<Fact> = emptySet(), now: Long): ClassifiedItem {
         val (canonical, rel) = Rules.relativeSegments(item.path)
             ?: return protectedItem(item) // unparseable path: refuse to classify as anything deletable
         if (protectedPaths.isProtected(item.path)) return protectedItem(item)
+        // The user's own choices come after the built-in PROTECTED list and before every other rule.
+        if (isKept(canonical)) return keptItem(item)
         val input = RuleInput(item, canonical, rel, facts, now)
-        val rule = rules.firstOrNull { it.matches(input) } ?: Rules.unknown
+        val rule = (userRules + rules).firstOrNull { it.matches(input) } ?: Rules.unknown
         val recent = (now - item.mtimeMillis) in 0 until recentMillis
         // B1: thumbnails, temp files, old statuses and OS junk regenerate, so their age says nothing about
         // value. Everything else SAFE (archives, duplicates, other apps' bins, LOST.DIR) still needs review
@@ -55,8 +67,17 @@ class Classifier(
         risk = RiskChip.YOUR_CHATS,
     )
 
+    private fun keptItem(item: ScanItem) = ClassifiedItem(
+        item = item,
+        category = Category.PROTECTED,
+        ruleId = Rules.USER_KEPT,
+        group = GroupKey(Rules.USER_KEPT),
+        risk = RiskChip.MIGHT_BE_MEMORY,
+    )
+
     /** All rule ids whose explanation strings must exist (CI string completeness, CLS-2). */
     companion object {
-        val explainedRuleIds: List<String> = Rules.all.map { it.id } + Rules.unknown.id + Rules.PROTECTED_RULE_ID
+        val explainedRuleIds: List<String> =
+            Rules.all.map { it.id } + Rules.unknown.id + Rules.PROTECTED_RULE_ID + Rules.USER_KEPT + Rules.USER_JUNK
     }
 }

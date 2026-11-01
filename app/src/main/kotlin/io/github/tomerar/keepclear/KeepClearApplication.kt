@@ -79,6 +79,9 @@ class KeepClearApplication : Application() {
     }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
 
+    /** CLS-7 / SET-2: what the user kept or marked as junk. */
+    val userChoices by lazy { UserChoices(getSharedPreferences("user-choices", MODE_PRIVATE)) }
+
     /** Own folders are PROTECTED under this build's real package (test builds end in `.test`). */
     val protectedPaths by lazy { ProtectedPaths(ownPackage = packageName) }
 
@@ -176,7 +179,8 @@ class KeepClearApplication : Application() {
      * PROTECTED roots include every backup folder known right now (H3, safety rule 4).
      */
     suspend fun executor(onResult: (OpResult) -> Unit = {}): ActionExecutor {
-        val guarded = BackupRoots.protectedPaths(moveController.store.jobs(), packageName)
+        // SAFETY-3: what the user kept is PROTECTED at the choke point too, not only in the lists.
+        val guarded = BackupRoots.protectedPaths(moveController.store.jobs(), packageName, userChoices.state.value.kept)
         return ActionExecutor(
             // M12: MediaStore rows are re-checked through MediaStore and go to Android's trash with its consent.
             gateway = actionGateway,

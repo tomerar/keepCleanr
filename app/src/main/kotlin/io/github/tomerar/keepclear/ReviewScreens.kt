@@ -465,9 +465,26 @@ private fun Thumb(item: ClassifiedItem, sizeDp: Int, showName: Boolean = true) {
     }
 }
 
+/** CLS-7: the user's own choices from the item screen. */
+class PreviewActions(
+    /** "This is important to me": never offer this file again. */
+    val onKeep: (String) -> Unit = {},
+    /** "Always treat this folder as junk". */
+    val onAlwaysJunk: (String) -> Unit = {},
+)
+
 /** One item: preview, exact size and date, and the plain-language explanation (CLS-2). */
 @Composable
-fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit) {
+fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit, actions: PreviewActions = PreviewActions()) {
+    var confirmJunk by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val folder = item.item.path.substringBeforeLast('/')
+    // Not for what may be a memory or a chat, nor for what is already protected (decided conservatively, C12).
+    val canKeep = item.category != Category.PROTECTED
+    val canJunk = canKeep && item.ruleId != io.github.tomerar.keepclear.engine.classify.Rules.USER_JUNK &&
+        (item.category == Category.REVIEW || item.category == Category.SAFE) &&
+        item.risk != io.github.tomerar.keepclear.engine.classify.RiskChip.MIGHT_BE_MEMORY &&
+        item.risk != io.github.tomerar.keepclear.engine.classify.RiskChip.YOUR_CHATS &&
+        UserChoices.canBeJunk(folder)
     val locale = LocalConfiguration.current.locales[0]
     val text = RuleText.of(item.ruleId)
     val date = Instant.ofEpochMilli(item.item.mtimeMillis).atZone(ZoneId.systemDefault())
@@ -510,7 +527,45 @@ fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit) {
                 Text(stringResource(R.string.label_if_deleted), style = MaterialTheme.typography.labelLarge)
                 Text(stringResource(text.ifDeleted), style = MaterialTheme.typography.bodyMedium)
             }
+            if (canKeep) {
+                item {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            actions.onKeep(item.item.path)
+                            onBack()
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("keepItem"),
+                    ) { Text(stringResource(R.string.choice_keep)) }
+                }
+            }
+            if (canJunk) {
+                item {
+                    TextButton(onClick = { confirmJunk = true }, modifier = Modifier.testTag("alwaysJunk")) {
+                        Text(stringResource(R.string.choice_always_junk))
+                    }
+                }
+            }
         }
+    }
+    if (confirmJunk) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmJunk = false },
+            title = { Text(stringResource(R.string.choice_always_junk)) },
+            text = { Text(stringResource(R.string.choice_always_junk_body, Bidi.isolateLtr(folder))) },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        confirmJunk = false
+                        actions.onAlwaysJunk(folder)
+                        onBack()
+                    },
+                    modifier = Modifier.testTag("confirmAlwaysJunk"),
+                ) { Text(stringResource(R.string.choice_always_junk_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmJunk = false }) { Text(stringResource(R.string.move_cancel)) }
+            },
+        )
     }
 }
 

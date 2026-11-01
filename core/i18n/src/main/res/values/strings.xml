@@ -453,4 +453,11 @@
         <item quantity="one">%1$s could not be restored</item>
         <item quantity="other">%1$s could not be restored</item>
     </plurals>
+    <string name="choice_keep">This is important to me – never touch it</string>
+    <string name="choice_always_junk">Always treat this folder as junk</string>
+    <string name="choice_always_junk_body">Files in %1$s will be offered as junk in Clean now from the next scan. Recent files still need a look, and everything still goes to the trash for 30 days first. You can undo this in Settings › Kept by you.</string>
+    <string name="choice_always_junk_confirm">Treat as junk</string>
+    <string name="choice_kept_label">Never touched</string>
+    <string name="choice_junk_label">Always junk</string>
+    <string name="choice_remove">Remove</string>
 </resources>
