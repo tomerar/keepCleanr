@@ -37,6 +37,27 @@ class RuleTableTest {
     )
 
     @Test
+    fun `cloned-app storage (user 999) gets the same rules as the main user (MSG-3)`() {
+        val rels = listOf(
+            "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/IMG-1.jpg",
+            "Android/media/com.whatsapp/WhatsApp/Media/.Statuses/s.jpg",
+            "Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
+            "Pictures/Telegram/t.jpg",
+            "Download/Telegram/doc.pdf",
+            "Telegram/old.jpg",
+        )
+        for (rel in rels) {
+            val main = c(rel)
+            val clone = classifier.classify(
+                ScanItem(KPath.Local("/storage/emulated/999/$rel"), "/storage/emulated/999/$rel", 1000, old),
+                emptySet(),
+                now,
+            )
+            (clone.ruleId to clone.category) shouldBe (main.ruleId to main.category)
+        }
+    }
+
+    @Test
     fun `positive table`() {
         val table = listOf(
             Triple("DCIM/Camera/IMG_1.jpg", Category.MOVE, "camera"),

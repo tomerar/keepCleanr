@@ -54,6 +54,8 @@ data class HomeUiState(
     val mediaAccess: MediaAccess = MediaAccess.NONE,
     /** null in the `play` flavor (no all-files access there, ADR 0005). */
     val allFiles: Boolean? = null,
+    /** MSG-3: cloned-app storage that can be scanned, or that exists but is hidden from KeepClear. */
+    val cloned: ClonedStorage = ClonedStorage(),
     /** M12b, ONB-6: granted WhatsApp folders (their real paths), scanned while All files access is off. */
     val grantedFolders: List<String> = emptyList(),
     /** ONB-6: the picked folder wasn't WhatsApp's; the guide offers to try again. */
@@ -216,8 +218,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 spaceMode = SpaceMode.of(free),
             )
         }
+        _state.update { s ->
+            s.copy(
+                cloned = ClonedApps.probe(
+                    allFiles = s.allFiles == true,
+                    exists = { java.io.File(it).exists() },
+                    canList = { java.io.File(it).list() != null },
+                ),
+            )
+        }
         val after = _state.value
         val gainedAccess = before.mediaAccess != after.mediaAccess || before.allFiles != after.allFiles ||
+            before.cloned.readable != after.cloned.readable ||
             before.grantedFolders != after.grantedFolders
         val canScan = after.mediaAccess != MediaAccess.NONE || after.grantedFolders.isNotEmpty()
         if (canScan && (after.scan == ScanState.Idle || gainedAccess)) scan()
@@ -656,8 +668,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun storageRoots(): List<KPath.Local> {
         val sm = app.getSystemService(StorageManager::class.java)
-        return sm.storageVolumes.mapNotNull { v -> v.directory?.takeIf { v.state == "mounted" }?.absolutePath }
-            .map { KPath.Local(it) }
+        val volumes = sm.storageVolumes.mapNotNull { v -> v.directory?.takeIf { v.state == "mounted" }?.absolutePath }
+        // MSG-3: readable cloned-app storage is scanned with the same rules.
+        return (volumes + _state.value.cloned.readable).distinct().map { KPath.Local(it) }
     }
 }
 
