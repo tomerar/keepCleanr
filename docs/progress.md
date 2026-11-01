@@ -27,7 +27,7 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 | A Data safety | ✅ merged ([#15](https://github.com/tomerar/keepCleanr/pull/15)); 1 Codex finding fixed (an unplugged drive during Check backup no longer crashes) | H1 second uncached backup check (unplug + replug, or reboot) before freeing, copy re-hashed at free time, unknown providers copy-only, fake-capacity drive test; H2 witnesses never in trash / removable / backup folders, duplicate groups + witnesses in plans, executor re-stat; H3 same-volume block from paths, backup folders PROTECTED, `home:`/Downloads/Media roots on-phone; M2 purge needs 30 days of stored uptime too, clock jumps refused and logged; Lows: restore checks size/SHA, newer sidecars surface as untrusted, canonical purge containment, MOVE pauses on unexpected errors, manifests streamed with caps. Room v4. ADR 0007 amended. |
 | A2 Owner decisions on PR A | ✅ merged ([#16](https://github.com/tomerar/keepCleanr/pull/16)); 2 Codex findings fixed (MOVE frees never held back as last copy; last-copy plan keeps group sizes) | Changed file in the trash: marked "השתנה מאז שנמחק", restored only to `KeepClear/Restored-changed/` after a confirm. Last-copy guard: trashing a file that is the witness of a trashed duplicate needs "This is the last copy" (test fails without it). Manifest cap 16 MB approved. Google Drive postponed by owner (tasks.md M14). Room v5. |
 | B Hardening | 🔄 in review | Obscured touches rejected inside `SafeConfirmButton` (E-SEC-10 test); test builds are `io.github.tomerar.keepclear.test` ("KeepClear test" in the launcher); no paths in logcat (Konsist); plans confirmed by the user's tap (`Confirmation`, guard checks shown paths and ref = path; Konsist); wrapper file repaired (SHA-256 re-checked against services.gradle.org) + `WrapperPolicy`; `persist-credentials: false` + test. |
-| C UX for non-technical users | ⬜ | Intro, one primary action on Home, measured results, free-after-backup flow, no jargon, Hebrew plurals and rewrites, colours, MOVE progress, review grid accessibility, bidi, Settings. Then a new test APK. |
+| C UX for non-technical users | 🔄 in progress (waiting for B to merge) | Intro, one primary action on Home, measured results, free-after-backup flow, no jargon, Hebrew plurals and rewrites, colours, MOVE progress, review grid accessibility, bidi, Settings. Then a new test APK. |
 
 ## Test build for the phone (no computer needed)
 
@@ -71,6 +71,8 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 
 | # | Decision |
 |---|---|
+| C2 | "Restore all" asks first but shows no space warning: restoring is a rename on the same volume, so it never needs extra space (the dialog says so). |
+| C3 | "Check backup" was unreachable in the app after PR A (AppScreens dropped `onCheck`); fixed in PR C with a test. Found while testing, not by review. |
 | C1 | Last-copy guard (owner 1.3): when a trashed archive lists this file as an extracted witness (sizes differ, so no same-hash check is possible), the file is also treated as the last copy and needs the confirm. |
 
 ## Waiting for owner

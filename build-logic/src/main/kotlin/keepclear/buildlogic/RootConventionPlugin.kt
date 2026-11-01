@@ -18,6 +18,29 @@ class RootConventionPlugin : Plugin<Project> {
             description = "Fails if English and Hebrew string resources have different keys (I18N-1)."
             rootDir.set(layout.projectDirectory)
         }
+        tasks.register<CopyLintTask>("checkCopy") {
+            group = "verification"
+            description = "Fails if default-path strings use technical terms (P-2) or Hebrew writes Android in Latin."
+            rootDir.set(layout.projectDirectory)
+        }
+    }
+}
+
+abstract class CopyLintTask : DefaultTask() {
+    @get:Internal
+    abstract val rootDir: DirectoryProperty
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun run() {
+        val problems = CopyLint.checkTree(rootDir.get().asFile)
+        if (problems.isNotEmpty()) {
+            throw GradleException("Copy lint:\n" + problems.joinToString("\n") { " - $it" })
+        }
+        logger.lifecycle("Copy lint OK.")
     }
 }
 

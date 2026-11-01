@@ -53,6 +53,11 @@ fun SafeConfirmButton(
     modifier: Modifier = Modifier,
     delayMillis: Long = 500,
     colors: ButtonColors? = null,
+    /**
+     * True for actions that can't be undone (empty the trash, free now): error colours. False for actions that go
+     * to the 30-day trash: normal primary colours, so "recoverable" never looks alarming (review PR C).
+     */
+    permanent: Boolean = true,
 ) {
     var enabled by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(false) }
@@ -71,10 +76,17 @@ fun SafeConfirmButton(
                 if (obscured) blocked = true else onClick()
             },
             enabled = enabled,
-            colors = colors ?: ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            ),
+            colors = colors ?: if (permanent) {
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                )
+            } else {
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            },
             modifier = modifier.pointerInteropFilter { event ->
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                     lastDownObscured[0] = ObscuredTouch.isObscured(event.flags)

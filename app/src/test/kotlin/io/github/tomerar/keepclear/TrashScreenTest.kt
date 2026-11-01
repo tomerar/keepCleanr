@@ -4,10 +4,12 @@ package io.github.tomerar.keepclear
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.engine.trash.TrashEntry
 import io.github.tomerar.keepclear.engine.trash.TrashState
@@ -91,6 +93,7 @@ class TrashScreenTest {
                 releasable = setOf("a"),
             ),
         )
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("release_a"))
         compose.onNodeWithTag("release_a").assertIsDisplayed()
         compose.onNodeWithTag("release_b").assertDoesNotExist()
         // Trashed before the second check existed: the copy was only read once, possibly from the phone's memory.
@@ -125,6 +128,7 @@ class TrashScreenTest {
         }
         compose.onNodeWithTag("changed_a").assertIsDisplayed()
         compose.onNodeWithTag("restore_a").assertDoesNotExist()
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("restoreChanged_a"))
         compose.onNodeWithTag("restoreChanged_a").performClick()
         assertEquals(null, restoredChanged)
         compose.waitUntil(5_000) {

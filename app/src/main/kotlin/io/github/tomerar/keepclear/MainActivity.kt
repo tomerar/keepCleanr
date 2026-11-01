@@ -55,6 +55,15 @@ class MainActivity : ComponentActivity() {
                 val move by moveVm.state.collectAsStateWithLifecycle()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
+                // ONB-1: the intro on first launch, or when Settings asks for it again.
+                var showIntro by remember { mutableStateOf(!Onboarding.seen(this)) }
+                if (showIntro) {
+                    IntroScreen(onDone = {
+                        Onboarding.setSeen(this, true)
+                        showIntro = false
+                    })
+                    return@KeepClearTheme
+                }
                 val treeLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
                         if (uri != null) moveVm.onTreePicked(uri)
@@ -105,6 +114,13 @@ class MainActivity : ComponentActivity() {
                 }
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
+                        settingsActions = SettingsActions(
+                            currentLanguage = currentLanguage(),
+                            onLanguage = ::setLanguage,
+                            onReplayIntro = { showIntro = true },
+                            onOpenPrivacy = ::openPrivacy,
+                            version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+                        ),
                         testMode = TestModeUi(
                             on = testModeOn,
                             turnOn = app.testMode::turnOn,
@@ -140,6 +156,11 @@ class MainActivity : ComponentActivity() {
                             onCancelCheck = moveVm::cancelCheck,
                             onShare = { id -> move.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt) },
                             onOpenGooglePhotos = ::openGooglePhotos,
+                            hasRemovableDrive = ::hasRemovableDrive,
+                            onOpenTrash = {
+                                vm.loadTrash()
+                                vm.open(Screen.Trash)
+                            },
                         ),
                         safeActions = SafeActions(
                             onClean = vm::clean,
@@ -179,6 +200,7 @@ class MainActivity : ComponentActivity() {
                                     onScanAgain = vm::scan,
                                     onCancelScan = vm::cancelScan,
                                     onOpenSettings = { vm.open(Screen.Settings) },
+                                    onTrim = vm::trimCaches,
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                     onOpenTrash = {
                                         vm.loadTrash()
@@ -204,6 +226,38 @@ class MainActivity : ComponentActivity() {
         packageManager.getLaunchIntentForPackage("com.google.android.apps.photos")?.let(::startActivity)
     }
 
+    /** Per-app language (Android 13+); older phones open the system language settings. */
+    private fun setLanguage(tag: String?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val locales = if (tag == null) {
+                android.os.LocaleList.getEmptyLocaleList()
+            } else {
+                android.os.LocaleList.forLanguageTags(tag)
+            }
+            getSystemService(android.app.LocaleManager::class.java).applicationLocales = locales
+        } else {
+            runCatching { startActivity(Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)) }
+        }
+    }
+
+    private fun currentLanguage(): String? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getSystemService(android.app.LocaleManager::class.java).applicationLocales.get(0)?.language
+                ?.let { if (it == "he") "iw" else it }
+        } else {
+            null
+        }
+
+    /** PRIV-5: the privacy policy, opened in the browser (KeepClear itself has no internet access). */
+    private fun openPrivacy() {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PRIVACY_URL))) }
+    }
+
+    /** A USB drive or memory card is mounted (checked before Android's folder picker, review PR C). */
+    private fun hasRemovableDrive(): Boolean =
+        getSystemService(android.os.storage.StorageManager::class.java).storageVolumes
+            .any { it.isRemovable && it.state == android.os.Environment.MEDIA_MOUNTED }
+
     /** MOVE-13: share a receipt as plain text. */
     private fun shareReceipt(view: JobView) {
         val r = view.receipt
@@ -223,3 +277,5 @@ class MainActivity : ComponentActivity() {
         )
     }
 }
+
+private const val PRIVACY_URL = "https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md"
