@@ -55,7 +55,7 @@ These are non-negotiable. Each has a dedicated automated test.
 | SAFETY-6 | IF any item's state changed between scan and action (size, mtime, existence, ownership), THEN THE SYSTEM SHALL skip that item, report it as "changed, skipped", and never act on stale data. |
 | SAFETY-7 | WHEN app caches are cleared by Android (system trim, Shizuku, `ACTION_CLEAR_APP_CACHE`), THE SYSTEM SHALL label the action "cleared by Android, cannot be restored, the app rebuilds it" before confirmation. |
 | SAFETY-8 | THE SYSTEM SHALL keep a "keep at least one" invariant for duplicates: a duplicate group can never have all copies selected for deletion. |
-| SAFETY-9 | THE SYSTEM SHALL provide a developer/QA **dry-run** mode in which every destructive operation is logged and simulated but not executed. |
+| SAFETY-9 | THE SYSTEM SHALL provide a **test mode** (dry-run) in which every destructive operation is logged and simulated but not executed: trashing, restoring, emptying the trash, the daily purge of expired items, and asking Android to clear caches. Results say what *would* have happened ("would have freed 3.1 GB (test mode)"). **Debug/test builds start in test mode**, with an always-visible banner ("Test mode – no file will be deleted or moved" / "מצב בדיקה – שום קובץ לא יימחק או יועבר"); turning it off requires Settings › Advanced and two confirmations. Release builds start with it off. Copying to a backup drive still works in test mode (it changes no file on the phone). |
 | SAFETY-10 | THE SYSTEM SHALL never auto-select MOVE or REVIEW items; only SAFE items may be pre-selected. |
 
 ---

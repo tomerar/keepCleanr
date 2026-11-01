@@ -69,7 +69,8 @@ class TrashPurgeWorker(context: Context, params: WorkerParameters) : CoroutineWo
     override suspend fun doWork(): Result {
         val app = applicationContext as KeepClearApplication
         app.trashManager.recover()
-        app.trashManager.purgeExpired()
+        // Test mode: nothing is permanently deleted, not even expired trash.
+        if (!app.testMode.isOn) app.trashManager.purgeExpired()
         return Result.success()
     }
 

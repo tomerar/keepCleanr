@@ -39,7 +39,14 @@ import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.Total
 
 /** Result of a cleanup, for the result card and Undo (SAFE-1, E-DEL-15). */
-data class CleanResult(val done: Total, val skipped: Int, val failed: Int, val trashedPaths: List<String>)
+data class CleanResult(
+    val done: Total,
+    val skipped: Int,
+    val failed: Int,
+    val trashedPaths: List<String>,
+    /** Test mode (SAFETY-9): nothing was changed; [done] is what would have been freed. */
+    val simulated: Boolean = false,
+)
 
 /**
  * "Clean now" (SAFE-1…6): SAFE groups are pre-selected (SAFETY-10 allows it only for SAFE), the user can
@@ -94,17 +101,25 @@ fun SafeScreen(
                 item {
                     Card(modifier = Modifier.fillMaxWidth().testTag("cleanResult")) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                stringResource(R.string.clean_done, totalText(r.done)),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Text(stringResource(R.string.clean_done_space), style = MaterialTheme.typography.bodyMedium)
+                            if (r.simulated) {
+                                Text(
+                                    stringResource(R.string.test_mode_would_free, totalText(r.done)),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.testTag("simulatedResult"),
+                                )
+                            } else {
+                                Text(
+                                    stringResource(R.string.clean_done, totalText(r.done)),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    stringResource(R.string.clean_done_space),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
                             if (r.skipped > 0) Text(stringResource(R.string.clean_skipped, r.skipped.toString()))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { onUndo(r) }, modifier = Modifier.testTag("undo")) {
-                                    Text(stringResource(R.string.clean_undo))
-                                }
-                                TextButton(onClick = onOpenTrash) { Text(stringResource(R.string.clean_open_trash)) }
+                            if (!r.simulated) {
+                                UndoRow(onUndo = { onUndo(r) }, onOpenTrash = onOpenTrash)
                             }
                         }
                     }
@@ -144,7 +159,11 @@ fun SafeScreen(
                         Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
                         trimResult?.let {
                             Text(
-                                stringResource(R.string.trim_result, ByteSize.format(it, locale)),
+                                if (it == TestMode.TRIM_SKIPPED) {
+                                    stringResource(R.string.test_mode_caches_not_cleared)
+                                } else {
+                                    stringResource(R.string.trim_result, ByteSize.format(it, locale))
+                                },
                                 modifier = Modifier.testTag("trimResult"),
                             )
                         }
@@ -204,5 +223,15 @@ fun SafeScreen(
                 TextButton(onClick = { confirmTrim = false }) { Text(stringResource(R.string.trash_cancel)) }
             },
         )
+    }
+}
+
+@Composable
+private fun UndoRow(onUndo: () -> Unit, onOpenTrash: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = onUndo, modifier = Modifier.testTag("undo")) {
+            Text(stringResource(R.string.clean_undo))
+        }
+        TextButton(onClick = onOpenTrash) { Text(stringResource(R.string.clean_open_trash)) }
     }
 }

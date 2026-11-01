@@ -209,12 +209,19 @@ fun GroupScreen(
                         Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    stringResource(R.string.clean_done, totalText(r.done)),
+                                    stringResource(
+                                        if (r.simulated) R.string.test_mode_would_free else R.string.clean_done,
+                                        totalText(r.done),
+                                    ),
                                     modifier = Modifier.weight(1f),
                                 )
-                                TextButton(onClick = {
-                                    onUndo(r)
-                                }, modifier = Modifier.testTag("undo")) { Text(stringResource(R.string.clean_undo)) }
+                                if (!r.simulated) {
+                                    TextButton(onClick = {
+                                        onUndo(r)
+                                    }, modifier = Modifier.testTag("undo")) {
+                                        Text(stringResource(R.string.clean_undo))
+                                    }
+                                }
                             }
                         }
                     }

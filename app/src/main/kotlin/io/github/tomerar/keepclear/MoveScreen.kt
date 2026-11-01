@@ -255,6 +255,13 @@ private fun FreeResultCard(r: FreeResult) {
     val locale = LocalConfiguration.current.locales[0]
     val nf = NumberFormat.getIntegerInstance(locale)
     Card(Modifier.fillMaxWidth().testTag("freeResult")) {
+        if (r.simulated) {
+            Text(
+                stringResource(R.string.test_mode_would_free, totalText(Total(r.done, r.bytes))),
+                modifier = Modifier.padding(12.dp).testTag("simulatedResult"),
+            )
+            return@Card
+        }
         Text(
             stringResource(
                 R.string.move_free_result,

@@ -62,7 +62,15 @@ data class JobView(val job: MoveJob, val receipt: Receipt, val canReadBack: Bool
 }
 
 /** Result of freeing originals after a verified copy (MOVE-10). */
-data class FreeResult(val jobId: String, val done: Int, val bytes: Long, val skipped: Int, val failed: Int)
+data class FreeResult(
+    val jobId: String,
+    val done: Int,
+    val bytes: Long,
+    val skipped: Int,
+    val failed: Int,
+    /** Test mode (SAFETY-9): nothing was moved to the trash; [done]/[bytes] would have been. */
+    val simulated: Boolean = false,
+)
 
 data class MoveUiState(
     val jobs: List<JobView> = emptyList(),
@@ -227,15 +235,24 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 .confirm(System.currentTimeMillis(), app.sessionId)
             val report = withContext(Dispatchers.IO) { app.executor().run(plan) }
             val result = when (report) {
-                is ExecutionReport.Ran -> FreeResult(
-                    jobId,
-                    report.done.size,
-                    report.done.sumOf { it.op.expectedSize },
-                    report.skipped.size,
-                    report.failed.size,
-                )
+                is ExecutionReport.Ran -> {
+                    val wouldHave = report.results
+                        .filterIsInstance<io.github.tomerar.keepclear.core.safety.OpResult.Simulated>()
+                        .map { it.op }
+                    val freed = report.done.map { it.op } + wouldHave
+                    FreeResult(
+                        jobId,
+                        freed.size,
+                        freed.sumOf { it.expectedSize },
+                        report.skipped.size,
+                        report.failed.size,
+                        simulated = wouldHave.isNotEmpty(),
+                    )
+                }
 
-                is ExecutionReport.Rejected -> FreeResult(jobId, 0, 0, 0, ops.size)
+                is ExecutionReport.Rejected -> {
+                    FreeResult(jobId, 0, 0, 0, ops.size)
+                }
             }
             _state.update { it.copy(busy = false, freeResult = result) }
         }

@@ -183,4 +183,17 @@
     <string name="move_notification_paused">הגיבוי הושהה. אפשר לפתוח את KeepClear כדי להמשיך.</string>
     <string name="move_notification_updated">הגיבוי הושהה בגלל עדכון של האפליקציה. אפשר להקיש כדי להמשיך.</string>
     <string name="move_receipt_text">קבלת גיבוי KeepClear\nכונן: %1$s\nתיקייה: %2$s\nקבצים שנבדקו ב-SHA-256: %3$d (%4$s)\nקבצים שדולגו או לא הועתקו: %5$d\nבדיקה במחשב: sha256sum -c SHA256SUMS\nהעותק לא מוצפן.</string>
+    <string name="test_mode_banner">מצב בדיקה – שום קובץ לא יימחק או יועבר</string>
+    <string name="test_mode_would_free">היה מתפנה %1$s (מצב בדיקה). שום דבר לא נמחק ולא הועבר.</string>
+    <string name="test_mode_caches_not_cleared">מצב בדיקה: לא ביקשנו מ-Android לנקות את המטמון של האפליקציות.</string>
+    <string name="test_mode_title">מצב בדיקה</string>
+    <string name="test_mode_body">כשמצב בדיקה פועל, ‏KeepClear רק מראה מה היה עושה. שום קובץ לא נמחק, לא עובר לסל המחזור, לא משוחזר ולא מנוקה.</string>
+    <string name="test_mode_off_title">לכבות את מצב הבדיקה?</string>
+    <string name="test_mode_off_body">מעכשיו ניקוי, מחיקה ופינוי מקום ישנו באמת קבצים בטלפון. הכול עדיין עובר קודם לסל המחזור של KeepClear ל-30 יום.</string>
+    <string name="test_mode_off_continue">המשך</string>
+    <string name="test_mode_off_title2">בטוח?</string>
+    <string name="test_mode_off_body2">מעכשיו קבצים יעברו באמת לסל המחזור. אפשר להפעיל שוב את מצב הבדיקה בכל זמן.</string>
+    <string name="test_mode_off_confirm">לכבות את מצב הבדיקה</string>
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_advanced">מתקדם</string>
 </resources>

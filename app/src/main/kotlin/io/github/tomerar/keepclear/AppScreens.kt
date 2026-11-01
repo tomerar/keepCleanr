@@ -2,9 +2,18 @@
 package io.github.tomerar.keepclear
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 
-/** Shows the top of the navigation stack; system back pops it. */
+/** Test mode (SAFETY-9) for [AppScreens]: the banner on every screen and the Settings switch. */
+class TestModeUi(val on: Boolean = false, val turnOn: () -> Unit = {}, val turnOff: () -> Unit = {})
+
+/** Every screen, with the always-visible test-mode banner on top while test mode is on. */
 @Composable
 fun AppScreens(
     state: HomeUiState,
@@ -17,6 +26,43 @@ fun AppScreens(
     move: MoveUiState = MoveUiState(),
     moveActions: MoveActions = MoveActions(),
     notificationsOff: Boolean = false,
+    testMode: TestModeUi = TestModeUi(),
+) {
+    Column {
+        if (testMode.on) TestModeBanner()
+        // The banner already pads for the status bar; the screens below must not pad for it again.
+        Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
+            ScreenContent(
+                state,
+                onOpen,
+                onBack,
+                home,
+                onRestore,
+                onPurge,
+                safeActions,
+                move,
+                moveActions,
+                notificationsOff,
+                testMode,
+            )
+        }
+    }
+}
+
+/** Shows the top of the navigation stack; system back pops it. */
+@Composable
+private fun ScreenContent(
+    state: HomeUiState,
+    onOpen: (Screen) -> Unit,
+    onBack: () -> Unit,
+    home: @Composable () -> Unit,
+    onRestore: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit,
+    onPurge: (List<io.github.tomerar.keepclear.engine.trash.TrashEntry>) -> Unit,
+    safeActions: SafeActions,
+    move: MoveUiState,
+    moveActions: MoveActions,
+    notificationsOff: Boolean,
+    testMode: TestModeUi,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -96,6 +142,10 @@ fun AppScreens(
                     onUndo = safeActions.onUndo,
                 )
             }
+        }
+
+        Screen.Settings -> {
+            SettingsScreen(testMode.on, testMode.turnOn, testMode.turnOff, onBack)
         }
 
         Screen.Trash -> {
