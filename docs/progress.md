@@ -37,8 +37,8 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 |---|---|---|---|
 | M11 Phone-first polish | ✅ merged ([#19](https://github.com/tomerar/keepCleanr/pull/19)); 1 Codex finding fixed (package-name case); fixed a MoveService start/stop race found by CI | | SAFE-9 app folders (per-app, no delete; `Android/data`/`obb` PROTECTED), SAFE-10 one app at a time (measured), TRASH-7 uninstall note on Trash + Settings, Check backup fault tests (missing / truncated / bit-flipped). Plain-language pass, Check backup, cache trim on Home and copy lint landed in PRs A–C. |
 | M12a `play`: Android's trash for MediaStore items | ✅ merged ([#20](https://github.com/tomerar/keepCleanr/pull/20)); 3 Codex findings fixed (media item URIs instead of Files URIs, also caught by the emulator test; one Android request built at a time; only approved dialogs counted) | | MediaStore-only items (play, or no All files access) go to Android's own trash after Android's confirmation (`createTrashRequest`, batches of 2,000); re-checked through MediaStore first (size, mtime, trashed state); restore and "Delete these now" for Android's trash on the Trash screen (second confirmation + Android's dialog). Executor gained a consent step (`NeedsConsent`). |
-| M12b-1 `SafGateway` + contract suite on a device | 🔄 in review | | `core:storage-saf`: StorageGateway over granted folders; never overwrites (a provider's "x (1)" copy is removed and reported), deletes only files and empty folders, moves via `moveDocument`/`renameDocument` in the order whose intermediate name is free. The M1 contract suite runs on the emulator against the fake USB drive. |
-| M12b-2 `play`: WhatsApp/old folders through a granted folder (ONB-6) + trash inside it | ⬜ next | | Scan a granted tree, folder trash inside the same tree (`.KeepClearTrash` there), restore. |
+| M12b-1 `SafGateway` + contract suite on a device | ✅ merged ([#22](https://github.com/tomerar/keepCleanr/pull/22)); 2 Codex findings fixed (a half-done two-step rename is undone; stream failures map to storage errors) | | `core:storage-saf`: StorageGateway over granted folders; never overwrites (a provider's "x (1)" copy is removed and reported), deletes only files and empty folders, moves via `moveDocument`/`renameDocument` in the order whose intermediate name is free. The M1 contract suite runs on the emulator against the fake USB drive. |
+| M12b-2 `play`: WhatsApp's folder through Android's folder picker (ONB-6) + trash inside it | 🔄 in review | | Home card → explainer with the 2 steps → picker opens at WhatsApp's folder; only WhatsApp's own folder (with `Media/`) is kept, otherwise "try again". The folder is mounted at its real path (`SafTreeMount` + `MountedGateway`), so scan, rules, PROTECTED paths and the trash work unchanged; its trash is `<folder>/.KeepClearTrash`. Old-phone folders: later (only WhatsApp is accepted now). |
 | M13 Apps | ✅ merged ([#21](https://github.com/tomerar/keepCleanr/pull/21)); 1 Codex finding fixed (no uninstall in trial mode, SAFETY-9) | | Apps screen: usage access asked only there (ONB-7), apps by size, "not opened in about 6 months" (calendar months; apps installed less than 6 months ago never count), uninstall through Android's own window (`REQUEST_DELETE_PACKAGES`, documented in PRIVACY.md), App info for the rest; "Clear one app at a time" sorted by temporary-file size when usage access is on (SAFE-10). |
 
 ## Test build for the phone (no computer needed)
@@ -59,7 +59,7 @@ To build one on demand: Actions › CI › **Run workflow** on `main`.
 
 Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are marked *optional (developer)*. Record results in `docs/device-reports/`.
 
-**Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete), D13-1. **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
+**Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete), D13-1, D12-1. **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
 
 | # | Milestone | Check | When | Status |
 |---|---|---|---|---|
@@ -69,6 +69,7 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | D3-3 | M3 | Parallel apps: if WhatsApp is cloned (Settings › Apps › Parallel apps), does KeepClear show the clone's media? *Optional (developer): `adb shell ls /storage/emulated/999` and `pm list users`.* | Now | waiting for owner |
 | D5-1 | M5 | Scroll a 2,000-screenshot group: smooth, no visible jank | Now | waiting for owner |
 | D8-1 | M8 | Review › Screenshots and AI images: are the groups right? Select a month and open the confirm list, then **Cancel** (deleting waits until home) | Now (read-only part) | waiting for owner |
+| D12-1 | M12b | Needs the `play` build (W2): Home › "Photos and files from WhatsApp": does the picker open at WhatsApp's folder? After "Use this folder", does a new scan include sent photos and voice notes? Don't delete | Now (after W2) | waiting for owner |
 | D13-1 | M13 | Home › Apps: turn on Usage access when asked. Are app sizes close to Settings › Apps? Is "Not opened in about 6 months" right for your 11 apps? Don't tap Uninstall | Now | waiting for owner |
 | D7-1 | M7 | OnePlus File Manager bin: in the Files app, show hidden files; is there `.FileManagerRecycler` in internal storage? *Optional (developer): `adb shell ls -la /sdcard/`.* | Any time | waiting for owner |
 | D7-3 | M7 | "Clear app caches": how many bytes does it actually free? Research predicts about 0 on a 93%-full phone ([09](research/09-accessibility-cache-cleaner.md) §1.2); the result decides SAFE-10's priority | Any time (clears caches only) | waiting for owner |
@@ -87,6 +88,9 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | C2 | "Restore all" asks first but shows no space warning: restoring is a rename on the same volume, so it never needs extra space (the dialog says so). |
 | C4 | SAFE-9: `Android/obb` is PROTECTED like `Android/data` (game data; SAFE-9 names only data). |
 | C3 | "Check backup" was unreachable in the app after PR A (AppScreens dropped `onCheck`); fixed in PR C with a test. Found while testing, not by review. |
+| C5 | M12b: when a folder's access is taken back (or an SD card is out), its trash records are kept and never dropped as "file gone"; they come back when access does. |
+| C6 | M12b: in a granted folder, untrusted trash items (sidecar signed by another install) restore inside that folder, to `<folder>/Download/KeepClear Restored/`, because nothing can move out of a granted folder. |
+| C7 | M12b: the WhatsApp folder card shows only in the `play` build; in `foss`, All files access already covers WhatsApp. |
 | C1 | Last-copy guard (owner 1.3): when a trashed archive lists this file as an extracted witness (sizes differ, so no same-hash check is possible), the file is also treated as the last copy and needs the confirm. |
 
 ## Waiting for owner

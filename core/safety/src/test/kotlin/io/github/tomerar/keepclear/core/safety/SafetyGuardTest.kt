@@ -97,6 +97,25 @@ class SafetyGuardTest {
     }
 
     @Test
+    fun `a granted folder's own trash may be emptied, nothing deeper or elsewhere (M12b, PR 23 review)`() {
+        val whatsapp = "$ROOT/Android/media/com.whatsapp/WhatsApp"
+        val trashed = "$whatsapp/.KeepClearTrash/20261101/1/IMG-1.jpg"
+        // Without the grant it is a user folder named like the trash: refused.
+        guard.check(plan(op(trashed, OpKind.PURGE)), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        val granted = SafetyGuard(ProtectedPaths(), grantedTrashRoots = listOf(whatsapp))
+        granted.check(plan(op(trashed, OpKind.PURGE)), SESSION) shouldBe SafetyGuard.Verdict.Accepted
+        // Deeper look-alikes, the trash folder itself and other folders stay refused.
+        granted.check(plan(op("$whatsapp/Media/.KeepClearTrash/x.jpg", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        granted.check(plan(op("$whatsapp/.KeepClearTrash", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        granted.check(plan(op("$whatsapp/.KeepClear\u200BTrash/x.jpg", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        granted.check(plan(op("$ROOT/Android/media/com.whatsapp/Other/.KeepClearTrash/x", OpKind.PURGE)), SESSION)
+            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    }
+
+    @Test
     fun `a plan confirmed by the user's tap may only hold what was shown (review PR B)`() {
         val a = op(photo)
         val other = op("$ROOT/DCIM/Camera/other.jpg")

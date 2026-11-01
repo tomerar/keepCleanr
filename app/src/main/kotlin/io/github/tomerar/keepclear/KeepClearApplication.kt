@@ -10,8 +10,13 @@ import io.github.tomerar.keepclear.core.safety.ActionExecutor
 import io.github.tomerar.keepclear.core.safety.OpResult
 import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.safety.SafetyGuard
+import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.file.FileGateway
+import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.core.storage.media.MediaStoreSource
+import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
+import io.github.tomerar.keepclear.core.storage.saf.SafGateway
+import io.github.tomerar.keepclear.core.storage.saf.SafTreeMount
 import io.github.tomerar.keepclear.engine.trash.TrashManager
 import java.util.UUID
 
@@ -26,6 +31,51 @@ class KeepClearApplication : Application() {
     val database by lazy { KeepClearDatabase.build(this) }
     val scanIndex by lazy { ScanIndex(database) }
     val fileGateway by lazy { FileGateway() }
+
+    /**
+     * M12b, ONB-6: WhatsApp folders the user granted through the system picker, mounted at their real path while
+     * All files access is off. Read once per resume ([refreshGrantedFolders]), not on every file operation.
+     */
+    @Volatile
+    var grantedFolders: Map<String, io.github.tomerar.keepclear.core.storage.StorageGateway> = emptyMap()
+        private set
+
+    /** One mount per granted folder, kept so its path cache survives a refresh. */
+    private val mountCache = java.util.concurrent.ConcurrentHashMap<String, SafTreeMount>()
+
+    val safGateway by lazy { SafGateway(contentResolver) }
+
+    /**
+     * Every granted WhatsApp folder, in any access mode. These stay trash volumes even after All files access is
+     * turned on (then the file gateway reaches them), so items trashed earlier are never orphaned (PR #23 review).
+     */
+    @Volatile
+    var grantedFolderRoots: Set<String> = emptySet()
+        private set
+
+    /** Re-reads the persisted folder grants: at start (also for the background purge) and on every resume. */
+    fun refreshGrantedFolders(allFiles: Boolean = BuildConfig.FLAVOR == "foss" && MediaAccess.hasAllFiles()) {
+        val found = contentResolver.persistedUriPermissions
+            .filter { it.isReadPermission && it.isWritePermission }
+            .mapNotNull { permission ->
+                val uri = permission.uri
+                if (!android.provider.DocumentsContract.isTreeUri(uri)) return@mapNotNull null
+                val id = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                if (!GrantedFolders.isWhatsAppFolder(id)) return@mapNotNull null
+                val point = GrantedFolders.mountPoint(uri.authority.orEmpty(), id) ?: return@mapNotNull null
+                point to mountCache.getOrPut(uri.toString()) {
+                    SafTreeMount(safGateway, KPath.Saf(uri.toString(), id), point)
+                }
+            }
+        val split = GrantedFolderSplit.of(found.toMap(), allFiles)
+        grantedFolderRoots = split.trashRoots
+        grantedFolders = split.mounts
+    }
+
+    /** Every file path goes through here: the phone's files, or a granted folder's documents (M12b). */
+    val localGateway by lazy {
+        io.github.tomerar.keepclear.core.storage.MountedGateway(fileGateway) { grantedFolders }
+    }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
 
     /** Own folders are PROTECTED under this build's real package (test builds end in `.test`). */
@@ -37,12 +87,14 @@ class KeepClearApplication : Application() {
 
     val trashManager by lazy {
         TrashManager(
-            gateway = fileGateway,
+            gateway = localGateway,
             index = RoomTrashIndex(database.trashDao()),
             signer = KeystoreSidecarSigner(),
             clock = trashClock,
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
+            // M12b: a granted folder keeps its own trash inside it (documents can't move out of it).
+            grantedRoots = { grantedFolderRoots.toList() },
             // E-DEL-10: a refused purge run is logged (no file paths).
             onClockJump = { j ->
                 android.util.Log.w(
@@ -59,7 +111,7 @@ class KeepClearApplication : Application() {
     /** File paths through the file gateway, MediaStore rows through MediaStore (M12). */
     val actionGateway by lazy {
         io.github.tomerar.keepclear.core.storage.RoutingGateway(
-            fileGateway,
+            localGateway,
             media = io.github.tomerar.keepclear.core.storage.media.MediaGateway(contentResolver),
         )
     }
@@ -94,7 +146,8 @@ class KeepClearApplication : Application() {
         return ActionExecutor(
             // M12: MediaStore rows are re-checked through MediaStore and go to Android's trash with its consent.
             gateway = actionGateway,
-            guard = SafetyGuard(guarded),
+            // M12b: a granted folder's own trash may be emptied (only directly inside that folder).
+            guard = SafetyGuard(guarded, grantedTrashRoots = grantedFolderRoots),
             protectedPaths = guarded,
             handler = io.github.tomerar.keepclear.core.storage.media.MediaConsentHandler(trashManager, mediaRequests),
             currentSession = sessionId,
@@ -112,6 +165,19 @@ class KeepClearApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Before any trash work, also in a process WorkManager starts for the daily purge (PR #23 review).
+        runCatching { refreshGrantedFolders() }
         TrashPurgeWorker.schedule(this)
+    }
+}
+
+/**
+ * M12b: every granted folder is a trash volume in any access mode, but it is mounted (routed through SAF) only
+ * without All files access; with it, the phone's own file gateway reaches the folder directly (PR #23 review).
+ */
+data class GrantedFolderSplit<T>(val trashRoots: Set<String>, val mounts: Map<String, T>) {
+    companion object {
+        fun <T> of(found: Map<String, T>, allFiles: Boolean) =
+            GrantedFolderSplit(found.keys, if (allFiles) emptyMap() else found)
     }
 }

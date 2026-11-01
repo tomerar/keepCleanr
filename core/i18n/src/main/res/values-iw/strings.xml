@@ -414,4 +414,14 @@
         <item quantity="other">%1$s אפליקציות</item>
     </plurals>
     <string name="test_mode_uninstall_blocked">מצב ניסיון: שום אפליקציה לא מוסרת. כדי להסיר את האפליקציה הזאת, אפשר לכבות את מצב הניסיון בהגדרות › מתקדם, או להשתמש בהגדרות › אפליקציות של אנדרואיד.</string>
+    <string name="whatsapp_card_title">תמונות וקבצים מוואטסאפ</string>
+    <string name="whatsapp_card_body">תמונות ששלחת, הקלטות קוליות ומסמכים מוואטסאפ לא מופיעים בגלריה. כדי לכלול אותם, אפשר לתת ל-KeepClear גישה לתיקייה של וואטסאפ.</string>
+    <string name="whatsapp_card_button">לבחירת התיקייה של וואטסאפ</string>
+    <string name="explainer_whatsapp_title">גישה לתיקייה של וואטסאפ</string>
+    <string name="explainer_whatsapp_why">כדי למצוא תמונות ששלחת, הקלטות קוליות ומסמכים שוואטסאפ לא מציגה בגלריה.</string>
+    <string name="explainer_whatsapp_never">KeepClear לא נוגעת בגיבויי הצ\'אטים ובמסד ההודעות; הם נשארים מוגנים. שום דבר לא יוצא מהטלפון.</string>
+    <string name="explainer_whatsapp_steps">1. אנדרואיד תפתח את התיקייה בשם WhatsApp. 2. להקיש על \"שימוש בתיקייה הזו\" ואז על \"אישור\".</string>
+    <string name="explainer_label_steps">איך</string>
+    <string name="whatsapp_wrong_folder">זו לא הייתה התיקייה של וואטסאפ, ולכן לא נוסף כלום. צריך לבחור את התיקייה בשם WhatsApp.</string>
+    <string name="whatsapp_try_again">לנסות שוב</string>
 </resources>

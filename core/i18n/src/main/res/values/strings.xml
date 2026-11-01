@@ -392,4 +392,14 @@
         <item quantity="other">%1$s apps</item>
     </plurals>
     <string name="test_mode_uninstall_blocked">Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android\'s Settings › Apps.</string>
+    <string name="whatsapp_card_title">Photos and files from WhatsApp</string>
+    <string name="whatsapp_card_body">Photos you sent, voice notes and documents from WhatsApp are not in the gallery. Let KeepClear see WhatsApp\'s folder to include them.</string>
+    <string name="whatsapp_card_button">Choose WhatsApp\'s folder</string>
+    <string name="explainer_whatsapp_title">Show KeepClear WhatsApp\'s folder</string>
+    <string name="explainer_whatsapp_why">To find photos you sent, voice notes and documents that WhatsApp keeps out of the gallery.</string>
+    <string name="explainer_whatsapp_never">KeepClear never touches chat backups or the message database; they stay protected. Nothing leaves the phone.</string>
+    <string name="explainer_whatsapp_steps">1. Android opens the folder named WhatsApp. 2. Tap \"Use this folder\", then \"Allow\".</string>
+    <string name="explainer_label_steps">How</string>
+    <string name="whatsapp_wrong_folder">That wasn\'t WhatsApp\'s folder, so nothing was added. Choose the folder named WhatsApp (Android › media › com.whatsapp › WhatsApp).</string>
+    <string name="whatsapp_try_again">Try again</string>
 </resources>

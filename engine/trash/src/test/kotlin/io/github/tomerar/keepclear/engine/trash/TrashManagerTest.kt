@@ -192,6 +192,51 @@ class TrashManagerTest {
         trash.purgeExpired() shouldBe 10
     }
 
+    private val whatsapp = "$root/Android/media/com.whatsapp/WhatsApp"
+    private var granted = listOf(whatsapp)
+
+    private fun grantedManager() = TrashManager(
+        fake,
+        index,
+        signer,
+        clock,
+        protectedPaths,
+        listOf(root, sd),
+        grantedRoots = { granted },
+        newId = { "00000000-0000-4000-8000-%012d".format(++ids) },
+    )
+
+    @Test
+    fun `a file in a granted folder is trashed inside that folder (M12b)`(): Unit = runBlocking {
+        val sent = "$whatsapp/Media/WhatsApp Images/Sent/IMG-1.jpg"
+        fake.addFile(sent, bytes, mtime = 10)
+        val manager = grantedManager()
+        val executor = ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, manager, "s")
+        val s = fake.stat(KPath.Local(sent))!!
+        val plan = ActionPlan("p", listOf(PlannedOp(s.path, sent, OpKind.TRASH, false, s.size, s.mtimeMillis)), "t")
+        (executor.run(plan.confirm(1, "s")) as ExecutionReport.Ran).done shouldHaveSize 1
+        val entry = index.all().single()
+        entry.volumeRoot shouldBe whatsapp
+        entry.trashedPath shouldContain "$whatsapp/.KeepClearTrash/"
+    }
+
+    @Test
+    fun `losing folder access never drops its trash records (M12b)`(): Unit = runBlocking {
+        val sent = "$whatsapp/Media/WhatsApp Images/Sent/IMG-1.jpg"
+        fake.addFile(sent, bytes, mtime = 10)
+        val manager = grantedManager()
+        val executor = ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, manager, "s")
+        val s = fake.stat(KPath.Local(sent))!!
+        val plan = ActionPlan("p", listOf(PlannedOp(s.path, sent, OpKind.TRASH, false, s.size, s.mtimeMillis)), "t")
+        executor.run(plan.confirm(1, "s"))
+        val entry = index.all().single()
+        // Access taken back: the folder is no longer a known root and its files can't be seen.
+        granted = emptyList()
+        fake.delete(KPath.Local(entry.trashedPath))
+        manager.recover().missingDropped shouldBe 0
+        index.all().single().id shouldBe entry.id
+    }
+
     @Test
     fun `lost index is rebuilt from signed sidecars (E-DEL-8)`(): Unit = runBlocking {
         val entry = trashOne()

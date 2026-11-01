@@ -32,6 +32,7 @@ import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
+import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,6 +92,11 @@ class MainActivity : ComponentActivity() {
                         consentLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(next).build())
                     }
                 }
+                // M12b, ONB-6: the system folder picker, opened at WhatsApp's folder.
+                val whatsAppLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+                        vm.whatsAppFolderPicked(uri)
+                    }
                 val externalCacheLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                         vm.refresh()
@@ -253,6 +259,14 @@ class MainActivity : ComponentActivity() {
                                     onTrim = vm::trimCaches,
                                     onOneByOne = { openOneByOne(vm) },
                                     onOpenApps = { openApps(vm) },
+                                    onPickWhatsApp = {
+                                        val initial = android.provider.DocumentsContract.buildDocumentUri(
+                                            GrantedFolders.EXTERNAL_STORAGE,
+                                            GrantedFolders.initialDocumentId(),
+                                        )
+                                        runCatching { whatsAppLauncher.launch(initial) }
+                                    },
+                                    onDismissWrongFolder = vm::dismissWrongFolder,
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                     onOpenTrash = {
                                         vm.loadTrash()

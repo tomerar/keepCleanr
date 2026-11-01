@@ -163,7 +163,7 @@ class MoveService : Service() {
         var verified = store.files(jobId).count { it.state == MoveFileState.VERIFIED }
         val nm = getSystemService(NotificationManager::class.java)
         val engine = MoveEngine(
-            source = app.fileGateway,
+            source = app.localGateway,
             target = check.target,
             store = store,
             onProgress = { f ->

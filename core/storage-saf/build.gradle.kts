@@ -20,6 +20,8 @@ dependencies {
     // The JVM contract suite (tasks.md M1/M12), run on the device by a JUnit4 adapter: only the JUnit 5
     // annotations and kotest assertions are needed, not the JUnit Platform engine.
     androidTestImplementation(testFixtures(project(":core:storage-api")))
+    androidTestImplementation(project(":engine:trash"))
+    androidTestImplementation(testFixtures(project(":engine:trash")))
 }
 
 configurations.matching { it.name.contains("AndroidTest") }.configureEach {

@@ -44,7 +44,7 @@ import io.github.tomerar.keepclear.engine.scan.SpaceMode
 import java.text.NumberFormat
 
 /** What the explainer sheet is about (ONB-2). */
-enum class Explainer { MEDIA, ALL_FILES }
+enum class Explainer { MEDIA, ALL_FILES, WHATSAPP }
 
 class HomeActions(
     val onOpenTrash: () -> Unit = {},
@@ -59,6 +59,9 @@ class HomeActions(
     val onOneByOne: () -> Unit = {},
     /** M13: apps and their space. */
     val onOpenApps: () -> Unit = {},
+    /** M12b, ONB-6: open the system folder picker at WhatsApp's folder. */
+    val onPickWhatsApp: () -> Unit = {},
+    val onDismissWrongFolder: () -> Unit = {},
 )
 
 /**
@@ -140,7 +143,12 @@ fun HomeScreen(
                         onContinue = {
                             val which = explainer
                             explainer = null
-                            if (which == Explainer.MEDIA) actions.onRequestMedia() else actions.onRequestAllFiles()
+                            when (which) {
+                                Explainer.MEDIA -> actions.onRequestMedia()
+                                Explainer.ALL_FILES -> actions.onRequestAllFiles()
+                                Explainer.WHATSAPP -> actions.onPickWhatsApp()
+                                null -> Unit
+                            }
                         },
                         onDismiss = { explainer = null },
                     )
@@ -196,6 +204,25 @@ fun HomeScreen(
                         button = stringResource(R.string.allfiles_card_button),
                         tag = "allowAllFiles",
                         onClick = { explainer = Explainer.ALL_FILES },
+                        primary = false,
+                    )
+                }
+                // M12b, ONB-6 (play): WhatsApp's folder through the system picker, explained first.
+                if (state.wrongFolder) {
+                    Banner(
+                        stringResource(R.string.whatsapp_wrong_folder),
+                        stringResource(R.string.whatsapp_try_again),
+                    ) {
+                        actions.onDismissWrongFolder()
+                        actions.onPickWhatsApp()
+                    }
+                } else if (state.allFiles == null && state.grantedFolders.isEmpty() && explainer == null) {
+                    ActionCard(
+                        title = stringResource(R.string.whatsapp_card_title),
+                        body = stringResource(R.string.whatsapp_card_body),
+                        button = stringResource(R.string.whatsapp_card_button),
+                        tag = "pickWhatsApp",
+                        onClick = { explainer = Explainer.WHATSAPP },
                         primary = false,
                     )
                 }
@@ -377,6 +404,20 @@ private fun ExplainerCard(explainer: Explainer, onContinue: () -> Unit, onDismis
             R.string.explainer_allfiles_never,
             R.string.explainer_allfiles_without,
         )
+
+        Explainer.WHATSAPP -> listOf(
+            R.string.explainer_whatsapp_title,
+            R.string.explainer_whatsapp_why,
+            R.string.explainer_whatsapp_never,
+            R.string.explainer_whatsapp_steps,
+        )
+    }
+    val lastLabel = if (explainer ==
+        Explainer.WHATSAPP
+    ) {
+        R.string.explainer_label_steps
+    } else {
+        R.string.explainer_label_without
     }
     Card(
         modifier = Modifier.fillMaxWidth().testTag("explainer"),
@@ -386,7 +427,7 @@ private fun ExplainerCard(explainer: Explainer, onContinue: () -> Unit, onDismis
             Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
             Labeled(R.string.explainer_label_why, why)
             Labeled(R.string.explainer_label_never, never)
-            Labeled(R.string.explainer_label_without, without)
+            Labeled(lastLabel, without)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onContinue, modifier = Modifier.testTag("explainerContinue")) {
                     Text(stringResource(R.string.explainer_continue))
@@ -435,7 +476,9 @@ private fun Banner(text: String, action: String? = null, onAction: () -> Unit = 
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text, style = MaterialTheme.typography.bodyMedium)
-            if (action != null) TextButton(onClick = onAction) { Text(action) }
+            if (action != null) {
+                TextButton(onClick = onAction, modifier = Modifier.testTag("bannerAction")) { Text(action) }
+            }
         }
     }
 }

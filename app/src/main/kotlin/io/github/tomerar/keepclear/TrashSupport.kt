@@ -121,6 +121,8 @@ class SystemTrashClock(
 class TrashPurgeWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as KeepClearApplication
+        // Granted folders are trash volumes too; their grants may have changed since the process started.
+        app.refreshGrantedFolders()
         app.trashManager.recover()
         // Test mode: nothing is permanently deleted, not even expired trash.
         if (!app.testMode.isOn) app.trashManager.purgeExpired()
