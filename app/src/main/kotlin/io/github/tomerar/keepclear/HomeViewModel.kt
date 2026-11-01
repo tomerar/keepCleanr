@@ -10,6 +10,7 @@ import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.ExecutionReport
 import io.github.tomerar.keepclear.core.safety.OpKind
+import io.github.tomerar.keepclear.core.safety.OpResult
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
@@ -70,6 +71,8 @@ sealed interface Screen {
     data class Preview(val path: String, val ruleId: String, val category: Category) : Screen
 
     data object Trash : Screen
+
+    data object Settings : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -174,7 +177,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val manager = app.trashManager
             if (!trashRecovered) {
                 manager.recover()
-                manager.purgeExpired()
+                if (!app.testMode.isOn) manager.purgeExpired()
                 trashRecovered = true
             }
             val entries = manager.entries().sortedByDescending { it.deletedAt }
@@ -232,6 +235,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
             var done = emptyList<PlannedOp>()
+            var simulated = false
             var skipped = unsupported.size
             var failed = 0
             if (ops.isNotEmpty()) {
@@ -242,7 +246,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 ).confirm(System.currentTimeMillis(), app.sessionId)
                 when (val report = app.executor().run(plan)) {
                     is ExecutionReport.Ran -> {
-                        done = report.done.map { it.op }
+                        val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
+                        simulated = wouldHave.isNotEmpty()
+                        done = report.done.map { it.op } + wouldHave
                         skipped += report.skipped.size
                         failed = report.failed.size
                     }
@@ -258,7 +264,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         done = Total(done.size, done.sumOf { op -> op.expectedSize }),
                         skipped = skipped,
                         failed = failed,
-                        trashedPaths = done.map { op -> op.displayPath },
+                        // Nothing to undo in test mode: nothing was moved.
+                        trashedPaths = if (simulated) emptyList() else done.map { op -> op.displayPath },
+                        simulated = simulated,
                     ),
                 )
             }
@@ -279,6 +287,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** SAFE-5: ask Android to trim other apps' caches; report the measured difference only. */
     fun trimCaches() {
+        if (app.testMode.isOn) {
+            android.util.Log.i(TestMode.TAG, "would ask Android to clear app caches")
+            _state.update { it.copy(trimResult = TestMode.TRIM_SKIPPED) }
+            return
+        }
         viewModelScope.launch {
             val freed = withContext(Dispatchers.IO) {
                 val sm = app.getSystemService(StorageManager::class.java)

@@ -44,6 +44,9 @@ class KeepClearApplication : Application() {
         )
     }
 
+    /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
+    val testMode by lazy { TestMode(this) }
+
     /** The single choke point for every destructive action (CLAUDE.md safety rule 3). */
     fun executor(onResult: (OpResult) -> Unit = {}) = ActionExecutor(
         gateway = fileGateway,
@@ -51,7 +54,12 @@ class KeepClearApplication : Application() {
         protectedPaths = protectedPaths,
         handler = trashManager,
         currentSession = sessionId,
-        onResult = onResult,
+        // Re-read before every operation: turning test mode on mid-plan stops the rest (SAFETY-9).
+        isDryRun = { testMode.isOn },
+        onResult = { result ->
+            TestMode.log(result)
+            onResult(result)
+        },
     )
 
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */

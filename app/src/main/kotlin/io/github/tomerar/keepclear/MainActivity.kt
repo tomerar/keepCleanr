@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                         vm.refresh()
                     }
+                val app = application as KeepClearApplication
+                val testModeOn by app.testMode.on.collectAsStateWithLifecycle()
                 val moveVm: MoveViewModel = viewModel()
                 val move by moveVm.state.collectAsStateWithLifecycle()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
@@ -103,6 +105,11 @@ class MainActivity : ComponentActivity() {
                 }
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
+                        testMode = TestModeUi(
+                            on = testModeOn,
+                            turnOn = app.testMode::turnOn,
+                            turnOff = app.testMode::turnOff,
+                        ),
                         state = state,
                         onOpen = vm::open,
                         onBack = vm::back,
@@ -138,7 +145,12 @@ class MainActivity : ComponentActivity() {
                             onTrim = vm::trimCaches,
                             // SAFE-6 (foss with All files access): Android's own one-dialog external cache clear.
                             onClearExternalCaches = {
-                                externalCacheLauncher.launch(Intent(StorageManager.ACTION_CLEAR_APP_CACHE))
+                                // Test mode (SAFETY-9): Android's cache clear would really delete; don't open it.
+                                if (app.testMode.isOn) {
+                                    vm.trimCaches()
+                                } else {
+                                    externalCacheLauncher.launch(Intent(StorageManager.ACTION_CLEAR_APP_CACHE))
+                                }
                             },
                             onOpenTrash = {
                                 vm.loadTrash()
@@ -161,6 +173,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onScanAgain = vm::scan,
                                     onCancelScan = vm::cancelScan,
+                                    onOpenSettings = { vm.open(Screen.Settings) },
                                     onOpenCategory = { vm.open(Screen.CategoryList(it)) },
                                     onOpenTrash = {
                                         vm.loadTrash()

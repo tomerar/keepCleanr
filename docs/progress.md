@@ -30,6 +30,8 @@ Every push to `main` builds a signed `fossDebug` test APK once CI is green (work
 
 To build one on demand: Actions › CI › **Run workflow** on `main`.
 
+**The test APK starts in test mode** (SAFETY-9): a banner on every screen says "מצב בדיקה – שום קובץ לא יימחק או יועבר". Cleaning, deleting, freeing space, restoring, emptying the trash and clearing caches only show what *would* happen ("would have freed X GB (test mode)"). Copying to a USB drive still works, because it changes nothing on the phone. To run the destructive checks at home, go to Settings › Advanced › Test mode and confirm twice. Turning it back on takes one tap.
+
 ## Device checks waiting for the owner (D)
 
 Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are marked *optional (developer)*. Record results in `docs/device-reports/`.

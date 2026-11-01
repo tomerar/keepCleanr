@@ -51,6 +51,7 @@ class HomeActions(
     val onRequestAllFiles: () -> Unit = {},
     val onScanAgain: () -> Unit = {},
     val onCancelScan: () -> Unit = {},
+    val onOpenSettings: () -> Unit = {},
 )
 
 /**
@@ -173,6 +174,9 @@ fun HomeScreen(
                     Areas(summary)
                 }
                 Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = actions.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
+                    Text(stringResource(R.string.settings_title))
+                }
                 if (showDebugTools) {
                     TextButton(onClick = { forceFlip = !forceFlip }) { Text(stringResource(R.string.debug_toggle_rtl)) }
                 }
