@@ -19,6 +19,7 @@ import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
 import io.github.tomerar.keepclear.core.storage.saf.SafGateway
 import io.github.tomerar.keepclear.core.storage.saf.SafTreeMount
 import io.github.tomerar.keepclear.engine.trash.TrashManager
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -199,18 +200,63 @@ class KeepClearApplication : Application() {
             nextcloud.clear()
             return null
         }
-        val account = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching { nextcloud.load() }.getOrNull()
-        }
-        // A saved account whose app password can't be opened any more can't be revoked from here either.
-        val result =
-            account?.let { revoke(it) } ?: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED
-        nextcloud.clear()
-        if (result == io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED) {
-            // No host, user or password in the log.
-            android.util.Log.w("KeepClear-Nextcloud", "forgotten on the phone; the server did not confirm the revoke")
+        var result = io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED
+        try {
+            val account = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { nextcloud.load() }.getOrNull()
+            }
+            // A saved account whose app password can't be opened any more can't be revoked from here either.
+            if (account != null) result = revoke(account)
+        } finally {
+            // PR #44 review: "Forget" always forgets on the phone, even when the caller is cancelled (or anything
+            // throws) while loading the account or waiting for the server.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { nextcloud.clear() }
+            if (result == io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED) {
+                // No host, user or password in the log.
+                android.util.Log.w(
+                    "KeepClear-Nextcloud",
+                    "forgotten on the phone; the server did not confirm the revoke",
+                )
+            }
         }
         return result
+    }
+
+    /** D6 / PR #44 review: whether "Forget your Nextcloud" is running, and what it achieved (Settings shows it). */
+    data class NextcloudForgetState(
+        val forgetting: Boolean = false,
+        val result: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? = null,
+    )
+
+    private val _nextcloudForget = kotlinx.coroutines.flow.MutableStateFlow(NextcloudForgetState())
+    val nextcloudForget: kotlinx.coroutines.flow.StateFlow<NextcloudForgetState> = _nextcloudForget
+
+    /**
+     * Runs for the whole process, not for one screen: an operation started here (forgetting the Nextcloud) isn't
+     * cancelled when the activity is recreated (rotation, language change). Tests may replace it.
+     */
+    internal var appScope: kotlinx.coroutines.CoroutineScope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate,
+        )
+
+    /** "Forget your Nextcloud" from Settings: one at a time, in [appScope]; the outcome lands in [nextcloudForget]. */
+    fun forgetNextcloudInBackground(
+        revoke: suspend (io.github.tomerar.keepclear.backup.webdav.NextcloudAccount) ->
+        io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke = { account ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { account.revoke(timeoutSeconds = 15) }
+        },
+    ): kotlinx.coroutines.Job? {
+        val current = _nextcloudForget.value
+        if (current.forgetting || !_nextcloudForget.compareAndSet(current, current.copy(forgetting = true))) return null
+        return appScope.launch {
+            var result: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? = null
+            try {
+                result = forgetNextcloud(revoke)
+            } finally {
+                _nextcloudForget.value = NextcloudForgetState(false, result ?: _nextcloudForget.value.result)
+            }
+        }
     }
 
     /** Opens the Nextcloud backup place of [account] (M17b). Network I/O; call off the main thread. */

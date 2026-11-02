@@ -839,7 +839,11 @@ internal fun NetworkDriveDialog(
     // D3: never the phone itself (its own addresses are refused when connecting, with the same plain line).
     val thisPhone = plainHost && io.github.tomerar.keepclear.backup.smb.SmbHosts.isThisPhone(host.trim())
     val hostOk = plainHost && !thisPhone
-    val shareOk = share.isNotBlank() && '/' !in share && '\\' !in share
+    // D3 / PR #44 review: the same rule the drive applies (no `..`, `:`, separators or control characters).
+    val shareOk = io.github.tomerar.keepclear.backup.smb.SmbPaths.isSafeSegment(share.trim())
+    val shareBad = share.isNotBlank() && !shareOk
+    // Anything else the drive refuses is shown as a plain line, never a crash.
+    var refused by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.move_network_title)) },
@@ -882,9 +886,18 @@ internal fun NetworkDriveDialog(
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = share,
-                    onValueChange = { share = it },
+                    onValueChange = {
+                        share = it
+                        refused = false
+                    },
                     label = { Text(stringResource(R.string.move_network_share)) },
                     singleLine = true,
+                    isError = shareBad,
+                    supportingText = if (shareBad) {
+                        { Text(stringResource(R.string.move_network_bad_share)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth().testTag("networkShare"),
                 )
                 androidx.compose.material3.OutlinedTextField(
@@ -905,19 +918,29 @@ internal fun NetworkDriveDialog(
                     ),
                     modifier = Modifier.fillMaxWidth().testTag("networkPassword"),
                 )
+                if (refused) {
+                    Text(
+                        stringResource(R.string.move_network_not_accepted),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("networkRefused"),
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onConnect(
+                    val location = try {
                         io.github.tomerar.keepclear.backup.smb.SmbLocation(
                             host = host.trim(),
                             share = share.trim(),
                             user = user.trim(),
                             password = password,
-                        ),
-                    )
+                        )
+                    } catch (_: IllegalArgumentException) {
+                        null
+                    }
+                    if (location == null) refused = true else onConnect(location)
                 },
                 enabled = hostOk && shareOk,
                 modifier = Modifier.testTag("networkConnect"),

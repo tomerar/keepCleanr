@@ -577,4 +577,6 @@
     <string name="settings_nextcloud_forgot_revoked">KeepClear forgot your Nextcloud and signed this phone out of it.</string>
     <string name="settings_nextcloud_forgot_not_revoked">KeepClear forgot your Nextcloud on this phone, but couldn\'t reach it to sign the phone out, so its app password may still work there. To be sure, remove it in your Nextcloud: Settings › Security.</string>
     <string name="test_build_use_test_account">This is a test build, and anyone can make an update for it. Use a test account here, not your real one.</string>
+    <string name="move_network_bad_share">Type only the shared folder\'s name (no \\, / or :, and not ..).</string>
+    <string name="move_network_not_accepted">KeepClear can\'t use these details. Check the address and the folder name.</string>
 </resources>

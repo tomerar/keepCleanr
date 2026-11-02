@@ -18,6 +18,7 @@ import io.github.tomerar.keepclear.engine.move.MovePlanner
 import io.github.tomerar.keepclear.engine.move.PauseReason
 import io.github.tomerar.keepclear.engine.move.VerifyMethod
 import io.github.tomerar.keepclear.engine.scan.ScanItem
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -126,6 +127,53 @@ class NextcloudAppTest {
             assertNull(app.nextcloud.host())
             // Nothing saved: nothing to say.
             assertNull(app.forgetNextcloud())
+        }
+
+    @Test
+    fun `forgetting clears the phone even when the caller is cancelled while the server is asked (PR 44 review)`():
+        Unit = runBlocking {
+        app.nextcloud.save(account)
+        val asking = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val screen = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default)
+        val job = screen.launch {
+            app.forgetNextcloud(revoke = {
+                asking.complete(Unit)
+                kotlinx.coroutines.awaitCancellation()
+            })
+        }
+        asking.await()
+        // The activity goes away (rotation): its scope is cancelled while the revoke waits for the server.
+        screen.coroutineContext[kotlinx.coroutines.Job]!!.cancel()
+        job.join()
+        assertNull(app.nextcloud.host())
+        assertNull(app.nextcloud.load())
+        assertTrue(
+            ApplicationProvider.getApplicationContext<android.content.Context>()
+                .getSharedPreferences("nextcloud", android.content.Context.MODE_PRIVATE).all.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `Settings' forget runs in the app's scope, one at a time, and keeps its result (PR 44 review)`(): Unit =
+        runBlocking {
+            app.appScope = kotlinx.coroutines.CoroutineScope(
+                kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default,
+            )
+            app.nextcloud.save(account)
+            val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val job = app.forgetNextcloudInBackground(revoke = {
+                release.await()
+                NextcloudRevoke.REVOKED
+            })!!
+            assertTrue(app.nextcloudForget.value.forgetting)
+            assertNull(app.forgetNextcloudInBackground(revoke = { NextcloudRevoke.REVOKED }))
+            release.complete(Unit)
+            job.join()
+            assertEquals(
+                KeepClearApplication.NextcloudForgetState(false, NextcloudRevoke.REVOKED),
+                app.nextcloudForget.value,
+            )
+            assertNull(app.nextcloud.host())
         }
 
     @Test

@@ -614,4 +614,6 @@
     <string name="settings_nextcloud_forgot_revoked">KeepClear שכח את ה-Nextcloud שלכם והוציא את הטלפון הזה מהחשבון.</string>
     <string name="settings_nextcloud_forgot_not_revoked">KeepClear שכח את ה-Nextcloud שלכם בטלפון הזה, אבל לא הצליח להגיע אליו כדי להוציא את הטלפון מהחשבון, ולכן סיסמת האפליקציה עשויה עדיין לעבוד שם. כדי להיות בטוחים, אפשר למחוק אותה ב-Nextcloud שלכם: הגדרות › אבטחה.</string>
     <string name="test_build_use_test_account">זו גרסת ניסיון, וכל אחד יכול ליצור לה עדכון. כדאי להשתמש כאן בחשבון ניסיון, לא בחשבון האמיתי שלכם.</string>
+    <string name="move_network_bad_share">צריך להקליד רק את השם של התיקייה המשותפת (בלי \\, / או :, ולא ..).</string>
+    <string name="move_network_not_accepted">KeepClear לא יכול להשתמש בפרטים האלה. כדאי לבדוק את הכתובת ואת שם התיקייה.</string>
 </resources>

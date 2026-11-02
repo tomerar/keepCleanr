@@ -12,7 +12,9 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import io.github.tomerar.keepclear.backup.net.HostRule
@@ -95,6 +97,22 @@ class NetworkSecurityAppTest {
         compose.onNodeWithText(text(R.string.move_network_this_phone)).assertExists()
         compose.onNodeWithTag("networkUser").performTextInput("me")
         compose.onNodeWithTag("networkGuestNote").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a share name the drive would refuse can't be connected, and nothing crashes (PR 44 review)`() {
+        networkForm(notice = false)
+        compose.onNodeWithTag("networkHost").performTextInput("nas")
+        for (bad in listOf("..", "photos:archive", "a\u0001b", ".")) {
+            compose.onNodeWithTag("networkShare").performTextClearance()
+            compose.onNodeWithTag("networkShare").performTextInput(bad)
+            compose.onNodeWithTag("networkConnect").assertIsNotEnabled()
+            compose.onNodeWithText(text(R.string.move_network_bad_share)).assertExists()
+        }
+        compose.onNodeWithTag("networkShare").performTextClearance()
+        compose.onNodeWithTag("networkShare").performTextInput("photos")
+        compose.onNodeWithTag("networkConnect").assertIsEnabled().performClick()
+        compose.onNodeWithTag("networkRefused").assertDoesNotExist()
     }
 
     @Test
