@@ -55,6 +55,26 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).
 - All strings live in resources; en/he parity is checked in CI.
 
+## Design rules ("Paper & Ink", ADR 0013, `docs/design/design-system.md`)
+
+- New and rebuilt screens use only `core:designsystem` components (`KcButton`, `KcCard`, `LaneCard`, `StorageStrip`, `HeroNumber`, `ConfirmSheet`, `ResultBanner`, `DaysLeftChip`, `ThumbStrip`, `VerifiedStamp`, `InfoChip`) and theme tokens; no hard-coded colours, fonts or shapes in `app`.
+- One ink colour (`primary`) for actions. Red (`error`, `KcButtonStyle.Destructive`, `ConfirmSheet(permanent = true)`) **only** for permanent, unrecoverable actions; going to the 30-day trash is not permanent.
+- Lanes (SAFE sage, REVIEW slate, MOVE amber) are always icon + label, never colour alone. Dynamic colour stays off by default.
+- Sizes and counts: `ByteSize` (decimal) in Rubik with tabular figures (`KeepClearTheme.type.number` / `hero`).
+- Stable Material 3 only (no Expressive beta, no new `@ExperimentalMaterial3Api` use). Motion respects `KeepClearTheme.reducedMotion`.
+- Contrast is tested (`ContrastTest`): text ≥ 4.5:1, large numbers/icons/outlines ≥ 3:1 in light and dark. Never lower a token to pass a test silently.
+- No neon, rockets, brooms, shields, lightning, gauges or "boost".
+
+## Hebrew voice rules (owner, 2026-11-02)
+
+- KeepClear is grammatically masculine everywhere ("KeepClear מתחבר", never "מתחברת").
+- Address the user in plural ("לכם", "בחרתם"), never singular.
+- Buttons are infinitives (לשחזר, להתחבר, לבחור, למחוק, לדלג, לסגור, להחזיר), never nouns (שחזור, התחברות, בחירת…, מחיקה, דילוג, ביטול, סגירה).
+- "לשמור/להשאיר" means only "this time"; the permanent choice is "לא להציע את זה שוב".
+- No jargon on the default path: NAS, smb://, .KeepClearTrash, F-Droid/GitHub, SHA-256 go to Details/Advanced.
+- Curly Hebrew quotes „”. "יימחקו" with double yod.
+- Store listing uses the same lane names as the app ("לנקות עכשיו" / "לבחור מה להשאיר" / "להעביר לגיבוי").
+
 ## Code conventions
 
 - Engines (`engine:*`, `core:model`, `core:safety`, `core:rules`, `core:hash`) are pure JVM: no `android.*` imports.

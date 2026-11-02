@@ -18,3 +18,4 @@ All ADRs were accepted with the spec on 2026-10-31.
 | [0010](0010-mvp-folder-trash.md) | MVP uses the folder trash for every file it can reach by path (amends 0006) | Accepted for `foss` (2026-11-01) |
 | [0011](0011-network-and-cloud-targets.md) | Network and cloud backup targets; server digests may free originals (amends 0008) | Accepted (Drive first, 2026-11-01) |
 | [0012](0012-foss-accessibility-cache-cleaner.md) | Accessibility "Clear cache" automation: foss only, "Later", behind gates | Accepted (none in v1, 2026-11-01) |
+| [0013](0013-paper-and-ink-design-system.md) | "Paper & Ink" design system on stable Material 3 (colours, fonts, no Expressive beta, dynamic colour off) | Accepted (2026-11-02) |
