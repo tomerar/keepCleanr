@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear.core.designsystem
 
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,8 +51,12 @@ import io.github.tomerar.keepclear.core.designsystem.component.InfoChip
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.LaneCard
 import io.github.tomerar.keepclear.core.designsystem.component.ResultBanner
+import io.github.tomerar.keepclear.core.designsystem.component.StorageLegend
 import io.github.tomerar.keepclear.core.designsystem.component.StorageStrip
 import io.github.tomerar.keepclear.core.designsystem.component.StorageUsage
+import io.github.tomerar.keepclear.core.designsystem.component.StripLegendKey
+import io.github.tomerar.keepclear.core.designsystem.component.StripSegment
+import io.github.tomerar.keepclear.core.designsystem.component.StripSpansKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -196,6 +201,69 @@ class ComponentsTest {
         assertEquals(KeepClearColors.Light.stripFree.toArgb(), left)
         assertEquals(KeepClearColors.Light.stripUsed.toArgb(), right)
     }
+
+    private fun stripAndLegend(direction: LayoutDirection, usage: StorageUsage) {
+        compose.setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                KeepClearTheme(darkTheme = false, reducedMotion = true) {
+                    Column(Modifier.width(300.dp)) {
+                        StorageStrip(usage, description = "strip", modifier = Modifier.testTag("strip"))
+                        StorageLegend(
+                            usage,
+                            labels = StripSegment.entries.associateWith { it.name },
+                            sizeText = { "$it B" },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** Design QA item 2: every segment is exactly as wide as its legend value's share of the capacity. */
+    private fun assertStripMatchesLegend(direction: LayoutDirection) {
+        val usage = StorageUsage(total = 128_000, free = 16_800, safe = 7_900, review = 10_400, move = 31_000)
+        stripAndLegend(direction, usage)
+        val strip = compose.onNodeWithTag("strip").fetchSemanticsNode()
+        val width = strip.size.width.toFloat()
+        val spans = strip.config[StripSpansKey].toMap()
+        val legend = StripSegment.entries.map { seg ->
+            compose.onNodeWithTag("legend_${seg.name}").fetchSemanticsNode()
+        }
+        val parts = legend.map { it.config[StripLegendKey] }
+        assertEquals(StripSegment.entries.toList(), parts.map { it.segment })
+        var start = 0f
+        for (part in parts) {
+            val expected = part.bytes.toFloat() / usage.total * width
+            if (part.segment != StripSegment.FREE) {
+                val span = spans.getValue(part.segment)
+                assertEquals("${part.segment} width", expected, span.endInclusive - span.start, 1f)
+                // From the start side: left edge in English, right edge in Hebrew.
+                val from = if (direction == LayoutDirection.Rtl) width - span.endInclusive else span.start
+                assertEquals("${part.segment} position", start, from, 1f)
+            }
+            start += expected
+        }
+        assertEquals(width, start, 1f)
+        // The legend reads in the same order from the start side.
+        val xs = legend.map { it.boundsInRoot.left }
+        val ordered = if (direction ==
+            LayoutDirection.Rtl
+        ) {
+            xs.zipWithNext { a, b -> a >= b }
+        } else {
+            xs.zipWithNext { a, b -> a <= b }
+        }
+        val rows = legend.map { it.boundsInRoot.top }
+        legend.indices.drop(1).forEach { i ->
+            if (rows[i] == rows[i - 1]) assertEquals("legend order $i", true, ordered[i - 1])
+        }
+    }
+
+    @Test
+    fun `strip segments match the legend values in English`(): Unit = assertStripMatchesLegend(LayoutDirection.Ltr)
+
+    @Test
+    fun `strip segments match the legend values in Hebrew`(): Unit = assertStripMatchesLegend(LayoutDirection.Rtl)
 
     @Test
     fun `storage strip speaks its description`() {

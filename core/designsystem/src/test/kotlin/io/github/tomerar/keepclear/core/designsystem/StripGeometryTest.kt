@@ -12,9 +12,9 @@ class StripGeometryTest {
     private val usage = StorageUsage(total = 100, free = 20, safe = 10, review = 5, move = 15)
 
     @Test
-    fun `fractions are used, SAFE, REVIEW, MOVE, free and sum to one`() {
+    fun `fractions are SAFE, REVIEW, MOVE, other used, free and sum to one`() {
         val f = StripGeometry.fractions(usage)
-        assertEquals(listOf(0.5f, 0.1f, 0.05f, 0.15f, 0.2f), f)
+        assertEquals(listOf(0.1f, 0.05f, 0.15f, 0.5f, 0.2f), f)
         assertEquals(1f, f.sum(), 1e-6f)
     }
 
@@ -22,7 +22,7 @@ class StripGeometryTest {
     fun `lanes larger than the phone are scaled to fit, never overflow`() {
         val f = StripGeometry.fractions(StorageUsage(total = 100, free = 50, safe = 100))
         assertEquals(1f, f.sum(), 1e-6f)
-        assertEquals(0f, f[0])
+        assertEquals(0f, f[StripSegment.OTHER.ordinal])
     }
 
     @Test
@@ -36,13 +36,21 @@ class StripGeometryTest {
         val f = StripGeometry.fractions(usage)
         val ltr = StripGeometry.spans(f, width = 1000f, gap = 0f, rtl = false).toMap()
         val rtl = StripGeometry.spans(f, width = 1000f, gap = 0f, rtl = true).toMap()
-        assertEquals(0f..500f, ltr[StripSegment.USED])
-        assertEquals(500f..600f, ltr[StripSegment.SAFE])
-        assertEquals(500f..1000f, rtl[StripSegment.USED])
-        assertEquals(400f..500f, rtl[StripSegment.SAFE])
+        assertEquals(0f..100f, ltr[StripSegment.SAFE])
+        assertEquals(300f..800f, ltr[StripSegment.OTHER])
+        assertEquals(900f..1000f, rtl[StripSegment.SAFE])
+        assertEquals(200f..700f, rtl[StripSegment.OTHER])
         // The free track is never drawn as a segment, and the gap is taken from each segment's end.
         assertTrue(StripSegment.FREE !in ltr)
         val gapped = StripGeometry.spans(f, width = 1000f, gap = 4f, rtl = false).toMap()
-        assertEquals(0f..496f, gapped[StripSegment.USED])
+        assertEquals(0f..96f, gapped[StripSegment.SAFE])
+    }
+
+    @Test
+    fun `the legend lists the bar's segments in the bar's order, with the same bytes and shares`() {
+        val parts = StripGeometry.parts(usage)
+        assertEquals(StripSegment.entries.toList(), parts.map { it.segment })
+        assertEquals(listOf(10L, 5L, 15L, 50L, 20L), parts.map { it.bytes })
+        assertEquals(StripGeometry.fractions(usage), parts.map { it.fraction })
     }
 }

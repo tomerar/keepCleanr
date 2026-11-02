@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.core.designsystem.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -14,6 +15,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,14 +26,22 @@ import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.designsystem.KcShapes
 
 /**
- * Button styles (design-system.md §7). [Destructive] is ONLY for permanent, unrecoverable actions (empty the trash,
- * release now); going to the 30-day trash is [Primary].
+ * Button styles (design-system.md §7). [Destructive] and [OutlinedDestructive] are ONLY for permanent, unrecoverable
+ * actions; going to the 30-day trash is [Primary]. [OutlinedDestructive] (red outline and label, no fill) is for a
+ * permanent action that is not the screen's main action, e.g. "Empty the trash" at the bottom of the Trash (design QA
+ * 2026-11-02); its confirmation is still red.
  */
-enum class KcButtonStyle { Primary, Tonal, Text, Destructive }
+enum class KcButtonStyle { Primary, Tonal, Text, Destructive, OutlinedDestructive }
 
 object KcButtonDefaults {
     val MinHeight = 48.dp
     val ContentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+
+    /**
+     * Design QA item 5: a confirm button that is getting ready shows a track of its own colour at this alpha, filling
+     * with the full colour; its label stays readable on both (ContrastTest).
+     */
+    val ProgressTrackAlpha = 0.16f
 
     /** Colours of a filled pill: ink, or error red for [permanent] actions. Also used by the app's confirm button. */
     @Composable
@@ -76,6 +86,20 @@ fun KcButton(
             modifier = m,
             enabled = enabled,
             shape = KcShapes.pill,
+            contentPadding = KcButtonDefaults.ContentPadding,
+            content = content,
+        )
+
+        KcButtonStyle.OutlinedDestructive -> OutlinedButton(
+            onClick = onClick,
+            modifier = m,
+            enabled = enabled,
+            shape = KcShapes.pill,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = BorderStroke(
+                1.dp,
+                if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant,
+            ),
             contentPadding = KcButtonDefaults.ContentPadding,
             content = content,
         )
