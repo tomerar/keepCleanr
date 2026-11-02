@@ -519,6 +519,19 @@ class TrashManagerTest {
         }
 
     @Test
+    fun `without a recorded SHA-256, a same-size file with another date is changed and not put back (D6)`(): Unit =
+        runBlocking {
+            val entry = trashOne()
+            entry.sha256 shouldBe null
+            // Swapped for another file of exactly the same size: only the modification time gives it away.
+            fake.modify(entry.trashedPath, FakeStorageGateway.Content.Bytes(ByteArray(bytes.size) { 1 }), mtime = 99)
+            trash.isChanged(entry) shouldBe true
+            trash.isChanged(entry, fullCheck = true) shouldBe true
+            run(op(entry.trashedPath, OpKind.RESTORE)).done.shouldBeEmpty()
+            fake.exists(photo) shouldBe false
+        }
+
+    @Test
     fun `an unchanged file is not reported as changed`(): Unit = runBlocking {
         val entry = trashOne()
         trash.isChanged(entry, fullCheck = true) shouldBe false

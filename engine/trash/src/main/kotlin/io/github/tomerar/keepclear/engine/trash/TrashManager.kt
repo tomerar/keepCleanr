@@ -84,13 +84,14 @@ class TrashManager(
 
     /**
      * Owner decision 1.2: true when the file in the trash is no longer the file that was trashed (size; with
-     * [fullCheck] also the SHA-256 when the record has one). Such items are shown as "changed since deleted".
+     * [fullCheck] also the SHA-256 when the record has one; without one, the modification time, D6). Such items
+     * are shown as "changed since deleted".
      */
     suspend fun isChanged(entry: TrashEntry, fullCheck: Boolean = false): Boolean {
         val stat = runCatching { gateway.stat(KPath.Local(entry.trashedPath)) }.getOrNull() ?: return false
         if (!stat.isFile) return false
         if (stat.size != entry.size) return true
-        val sha = entry.sha256 ?: return false
+        val sha = entry.sha256 ?: return stat.mtimeMillis != entry.mtimeMillis
         if (!fullCheck) return false
         return runCatching { gateway.openRead(stat.path).use { Sha256.of(it) } != sha }.getOrDefault(true)
     }
@@ -181,6 +182,10 @@ class TrashManager(
             val sha = entry.sha256
             if (sha != null && gateway.openRead(trashed).use { Sha256.of(it) } != sha) {
                 throw StorageException.Unsupported(trashed, "changed in the trash: content differs from the record")
+            }
+            // D6: without a recorded SHA-256, the modification time must match too (moving into the trash keeps it).
+            if (sha == null && trashedStat.mtimeMillis != entry.mtimeMillis) {
+                throw StorageException.Unsupported(trashed, "changed in the trash: date differs from the record")
             }
         }
         val destination = KPath.Local(restoreDestination(entry))
