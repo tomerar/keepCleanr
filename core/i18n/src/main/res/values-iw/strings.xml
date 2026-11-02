@@ -277,6 +277,14 @@
     <string name="move_notification_progress">נבדקו: %1$d מתוך %2$d</string>
     <string name="move_notification_paused">הגיבוי הושהה. אפשר לפתוח את KeepClear כדי להמשיך.</string>
     <string name="move_notification_updated">הגיבוי הושהה בגלל עדכון של האפליקציה. אפשר להקיש כדי להמשיך.</string>
+    <string name="task_notification_free">מפנים מקום…</string>
+    <string name="task_notification_check">בודקים את הגיבוי…</string>
+    <string name="task_notification_restore">משחזרים קבצים…</string>
+    <plurals name="task_progress">
+        <item quantity="one">%1$d מתוך קובץ אחד</item>
+        <item quantity="two">%1$d מתוך %2$d קבצים</item>
+        <item quantity="other">%1$d מתוך %2$d קבצים</item>
+    </plurals>
     <string name="move_receipt_text">סיכום הגיבוי של KeepClear\nכונן: %1$s\nתיקייה: %2$s\nקבצים שהועתקו ונבדקו: %3$d (%4$s)\nקבצים שדולגו או לא הועתקו: %5$d\nהעותק לא מוצפן.</string>
     <string name="test_mode_banner">מצב ניסיון – שום קובץ לא יימחק או יועבר</string>
     <string name="test_mode_would_free">היה מתפנה %1$s (מצב ניסיון). שום דבר לא נמחק ולא הועבר.</string>

@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -27,6 +28,7 @@ import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.Classifier
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,7 +55,7 @@ class ReviewScreensTest {
                 item(
                     "Pictures/Screenshots/Screenshot_$it.png",
                     1_000_000L + it,
-                    1_678_000_000_000 + it * 86_400_000L,
+                    1_678_000_000_000 + it * 3_600_000L,
                 )
             } +
                 listOf(
@@ -80,6 +82,14 @@ class ReviewScreensTest {
                     state = state,
                     onOpen = { state = state.copy(screens = state.screens + it) },
                     onBack = { state = state.copy(screens = state.screens.dropLast(1)) },
+                    // E4: selections live in the (here: test) ViewModel state, as in the app.
+                    selectionActions = SelectionActions(
+                        onSelect = { key, paths -> state = state.copy(selections = state.selections + (key to paths)) },
+                        onSwipe = { key, d ->
+                            state =
+                                state.copy(swipes = if (d == null) state.swipes - key else state.swipes + (key to d))
+                        },
+                    ),
                     home = {
                         HomeScreen(
                             state = state,
@@ -124,6 +134,9 @@ class ReviewScreensTest {
         compose.onNodeWithTag("preview").performScrollToIndex(0)
         compose.onNodeWithTag("back").performClick()
         compose.onNodeWithTag("grid").assertIsDisplayed()
+        // E4: the grid came back where it was (scrolled to the picture), so its Back row is scrolled to first.
+        compose.onNodeWithTag("preview_Screenshot_0.png").assertIsDisplayed()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("back"))
         compose.onNodeWithTag("back").performClick()
         compose.onNodeWithTag("categoryList").assertIsDisplayed()
     }
@@ -150,8 +163,37 @@ class ReviewScreensTest {
         showApp(summary(screenshots = 2_000))
         compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
         compose.onNodeWithTag("group_screenshots").performClick()
-        compose.onNodeWithTag("grid").performScrollToIndex(2_000)
+        // E14: the last picture is really there at the end, and the first one is no longer composed.
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_1999.png"))
+        compose.onNodeWithTag("preview_Screenshot_1999.png").assertIsDisplayed()
+        compose.onNodeWithTag("preview_Screenshot_0.png").assertDoesNotExist()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("bucket_2023-03"))
+        compose.onNodeWithTag("bucket_2023-03").assertIsDisplayed()
+    }
+
+    @Test
+    fun `10,000 pictures - scroll, select all, preview and back keeps the selection and the place (E4)`() {
+        showApp(summary(screenshots = 10_000))
+        compose.onNodeWithTag("open_REVIEW").performScrollTo().performClick()
+        compose.onNodeWithTag("group_screenshots").performClick()
+        compose.onNodeWithTag("selectAll").performClick()
+        compose.onNodeWithTag("deleteSelected").assertExists()
+        val selectedText = compose.onNodeWithTag("deleteSelected").fetchSemanticsNode()
+            .config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_5000.png"))
+        compose.onNodeWithTag("preview_Screenshot_5000.png").performClick()
+        compose.onNodeWithTag("preview").assertIsDisplayed()
+        compose.onNodeWithTag("back").performClick()
+        // Still all 10,000 selected, and still at the same place in the grid.
+        compose.onNodeWithTag("grid").assertIsDisplayed()
+        compose.onNodeWithTag("preview_Screenshot_5000.png").assertExists()
+        compose.onNodeWithTag("deleteSelected").assertExists()
+        assertEquals(
+            selectedText,
+            compose.onNodeWithTag("deleteSelected").fetchSemanticsNode()
+                .config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString(),
+        )
+        assertTrue(selectedText.orEmpty().contains("10,000"))
     }
 
     @Test

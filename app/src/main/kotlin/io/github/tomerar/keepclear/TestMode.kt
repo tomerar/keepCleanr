@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
  * freeing the originals afterwards is simulated like every other deletion.
  */
 class TestMode(context: Context, defaultOn: Boolean = BuildConfig.DEBUG) {
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    private val _on = MutableStateFlow(prefs.getBoolean(KEY, defaultOn))
+    private val prefs = MainThreadPolicy.settings { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+    private val _on = MutableStateFlow(MainThreadPolicy.settings { prefs.getBoolean(KEY, defaultOn) })
     val on: StateFlow<Boolean> = _on
 
     val isOn: Boolean get() = _on.value
@@ -30,8 +30,8 @@ class TestMode(context: Context, defaultOn: Boolean = BuildConfig.DEBUG) {
     fun turnOff() = set(false)
 
     private fun set(value: Boolean) {
-        // Written synchronously: the switch must survive an immediate process kill.
-        prefs.edit(commit = true) { putBoolean(KEY, value) }
+        // Written synchronously: the switch must survive an immediate process kill (C60).
+        MainThreadPolicy.settings { prefs.edit(commit = true) { putBoolean(KEY, value) } }
         _on.value = value
         Log.i(TAG, "test mode ${if (value) "on" else "off"}")
     }

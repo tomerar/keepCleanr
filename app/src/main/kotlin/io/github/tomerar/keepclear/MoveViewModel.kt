@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -155,6 +156,8 @@ data class MoveUiState(
     val check: BackupCheck? = null,
     /** MOVE-17: the "Restore from a backup" flow, null when closed. */
     val restore: RestoreStep? = null,
+    /** E3: a free, check or restore running in the foreground service (survives leaving the app). */
+    val task: TaskProgress? = null,
 )
 
 class MoveViewModel(application: Application) : AndroidViewModel(application) {
@@ -167,53 +170,80 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private var pickedRef: String? = null
     private var pickedTarget: io.github.tomerar.keepclear.backup.BackupTarget? = null
 
+    /** E7: the last view of every job; a progress tick re-reads only the running one. */
+    private var views: Map<String, JobView> = emptyMap()
+    private var viewedRunning: String? = null
+
+    /** The time-left estimate of the running job (review PR C, E13). */
+    private val eta = EtaTracker()
+
+    // Declared before init: init's first reload runs at once on the main thread (Main.immediate).
     init {
         viewModelScope.launch {
-            controller.markInterrupted()
-            combine(controller.running, controller.ticks) { running, _ -> running }.collect { running ->
-                _state.update { it.copy(running = running) }
-                reload()
+            withContext(Dispatchers.IO) { controller.markInterrupted() }
+            // E7: progress reloads at most every RELOAD_MILLIS, and only the running job is read again.
+            combine(controller.running, controller.ticks) { running, _ -> running }
+                .conflate()
+                .collect { running ->
+                    _state.update { it.copy(running = running) }
+                    reload(running)
+                    kotlinx.coroutines.delay(RELOAD_MILLIS)
+                }
+        }
+        // E3: free / check / restore run app-wide; their state and results come back here (also after a restart
+        // of this screen).
+        viewModelScope.launch { controller.task.collect { t -> _state.update { it.copy(task = t) } } }
+        viewModelScope.launch {
+            controller.results.collect { r ->
+                _state.update {
+                    it.copy(
+                        check = r.check,
+                        freeResult = r.freeResult,
+                        restore = r.restore ?: it.restore?.takeUnless { s -> s.fromTask },
+                    )
+                }
             }
         }
     }
 
-    private suspend fun reload() {
+    private suspend fun reload(running: String? = controller.running.value) {
         val store = controller.store
+        // E13: the time-left estimate starts again whenever a job (re)starts, so a pause never stretches it.
+        eta.onRunning(running)
         val jobs = withContext(Dispatchers.IO) {
-            store.jobs().map { job ->
-                val files = store.files(job.id)
-                val freeable = files.filter {
-                    it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED && it.confirmedAt != null
-                }.map { it.sourcePath }.toSet()
-                val total = files.sumOf { it.sourceSize }
-                val done = files.filter { it.state in Receipt.DONE_STATES }.sumOf { it.sourceSize }
-                val checking = files.any { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.PLACED }
-                val now = System.currentTimeMillis()
-                val eta = if (job.id == controller.running.value) {
-                    val start =
-                        runStart.takeIf { it?.first == job.id } ?: Triple(job.id, now, done).also { runStart = it }
-                    etaMillis(start.second, start.third, now, done, total)
-                } else {
-                    null
-                }
-                JobView(
-                    job,
-                    Receipt.of(job, files),
-                    canReadBack(job),
-                    freeable,
-                    totalBytes = total,
-                    doneBytes = done,
-                    phase = if (checking) MovePhase.CHECKING else MovePhase.COPYING,
-                    etaMillis = eta,
-                    copyOnly = copyOnly(job),
-                )
+            val all = store.jobs()
+            // A full reload when which job runs changed (a job ended, paused or started); otherwise only the running.
+            val full = running != viewedRunning || running == null || all.map { it.id }.toSet() != views.keys
+            viewedRunning = running
+            all.map { job ->
+                val known = views[job.id]
+                if (!full && job.id != running && known != null && known.job == job) known else view(job, running)
             }
         }
+        views = jobs.associateBy { it.job.id }
         _state.update { it.copy(jobs = jobs) }
     }
 
-    /** When and at how many bytes the running job was first seen, for the time-left estimate. */
-    private var runStart: Triple<String, Long, Long>? = null
+    private suspend fun view(job: MoveJob, running: String?): JobView {
+        val files = controller.store.files(job.id)
+        val freeable = files.filter {
+            it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED && it.confirmedAt != null
+        }.map { it.sourcePath }.toSet()
+        val total = files.sumOf { it.sourceSize }
+        val done = files.filter { it.state in Receipt.DONE_STATES }.sumOf { it.sourceSize }
+        val checking = files.any { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.PLACED }
+        return JobView(
+            job,
+            Receipt.of(job, files),
+            canReadBack(job),
+            freeable,
+            totalBytes = total,
+            doneBytes = done,
+            phase = if (checking) MovePhase.CHECKING else MovePhase.COPYING,
+            etaMillis = if (job.id == running) eta.estimate(job.id, System.currentTimeMillis(), done, total) else null,
+            copyOnly = copyOnly(job),
+        )
+    }
 
     /** What the user selected before opening the folder picker; survives configuration changes. */
     var pendingItems: List<ClassifiedItem> = emptyList()
@@ -301,10 +331,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     /** The saved network drive, to fill the form again (the password stays sealed until it is used). */
     fun savedNetworkDrive() = runCatching { app.networkDrives.load() }.getOrNull()
 
-    private suspend fun opened(check: OpenedTarget, label: String, ref: String, items: List<ClassifiedItem>) {
+    internal suspend fun opened(check: OpenedTarget, label: String, ref: String, items: List<ClassifiedItem>) {
         when (check) {
             is OpenedTarget.Ok -> {
-                val files = plan("preview", items, check.target.caps)
+                // E13: planning thousands of files never runs on the main thread.
+                val files = withContext(Dispatchers.Default) { plan("preview", items, check.target.caps) }
                 val issues = withContext(Dispatchers.IO) {
                     MovePlanner.preflight(files, check.target, emptySet(), battery(), charging())
                 }
@@ -385,6 +416,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         val target = pickedTarget ?: return
         val ref = pickedRef ?: return
         if (picked.blocked || picked.files.isEmpty()) return
+        // E8: cleared before anything is launched, so a second tap finds nothing to start (one job, not two).
+        _state.update { it.copy(picked = null) }
+        pickedTarget = null
+        pickedRef = null
         viewModelScope.launch {
             val id = UUID.randomUUID().toString()
             val files = picked.files.map { it.copy(jobId = id) }
@@ -400,9 +435,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 controller.store.putJob(job)
                 controller.store.putFiles(files)
             }
-            _state.update { it.copy(picked = null) }
             // The service opens the target itself; release the one used for the preview (PR #25 review).
-            releasePicked()
+            withContext(Dispatchers.IO) { target.useTarget { } }
             controller.start(app, id)
             reload()
         }
@@ -440,10 +474,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private var restoreTarget: io.github.tomerar.keepclear.backup.BackupTarget? = null
 
     fun closeRestore() {
-        restoreTarget?.let { t -> viewModelScope.launch { withContext(Dispatchers.IO) { t.useTarget { } } } }
+        // E3: a restore still running keeps its connection; the task releases it when it ends.
+        if (controller.task.value?.kind == TaskKind.RESTORE) return
+        restoreTarget?.let { t -> controller.scope.launch { t.useTarget { } } }
         restoreTarget = null
         restoreEngine = null
         restoreEntries = emptyList()
+        controller.results.update { it.copy(restore = null) }
         _state.update { it.copy(restore = null) }
     }
 
@@ -504,22 +541,25 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** MOVE-17, E3: restoring runs in the foreground service with progress; leaving KeepClear doesn't stop it. */
     fun runRestore(keys: Set<String>) {
         val engine = restoreEngine ?: return
         val chosen = restoreEntries.filter { "${it.group}|${it.month}" in keys }
         if (chosen.isEmpty()) return
-        viewModelScope.launch {
-            _state.update { it.copy(restore = RestoreStep.Running(0, chosen.size)) }
-            val report = withContext(Dispatchers.IO) {
-                engine.restore(chosen) { done ->
-                    _state.update { it.copy(restore = RestoreStep.Running(done, chosen.size)) }
-                }
+
+        fun step(s: RestoreStep) = controller.results.update { it.copy(restore = s) }
+        controller.runTask(app, TaskKind.RESTORE) { progress ->
+            step(RestoreStep.Running(0, chosen.size))
+            progress(0, chosen.size)
+            val report = engine.restore(chosen) { done ->
+                step(RestoreStep.Running(done, chosen.size))
+                progress(done, chosen.size)
             }
             // Let the gallery and other apps see the files again (MOVE-17 "re-index in MediaStore").
             if (report.restored.isNotEmpty()) {
                 android.media.MediaScannerConnection.scanFile(app, report.restored.toTypedArray(), null, null)
             }
-            _state.update { it.copy(restore = RestoreStep.Done(report)) }
+            step(RestoreStep.Done(report))
         }
     }
 
@@ -534,26 +574,29 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      * the drive. Everything goes through the executor: re-check, strict re-hash, PROTECTED paths, 30-day trash.
      */
     fun freeOriginals(jobId: String, confirmation: io.github.tomerar.keepclear.core.safety.Confirmation) {
-        viewModelScope.launch {
-            _state.update { it.copy(busy = true) }
+        // E3: in the foreground service, so leaving KeepClear doesn't stop it halfway; one task at a time.
+        controller.runTask(app, TaskKind.FREE) { progress ->
+            controller.results.update { it.copy(freeResult = null) }
             val store = controller.store
             val job = store.job(jobId)
-            val check = job?.targetRef?.let { withContext(Dispatchers.IO) { app.openTargetRef(it, job.targetLabel) } }
+            val check = job?.targetRef?.let { app.openTargetRef(it, job.targetLabel) }
             if (job == null || check !is OpenedTarget.Ok || check.target.id != job.targetId) {
                 (check as? OpenedTarget.Ok)?.target?.useTarget { }
-                _state.update { it.copy(busy = false, problem = TargetProblem.UNAVAILABLE) }
-                return@launch
+                withContext(Dispatchers.Main) { _state.update { it.copy(problem = TargetProblem.UNAVAILABLE) } }
+                return@runTask
             }
             // H1: only copies confirmed by the second check, re-hashed on the drive right now. The drive is
             // released right after; freeing itself only touches the phone.
-            val ops = withContext(Dispatchers.IO) { check.target.useTarget { engine(it).originalsPlan(jobId) } }
+            val ops = check.target.useTarget { engine(it).originalsPlan(jobId) }
             if (ops.isEmpty()) {
-                _state.update { it.copy(busy = false, freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
-                return@launch
+                controller.results.update { it.copy(freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
+                return@runTask
             }
             // Review PR B: the confirmation lists the originals the receipt offered; anything else is rejected.
             val plan = ActionPlan(UUID.randomUUID().toString(), ops, "move").confirm(confirmation, app.sessionId)
-            val report = withContext(Dispatchers.IO) { app.executor().run(plan) }
+            var done = 0
+            progress(0, ops.size)
+            val report = app.executor(onResult = { progress(++done, ops.size) }).run(plan)
             val result = when (report) {
                 is ExecutionReport.Ran -> {
                     val wouldHave = report.results
@@ -574,7 +617,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                     FreeResult(jobId, 0, 0, 0, ops.size)
                 }
             }
-            _state.update { it.copy(busy = false, freeResult = result) }
+            controller.results.update { it.copy(freeResult = result) }
         }
     }
 
@@ -586,8 +629,6 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         attachGeneration = { app.volumeEvents.generation(target.volumeId) },
     )
 
-    private var checkJob: kotlinx.coroutines.Job? = null
-
     /**
      * MOVE-15 / H1 "Check backup": re-reads every verified copy in a way the phone's memory can't answer. When every
      * copy still to confirm was first checked before a restart, it reads right away; otherwise it asks to unplug
@@ -596,11 +637,18 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      * stay unconfirmed and the result says so. Nothing is freed here; the user still decides (principle 3).
      */
     fun checkBackup(jobId: String) {
-        checkJob?.cancel()
-        checkJob = viewModelScope.launch {
+        // E3: the whole check (also waiting for the unplug) runs in the foreground service, so switching to another
+        // app while the drive is unplugged doesn't end it.
+        controller.runTask(app, TaskKind.CHECK) { _ -> checkNow(jobId) }
+    }
+
+    private fun showCheck(step: BackupCheck?) = controller.results.update { it.copy(check = step) }
+
+    private suspend fun checkNow(jobId: String) {
+        run {
             val store = controller.store
-            val job = withContext(Dispatchers.IO) { store.job(jobId) } ?: return@launch
-            val ref = job.targetRef ?: return@launch
+            val job = store.job(jobId) ?: return
+            val ref = job.targetRef ?: return
 
             // Each call opens the target anew (for a network drive: a brand-new connection).
             suspend fun attached(): io.github.tomerar.keepclear.backup.BackupTarget? {
@@ -636,17 +684,17 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             } else if (rebooted) {
                 FreshRead.REBOOTED
             } else {
-                _state.update { it.copy(check = BackupCheck.Unplug(jobId)) }
+                showCheck(BackupCheck.Unplug(jobId))
                 val gone = kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
                     while (present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 }
-                if (gone == null) return@launch timeout(jobId)
-                _state.update { it.copy(check = BackupCheck.PlugBack(jobId)) }
+                if (gone == null) return timeout(jobId)
+                showCheck(BackupCheck.PlugBack(jobId))
                 kotlinx.coroutines.withTimeoutOrNull(CHECK_WAIT_MILLIS) {
                     while (!present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
-                } ?: return@launch timeout(jobId)
+                } ?: return timeout(jobId)
                 // D4: Android reports the mount a moment after the files are reachable; wait briefly for it. Without
                 // it the engine proves nothing and the result says how many files still need a check.
                 kotlinx.coroutines.withTimeoutOrNull(MOUNT_EVENT_WAIT_MILLIS) {
@@ -656,8 +704,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 FreshRead.REATTACHED
             }
-            val target = attached() ?: return@launch timeout(jobId)
-            _state.update { it.copy(check = BackupCheck.Checking(jobId)) }
+            val target = attached() ?: return timeout(jobId)
+            showCheck(BackupCheck.Checking(jobId))
             val result = try {
                 withContext(Dispatchers.IO) { target.useTarget { engine(it).confirm(jobId, evidence) } }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -671,16 +719,15 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 BackupCheck.Done(jobId, result)
             }
-            _state.update { it.copy(check = step) }
-            reload()
+            showCheck(step)
         }
     }
 
-    private fun timeout(jobId: String) = _state.update { it.copy(check = BackupCheck.TimedOut(jobId)) }
+    private fun timeout(jobId: String) = showCheck(BackupCheck.TimedOut(jobId))
 
     fun cancelCheck() {
-        checkJob?.cancel()
-        _state.update { it.copy(check = null) }
+        if (controller.task.value?.kind == TaskKind.CHECK) controller.cancelTask()
+        showCheck(null)
     }
 
     private fun canReadBack(job: MoveJob): Boolean = runCatching {
@@ -695,7 +742,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private fun copyOnly(job: MoveJob): Boolean =
         OpenedTarget.isSmb(job.targetRef) && runCatching { app.networkDrives.isGuest() }.getOrDefault(true)
 
-    fun clearFreeResult() = _state.update { it.copy(freeResult = null) }
+    fun clearFreeResult() = controller.results.update { it.copy(freeResult = null) }
 
     private fun treeLabel(uri: Uri): String = runCatching {
         val doc = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
@@ -720,6 +767,34 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 }
 
 private const val CHECK_WAIT_MILLIS = 5 * 60_000L
+
+/** E7: progress on screen is read again at most this often (the notification: once a second). */
+internal const val RELOAD_MILLIS = 500L
+
+/** E3: a restore step that belongs to the running (or finished) restore task. */
+val RestoreStep.fromTask: Boolean get() = this is RestoreStep.Running || this is RestoreStep.Done
+
+/**
+ * The time left of the running job (review PR C). E13: it starts again whenever a job (re)starts, so time spent
+ * paused never stretches the estimate.
+ */
+class EtaTracker {
+    private var start: Triple<String, Long, Long>? = null
+    private var running: String? = null
+
+    fun onRunning(id: String?) {
+        if (id != running) {
+            start = null
+            running = id
+        }
+    }
+
+    fun estimate(jobId: String, now: Long, doneBytes: Long, totalBytes: Long): Long? {
+        val s = start?.takeIf { it.first == jobId } ?: Triple(jobId, now, doneBytes).also { start = it }
+        return etaMillis(s.second, s.third, now, doneBytes, totalBytes)
+    }
+}
+
 private const val POLL_MILLIS = 1_000L
 private const val MOUNT_EVENT_WAIT_MILLIS = 15_000L
 

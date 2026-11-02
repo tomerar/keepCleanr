@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-549 Hebrew strings.
+553 Hebrew strings.
 
 ## Contents
 
@@ -16,7 +16,7 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (17)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (166)
+- [Move to backup and restore](#move-to-backup-and-restore) (170)
 - [Trash](#trash) (42)
 - [Apps](#apps) (29)
 - [Settings](#settings) (35)
@@ -363,6 +363,10 @@ string; "also" lists other screens.
 | `restore_too_big` | There isn't enough room for all of this. KeepClear always leaves %1$s free so the phone keeps working. Choose fewer months. | אין מספיק מקום לכל מה שבחרתם. KeepClear תמיד משאיר %1$s פנויים כדי שהטלפון ימשיך לעבוד. אפשר לבחור פחות חודשים. |  |
 | `restore_where` | Files go back to where they were only if KeepClear moved them from there on this phone. Others go to Pictures › KeepClear Restored. Hidden files and apps are not restored. Nothing on the phone is replaced. | קבצים חוזרים למקום המקורי רק אם KeepClear העביר אותם משם בטלפון הזה. השאר נשמרים בתמונות › KeepClear Restored. קבצים מוסתרים ואפליקציות לא משוחזרים. שום קובץ בטלפון לא מוחלף. |  |
 | `restore_which_phone` | Which phone's backup? | הגיבוי של איזה טלפון? |  |
+| `task_notification_check` | Checking your backup… | בודקים את הגיבוי… |  |
+| `task_notification_free` | Freeing up space… | מפנים מקום… |  |
+| `task_notification_restore` | Restoring files… | משחזרים קבצים… |  |
+| `task_progress` | [one] %1$d of %2$d file / [other] %1$d of %2$d files | [one] %1$d מתוך קובץ אחד / [two] %1$d מתוך %2$d קבצים / [other] %1$d מתוך %2$d קבצים |  |
 
 ## Trash
 

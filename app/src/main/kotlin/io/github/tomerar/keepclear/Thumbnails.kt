@@ -5,13 +5,16 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.graphics.Bitmap
 import android.media.ThumbnailUtils
+import android.os.CancellationSignal
 import android.provider.MediaStore
 import android.util.LruCache
 import android.util.Size
 import androidx.compose.runtime.staticCompositionLocalOf
 import io.github.tomerar.keepclear.engine.scan.ScanItem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.io.File
 
 /**
@@ -26,30 +29,41 @@ open class ThumbnailLoader(private val resolver: ContentResolver?) {
     open suspend fun load(item: ScanItem, sizePx: Int): Bitmap? {
         val key = "${item.path}#$sizePx#${item.mtimeMillis}"
         cache.get(key)?.let { return it }
-        val bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val size = Size(sizePx, sizePx)
-                val ext = item.path.substringAfterLast('.', "").lowercase()
-                when {
-                    item.mediaId != null && resolver != null -> resolver.loadThumbnail(
-                        ContentUris.withAppendedId(
-                            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                            item.mediaId!!,
-                        ),
-                        size,
-                        null,
-                    )
-
-                    ext in imageExtensions -> ThumbnailUtils.createImageThumbnail(File(item.path), size, null)
-
-                    ext in videoExtensions -> ThumbnailUtils.createVideoThumbnail(File(item.path), size, null)
-
-                    else -> null
-                }
-            }.getOrNull()
+        // E13: leaving a screen (or scrolling past a tile) cancels its decode; Android stops reading the file.
+        val signal = CancellationSignal()
+        val bitmap = coroutineScope {
+            val decoding =
+                async(Dispatchers.IO) { runCatching { decode(item, Size(sizePx, sizePx), signal) }.getOrNull() }
+            try {
+                decoding.await()
+            } catch (e: CancellationException) {
+                signal.cancel()
+                throw e
+            }
         }
         bitmap?.let { cache.put(key, it) }
         return bitmap
+    }
+
+    /** One decode; it stops when [signal] is cancelled. */
+    protected open fun decode(item: ScanItem, size: Size, signal: CancellationSignal): Bitmap? {
+        val ext = item.path.substringAfterLast('.', "").lowercase()
+        return when {
+            item.mediaId != null && resolver != null -> resolver.loadThumbnail(
+                ContentUris.withAppendedId(
+                    MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                    item.mediaId!!,
+                ),
+                size,
+                signal,
+            )
+
+            ext in imageExtensions -> ThumbnailUtils.createImageThumbnail(File(item.path), size, signal)
+
+            ext in videoExtensions -> ThumbnailUtils.createVideoThumbnail(File(item.path), size, signal)
+
+            else -> null
+        }
     }
 
     private companion object {

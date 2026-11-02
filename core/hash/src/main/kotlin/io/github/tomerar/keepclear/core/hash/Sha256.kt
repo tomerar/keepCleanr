@@ -9,10 +9,15 @@ import java.security.MessageDigest
 object Sha256 {
     private const val BUFFER = 1 shl 20
 
-    fun of(input: InputStream): String {
+    /**
+     * [beforeEachRead] runs before every buffer is read (E2): a caller passes a cancellation check, so stopping a
+     * job never waits for a whole multi-gigabyte file. It may throw to stop.
+     */
+    fun of(input: InputStream, beforeEachRead: () -> Unit = {}): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val buffer = ByteArray(BUFFER)
         while (true) {
+            beforeEachRead()
             val n = input.read(buffer)
             if (n < 0) break
             digest.update(buffer, 0, n)
@@ -25,17 +30,20 @@ object Sha256 {
     /**
      * Copies [input] to [output] and returns the SHA-256 of the bytes copied (single read, MOVE-6). [extra], if
      * given, is fed the same bytes in the same pass (M17: Dropbox's content hash next to the SHA-256).
+     * [beforeEachRead] runs before every buffer (E2: the copy loop's cancellation check); it may throw to stop.
      */
     fun copy(
         input: InputStream,
         output: OutputStream,
         extra: StreamingDigest? = null,
         onProgress: (Long) -> Unit = {},
+        beforeEachRead: () -> Unit = {},
     ): Pair<Long, String> {
         val digest = MessageDigest.getInstance("SHA-256")
         val buffer = ByteArray(BUFFER)
         var total = 0L
         while (true) {
+            beforeEachRead()
             val n = input.read(buffer)
             if (n < 0) break
             digest.update(buffer, 0, n)

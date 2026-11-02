@@ -20,6 +20,12 @@ fun interface ActionHandler {
     suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? = null
 
     /**
+     * Runs one whole plan ([block]). The trash uses it to read its index once per plan (E6, not once per file) and to
+     * keep its daily purge and recovery out while a plan runs (E13).
+     */
+    suspend fun <T> plan(block: suspend () -> T): T = block()
+
+    /**
      * M12: true when Android itself must ask the user before [op] happens (MediaStore trash without
      * `MANAGE_MEDIA`). Such ops are re-checked like any other and then handed over in one batch.
      */
@@ -135,6 +141,10 @@ class ActionExecutor(
             is SafetyGuard.Verdict.Rejected -> return ExecutionReport.Rejected(verdict.reasons)
             SafetyGuard.Verdict.Accepted -> Unit
         }
+        return handler.plan { runAccepted(plan) }
+    }
+
+    private suspend fun runAccepted(plan: ActionPlan): ExecutionReport {
         val results = mutableListOf<OpResult>()
         var stopped = false
         for (op in plan.ops) {

@@ -33,9 +33,33 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/** E3: work that runs in the foreground service besides copying (MOVE-10, MOVE-15, MOVE-17). */
+enum class TaskKind { FREE, CHECK, RESTORE }
+
+/** A running [TaskKind] and how far it got (files done of total; 0 of 0 while it prepares). */
+data class TaskProgress(val kind: TaskKind, val done: Int = 0, val total: Int = 0)
+
+/**
+ * E3: results of foreground work, kept app-wide so they survive leaving the app (the screen's ViewModel can be
+ * gone when they arrive) and show when KeepClear is opened again.
+ */
+data class TaskResults(
+    val check: BackupCheck? = null,
+    val freeResult: FreeResult? = null,
+    /** A restore's [RestoreStep.Running] or [RestoreStep.Done]; null when no restore ran since the flow closed. */
+    val restore: RestoreStep? = null,
+)
+
 /** App-wide MOVE state: which job runs now, for the UI and the notification (MOVE-11/12). */
 class MoveController(private val app: KeepClearApplication) {
-    val store by lazy { RoomMoveJobStore(app.database.moveDao()) }
+    /** Tests only: wraps the database access of [store] (e.g. to count reads). */
+    internal var daoWrapper: (io.github.tomerar.keepclear.core.database.MoveDao) ->
+    io.github.tomerar.keepclear.core.database.MoveDao = { it }
+
+    val store by lazy { RoomMoveJobStore(daoWrapper(app.database.moveDao())) }
+
+    /** App-wide work that must outlive a screen (E3) and the timeout checkpoint (E2). Never the main thread. */
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _running = MutableStateFlow<String?>(null)
 
@@ -47,6 +71,60 @@ class MoveController(private val app: KeepClearApplication) {
 
     internal fun setRunning(id: String?) {
         _running.value = id
+    }
+
+    private val _task = MutableStateFlow<TaskProgress?>(null)
+
+    /** E3: the free / check / restore running in the foreground service, or null. */
+    val task: StateFlow<TaskProgress?> = _task
+
+    /** E3: what the last free / check / restore found. */
+    val results = MutableStateFlow(TaskResults())
+
+    /** E3: bumped when a free, check or restore ended; Home then measures free space and reloads trash and scan. */
+    val finished = MutableStateFlow(0L)
+
+    @Volatile private var taskJob: Job? = null
+
+    /** Starts the service for a task; tests replace it (Robolectric runs no services). */
+    internal var startTaskService: (Context, TaskKind) -> Unit = { context, kind ->
+        ContextCompat.startForegroundService(
+            context,
+            Intent(context, MoveService::class.java).putExtra(MoveService.EXTRA_TASK, kind.name),
+        )
+    }
+
+    /**
+     * E3: runs [block] in the foreground service's keep-alive, on the app's scope: leaving KeepClear doesn't stop
+     * it, and the notification shows its progress. One task at a time; returns null when one already runs.
+     */
+    fun runTask(
+        context: Context,
+        kind: TaskKind,
+        block: suspend (progress: (done: Int, total: Int) -> Unit) -> Unit,
+    ): Job? {
+        synchronized(this) {
+            if (taskJob?.isActive == true) return null
+            _task.value = TaskProgress(kind)
+            runCatching { startTaskService(context, kind) }
+            val job = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
+                try {
+                    block { done, total -> _task.value = TaskProgress(kind, done, total) }
+                } finally {
+                    _task.value = null
+                    ticks.value++
+                    finished.value++
+                }
+            }
+            taskJob = job
+            job.start()
+            return job
+        }
+    }
+
+    /** E3: stops the running task (the user cancelled, or Android's time limit). */
+    fun cancelTask() {
+        taskJob?.cancel()
     }
 
     /**
@@ -73,81 +151,106 @@ class MoveController(private val app: KeepClearApplication) {
     fun pause(reason: PauseReason) {
         stopper?.invoke(reason)
     }
+
+    /** E2: the time limit's checkpoint: a job still marked running is paused with [reason]. */
+    suspend fun checkpoint(jobId: String, reason: PauseReason) {
+        val job = store.job(jobId) ?: return
+        if (job.state == JobState.RUNNING) store.putJob(job.copy(state = JobState.PAUSED, pauseReason = reason))
+    }
 }
 
 /**
- * Runs one MOVE job as a `dataSync` foreground service (MOVE-12). Not exported; it only acts on explicit
- * intents from KeepClear itself and never deletes anything: copy and verify only (SAFETY-1).
+ * Runs one MOVE job as a `dataSync` foreground service (MOVE-12), and keeps the app alive with a notification
+ * while a free, check or restore runs (E3). Not exported; it only acts on explicit intents from KeepClear itself.
+ * The service never deletes anything itself: freeing goes through the executor (SAFETY-1).
  */
 class MoveService : Service() {
     companion object {
         const val EXTRA_JOB = "job"
+        const val EXTRA_TASK = "task"
         const val EXTRA_REASON = "reason"
         private const val NOTIFICATION_ID = 41
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var work: Job? = null
-
-    @Volatile private var stopReason: PauseReason = PauseReason.PAUSED_BY_USER
 
     /**
-     * The newest start request. A job ending calls `stopSelf(latestStartId)`, which does nothing if another
+     * The newest start request. Stopping calls `stopSelf(latestStartId)`, which does nothing if another
      * `startForegroundService()` arrived meanwhile (e.g. Continue tapped right after Pause): a plain `stopSelf()`
      * would destroy the service before that start calls `startForeground`, and Android kills the app.
      */
     @Volatile private var latestStartId = 0
 
-    /** A start that arrived while the previous job was still ending; it runs next. */
-    @Volatile private var pendingJob: String? = null
+    private val app get() = application as KeepClearApplication
 
-    private fun launchJob(jobId: String) {
-        app.moveController.setRunning(jobId)
-        app.moveController.stopper = { reason ->
-            stopReason = reason
-            work?.cancel()
-        }
-        stopReason = PauseReason.PAUSED_BY_USER
-        work = scope.launch {
-            try {
-                run(jobId)
-            } finally {
+    private val runner: MoveRunner by lazy {
+        MoveRunner(
+            scope = scope,
+            checkpointScope = app.moveController.scope,
+            runJob = { id, reason -> run(id, reason) },
+            checkpoint = { id, reason -> app.moveController.checkpoint(id, reason) },
+            // After a job: stop unless a free / check / restore still runs (its end stops the service then).
+            stopService = { if (runner.timedOut || app.moveController.task.value == null) stopNow() },
+            onStarted = { id ->
+                app.moveController.setRunning(id)
+                app.moveController.stopper = { reason -> runner.pause(reason) }
+            },
+            onEnded = {
                 app.moveController.stopper = null
                 app.moveController.setRunning(null)
                 app.moveController.ticks.value++
-                val next = pendingJob
-                pendingJob = null
-                if (next != null) {
-                    launchJob(next)
-                } else {
-                    stopForeground(STOP_FOREGROUND_REMOVE) // the result notification replaces the progress one
-                    stopSelf(latestStartId)
-                }
-            }
-        }
+            },
+        )
     }
 
-    private val app get() = application as KeepClearApplication
+    /** Watches a free / check / restore (E3); the service stops when it ends and no copy runs. */
+    private var taskWatch: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         latestStartId = startId
-        val jobId = intent?.getStringExtra(EXTRA_JOB) ?: return START_NOT_STICKY.also { stopSelf(startId) }
+        val jobId = intent?.getStringExtra(EXTRA_JOB)
+        val task = intent?.getStringExtra(EXTRA_TASK)?.let { name -> TaskKind.entries.firstOrNull { it.name == name } }
+        if (jobId == null && task == null) return START_NOT_STICKY.also { stopSelf(startId) }
         MoveNotifications.ensureChannel(this)
-        val first = MoveNotifications.progress(this, 0, 0)
+        // Every startForegroundService() must be answered with startForeground(), even one that stops at once.
+        val first = if (jobId != null) MoveNotifications.progress(this, 0, 0) else MoveNotifications.task(this, task)
         startForeground(NOTIFICATION_ID, first, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        if (work?.isActive == true) {
-            // A job is still winding down (e.g. paused a moment ago): run this one right after it.
-            pendingJob = jobId
-            return START_NOT_STICKY
+        if (jobId != null) {
+            if (!runner.start(jobId)) stopNow()
+        } else {
+            watchTask()
         }
-        launchJob(jobId)
         // Not restarted by the system: after a kill the job shows as interrupted and waits for the user (MIG-4).
         return START_NOT_STICKY
     }
 
-    private suspend fun run(jobId: String) {
+    private fun watchTask() {
+        if (taskWatch?.isActive == true) return
+        val nm = getSystemService(NotificationManager::class.java)
+        val throttle = NotificationThrottle()
+        taskWatch = scope.launch {
+            app.moveController.task.collect { progress ->
+                if (progress == null) {
+                    if (!runner.busy) stopNow()
+                    return@collect
+                }
+                // A copy that runs at the same time keeps its own progress in the notification.
+                if (!runner.busy && MoveNotifications.allowed(this@MoveService) && throttle.ready()) {
+                    nm.notify(NOTIFICATION_ID, MoveNotifications.task(this@MoveService, progress.kind, progress))
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    private fun stopNow() {
+        stopForeground(STOP_FOREGROUND_REMOVE) // the result notification replaces the progress one
+        stopSelf(latestStartId)
+    }
+
+    private suspend fun run(jobId: String, stopReason: () -> PauseReason) {
         val store = app.moveController.store
         val job = store.job(jobId) ?: return
         // A picked drive/folder or the network drive (M15); identity must match the job's (E-MOVE-2).
@@ -162,6 +265,8 @@ class MoveService : Service() {
         val total = store.files(jobId).size
         var verified = store.files(jobId).count { it.state == MoveFileState.VERIFIED }
         val nm = getSystemService(NotificationManager::class.java)
+        // E7: at most one notification update a second, however fast small files go.
+        val throttle = NotificationThrottle()
         val engine = MoveEngine(
             source = app.localGateway,
             target = check.target,
@@ -169,11 +274,11 @@ class MoveService : Service() {
             onProgress = { f ->
                 if (f.state == MoveFileState.VERIFIED) verified++
                 app.moveController.ticks.value++
-                if (MoveNotifications.allowed(this)) {
+                if (MoveNotifications.allowed(this) && throttle.ready()) {
                     nm.notify(NOTIFICATION_ID, MoveNotifications.progress(this, verified, total))
                 }
             },
-            cancelReason = { stopReason },
+            cancelReason = stopReason,
             bootId = { app.trashClock.bootId() },
             // D4: each file's first check records the drive's mount generation.
             attachGeneration = { app.volumeEvents.generation(check.target.volumeId) },
@@ -194,15 +299,34 @@ class MoveService : Service() {
         MoveNotifications.result(this, end, verified)
     }
 
-    /** Android 15+: the dataSync time limit ends; checkpoint and pause (MOVE-12). */
+    /**
+     * Android 15+: the dataSync time limit ends (MOVE-12, E2). Checkpoint, stop at once (a blocked network read may
+     * never notice the cancellation), drop a waiting start, and stop a free / check / restore too.
+     */
     override fun onTimeout(startId: Int, fgsType: Int) {
-        stopReason = PauseReason.SYSTEM_TIME_LIMIT
-        work?.cancel()
+        app.moveController.cancelTask()
+        runner.onTimeout()
     }
 
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
+    }
+}
+
+/** E7: lets a notification update through at most once per [intervalMillis]. */
+class NotificationThrottle(
+    private val intervalMillis: Long = 1_000,
+    private val clock: () -> Long = android.os.SystemClock::elapsedRealtime,
+) {
+    private var last = Long.MIN_VALUE
+
+    @Synchronized
+    fun ready(): Boolean {
+        val now = clock()
+        if (last != Long.MIN_VALUE && now - last < intervalMillis) return false
+        last = now
+        return true
     }
 }
 
@@ -265,6 +389,39 @@ object MoveNotifications {
         Intent(context, MoveControlReceiver::class.java).putExtra(MoveService.EXTRA_REASON, reason.name),
         PendingIntent.FLAG_IMMUTABLE,
     )
+
+    /** E3: free / check / restore in progress (no pause or stop here: those live in the app). */
+    fun task(context: Context, kind: TaskKind?, progress: TaskProgress? = null): Notification =
+        NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setContentTitle(
+                context.getString(
+                    when (kind) {
+                        TaskKind.FREE -> R.string.task_notification_free
+                        TaskKind.CHECK -> R.string.task_notification_check
+                        TaskKind.RESTORE, null -> R.string.task_notification_restore
+                    },
+                ),
+            )
+            .apply {
+                if (progress != null && progress.total > 0) {
+                    setContentText(
+                        context.resources.getQuantityString(
+                            R.plurals.task_progress,
+                            progress.total,
+                            progress.done,
+                            progress.total,
+                        ),
+                    )
+                    setProgress(progress.total, progress.done, false)
+                } else {
+                    setProgress(0, 0, true)
+                }
+            }
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(openApp(context))
+            .build()
 
     fun progress(context: Context, verified: Int, total: Int): Notification =
         NotificationCompat.Builder(context, CHANNEL)
