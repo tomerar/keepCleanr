@@ -52,6 +52,7 @@ M11 is paused until these three PRs are merged, in order. Each fix has a test th
 | M16-4 Space reminder (SET-3) | ✅ merged ([#29](https://github.com/tomerar/keepCleanr/pull/29)); no Codex findings | | Settings › "Remind me when space is low" (off by default): a daily check (WorkManager) posts at most one notification a week when less than 10% (or 2 GB) is free, with the last scan's "ready to clean" total. It only reminds: no background scan, no deletion. |
 | M16a Cloned apps, Telegram, large screens (MSG-3, MSG-4, UI-2) | ✅ merged ([#30](https://github.com/tomerar/keepCleanr/pull/30)); 1 Codex finding fixed (readable clone storage holds its own trash) | | Cloned-app storage (`/storage/emulated/999`) scanned with the same rules when readable, "Cloned app" chip in the preview; a Home card when it exists but is hidden (C14, D16a-1). Telegram's folders were already covered; cache guidance stays on the Apps screen. Wide windows keep an 840 dp readable column (C13). |
 | M13 Apps | ✅ merged ([#21](https://github.com/tomerar/keepCleanr/pull/21)); 1 Codex finding fixed (no uninstall in trial mode, SAFETY-9) | | Apps screen: usage access asked only there (ONB-7), apps by size, "not opened in about 6 months" (calendar months; apps installed less than 6 months ago never count), uninstall through Android's own window (`REQUEST_DELETE_PACKAGES`, documented in PRIVACY.md), App info for the rest; "Clear one app at a time" sorted by temporary-file size when usage access is on (SAFE-10). |
+| Device check screen (test builds) | 🔄 PR open | | Settings › Advanced › **Device check**, only in test builds (`BuildConfig.DEBUG`; release builds never show or open it, tested). Strictly read-only (ArchitectureTest rule `device check code is read-only`): it runs Home's scanner, roots and classifier in memory (nothing goes into the scan index) and reads settings, sizes, folder listings and KeepClear's own records. Report sections: device, display, permissions, scan (time, totals per category, scanned vs used), storage (StatFs and what Settings › Storage counts), cloned apps (users 10, 95, 150, 999 and any number under the emulated storage; 999 judged by `ClonedApps` like Home), other apps' recycle bins (research 03 §8 list), removable drives (`DriveFormat` + the 4 GB consequence) and KeepClear's own state. Plain English text with counts and sizes only, no paths or names (tested on real-looking inputs); Copy and Share. |
 
 ## Test build for the phone (no computer needed)
 
@@ -72,6 +73,24 @@ To build one on demand: Actions › CI › **Run workflow** on `main`.
 Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are marked *optional (developer)*. Record results in `docs/device-reports/`.
 
 **Now (read-only, while travelling):** D0-1, D3-1, D3-2, D3-3, D5-1, D8-1 (look only; don't tap Delete), D13-1, D12-1. **With a computer or NAS at home:** D15-1. **When home (they delete or move files):** D6-x, D7-2, D10-x. D7-1 and D7-3 can be done any time but D7-3 clears caches.
+
+**Device check screen (test builds, fastest way to run the read-only checks):** in "KeepClear test", tap **Settings** on Home, scroll down to **Advanced**, tap **Device check**. It starts at once and takes about a minute (it runs a full scan); nothing is deleted, moved or changed, also with trial mode off. Then tap **Share** (or **Copy**) and paste the report into the chat. It has counts and sizes only, no file names or folders. **Run again** repeats it, e.g. after plugging in the USB drive or turning on All files access.
+
+What the report answers (and what still needs your eyes):
+
+| D-row | Covered by the report | Still by hand |
+|---|---|---|
+| D0-1 | Language, layout direction (right to left in Hebrew), dark mode on/off | That Home really looks right |
+| D3-1 | Scan time against 60 s, files and bytes, complete or not; StatFs and Settings › Storage numbers side by side; scanned vs used | A glance that Settings › Storage shows the same total and free |
+| D3-2 | Photos and videos access level (all / some / none), All files access | The explainer and revoking access mid-scan |
+| D3-3, D16a-1 | Users 10, 95, 150, 999 (and any other number Android shows): present, readable or not visible; WhatsApp files and bytes in a readable clone; whether Home scans it | Whether the clone's photos show with the "Cloned app" label |
+| D7-1 | OnePlus/OPPO file manager bin (`.FileManagerRecycler`): present, files and bytes; also Files by Google, Xiaomi Gallery, Samsung (unverified) and generic bins; Android's own trash | — |
+| D10-1 (part) | With the drive plugged in: FAT32 / exFAT / NTFS / unknown, the 4 GB consequence, files over 4 GB on the phone | The copy, unplugging and Continue |
+| D12-1 (part) | Number of folders granted through Android's picker | The picker and the new scan |
+| D13-1 (part) | Usage access granted or not | Sizes against Settings › Apps |
+| D18-1 (part) | Font scale, density, screen size class | Contrast with Accessibility Scanner |
+
+Not covered (they need looking, tapping or deleting): D5-1, D6-x, D7-2, D7-3, D8-1, D10-2…4, D15-1, D16-1.
 
 | # | Milestone | Check | When | Status |
 |---|---|---|---|---|

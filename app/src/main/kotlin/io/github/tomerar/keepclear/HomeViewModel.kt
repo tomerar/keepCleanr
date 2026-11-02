@@ -143,6 +143,9 @@ sealed interface Screen {
 
     /** M13: apps by size and last use. */
     data object Apps : Screen
+
+    /** Test builds only: Settings › Advanced › Device check (read-only). */
+    data object DeviceCheck : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -152,9 +155,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanJob: Job? = null
 
     /** CLS-7: the user's kept and always-junk choices apply to every classification. */
-    private fun classifier(): Classifier = app.userChoices.state.value.let {
-        Classifier(protectedPaths = app.protectedPaths, keptByUser = it.kept, junkFolders = it.junk)
-    }
+    private fun classifier(): Classifier = homeClassifier(app)
 
     /** The last scan's items, so a choice can be applied without scanning again. */
     private var lastItems: List<ScanItem> = emptyList()
@@ -240,7 +241,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         val s = _state.value
         // M12b: without All files access, granted folders (WhatsApp's) are walked at their real paths.
-        val roots = if (s.allFiles == true) storageRoots() else s.grantedFolders.map { KPath.Local(it) }
+        val roots = ScanRoots.of(s.allFiles == true, app.volumeRoots(), s.cloned.readable, s.grantedFolders)
         val scanner = Scanner(app.localGateway, app.mediaSource)
         val persist = s.spaceMode.persistScanResults
         scanJob = viewModelScope.launch {
@@ -304,15 +305,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val run = classifyRuns.start()
         val classifier = classifier()
         val (summary, ev) = withContext(Dispatchers.Default) {
-            val now = System.currentTimeMillis()
-            // Second-pass facts (twins, extracted archives) for files KeepClear can read by path (M7).
-            val enrichment = runCatching {
-                FactEnricher(app.localGateway).enrich(items.filter { it.ref is KPath.Local })
-            }
-                .getOrDefault(Enrichment(emptyMap(), emptyMap()))
-            ClassificationSummary.of(
-                items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
-            ) to enrichment.evidence
+            classifyRun(app.localGateway, classifier, items, System.currentTimeMillis())
         }
         if (!classifyRuns.isLatest(run)) return
         evidence = ev
@@ -665,13 +658,40 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         _state.update { it.copy(scan = ScanState.Idle) }
     }
+}
 
-    private fun storageRoots(): List<KPath.Local> {
-        val sm = app.getSystemService(StorageManager::class.java)
-        val volumes = sm.storageVolumes.mapNotNull { v -> v.directory?.takeIf { v.state == "mounted" }?.absolutePath }
-        // MSG-3: readable cloned-app storage is scanned with the same rules.
-        return (volumes + _state.value.cloned.readable).distinct().map { KPath.Local(it) }
-    }
+/** What Home scans; the device check (test builds) scans the same roots. */
+object ScanRoots {
+    /**
+     * With All files access: every mounted volume plus readable cloned-app storage (MSG-3, same rules). Without it
+     * (M12b): granted folders (WhatsApp's) at their real paths; MediaStore adds the rest.
+     */
+    fun of(allFiles: Boolean, volumes: List<String>, clonedReadable: List<String>, granted: List<String>) =
+        if (allFiles) {
+            (volumes + clonedReadable).distinct().map { KPath.Local(it) }
+        } else {
+            granted.map { KPath.Local(it) }
+        }
+}
+
+/** CLS-7: Home's classifier, with the user's kept and always-junk choices (shared with the device check). */
+fun homeClassifier(app: KeepClearApplication): Classifier = app.userChoices.state.value.let {
+    Classifier(protectedPaths = app.protectedPaths, keptByUser = it.kept, junkFolders = it.junk)
+}
+
+/** Home's classification of one scan run: second-pass facts (twins, extracted archives; M7), then the rules. */
+suspend fun classifyRun(
+    gateway: io.github.tomerar.keepclear.core.storage.StorageGateway,
+    classifier: Classifier,
+    items: List<ScanItem>,
+    now: Long,
+): Pair<ClassificationSummary, Map<String, Evidence>> {
+    // Only for files KeepClear can read by path.
+    val enrichment = runCatching { FactEnricher(gateway).enrich(items.filter { it.ref is KPath.Local }) }
+        .getOrDefault(Enrichment(emptyMap(), emptyMap()))
+    return ClassificationSummary.of(
+        items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
+    ) to enrichment.evidence
 }
 
 /** Owner decision 1.3: the plan for items the user confirmed as last copies, keeping their group sizes (SAFETY-8). */

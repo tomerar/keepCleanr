@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-481 Hebrew strings.
+490 Hebrew strings.
 
 ## Contents
 
@@ -21,6 +21,7 @@ string; "also" lists other screens.
 - [Apps](#apps) (29)
 - [Settings](#settings) (31)
 - [Notifications](#notifications) (4)
+- [Device check (test builds)](#device-check-test-builds) (9)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96)
 
 ## Intro and permissions
@@ -457,6 +458,20 @@ string; "also" lists other screens.
 | `reminder_text` | %1$s free. Open KeepClear to see what can go. | %1$s פנויים. אפשר לפתוח את KeepClear כדי לראות מה אפשר לפנות. |  |
 | `reminder_text_junk` | %1$s free. The last check found %2$s of junk ready to clean. | %1$s פנויים. בבדיקה האחרונה נמצאו %2$s של זבל שמוכן לניקוי. |  |
 | `reminder_title` | Space is getting low | המקום בטלפון מתמלא |  |
+
+## Device check (test builds)
+
+| Key | English | עברית | Also |
+|---|---|---|---|
+| `debug_device_check_body` | Read-only: nothing is deleted, moved or changed. The report has counts and sizes only, no file names or folders. | קריאה בלבד: שום דבר לא נמחק, לא מועבר ולא משתנה. בדוח יש רק מספרים וגדלים, בלי שמות של קבצים או תיקיות. |  |
+| `debug_device_check_button` | Device check | בדיקת מכשיר | Settings |
+| `debug_device_check_button_body` | Test builds only. Runs read-only checks and makes a report to copy or share. Nothing is changed. | בגרסאות בדיקה בלבד. מריצים בדיקות קריאה בלבד ומקבלים דוח להעתקה או לשיתוף. שום דבר לא משתנה. | Settings |
+| `debug_device_check_copy` | Copy | להעתיק |  |
+| `debug_device_check_english` | The report is in English, because it is meant for the developer. | הדוח באנגלית, כי הוא מיועד לצוות הפיתוח. |  |
+| `debug_device_check_run` | Run again | להריץ שוב |  |
+| `debug_device_check_running` | Checking… this can take a minute. | בודקים… זה יכול לקחת כדקה. |  |
+| `debug_device_check_share` | Share | לשתף |  |
+| `debug_device_check_title` | Device check | בדיקת מכשיר |  |
 
 ## Explanations (why / if deleted)
 

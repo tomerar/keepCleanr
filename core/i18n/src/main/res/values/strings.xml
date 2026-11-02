@@ -261,6 +261,15 @@
     <string name="test_mode_off_confirm">Turn off trial mode</string>
     <string name="settings_title">Settings</string>
     <string name="settings_advanced">Advanced</string>
+    <string name="debug_device_check_button">Device check</string>
+    <string name="debug_device_check_button_body">Test builds only. Runs read-only checks and makes a report to copy or share. Nothing is changed.</string>
+    <string name="debug_device_check_title">Device check</string>
+    <string name="debug_device_check_body">Read-only: nothing is deleted, moved or changed. The report has counts and sizes only, no file names or folders.</string>
+    <string name="debug_device_check_english">The report is in English, because it is meant for the developer.</string>
+    <string name="debug_device_check_run">Run again</string>
+    <string name="debug_device_check_copy">Copy</string>
+    <string name="debug_device_check_share">Share</string>
+    <string name="debug_device_check_running">Checking… this can take a minute.</string>
     <string name="home_card_counting">Counting…</string>
     <string name="home_card_needs_access">Needs access</string>
     <string name="home_clean_button">Clean %1$s</string>

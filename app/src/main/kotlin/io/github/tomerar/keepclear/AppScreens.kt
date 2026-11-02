@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.tomerar.keepclear.devcheck.DeviceCheckScreen
+import io.github.tomerar.keepclear.devcheck.DeviceCheckUi
 
 /** Test mode (SAFETY-9) for [AppScreens]: the banner on every screen and the Settings switch. */
 class TestModeUi(val on: Boolean = false, val turnOn: () -> Unit = {}, val turnOff: () -> Unit = {})
@@ -44,6 +46,7 @@ fun AppScreens(
     appActions: AppActions = AppActions(),
     appsActions: AppsActions = AppsActions(),
     previewActions: PreviewActions = PreviewActions(),
+    deviceCheck: DeviceCheckUi = DeviceCheckUi(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -66,6 +69,7 @@ fun AppScreens(
                     appActions,
                     appsActions,
                     previewActions,
+                    deviceCheck,
                 )
             }
         }
@@ -116,6 +120,7 @@ private fun ScreenContent(
     appActions: AppActions,
     appsActions: AppsActions,
     previewActions: PreviewActions,
+    deviceCheck: DeviceCheckUi,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -214,6 +219,15 @@ private fun ScreenContent(
 
         Screen.Apps -> {
             AppsScreen(state.appsInfo, System.currentTimeMillis(), appsActions, onBack)
+        }
+
+        Screen.DeviceCheck -> {
+            // Test builds only: a release build never shows it, even if asked to open it.
+            if (deviceCheck.enabled) {
+                DeviceCheckScreen(deviceCheck, onBack)
+            } else {
+                home()
+            }
         }
 
         Screen.Settings -> {

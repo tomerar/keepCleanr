@@ -173,6 +173,74 @@ class ArchitectureTest {
     }
 
     /**
+     * Device check (test builds, Settings › Advanced): strictly read-only. Its code may list folders, read sizes,
+     * run the scanner and read KeepClear's own records, but never delete, move, rename or write anything, never
+     * reach the action executor, the trash manager or the scan index, and never ask Android to clear or free space.
+     */
+    @Test
+    fun `device check code is read-only`() {
+        val forbidden = listOf(
+            "ActionExecutor",
+            "executor(",
+            "SafetyGuard",
+            "trashManager",
+            "TrashManager",
+            "scanIndex",
+            "ScanIndex",
+            "actionGateway",
+            "mediaRequests",
+            "MediaConsentHandler",
+            "moveController.start",
+            "putJob",
+            "put(",
+            "remove(",
+            "delete(",
+            ".rename(",
+            "renameTo(",
+            "deleteRecursively(",
+            "Files.move(",
+            "Files.delete",
+            "Files.write",
+            "Files.copy(",
+            "copyTo(",
+            ".create(",
+            ".mkdir(",
+            "mkdirs(",
+            "createNewFile(",
+            "writeText(",
+            "writeBytes(",
+            "appendText(",
+            "OutputStream",
+            "FileWriter",
+            "openOutputStream",
+            "openFileDescriptor",
+            "Document(",
+            "Request(",
+            ".insert(",
+            ".update(",
+            "allocateBytes(",
+            "ACTION_CLEAR_APP_CACHE",
+            "ACTION_DELETE",
+            "edit {",
+            "edit(",
+            "turnOff(",
+            "turnOn(",
+            "refreshGrantedFolders(",
+            "forgetNetworkDrive(",
+        )
+        val files = projectScope.files.filter {
+            "/app/src/main/kotlin/io/github/tomerar/keepclear/devcheck/" in it.path
+        }
+        // Guards against a move or rename silently emptying this rule.
+        check(files.size >= 4) { "device check files not found: ${files.map { it.name }}" }
+        files.assertFalse { file ->
+            file.text.lineSequence()
+                .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+                .any { line -> forbidden.any { it in line } }
+        }
+    }
+
+    /**
      * Review PR B: logcat is readable by anyone with `adb` and by bug-report tools; file names can be private
      * ("divorce papers.pdf"). No log call in production code may include a path, a name or a URI.
      */
