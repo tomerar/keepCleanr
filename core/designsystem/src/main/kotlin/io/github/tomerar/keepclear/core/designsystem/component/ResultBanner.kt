@@ -37,6 +37,11 @@ fun ResultBanner(
     onUndo: (() -> Unit)? = null,
     dismissLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
+    /** F2: a second, optional text action next to Undo (e.g. "Empty now", which opens the Trash). */
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null,
+    undoModifier: Modifier = Modifier,
+    actionModifier: Modifier = Modifier,
 ) {
     val safe = KeepClearTheme.colors.safe
     Surface(modifier = modifier.fillMaxWidth(), shape = KcShapes.card, color = safe.container) {
@@ -62,8 +67,15 @@ fun ResultBanner(
                     }
                 }
             }
-            if (onUndo != null && undoText != null) {
-                KcButton(undoText, onUndo, style = KcButtonStyle.Text, icon = KcIcons.Undo)
+            val undo = if (onUndo != null && undoText != null) undoText to onUndo else null
+            val action = if (onAction != null && actionText != null) actionText to onAction else null
+            if (undo != null || action != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(KcSpacing.s)) {
+                    undo?.let { (text, click) ->
+                        KcButton(text, click, undoModifier, style = KcButtonStyle.Text, icon = KcIcons.Undo)
+                    }
+                    action?.let { (text, click) -> KcButton(text, click, actionModifier, style = KcButtonStyle.Text) }
+                }
             }
         }
     }

@@ -39,11 +39,14 @@ import io.github.tomerar.keepclear.devcheck.DeviceCheckUi
 import io.github.tomerar.keepclear.devcheck.DeviceCheckViewModel
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val thumbnails by lazy { ThumbnailLoader(contentResolver) }
+    private val appIcons by lazy { AppIconLoader(packageManager) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +86,18 @@ class MainActivity : ComponentActivity() {
                     rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
                         if (uri != null) moveVm.onTreePicked(uri)
                     }
+                // F2: the reminder's notification permission; the switch turns on only when it is granted.
+                var onNotificationAnswer by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
+                val reminderPermissionLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                        notificationsOff = !granted
+                        onNotificationAnswer?.invoke(granted)
+                        onNotificationAnswer = null
+                    }
+                // E7: only the set-up result is read here, never the whole MOVE state (progress would recompose all).
+                val networkSetup by remember {
+                    moveVm.state.map { it.networkSetup }.distinctUntilChanged()
+                }.collectAsStateWithLifecycle(null)
                 val notificationLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                         // ONB-10: the backup runs either way; without the permission progress shows only in the app.
@@ -157,7 +172,10 @@ class MainActivity : ComponentActivity() {
                 // D6: forgetting the Nextcloud revokes its app password on the server first; it runs in the app's
                 // scope (survives rotation, PR #44 review) and its state lives in the application.
                 val nextcloudForget by app.nextcloudForget.collectAsStateWithLifecycle()
-                CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
+                CompositionLocalProvider(
+                    LocalThumbnailLoader provides thumbnails,
+                    LocalAppIcons provides appIcons,
+                ) {
                     AppScreens(
                         settingsActions = SettingsActions(
                             networkHost = networkHost,
@@ -169,12 +187,21 @@ class MainActivity : ComponentActivity() {
                                 app.reminderPrefs.enabled = on
                                 reminderOn = on
                                 SpaceReminder.schedule(this@MainActivity, on)
-                                // The reminder is a notification: ask for it once, if not yet allowed (ONB-10).
-                                // allowed() is always true below Android 13, where no permission exists.
-                                if (on && !MoveNotifications.allowed(this@MainActivity)) {
-                                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
+                            },
+                            // F2: explained first in Settings; allowed() is always true below Android 13.
+                            needsNotificationPermission = !MoveNotifications.allowed(this@MainActivity),
+                            onAskNotifications = { answer ->
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    onNotificationAnswer = answer
+                                    reminderPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    answer(true)
                                 }
                             },
+                            onSetUpNetworkDrive = moveVm::setUpNetworkDrive,
+                            savedNetworkDrive = moveVm::savedNetworkDrive,
+                            networkSetup = networkSetup,
+                            onNetworkSetupSeen = moveVm::clearNetworkSetup,
                             onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             nextcloudHost = nextcloudHost,
                             onForgetNextcloud = { app.forgetNextcloudInBackground() },
@@ -222,6 +249,11 @@ class MainActivity : ComponentActivity() {
                         ),
                         appActions = AppActions(
                             labelOf = ::appLabel,
+                            onAllowUsageAccess = {
+                                runCatching {
+                                    startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
+                            },
                             onOpenApp = { pkg -> packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity) },
                             onOpenAppInfo = { pkg ->
                                 vm.openingAppInfo(pkg)
@@ -278,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                 moveVm.onNetworkDrive(location)
                             },
                             savedNetworkDrive = moveVm::savedNetworkDrive,
+                            networkHost = networkHost,
                             nextcloudHost = nextcloudHost,
                             onNextcloud = { items ->
                                 moveVm.pendingItems = items
@@ -288,6 +321,8 @@ class MainActivity : ComponentActivity() {
                                 onPickFolder = { treeLauncher.launch(null) },
                                 onNetworkDrive = moveVm::onNetworkDrive,
                                 savedNetworkDrive = moveVm::savedNetworkDrive,
+                                networkHost = networkHost,
+                                onCancel = moveVm::cancelRestore,
                                 nextcloudHost = nextcloudHost,
                                 onNextcloud = moveVm::onNextcloud,
                                 onChooseBackup = moveVm::chooseBackup,

@@ -28,6 +28,13 @@ class CopyLintTest {
     }
 
     @Test
+    fun `a folder path shown in Android's picker keeps the folder's name`() {
+        val xml = """<resources><string name="a">צריך לבחור: Android › media › com.whatsapp › WhatsApp</string>""" +
+            """<string name="b">Android מוחק</string></resources>"""
+        assertEquals(listOf("x: b: write אנדרואיד in Hebrew"), CopyLint.check("x", xml, hebrew = true))
+    }
+
+    @Test
     fun `the app's strings pass`() {
         assertEquals(emptyList<String>(), CopyLint.checkTree(File("..")))
     }

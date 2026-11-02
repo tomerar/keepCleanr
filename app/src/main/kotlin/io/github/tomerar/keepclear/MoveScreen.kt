@@ -2,24 +2,24 @@
 package io.github.tomerar.keepclear
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,12 +35,23 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.backup.saf.TargetKind
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.KcIcons
+import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
+import io.github.tomerar.keepclear.core.designsystem.component.ResultBanner
+import io.github.tomerar.keepclear.core.designsystem.component.ThumbStrip
+import io.github.tomerar.keepclear.core.designsystem.component.VerifiedStamp
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
@@ -67,6 +78,8 @@ class MoveActions(
     /** M17b: the Nextcloud set up under Settings › Advanced (its host), or null: then it isn't offered at all. */
     val nextcloudHost: String? = null,
     val onNextcloud: (List<ClassifiedItem>) -> Unit = {},
+    /** F2 (C76): the computer at home set up under Settings › Advanced (its host), or null: then it isn't offered. */
+    val networkHost: String? = null,
     val onStart: () -> Unit = {},
     val onCancelPick: () -> Unit = {},
     val onPause: () -> Unit = {},
@@ -92,6 +105,7 @@ class MoveActions(
         savedNetworkDrive = savedNetworkDrive,
         nextcloudHost = nextcloudHost,
         onNextcloud = onNextcloud,
+        networkHost = networkHost,
         onStart = onStart,
         onCancelPick = onCancelPick,
         onPause = onPause,
@@ -144,7 +158,6 @@ fun MoveScreen(
     var age by rememberSaveable { mutableStateOf(MoveAge.OLDER_12) }
     var confirmFree by remember { mutableStateOf<JobView?>(null) }
     var guide by remember { mutableStateOf(false) }
-    var network by remember { mutableStateOf(false) }
     var confirmStop by remember { mutableStateOf(false) }
     // E13: worked out when the choice changes, not on every recomposition (thousands of files).
     val items = remember(summary, selected, age) {
@@ -198,25 +211,31 @@ fun MoveScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             stringResource(R.string.move_selected, totalText(total)),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KeepClearTheme.type.number,
                             modifier = Modifier.testTag("moveSelected"),
                         )
-                        Button(
+                        KcButton(
+                            stringResource(R.string.move_pick_target),
                             onClick = { guide = true },
                             enabled = items.isNotEmpty() && !busy && !state.busy && !taskRunning,
+                            icon = KcIcons.Move,
                             modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
-                        ) { Text(stringResource(R.string.move_pick_target)) }
+                        )
+                        // F2: a pre-flight being prepared shows progress, not only a disabled button.
+                        if (state.busy) BusyLine()
                     }
                 }
                 item { PhotosNote(actions.onOpenGooglePhotos) }
             }
             // MOVE-17: bring files back from a backup (a drive, folder or network drive), also before any scan.
             item {
-                androidx.compose.material3.OutlinedButton(
+                KcButton(
+                    stringResource(R.string.restore_start),
                     onClick = actions.restore.onStart,
                     enabled = !state.busy && !taskRunning,
+                    style = KcButtonStyle.Tonal,
                     modifier = Modifier.fillMaxWidth().testTag("restoreStart"),
-                ) { Text(stringResource(R.string.restore_start)) }
+                )
             }
             places?.let { p -> item { BackupPlacesSection(p) } }
             if (state.jobs.size > 1) {
@@ -246,9 +265,11 @@ fun MoveScreen(
                 guide = false
                 actions.onPickTarget(items)
             },
+            networkHost = actions.networkHost,
             onNetwork = {
                 guide = false
-                network = true
+                // F2 (C76): only the place set up under Settings › Advanced; no address form here.
+                actions.savedNetworkDrive()?.let { actions.onNetworkDrive(items, it) }
             },
             nextcloudHost = actions.nextcloudHost,
             onNextcloud = {
@@ -259,46 +280,36 @@ fun MoveScreen(
         )
     }
     RestoreDialogs(state.restore, actions.restore)
-    if (network) {
-        NetworkDriveDialog(
-            saved = remember { actions.savedNetworkDrive() },
-            onConnect = { location ->
-                network = false
-                actions.onNetworkDrive(items, location)
-            },
-            onDismiss = { network = false },
-        )
-    }
     if (confirmStop) {
-        AlertDialog(
-            onDismissRequest = { confirmStop = false },
-            title = { Text(stringResource(R.string.move_stop_confirm_title)) },
-            text = { Text(stringResource(R.string.move_stop_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmStop = false
-                    actions.onStop()
-                }, modifier = Modifier.testTag("confirmStop")) { Text(stringResource(R.string.move_stop_confirm_yes)) }
+        // Stopping keeps everything copied so far; "keep going" is the main button.
+        ConfirmSheet(
+            title = stringResource(R.string.move_stop_confirm_title),
+            dismissText = stringResource(R.string.move_stop_confirm_yes),
+            // Back or a tap outside keeps going; only the Stop button stops (PR #48 review: one Stop, and it stops).
+            onDismiss = { confirmStop = false },
+            dismissAction = {
+                confirmStop = false
+                actions.onStop()
             },
-            dismissButton = {
-                Button(onClick = { confirmStop = false }, modifier = Modifier.testTag("keepGoing")) {
-                    Text(stringResource(R.string.move_keep_going))
-                }
+            dismissModifier = Modifier.testTag("confirmStop"),
+            note = stringResource(R.string.move_stop_confirm_body),
+            confirmButton = {
+                KcButton(
+                    stringResource(R.string.move_keep_going),
+                    onClick = { confirmStop = false },
+                    modifier = Modifier.fillMaxWidth().testTag("keepGoing"),
+                )
             },
         )
     }
     confirmFree?.let { view ->
-        AlertDialog(
-            onDismissRequest = { confirmFree = null },
-            title = { Text(stringResource(R.string.move_free_confirm_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.move_free_confirm_body,
-                        totalText(Total(view.receipt.confirmed, view.receipt.confirmedBytes)),
-                    ),
-                )
-            },
+        val freeing = Total(view.receipt.confirmed, view.receipt.confirmedBytes)
+        ConfirmSheet(
+            title = stringResource(R.string.move_free_confirm_title),
+            dismissText = stringResource(R.string.move_cancel),
+            onDismiss = { confirmFree = null },
+            facts = confirmFacts(freeing, stringResource(R.string.confirm_where_trash)),
+            note = stringResource(R.string.move_free_confirm_body, totalText(freeing)),
             confirmButton = {
                 // Recoverable (30-day trash): not styled as destructive (review PR C).
                 SafeConfirmButton(
@@ -307,12 +318,9 @@ fun MoveScreen(
                         confirmFree = null
                         actions.onFree(view.job.id, userConfirmed(view.freeablePaths))
                     },
-                    modifier = Modifier.testTag("confirmFree"),
+                    modifier = Modifier.fillMaxWidth().testTag("confirmFree"),
                     permanent = false,
                 )
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmFree = null }) { Text(stringResource(R.string.move_cancel)) }
             },
         )
     }
@@ -331,8 +339,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
 ) {
     item {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.move_what), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SectionHeading(stringResource(R.string.move_what))
+            // F2 (a11y): the chips wrap at large font sizes instead of running off the screen.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MoveAge.entries.forEach { a ->
                     FilterChip(
                         selected = age == a,
@@ -349,19 +358,31 @@ private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
         val groupTotal = remember(summary, group.ruleId, age) {
             moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Checkbox(
-                checked = group.ruleId in selected,
-                onCheckedChange = { on -> onSelected(if (on) selected + group.ruleId else selected - group.ruleId) },
-                modifier = Modifier.testTag("source_${group.ruleId}"),
+        val checked = group.ruleId in selected
+        val thumbs = rememberThumbPainters(group.items)
+        KcCard {
+            // F2 (a11y): checkbox and label are one toggleable target (TalkBack: one checkbox with its name).
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+                    .toggleable(value = checked, role = Role.Checkbox) { on ->
+                        onSelected(if (on) selected + group.ruleId else selected - group.ruleId)
+                    }
+                    .testTag("source_${group.ruleId}"),
+            ) {
+                Checkbox(checked = checked, onCheckedChange = null)
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text(stringResource(RuleText.of(group.ruleId).group), style = MaterialTheme.typography.titleSmall)
+                    Text(totalText(groupTotal), style = KeepClearTheme.type.number)
+                }
+            }
+            if (thumbs.isNotEmpty()) ThumbStrip(thumbs, Modifier.padding(top = 8.dp), total = group.total.files)
+            KcButton(
+                stringResource(R.string.move_view),
+                onClick = { actions.onOpenGroup(group.ruleId) },
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("view_${group.ruleId}"),
             )
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(RuleText.of(group.ruleId).group))
-                Text(totalText(groupTotal), style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(onClick = { actions.onOpenGroup(group.ruleId) }) {
-                Text(stringResource(R.string.move_view))
-            }
         }
     }
 }
@@ -403,9 +424,12 @@ private fun BackupPlacesSection(places: BackupPlaces) {
                 modifier = Modifier.testTag("placeNextcloud"),
             )
         }
-        TextButton(onClick = places.onSetUp, modifier = Modifier.testTag("setUpPlaces")) {
-            Text(stringResource(R.string.backup_places_setup))
-        }
+        KcButton(
+            stringResource(R.string.backup_places_setup),
+            onClick = places.onSetUp,
+            style = KcButtonStyle.Text,
+            modifier = Modifier.testTag("setUpPlaces"),
+        )
     }
 }
 
@@ -417,19 +441,18 @@ private fun ageLabel(age: MoveAge) = when (age) {
 
 @Composable
 private fun PhotosNote(onOpen: () -> Unit) {
-    Card(Modifier.fillMaxWidth().testTag("photosNote")) {
-        Column(Modifier.padding(12.dp)) {
-            Text(stringResource(R.string.move_photos_note))
-            TextButton(onClick = onOpen) { Text(stringResource(R.string.move_open_photos)) }
-        }
+    KcCard(Modifier.testTag("photosNote")) {
+        Text(stringResource(R.string.move_photos_note), style = MaterialTheme.typography.bodyMedium)
+        KcButton(stringResource(R.string.move_open_photos), onClick = onOpen, style = KcButtonStyle.Text)
     }
 }
 
 @Composable
 private fun ProblemCard(problem: TargetProblem) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-        modifier = Modifier.fillMaxWidth().testTag("targetProblem"),
+    // Not red: nothing was lost; it says what to do next (red is only for permanent actions).
+    KcCard(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.testTag("targetProblem"),
     ) {
         Text(
             stringResource(
@@ -446,35 +469,33 @@ private fun ProblemCard(problem: TargetProblem) {
                     TargetProblem.NETWORK_ON_THIS_PHONE -> R.string.move_problem_network_phone
                 },
             ),
-            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
 
 @Composable
 private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit) {
-    Card(Modifier.fillMaxWidth().testTag("freeResult")) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (r.simulated) {
-                Text(
-                    stringResource(R.string.test_mode_would_free, totalText(Total(r.done, r.bytes))),
-                    modifier = Modifier.testTag("simulatedResult"),
-                )
-                return@Column
-            }
-            Text(stringResource(R.string.move_free_done, totalText(Total(r.done, r.bytes))))
-            // Zero counts are not shown (review PR C).
-            if (r.skipped > 0) {
-                Text(countSentence(R.plurals.move_free_skipped, r.skipped), Modifier.testTag("freeSkipped"))
-            }
-            if (r.failed > 0) Text(countSentence(R.plurals.move_free_failed, r.failed))
-            if (r.done > 0) {
-                Text(stringResource(R.string.clean_done_space, trashDate()))
-                TextButton(onClick = onOpenTrash, modifier = Modifier.testTag("freeEmptyNow")) {
-                    Text(stringResource(R.string.clean_empty_now))
-                }
-            }
-        }
+    val total = Total(r.done, r.bytes)
+    val detail = buildList {
+        // Zero counts are not shown (review PR C).
+        if (!r.simulated && r.done > 0) add(stringResource(R.string.clean_done_space, trashDate()))
+        if (r.skipped > 0) add(countSentence(R.plurals.move_free_skipped, r.skipped))
+        if (r.failed > 0) add(countSentence(R.plurals.move_free_failed, r.failed))
+    }.joinToString("\n").ifEmpty { null }
+    Box(Modifier.fillMaxWidth().testTag("freeResult")) {
+        ResultBanner(
+            message = if (r.simulated) {
+                stringResource(R.string.test_mode_would_free, totalText(total))
+            } else {
+                stringResource(R.string.move_free_done, totalText(total))
+            },
+            detail = detail,
+            actionText = stringResource(R.string.clean_empty_now).takeIf { !r.simulated && r.done > 0 },
+            onAction = onOpenTrash.takeIf { !r.simulated && r.done > 0 },
+            actionModifier = Modifier.testTag("freeEmptyNow"),
+            modifier = Modifier.testTag(if (r.simulated) "simulatedResult" else "freeBanner"),
+        )
     }
 }
 
@@ -499,8 +520,8 @@ private fun JobCard(
     val r = view.receipt
     when {
         running -> {
-            Card(Modifier.fillMaxWidth().testTag("jobRunning")) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            KcCard(Modifier.testTag("jobRunning")) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val locale = LocalConfiguration.current.locales[0]
                     val nf = NumberFormat.getIntegerInstance(locale)
                     Text(
@@ -526,7 +547,11 @@ private fun JobCard(
                         sizeText(view.doneBytes),
                         sizeText(view.totalBytes),
                     )
-                    Text("$phase · $bytes", modifier = Modifier.testTag("moveProgress"))
+                    Text(
+                        "$phase · $bytes",
+                        style = KeepClearTheme.type.number,
+                        modifier = Modifier.testTag("moveProgress"),
+                    )
                     view.etaMillis?.let { eta ->
                         Text(
                             stringResource(R.string.move_time_left, durationText(eta)),
@@ -537,13 +562,19 @@ private fun JobCard(
                         progress = { if (view.totalBytes == 0L) 0f else view.doneBytes.toFloat() / view.totalBytes },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = actions.onPause, modifier = Modifier.testTag("pause")) {
-                            Text(stringResource(R.string.move_pause))
-                        }
-                        OutlinedButton(onClick = onStop, modifier = Modifier.testTag("stop")) {
-                            Text(stringResource(R.string.move_stop))
-                        }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        KcButton(
+                            stringResource(R.string.move_pause),
+                            onClick = actions.onPause,
+                            style = KcButtonStyle.Tonal,
+                            modifier = Modifier.testTag("pause"),
+                        )
+                        KcButton(
+                            stringResource(R.string.move_stop),
+                            onClick = onStop,
+                            style = KcButtonStyle.Text,
+                            modifier = Modifier.testTag("stop"),
+                        )
                     }
                     Text(stringResource(R.string.move_pause_stop_help), style = MaterialTheme.typography.bodySmall)
                 }
@@ -560,15 +591,16 @@ private fun JobCard(
         }
 
         else -> {
-            Card(Modifier.fillMaxWidth().testTag("jobPaused")) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            KcCard(Modifier.testTag("jobPaused")) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(pauseText(view.job.pauseReason, view.job.targetLabel))
-                    Text(totalText(Total(r.verified, r.verifiedBytes)))
-                    Button(
+                    Text(totalText(Total(r.verified, r.verifiedBytes)), style = KeepClearTheme.type.number)
+                    KcButton(
+                        stringResource(R.string.move_continue),
                         onClick = { actions.onResume(view.job.id) },
                         enabled = canResume,
                         modifier = Modifier.testTag("resume"),
-                    ) { Text(stringResource(R.string.move_continue)) }
+                    )
                 }
             }
         }
@@ -593,12 +625,26 @@ private fun pauseText(reason: PauseReason?, label: String): String = when (reaso
 @Composable
 fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck: () -> Unit = {}) {
     val r = view.receipt
-    Card(Modifier.fillMaxWidth().testTag("receipt")) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    // F2: the backup summary as a "paper slip" (design-system.md §8.5) with the VerifiedStamp as its proof.
+    PaperSlip(Modifier.testTag("receipt")) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 stringResource(R.string.move_receipt_title, Bidi.isolate(r.targetLabel)),
                 style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
             )
+            Text(
+                totalText(Total(r.verified, r.verifiedBytes)),
+                style = KeepClearTheme.type.number,
+                modifier = Modifier.testTag("receiptTotal"),
+            )
+            if (r.verified > 0) {
+                VerifiedStamp(
+                    stringResource(R.string.receipt_stamp),
+                    Modifier.padding(vertical = 8.dp).testTag("verifiedStamp"),
+                )
+            }
+            TearLine()
             // M17b: the server itself checked these copies (ADR 0011); plain words here, how under Details.
             val byNextcloud = OpenedTarget.isNextcloud(view.job.targetRef) && r.checkedByServer > 0
             val allByNextcloud = byNextcloud && r.checkedByServer == r.verified
@@ -634,9 +680,12 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
             )
             // P-2: developer checks live under Details, not on the default path.
             var details by remember { mutableStateOf(false) }
-            TextButton(onClick = { details = !details }, modifier = Modifier.testTag("receiptDetails")) {
-                Text(stringResource(R.string.details))
-            }
+            KcButton(
+                stringResource(R.string.details),
+                onClick = { details = !details },
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("receiptDetails"),
+            )
             if (details && byNextcloud) {
                 Text(
                     stringResource(R.string.details_nextcloud_check),
@@ -659,14 +708,19 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
             if (view.needsCheck) {
                 // H1: a read right after copying may come from the phone's memory; one more uncached check first.
                 Text(stringResource(R.string.move_check_needed), modifier = Modifier.testTag("checkNeeded"))
-                Button(onClick = onCheck, modifier = Modifier.fillMaxWidth().testTag("checkBackup")) {
-                    Text(stringResource(R.string.move_check_button))
-                }
+                KcButton(
+                    stringResource(R.string.move_check_button),
+                    onClick = onCheck,
+                    icon = KcIcons.Verified,
+                    modifier = Modifier.fillMaxWidth().testTag("checkBackup"),
+                )
             }
             when {
-                view.canFree -> Button(onClick = onFree, modifier = Modifier.fillMaxWidth().testTag("freeOriginals")) {
-                    Text(stringResource(R.string.move_free_button, totalText(Total(r.confirmed, r.confirmedBytes))))
-                }
+                view.canFree -> KcButton(
+                    stringResource(R.string.move_free_button, totalText(Total(r.confirmed, r.confirmedBytes))),
+                    onClick = onFree,
+                    modifier = Modifier.fillMaxWidth().testTag("freeOriginals"),
+                )
 
                 // D3: a guest network drive: copies only, said plainly.
                 view.copyOnly -> Text(
@@ -679,9 +733,12 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                     modifier = Modifier.testTag("freeUnavailable"),
                 )
             }
-            TextButton(onClick = onShare, modifier = Modifier.testTag("shareReceipt")) {
-                Text(stringResource(R.string.move_share))
-            }
+            KcButton(
+                stringResource(R.string.move_share),
+                onClick = onShare,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("shareReceipt"),
+            )
         }
     }
 }
@@ -690,8 +747,8 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
 @Composable
 private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
     val drive = Bidi.isolate(label)
-    Card(Modifier.fillMaxWidth().testTag("checkCard")) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    KcCard(Modifier.testTag("checkCard")) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             when (check) {
                 is BackupCheck.Unplug -> {
                     Text(
@@ -746,9 +803,12 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
             if (check is BackupCheck.Unplug || check is BackupCheck.PlugBack) {
                 Text(stringResource(R.string.move_check_why), style = MaterialTheme.typography.bodySmall)
             }
-            TextButton(onClick = actions.onCancelCheck, modifier = Modifier.testTag("checkClose")) {
-                Text(stringResource(R.string.move_check_close))
-            }
+            KcButton(
+                stringResource(R.string.move_check_close),
+                onClick = actions.onCancelCheck,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("checkClose"),
+            )
         }
     }
 }
@@ -772,54 +832,93 @@ fun durationText(millis: Long): String {
     }
 }
 
-/** Review PR C: two plain steps before Android's folder picker, and a check that a drive is attached. */
+/**
+ * Review PR C: two plain steps before Android's folder picker, and a check that a drive is attached. F2 (C76): the
+ * picker offers the USB drive or memory card and the places already set up under Settings › Advanced, nothing else;
+ * setting up a computer at home or a Nextcloud happens there.
+ */
 @Composable
 private fun PickGuideDialog(
     hasDrive: () -> Boolean,
     onContinue: () -> Unit,
-    onNetwork: () -> Unit,
     onDismiss: () -> Unit,
+    networkHost: String? = null,
+    onNetwork: () -> Unit = {},
     nextcloudHost: String? = null,
     onNextcloud: () -> Unit = {},
 ) {
     var noDrive by remember { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.move_guide_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("pickGuide")) {
-                Text(stringResource(R.string.move_guide_1))
-                Text(stringResource(R.string.move_guide_2))
-                if (noDrive) {
-                    Text(
-                        stringResource(R.string.move_guide_no_drive),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("noDrive"),
-                    )
-                    // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
-                    TextButton(onClick = onContinue, modifier = Modifier.testTag("guideAnyway")) {
-                        Text(stringResource(R.string.move_guide_anyway))
-                    }
-                }
-                // M15: a computer or NAS at home instead of a drive.
-                TextButton(onClick = onNetwork, modifier = Modifier.testTag("useNetwork")) {
-                    Text(stringResource(R.string.move_network_option))
-                }
-                // M17b: only once the user set up a Nextcloud under Settings › Advanced.
-                nextcloudHost?.let { host ->
-                    TextButton(onClick = onNextcloud, modifier = Modifier.testTag("useNextcloud")) {
-                        Text(stringResource(R.string.move_nextcloud_option, Bidi.isolate(host)))
-                    }
-                }
-            }
+    InfoSheet(
+        title = stringResource(R.string.move_guide_title),
+        dismissText = stringResource(R.string.move_cancel),
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("pickGuide"),
+        primaryButton = {
+            KcButton(
+                stringResource(R.string.move_guide_continue),
+                onClick = { if (hasDrive()) onContinue() else noDrive = true },
+                modifier = Modifier.fillMaxWidth().testTag("guideContinue"),
+            )
         },
-        confirmButton = {
-            Button(onClick = {
-                if (hasDrive()) onContinue() else noDrive = true
-            }, modifier = Modifier.testTag("guideContinue")) { Text(stringResource(R.string.move_guide_continue)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
-    )
+    ) {
+        Text(stringResource(R.string.move_guide_1), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.move_guide_2), style = MaterialTheme.typography.bodyMedium)
+        if (noDrive) {
+            Text(
+                stringResource(R.string.move_guide_no_drive),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("noDrive"),
+            )
+            // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
+            KcButton(
+                stringResource(R.string.move_guide_anyway),
+                onClick = onContinue,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("guideAnyway"),
+            )
+        }
+        // M15 / M17b: only places set up under Settings › Advanced.
+        networkHost?.let { host ->
+            KcButton(
+                stringResource(R.string.move_network_saved_option, Bidi.isolate(host)),
+                onClick = onNetwork,
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.fillMaxWidth().testTag("useNetwork"),
+            )
+        }
+        nextcloudHost?.let { host ->
+            KcButton(
+                stringResource(R.string.move_nextcloud_option, Bidi.isolate(host)),
+                onClick = onNextcloud,
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.fillMaxWidth().testTag("useNextcloud"),
+            )
+        }
+    }
+}
+
+/** F2: the backup summary's paper: the lightest surface, the card's corners (design-system.md §8.5). */
+@Composable
+internal fun PaperSlip(
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    KcCard(modifier, containerColor = MaterialTheme.colorScheme.surfaceContainerLowest, content = content)
+}
+
+/** A dashed "tear" line across the slip (decorative). */
+@Composable
+private fun TearLine() {
+    val color = MaterialTheme.colorScheme.outlineVariant
+    androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(1.dp)) {
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+            end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
+            strokeWidth = 2f,
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 8f)),
+        )
+    }
 }
 
 @Composable
@@ -899,11 +998,16 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
             }
         },
         confirmButton = {
-            Button(onClick = actions.onStart, enabled = !picked.blocked, modifier = Modifier.testTag("startCopy")) {
-                Text(stringResource(R.string.move_start))
-            }
+            KcButton(
+                stringResource(R.string.move_start),
+                onClick = actions.onStart,
+                enabled = !picked.blocked,
+                modifier = Modifier.testTag("startCopy"),
+            )
         },
-        dismissButton = { TextButton(onClick = actions.onCancelPick) { Text(stringResource(R.string.move_cancel)) } },
+        dismissButton = {
+            KcButton(stringResource(R.string.move_cancel), actions.onCancelPick, style = KcButtonStyle.Text)
+        },
     )
 }
 
@@ -1013,7 +1117,8 @@ internal fun NetworkDriveDialog(
             }
         },
         confirmButton = {
-            Button(
+            KcButton(
+                stringResource(R.string.move_network_connect),
                 onClick = {
                     val location = try {
                         io.github.tomerar.keepclear.backup.smb.SmbLocation(
@@ -1029,7 +1134,7 @@ internal fun NetworkDriveDialog(
                 },
                 enabled = hostOk && shareOk,
                 modifier = Modifier.testTag("networkConnect"),
-            ) { Text(stringResource(R.string.move_network_connect)) }
+            )
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
     )

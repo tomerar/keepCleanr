@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,9 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.backup.smb.SmbLocation
 import io.github.tomerar.keepclear.core.common.Bidi
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.classify.Total
 import io.github.tomerar.keepclear.engine.restore.Placement
@@ -98,6 +102,9 @@ sealed interface RestoreStep {
     /** Choose the drive, folder or network drive that holds the backup. */
     data object Pick : RestoreStep
 
+    /** F2: the backup is being opened and read (a network drive can take a while); Cancel closes the flow. */
+    data object Loading : RestoreStep
+
     /** This build can't put files back where they were without All files access. */
     data object NeedsAllFiles : RestoreStep
 
@@ -120,6 +127,10 @@ class RestoreActions(
     val onPickFolder: () -> Unit = {},
     val onNetworkDrive: (SmbLocation) -> Unit = {},
     val savedNetworkDrive: () -> SmbLocation? = { null },
+    /** F2 (C76): the computer at home set up under Settings › Advanced (its host), or null: then it isn't offered. */
+    val networkHost: String? = null,
+    /** F2: stop a restore that is running (what is back stays back). */
+    val onCancel: () -> Unit = {},
     /** M17b: the Nextcloud set up under Settings › Advanced (its host), or null. */
     val nextcloudHost: String? = null,
     val onNextcloud: () -> Unit = {},
@@ -130,43 +141,55 @@ class RestoreActions(
 
 @Composable
 fun RestoreDialogs(step: RestoreStep?, actions: RestoreActions) {
-    var network by rememberSaveable { mutableStateOf(false) }
     when (step) {
         // Closed: nothing to show.
         null -> {}
 
         RestoreStep.Pick -> {
-            AlertDialog(
-                onDismissRequest = actions.onClose,
-                title = { Text(stringResource(R.string.restore_title)) },
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.testTag("restorePick"),
-                    ) {
-                        Text(stringResource(R.string.restore_pick_body))
-                        TextButton(onClick = { network = true }, modifier = Modifier.testTag("restoreNetwork")) {
-                            Text(stringResource(R.string.restore_from_network))
-                        }
-                        actions.nextcloudHost?.let { host ->
-                            TextButton(onClick = actions.onNextcloud, modifier = Modifier.testTag("restoreNextcloud")) {
-                                Text(
-                                    stringResource(
-                                        R.string.restore_from_nextcloud,
-                                        io.github.tomerar.keepclear.core.common.Bidi.isolate(host),
-                                    ),
-                                )
-                            }
-                        }
-                    }
+            // F2 (C76): the drive or folder, and only the places set up under Settings › Advanced.
+            InfoSheet(
+                title = stringResource(R.string.restore_title),
+                dismissText = stringResource(R.string.move_cancel),
+                onDismiss = actions.onClose,
+                modifier = Modifier.testTag("restorePick"),
+                primaryButton = {
+                    KcButton(
+                        stringResource(R.string.restore_pick_folder),
+                        onClick = actions.onPickFolder,
+                        modifier = Modifier.fillMaxWidth().testTag("restorePickFolder"),
+                    )
                 },
-                confirmButton = {
-                    Button(onClick = actions.onPickFolder, modifier = Modifier.testTag("restorePickFolder")) {
-                        Text(stringResource(R.string.restore_pick_folder))
-                    }
-                },
-                dismissButton = { CancelButton(actions.onClose) },
-            )
+            ) {
+                Text(stringResource(R.string.restore_pick_body), style = MaterialTheme.typography.bodyMedium)
+                actions.networkHost?.let { host ->
+                    KcButton(
+                        stringResource(R.string.move_network_saved_option, Bidi.isolate(host)),
+                        onClick = { actions.savedNetworkDrive()?.let(actions.onNetworkDrive) },
+                        style = KcButtonStyle.Tonal,
+                        modifier = Modifier.fillMaxWidth().testTag("restoreNetwork"),
+                    )
+                }
+                actions.nextcloudHost?.let { host ->
+                    KcButton(
+                        stringResource(R.string.restore_from_nextcloud, Bidi.isolate(host)),
+                        onClick = actions.onNextcloud,
+                        style = KcButtonStyle.Tonal,
+                        modifier = Modifier.fillMaxWidth().testTag("restoreNextcloud"),
+                    )
+                }
+            }
+        }
+
+        RestoreStep.Loading -> {
+            InfoSheet(
+                title = stringResource(R.string.restore_title),
+                dismissText = stringResource(R.string.move_cancel),
+                onDismiss = actions.onClose,
+                modifier = Modifier.testTag("restoreLoading"),
+            ) {
+                Text(stringResource(R.string.restore_loading), style = MaterialTheme.typography.bodyMedium)
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
         }
 
         RestoreStep.NeedsAllFiles -> {
@@ -215,23 +238,21 @@ fun RestoreDialogs(step: RestoreStep?, actions: RestoreActions) {
                         Text(countSentence(R.plurals.restore_progress, step.done))
                     }
                 },
-                confirmButton = {},
+                // F2: a restore can be stopped; what is already back stays back.
+                confirmButton = {
+                    KcButton(
+                        stringResource(R.string.restore_stop),
+                        onClick = actions.onCancel,
+                        style = KcButtonStyle.Text,
+                        modifier = Modifier.testTag("restoreStop"),
+                    )
+                },
             )
         }
 
         is RestoreStep.Done -> {
             Info(doneLines(step.report).joinToString("\n"), actions.onClose, tag = "restoreDone")
         }
-    }
-    if (network) {
-        NetworkDriveDialog(
-            saved = actions.savedNetworkDrive(),
-            onConnect = { location ->
-                network = false
-                actions.onNetworkDrive(location)
-            },
-            onDismiss = { network = false },
-        )
     }
 }
 
@@ -284,6 +305,24 @@ private fun doneLines(r: RestoreReport): List<String> {
     }
 }
 
+/** F2: the backup's source folder in plain words; a folder KeepClear doesn't know keeps its name (isolated). */
+@Composable
+internal fun restoreGroupName(group: String): String = when (group) {
+    "Camera" -> stringResource(R.string.restore_group_camera)
+    "WhatsApp" -> stringResource(R.string.restore_group_whatsapp)
+    "Telegram" -> stringResource(R.string.restore_group_telegram)
+    "Pictures" -> stringResource(R.string.restore_group_pictures)
+    "Other" -> stringResource(R.string.restore_group_other)
+    else -> Bidi.isolate(group)
+}
+
+/** F2: "2021-07" → "July 2021" in the user's language; anything else unchanged (isolated). */
+fun restoreMonthLabel(month: String, locale: java.util.Locale): String = Bidi.isolate(
+    runCatching {
+        java.time.YearMonth.parse(month).format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    }.getOrDefault(month),
+)
+
 /** A count on its own, formatted for the locale and isolated. */
 @Composable
 private fun countText(count: Int): String =
@@ -333,14 +372,27 @@ private fun CatalogDialog(step: RestoreStep.Catalog, actions: RestoreActions) {
             ) {
                 Text(stringResource(R.string.restore_where), style = MaterialTheme.typography.bodySmall)
                 step.groups.forEach { g ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Checkbox(
-                            checked = g.key in chosen,
-                            onCheckedChange = { on -> chosen = if (on) chosen + g.key else chosen - g.key },
-                            modifier = Modifier.testTag("restore_${g.key}"),
-                        )
+                    val checked = g.key in chosen
+                    // F2 (a11y): the checkbox and its label are one toggleable target.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                            .toggleable(value = checked, role = Role.Checkbox) { on ->
+                                chosen = if (on) chosen + g.key else chosen - g.key
+                            }
+                            .testTag("restore_${g.key}"),
+                    ) {
+                        Checkbox(checked = checked, onCheckedChange = null)
                         Column {
-                            Text("${Bidi.isolate(g.group)} · ${Bidi.isolate(g.month)}")
+                            // F2: "Camera photos · July 2021", not "Camera · 2021-07".
+                            Text(
+                                stringResource(
+                                    R.string.restore_group_label,
+                                    restoreGroupName(g.group),
+                                    restoreMonthLabel(g.month, LocalConfiguration.current.locales[0]),
+                                ),
+                                modifier = Modifier.testTag("restoreLabel_${g.key}"),
+                            )
                             Text(totalText(Total(g.count, g.bytes)), style = MaterialTheme.typography.bodySmall)
                             whereText(g)?.let {
                                 Text(
@@ -396,11 +448,12 @@ private fun CatalogDialog(step: RestoreStep.Catalog, actions: RestoreActions) {
             }
         },
         confirmButton = {
-            Button(
+            KcButton(
+                stringResource(R.string.restore_run),
                 onClick = { actions.onRestore(chosen) },
                 enabled = picked.any { it.count > 0 } && fits,
                 modifier = Modifier.testTag("restoreRun"),
-            ) { Text(stringResource(R.string.restore_run)) }
+            )
         },
         dismissButton = { CancelButton(actions.onClose) },
     )

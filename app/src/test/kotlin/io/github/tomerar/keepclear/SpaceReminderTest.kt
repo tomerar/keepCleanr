@@ -45,9 +45,9 @@ class SpaceReminderTest {
     fun `the text gives exact numbers`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val withJunk = SpaceReminder.text(context, 8 * gb, 3 * gb, Locale.US)
-        assertTrue(withJunk, withJunk.contains("8") && withJunk.contains("3") && withJunk.contains("junk"))
+        assertTrue(withJunk, withJunk.contains("8") && withJunk.contains("3") && withJunk.contains("don't need"))
         val without = SpaceReminder.text(context, 8 * gb, 0, Locale.US)
-        assertFalse(without.contains("junk"))
+        assertFalse(without.contains("don't need"))
     }
 
     @Test

@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Writes docs/hebrew-review.md: every Hebrew string with its key, the English and the screen it appears on.
+"""Writes docs/hebrew-review.md: every Hebrew string with its key, the English, the screen it appears on and its
+review status.
 
-Screens come from where the code uses the string (R.string.<key> / R.plurals.<key>), mapped from the source file.
-Run from the repository root:  python3 scripts/hebrew-review.py  (or --check to fail when the file is stale).
+Screens come from where the code uses the string (R.string.<key> / R.plurals.<key>), mapped from the source file
+and, for files that hold several screens, from the function around the use.
+
+Status compares each Hebrew string with docs/hebrew-review-reviewed.json, the text as the owner last reviewed it:
+"reviewed" (unchanged), "changed" (different since that review) or "new" (not there at that review). Changed and new
+strings are flagged as new since the last review.
+
+Run from the repository root:
+  python3 scripts/hebrew-review.py                  writes docs/hebrew-review.md
+  python3 scripts/hebrew-review.py --check          fails when docs/hebrew-review.md is stale (CI)
+  python3 scripts/hebrew-review.py --mark-reviewed  after the owner's review: the current texts become the baseline
 """
+import json
 import pathlib
 import re
 import sys
@@ -13,21 +24,24 @@ import xml.etree.ElementTree as ET
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RES = ROOT / "core/i18n/src/main/res"
 OUT = ROOT / "docs/hebrew-review.md"
+REVIEWED = ROOT / "docs/hebrew-review-reviewed.json"
 CODE_DIRS = [ROOT / "app/src", ROOT / "core", ROOT / "engine", ROOT / "backup"]
 
 # Source file → screen (in the order screens appear in the app). Unknown files fall back to "Other".
 SCREENS = [
-    ("Intro and permissions", ["IntroScreen", "MainActivity", "MediaAccess", "Onboarding"]),
+    ("Intro and permissions", ["IntroScreen", "MediaAccess", "Onboarding"]),
     ("Top app bar and tabs", ["Navigation"]),
     ("Home", ["HomeScreen", "HomeViewModel", "UiText"]),
     ("Clean now", ["SafeScreen", "SafeConfirm"]),
     ("Review (categories, groups, item preview)", ["ReviewScreens", "RuleText", "UserChoices"]),
     ("Swipe review", ["SwipeReview"]),
+    # MainActivity's own strings are the notification question before a backup and the shared backup summary.
     ("Move to backup and restore", ["MoveScreen", "MoveSupport", "MoveViewModel", "RestoreUi", "NetworkDrive",
-                                    "OpenedTarget", "MoveNotifications", "MoveController", "MoveWorker"]),
+                                    "OpenedTarget", "MoveNotifications", "MoveController", "MoveWorker",
+                                    "MainActivity"]),
     ("Trash", ["TrashScreen", "TrashSupport"]),
     ("Apps", ["AppsScreen", "AppsScreens", "AppsSource"]),
-    ("Settings", ["SettingsScreen", "TestMode", "AppScreens"]),
+    ("Settings", ["SettingsScreen", "TestMode"]),
     ("Nextcloud set-up (Settings › Advanced)", ["Nextcloud"]),
     ("Notifications", ["SpaceReminder", "Notification"]),
     ("Device check (test builds)", ["DeviceCheck"]),
@@ -49,6 +63,18 @@ PREFIXES = [
 ]
 
 
+# Files that hold several screens: the function around the use decides (e.g. the intro lives in SettingsScreen.kt).
+FUNCTION_SCREENS = {
+    "IntroScreen": "Intro and permissions",
+    "TestModeBanner": "Top app bar and tabs",
+}
+
+# Files that only route between screens (AppScreens) say nothing about where a string shows; other uses decide.
+ROUTERS = ["AppScreens"]
+
+STATUS_REVIEWED, STATUS_CHANGED, STATUS_NEW = "reviewed", "changed", "new"
+
+
 def screen_of_key(key: str):
     for name, prefixes in PREFIXES:
         if any(key.startswith(p) for p in prefixes):
@@ -56,8 +82,12 @@ def screen_of_key(key: str):
     return None
 
 
-def screen_of(path: pathlib.Path) -> str:
+def screen_of(path: pathlib.Path, function=None):
     stem = path.stem
+    if function in FUNCTION_SCREENS:
+        return FUNCTION_SCREENS[function]
+    if any(stem.startswith(r) for r in ROUTERS):
+        return None
     for name, prefixes in SCREENS:
         if any(stem.startswith(p) for p in prefixes):
             return name
@@ -69,9 +99,10 @@ def text_of(el) -> str:
     return raw.replace("\\'", "'").replace('\\"', '"').replace("\\n", " ⏎ ")
 
 
-def load(path: pathlib.Path) -> dict:
+def load(path, text=None) -> dict:
     out = {}
-    for el in ET.parse(path).getroot():
+    root = ET.fromstring(text) if text is not None else ET.parse(path).getroot()
+    for el in root:
         name = el.get("name")
         if el.tag == "string":
             out[name] = text_of(el)
@@ -83,13 +114,40 @@ def load(path: pathlib.Path) -> dict:
 def usages() -> dict:
     found: dict = {}
     pattern = re.compile(r"R\.(?:string|plurals)\.([a-zA-Z0-9_]+)")
+    function = re.compile(r"^(?:internal |private |public )?fun (?:[\w.<>, ]+\.)?(\w+)\(", re.M)
     for d in CODE_DIRS:
-        for f in d.rglob("*.kt"):
+        for f in sorted(d.rglob("*.kt")):
             if "/build/" in str(f) or "/test/" in str(f) or "/androidTest/" in str(f):
                 continue
-            for key in pattern.findall(f.read_text(encoding="utf-8")):
-                found.setdefault(key, set()).add(screen_of(f))
-    return found
+            text = f.read_text(encoding="utf-8")
+            starts = [(m.start(), m.group(1)) for m in function.finditer(text)]
+            for m in pattern.finditer(text):
+                around = None
+                for start, name in starts:
+                    if start > m.start():
+                        break
+                    around = name
+                found.setdefault(m.group(1), set()).add(screen_of(f, around))
+    for key in found:
+        found[key].discard(None)
+    return {k: v for k, v in found.items() if v}
+
+
+def reviewed() -> dict:
+    if not REVIEWED.exists():
+        return {}
+    return json.loads(REVIEWED.read_text(encoding="utf-8"))["strings"]
+
+
+def status_of(key: str, he: str, baseline: dict) -> str:
+    if key not in baseline:
+        return STATUS_NEW
+    return STATUS_REVIEWED if baseline[key] == he else STATUS_CHANGED
+
+
+def status_cell(status: str) -> str:
+    # The flag is words, not colour or an emoji: easy to search for ("new since last review").
+    return status if status == STATUS_REVIEWED else f"**{status}** (new since last review)"
 
 
 def cell(s: str) -> str:
@@ -102,6 +160,7 @@ def render() -> str:
     he = {**load(RES / "values-iw/strings.xml"), **load(RES / "values-iw/explanations.xml")}
     explanation_keys = set(load(RES / "values/explanations.xml"))
     used = usages()
+    baseline = reviewed()
     groups: dict = {}
     for key in sorted(he):
         if key in explanation_keys:
@@ -112,7 +171,8 @@ def render() -> str:
             screen, also = first, ", ".join(x for x in screens if x != first)
         else:
             screen, also = "Not used in code", ""
-        groups.setdefault(screen, []).append((key, en.get(key, "(no English)"), he[key], also))
+        status = status_of(key, he[key], baseline)
+        groups.setdefault(screen, []).append((key, en.get(key, "(no English)"), he[key], also, status))
     lines = [
         "# Hebrew strings for review",
         "",
@@ -123,7 +183,16 @@ def render() -> str:
         "and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the",
         "string; \"also\" lists other screens.",
         "",
-        f"{len(he)} Hebrew strings.",
+        "Status compares each string with `docs/hebrew-review-reviewed.json` (the texts at the owner's last review):",
+        "**new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,",
+        "`python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.",
+        "",
+    ]
+    statuses = [row[4] for rows in groups.values() for row in rows]
+    flagged = sum(1 for x in statuses if x != STATUS_REVIEWED)
+    lines += [
+        f"{len(he)} Hebrew strings; {flagged} new since the last review "
+        f"({statuses.count(STATUS_NEW)} new, {statuses.count(STATUS_CHANGED)} changed).",
         "",
     ]
     lines.append("## Contents")
@@ -131,13 +200,15 @@ def render() -> str:
     for screen in order:
         if screen in groups:
             anchor = re.sub(r"[^a-z0-9 -]", "", screen.lower()).replace(" ", "-")
-            lines.append(f"- [{screen}](#{anchor}) ({len(groups[screen])})")
+            new = sum(1 for row in groups[screen] if row[4] != STATUS_REVIEWED)
+            suffix = f", {new} new since last review" if new else ""
+            lines.append(f"- [{screen}](#{anchor}) ({len(groups[screen])}{suffix})")
     for screen in order:
         if screen not in groups:
             continue
-        lines += ["", f"## {screen}", "", "| Key | English | עברית | Also |", "|---|---|---|---|"]
-        for key, e, h, also in groups[screen]:
-            lines.append(f"| `{key}` | {cell(e)} | {cell(h)} | {also} |")
+        lines += ["", f"## {screen}", "", "| Key | English | עברית | Also | Status |", "|---|---|---|---|---|"]
+        for key, e, h, also, status in groups[screen]:
+            lines.append(f"| `{key}` | {cell(e)} | {cell(h)} | {also} | {status_cell(status)} |")
     store = ROOT / "fastlane/metadata/android"
     if (store / "iw-IL").is_dir():
         lines += ["", "## Store listing (F-Droid / IzzyOnDroid)", "", "| File | English | עברית |", "|---|---|---|"]
@@ -150,7 +221,18 @@ def render() -> str:
     return "\n".join(lines) + "\n"
 
 
+def mark_reviewed() -> None:
+    he = {**load(RES / "values-iw/strings.xml"), **load(RES / "values-iw/explanations.xml")}
+    data = {
+        "note": "Hebrew texts as the owner last reviewed them; written by scripts/hebrew-review.py --mark-reviewed.",
+        "strings": dict(sorted(he.items())),
+    }
+    REVIEWED.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+
+
 def main() -> int:
+    if "--mark-reviewed" in sys.argv:
+        mark_reviewed()
     text = render()
     if "--check" in sys.argv:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:

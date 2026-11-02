@@ -158,7 +158,18 @@ data class MoveUiState(
     val restore: RestoreStep? = null,
     /** E3: a free, check or restore running in the foreground service (survives leaving the app). */
     val task: TaskProgress? = null,
+    /** F2 (C76): setting up the computer at home under Settings › Advanced; null when no set-up ran. */
+    val networkSetup: NetworkSetup? = null,
 )
+
+/** F2: the computer at home is set up in Settings › Advanced: KeepClear opens it once, and saves it only then. */
+sealed interface NetworkSetup {
+    data object Checking : NetworkSetup
+
+    data class Saved(val host: String) : NetworkSetup
+
+    data class Failed(val problem: TargetProblem) : NetworkSetup
+}
 
 class MoveViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as KeepClearApplication
@@ -251,9 +262,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     /** MOVE-2: the user picked a folder or drive; check it and run the pre-flight for [pendingItems]. */
     fun onTreePicked(uri: Uri) {
         if (_state.value.restore == RestoreStep.Pick) {
+            val load = restoreLoading()
             viewModelScope.launch {
                 val label = withContext(Dispatchers.IO) { treeLabel(uri) }
-                restoreFrom(withContext(Dispatchers.IO) { OpenedTarget.of(app.openTarget(uri, label)) })
+                restoreFrom(load, withContext(Dispatchers.IO) { OpenedTarget.of(app.openTarget(uri, label)) })
             }
             return
         }
@@ -278,10 +290,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation) {
         if (_state.value.restore == RestoreStep.Pick) {
+            val load = restoreLoading()
             viewModelScope.launch {
                 val check = withContext(Dispatchers.IO) { app.openNetworkDrive(location, location.host) }
                 if (check is OpenedTarget.Ok) withContext(Dispatchers.IO) { app.networkDrives.save(location) }
-                restoreFrom(check)
+                restoreFrom(load, check)
             }
             return
         }
@@ -310,6 +323,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             fail(TargetProblem.SELECTION_LOST)
             return
         }
+        val load = if (restoring) restoreLoading() else RestoreLoads.NONE
         viewModelScope.launch {
             if (!restoring) _state.update { it.copy(busy = true, picked = null, problem = null) }
             val account = withContext(Dispatchers.IO) { runCatching { app.nextcloud.load() }.getOrNull() }
@@ -321,7 +335,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val label = account.server.host
             val check = withContext(Dispatchers.IO) { app.openNextcloud(account, label) }
             if (restoring) {
-                restoreFrom(check, nextcloud = true)
+                restoreFrom(load, check, nextcloud = true)
             } else {
                 opened(check, label, NextcloudStore.ref(account), items)
             }
@@ -394,6 +408,43 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun fail(problem: TargetProblem) = _state.update { it.copy(busy = false, problem = problem) }
+
+    /**
+     * F2 (C76): Settings › Advanced › "Computer at home". KeepClear connects to the address typed, once; the place is
+     * saved (password sealed) only if that worked, and the connection is closed again. Backing up and restoring
+     * then offer it next to the USB drive or memory card.
+     */
+    fun setUpNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation) {
+        if (_state.value.networkSetup == NetworkSetup.Checking) return
+        _state.update { it.copy(networkSetup = NetworkSetup.Checking) }
+        viewModelScope.launch {
+            val check = withContext(Dispatchers.IO) { app.openNetworkDrive(location, location.host) }
+            val result = when (check) {
+                is OpenedTarget.Ok -> {
+                    withContext(Dispatchers.IO) {
+                        app.networkDrives.save(location)
+                        check.target.useTarget { }
+                    }
+                    NetworkSetup.Saved(location.host)
+                }
+
+                OpenedTarget.OnThisPhone -> {
+                    NetworkSetup.Failed(TargetProblem.NETWORK_ON_THIS_PHONE)
+                }
+
+                OpenedTarget.Refused -> {
+                    NetworkSetup.Failed(TargetProblem.REFUSED)
+                }
+
+                else -> {
+                    NetworkSetup.Failed(TargetProblem.UNREACHABLE)
+                }
+            }
+            _state.update { it.copy(networkSetup = result) }
+        }
+    }
+
+    fun clearNetworkSetup() = _state.update { it.copy(networkSetup = null) }
 
     /** One job per selection; each source group gets its own folder (MOVE-7), indexes stay unique. */
     private fun plan(
@@ -480,11 +531,36 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         restoreTarget = null
         restoreEngine = null
         restoreEntries = emptyList()
+        restoreLoads.end()
         controller.results.update { it.copy(restore = null) }
         _state.update { it.copy(restore = null) }
     }
 
-    private suspend fun restoreFrom(check: OpenedTarget, nextcloud: Boolean = false) {
+    /** PR #48 review: each load belongs to the restore flow that started it; a late one never shows in a newer flow. */
+    private val restoreLoads = RestoreLoads()
+
+    /** F2: the backup is being opened or read; the dialog shows progress and Cancel. Returns this load's token. */
+    private fun restoreLoading(): Int {
+        _state.update { it.copy(restore = RestoreStep.Loading) }
+        return restoreLoads.begin()
+    }
+
+    /** F2: true while the flow still waits for [load] (Cancel closes it; a late or older result is dropped). */
+    private fun restoreWaiting(load: Int): Boolean =
+        restoreLoads.isCurrent(load) && _state.value.restore == RestoreStep.Loading
+
+    /** Shows [step] only if the flow still waits for [load]. */
+    private fun restoreLoaded(load: Int, step: RestoreStep) {
+        if (restoreWaiting(load)) _state.update { it.copy(restore = step) }
+    }
+
+    private suspend fun restoreFrom(load: Int, check: OpenedTarget, nextcloud: Boolean = false) {
+        if (check is OpenedTarget.Ok && !restoreWaiting(load)) {
+            // Cancelled while it opened: close the connection again, show nothing.
+            withContext(Dispatchers.IO) { check.target.useTarget { } }
+            return
+        }
+        if (!restoreWaiting(load)) return
         if (check !is OpenedTarget.Ok) {
             closeRestore()
             fail(
@@ -511,10 +587,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         restoreEngine = engine
         restoreTarget = check.target
         val roots = withContext(Dispatchers.IO) { engine.backups() }
+        if (!restoreWaiting(load)) return
         when (roots.size) {
-            0 -> _state.update { it.copy(restore = RestoreStep.NoBackup) }
+            0 -> restoreLoaded(load, RestoreStep.NoBackup)
             1 -> chooseBackup(roots.single())
-            else -> _state.update { it.copy(restore = RestoreStep.Backups(roots)) }
+            else -> restoreLoaded(load, RestoreStep.Backups(roots))
         }
     }
 
@@ -526,18 +603,20 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
     fun chooseBackup(rootRel: String) {
         val engine = restoreEngine ?: return
+        val load = restoreLoading()
         viewModelScope.launch {
             val (entries, groups, space) = withContext(Dispatchers.IO) {
                 val entries = engine.catalog(rootRel).orEmpty()
                 // D2: where each file would go, shown per month before anything is chosen.
                 Triple(entries, restoreGroups(engine.plan(entries)), phoneSpace.measure())
             }
+            if (!restoreWaiting(load)) return@launch
             restoreEntries = entries
             if (entries.isEmpty()) {
-                _state.update { it.copy(restore = RestoreStep.NoBackup) }
+                restoreLoaded(load, RestoreStep.NoBackup)
                 return@launch
             }
-            _state.update { it.copy(restore = RestoreStep.Catalog(rootRel, groups, space)) }
+            restoreLoaded(load, RestoreStep.Catalog(rootRel, groups, space))
         }
     }
 
@@ -566,6 +645,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             }
             step(RestoreStep.Done(report))
         }
+    }
+
+    /** F2: "Stop" while restoring: what was restored stays; the result says the restore was interrupted. */
+    fun cancelRestore() {
+        if (controller.task.value?.kind == TaskKind.RESTORE) controller.cancelTask()
     }
 
     fun pause() = controller.pause(PauseReason.PAUSED_BY_USER)
@@ -836,5 +920,25 @@ object MoveSources {
         "telegram_saved" -> "Telegram"
         "pictures_media" -> "Pictures"
         else -> "Other"
+    }
+}
+
+/**
+ * PR #48 review: tokens for the restore flow's loads. A new load or closing the flow makes every older token stale,
+ * so an opening or catalog read that finishes late is dropped instead of showing in a newer flow. Main thread only.
+ */
+internal class RestoreLoads {
+    private var current = 0
+
+    fun begin(): Int = ++current
+
+    fun end() {
+        current++
+    }
+
+    fun isCurrent(load: Int): Boolean = load != NONE && load == current
+
+    companion object {
+        const val NONE = 0
     }
 }

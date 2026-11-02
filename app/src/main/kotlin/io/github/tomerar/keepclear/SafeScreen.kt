@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,15 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,10 +26,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.KcIcons
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmFact
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
+import io.github.tomerar.keepclear.core.designsystem.component.ResultBanner
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.Confirmation
@@ -95,11 +98,13 @@ fun SafeScreen(
     Scaffold(
         topBar = { SubScreenTopBar(stringResource(R.string.clean_title), onBack) },
         bottomBar = {
-            Button(
+            KcButton(
+                stringResource(R.string.clean_button, totalText(selectedTotal)),
                 onClick = { confirmClean = true },
                 enabled = selectedItems.isNotEmpty() && !busy,
+                icon = KcIcons.Safe,
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).testTag("cleanButton"),
-            ) { Text(stringResource(R.string.clean_button, totalText(selectedTotal))) }
+            )
         },
     ) { padding ->
         LazyColumn(
@@ -107,7 +112,7 @@ fun SafeScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            result?.let { r -> item { CleanResultCard(r, onUndo, onOpenTrash) } }
+            result?.let { r -> item { CleanResultBanner(r, onUndo, onOpenTrash) } }
             item {
                 Text(
                     stringResource(R.string.clean_selected, totalText(selectedTotal)),
@@ -117,14 +122,13 @@ fun SafeScreen(
             items(groups, key = { it.ruleId }) { group ->
                 val text = RuleText.of(group.ruleId)
                 val checked = group.ruleId !in unselected
-                Card(modifier = Modifier.fillMaxWidth().testTag("safe_${group.ruleId}")) {
+                KcCard(modifier = Modifier.testTag("safe_${group.ruleId}")) {
                     // Review PR C: checkbox and text are one touch target (and one TalkBack checkbox).
                     Row(
                         modifier = Modifier
                             .toggleable(value = checked, role = Role.Checkbox) { on ->
                                 unselected = if (on) unselected - group.ruleId else unselected + group.ruleId
                             }
-                            .padding(12.dp)
                             .testTag("check_${group.ruleId}"),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -135,16 +139,18 @@ fun SafeScreen(
                             Text(stringResource(text.why), style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    TextButton(
+                    KcButton(
+                        stringResource(R.string.action_look),
                         onClick = { onOpenGroup(group.ruleId) },
-                        modifier = Modifier.padding(start = 8.dp).testTag("open_${group.ruleId}"),
-                    ) { Text(stringResource(R.string.action_look)) }
+                        style = KcButtonStyle.Text,
+                        modifier = Modifier.testTag("open_${group.ruleId}"),
+                    )
                 }
             }
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.trim_title), style = MaterialTheme.typography.titleSmall)
+                KcCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.trim_title), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
                         trimResult?.let {
                             Text(
@@ -154,24 +160,36 @@ fun SafeScreen(
                                     // Review PR C: say why instead of "Android freed 0 B".
                                     it <= 0L -> stringResource(R.string.trim_result_zero)
 
-                                    else -> stringResource(R.string.trim_result, ByteSize.format(it, locale))
+                                    else -> stringResource(
+                                        R.string.trim_result,
+                                        io.github.tomerar.keepclear.core.common.Bidi.isolate(
+                                            ByteSize.format(it, locale),
+                                        ),
+                                    )
                                 },
                                 modifier = Modifier.testTag("trimResult"),
                             )
                         }
-                        OutlinedButton(onClick = { confirmTrim = true }, modifier = Modifier.testTag("trim")) {
-                            Text(stringResource(R.string.trim_button))
-                        }
-                        TextButton(onClick = onOneByOne, modifier = Modifier.testTag("oneByOneSafe")) {
-                            Text(stringResource(R.string.one_by_one_button))
-                        }
+                        KcButton(
+                            stringResource(R.string.trim_button),
+                            onClick = { confirmTrim = true },
+                            enabled = !busy,
+                            style = KcButtonStyle.Tonal,
+                            modifier = Modifier.testTag("trim"),
+                        )
+                        KcButton(
+                            stringResource(R.string.one_by_one_button),
+                            onClick = onOneByOne,
+                            style = KcButtonStyle.Text,
+                            modifier = Modifier.testTag("oneByOneSafe"),
+                        )
                         if (showExternalCacheClear) {
-                            OutlinedButton(
+                            KcButton(
+                                stringResource(R.string.trim_external_button),
                                 onClick = onClearExternalCaches,
+                                style = KcButtonStyle.Tonal,
                                 modifier = Modifier.testTag("trimExternal"),
-                            ) {
-                                Text(stringResource(R.string.trim_external_button))
-                            }
+                            )
                         }
                     }
                 }
@@ -183,25 +201,68 @@ fun SafeScreen(
         CleanConfirmDialog(selectedItems, onClean = onClean, onDismiss = { confirmClean = false })
     }
     if (confirmTrim) {
-        AlertDialog(
-            onDismissRequest = { confirmTrim = false },
-            title = { Text(stringResource(R.string.trim_title)) },
-            text = { Text(stringResource(R.string.trim_confirm_body), modifier = Modifier.testTag("trimLabel")) },
-            confirmButton = {
-                SafeConfirmButton(
-                    stringResource(R.string.trim_button),
-                    onClick = {
-                        confirmTrim = false
-                        onTrim()
-                    },
-                    modifier = Modifier.testTag("confirmTrim"),
-                )
+        TrimConfirmSheet(
+            onTrim = {
+                confirmTrim = false
+                onTrim()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmTrim = false }) { Text(stringResource(R.string.trash_cancel)) }
-            },
+            onDismiss = { confirmTrim = false },
+            tag = "confirmTrim",
+            bodyTag = "trimLabel",
         )
     }
+}
+
+/**
+ * SAFE-5: Android trims other apps' temporary files (they come back by themselves). Not the 30-day trash, but not
+ * "permanent" in the sense of the design system either (nothing of the user's is lost, brief F2): ink, not red.
+ */
+@Composable
+internal fun TrimConfirmSheet(onTrim: () -> Unit, onDismiss: () -> Unit, tag: String, bodyTag: String) {
+    ConfirmSheet(
+        title = stringResource(R.string.trim_title),
+        dismissText = stringResource(R.string.trash_cancel),
+        onDismiss = onDismiss,
+        facts = listOf(
+            ConfirmFact(stringResource(R.string.confirm_fact_where), stringResource(R.string.confirm_where_trim)),
+        ),
+        confirmButton = {
+            SafeConfirmButton(
+                stringResource(R.string.trim_button),
+                onClick = onTrim,
+                modifier = Modifier.fillMaxWidth().testTag(tag),
+                permanent = false,
+            )
+        },
+    ) {
+        Text(
+            stringResource(R.string.trim_confirm_body),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.testTag(bodyTag),
+        )
+    }
+}
+
+/** F2: what, how many, how much and where it goes, for a ConfirmSheet (brief "ConfirmSheet"). */
+@Composable
+internal fun confirmFacts(total: Total, where: String): List<ConfirmFact> {
+    val locale = LocalConfiguration.current.locales[0]
+    val count = pluralStringResource(
+        R.plurals.file_count,
+        total.files,
+        java.text.NumberFormat.getIntegerInstance(locale).format(total.files),
+    )
+    return listOf(
+        ConfirmFact(
+            stringResource(R.string.confirm_fact_how_many),
+            io.github.tomerar.keepclear.core.common.Bidi.isolate(count),
+        ),
+        ConfirmFact(
+            stringResource(R.string.confirm_fact_how_much),
+            io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(total.bytes, locale)),
+        ),
+        ConfirmFact(stringResource(R.string.confirm_fact_where), where),
+    )
 }
 
 /**
@@ -215,10 +276,13 @@ fun CleanConfirmDialog(
     onDismiss: () -> Unit,
 ) {
     val total = items.fold(Total()) { t, i -> t + i }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.clean_confirm_title, totalText(total))) },
-        text = { Text(stringResource(R.string.clean_confirm_body, totalText(total))) },
+    ConfirmSheet(
+        title = stringResource(R.string.clean_confirm_title, totalText(total)),
+        dismissText = stringResource(R.string.trash_cancel),
+        onDismiss = onDismiss,
+        facts = confirmFacts(total, stringResource(R.string.confirm_where_trash)),
+        note = stringResource(R.string.clean_confirm_note),
+        modifier = Modifier.testTag("cleanConfirm"),
         confirmButton = {
             SafeConfirmButton(
                 stringResource(R.string.clean_confirm_yes),
@@ -226,78 +290,66 @@ fun CleanConfirmDialog(
                     onDismiss()
                     onClean(items, userConfirmed(items.map { it.item.path }))
                 },
-                modifier = Modifier.testTag("confirmClean"),
+                modifier = Modifier.fillMaxWidth().testTag("confirmClean"),
                 permanent = false,
             )
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.trash_cancel)) }
         },
     )
 }
 
-/** SAFE-1, E-DEL-15: what a cleanup did, with Undo and the way to the trash. */
+/**
+ * SAFE-1, E-DEL-15 (F2: a ResultBanner): what a cleanup did, with Undo and "Empty now" (opens the Trash). A clean
+ * moves files to KeepClear's trash on the same storage, so no free-space change is claimed for it; the space comes
+ * back when the trash is emptied, and that is measured then ([MeasuredBanner]).
+ */
 @Composable
-fun CleanResultCard(r: CleanResult, onUndo: (CleanResult, Confirmation) -> Unit, onOpenTrash: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().testTag("cleanResult")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (r.simulated) {
-                Text(
-                    stringResource(R.string.test_mode_would_free, totalText(r.done)),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.testTag("simulatedResult"),
-                )
-            } else if (r.androidTrash || r.declined) {
-                AndroidTrashResult(r)
-            } else {
-                Text(
-                    stringResource(R.string.clean_done, totalText(r.done)),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    stringResource(R.string.clean_done_space, trashDate()),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
-            if (r.protectedSkipped > 0) {
-                Text(
-                    countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped),
-                    Modifier.testTag("protectedSkipped"),
-                )
-            }
-            if (!r.simulated && !r.androidTrash && !r.declined) {
-                UndoRow(onUndo = {
-                    onUndo(r, userConfirmed(r.trashedPaths))
-                }, onOpenTrash = onOpenTrash)
-            }
-        }
+fun CleanResultBanner(
+    r: CleanResult,
+    onUndo: (CleanResult, Confirmation) -> Unit,
+    onOpenTrash: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val message = when {
+        r.simulated -> stringResource(R.string.test_mode_would_free, totalText(r.done))
+        r.declined -> stringResource(R.string.android_trash_declined)
+        r.androidTrash -> stringResource(R.string.android_trash_done, totalText(r.done))
+        else -> stringResource(R.string.clean_done, totalText(r.done))
+    }
+    val detail = buildList {
+        if (!r.simulated && !r.androidTrash && !r.declined) add(stringResource(R.string.clean_done_space, trashDate()))
+        if (r.skipped > 0) add(countSentence(R.plurals.clean_skipped, r.skipped))
+        if (r.protectedSkipped > 0) add(countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped))
+    }.joinToString("\n").ifEmpty { null }
+    val undoable = !r.simulated && !r.androidTrash && !r.declined
+    val tag = when {
+        r.simulated -> "simulatedResult"
+        r.androidTrash || r.declined -> "androidTrashResult"
+        else -> "cleanBanner"
+    }
+    Box(modifier.fillMaxWidth().testTag("cleanResult")) {
+        ResultBanner(
+            message = message,
+            detail = detail,
+            undoText = stringResource(R.string.clean_undo).takeIf { undoable },
+            onUndo = { onUndo(r, userConfirmed(r.trashedPaths)) }.takeIf { undoable },
+            // "Need the space now? Empty now" opens the trash, where emptying is confirmed separately.
+            actionText = stringResource(R.string.clean_empty_now).takeIf { undoable },
+            onAction = onOpenTrash.takeIf { undoable },
+            undoModifier = Modifier.testTag("undo"),
+            actionModifier = Modifier.testTag("emptyNowLink"),
+            modifier = Modifier.testTag(tag),
+        )
     }
 }
 
+/** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)" (review PR C), measured after a trim or emptying the trash. */
 @Composable
-private fun UndoRow(onUndo: () -> Unit, onOpenTrash: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onUndo, modifier = Modifier.testTag("undo")) {
-            Text(stringResource(R.string.clean_undo))
-        }
-        // "Need the space now? Empty now" opens the trash, where emptying is confirmed separately.
-        TextButton(onClick = onOpenTrash, modifier = Modifier.testTag("emptyNowLink")) {
-            Text(stringResource(R.string.clean_empty_now))
-        }
-    }
-}
+fun MeasuredBanner(m: Measured, modifier: Modifier = Modifier) {
+    val locale = LocalConfiguration.current.locales[0]
 
-/** M12: the result after Android's own confirmation dialog. */
-@Composable
-fun AndroidTrashResult(r: CleanResult) {
-    Text(
-        if (r.declined) {
-            stringResource(R.string.android_trash_declined)
-        } else {
-            stringResource(R.string.android_trash_done, totalText(r.done))
-        },
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.testTag("androidTrashResult"),
+    fun s(b: Long) = io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(b, locale))
+    ResultBanner(
+        message = stringResource(R.string.result_freed, s(m.freed), s(m.nowFree), s(m.wasFree)),
+        modifier = modifier.testTag("measured"),
     )
 }

@@ -2,9 +2,9 @@ KeepClear finds what takes space on your phone and explains each thing in plain 
 
 <b>How it sorts what it finds</b>
 <ul>
-<li><b>Junk</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li>
-<li><b>Worth a look</b>: large videos, duplicates, screenshots, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. You decide; nothing is selected for you.</li>
-<li><b>Memories</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up space".</li>
+<li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li>
+<li><b>Choose what to keep</b>: large videos, duplicates, screenshots, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. You decide; nothing is selected for you.</li>
+<li><b>Move to backup</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up space".</li>
 </ul>
 
 <b>Everything can come back</b>

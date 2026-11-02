@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -40,7 +43,24 @@ class M15Test {
         return ClassificationSummary.of(listOf(c.classify(ScanItem(KPath.Local(path), path, 1000, old), now = now)))
     }
 
+    /** F2 (C76): the computer at home is set up in Settings › Advanced, not in the backup picker. */
     private fun openForm(onNetwork: (SmbLocation) -> Unit) {
+        compose.setContent {
+            KeepClearTheme {
+                SettingsScreen(
+                    testModeOn = true,
+                    onTestModeOn = {},
+                    onTestModeOff = {},
+                    onBack = {},
+                    actions = SettingsActions(onSetUpNetworkDrive = onNetwork),
+                )
+            }
+        }
+        compose.onNodeWithTag("setUpNetwork").performScrollTo().performClick()
+        compose.onNodeWithTag("networkDrive").assertExists()
+    }
+
+    private fun openPicker(actions: MoveActions) {
         compose.setContent {
             KeepClearTheme {
                 MoveScreen(
@@ -48,7 +68,7 @@ class M15Test {
                     state = MoveUiState(),
                     now = now,
                     notificationsOff = false,
-                    actions = MoveActions(onNetworkDrive = { _, location -> onNetwork(location) }),
+                    actions = actions,
                     onBack = {},
                 )
             }
@@ -58,8 +78,50 @@ class M15Test {
         compose.onNodeWithTag("age_ALL").performClick()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").performClick()
-        compose.onNodeWithTag("useNetwork").performClick()
-        compose.onNodeWithTag("networkDrive").assertExists()
+        compose.onNodeWithTag("pickGuide").assertExists()
+    }
+
+    @Test
+    fun `the backup picker has no address form, only the USB drive or memory card when nothing is set up (C76)`() {
+        openPicker(MoveActions())
+        compose.onNodeWithTag("guideContinue").assertExists()
+        compose.onNodeWithTag("useNetwork").assertDoesNotExist()
+        compose.onNodeWithTag("networkDrive").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the computer set up under Advanced is offered in the picker and used as saved (C76)`() {
+        val saved = SmbLocation("192.168.1.20", "photos", user = "me", password = "s3cret")
+        var used: Pair<Int, SmbLocation>? = null
+        openPicker(
+            MoveActions(
+                networkHost = "192.168.1.20",
+                savedNetworkDrive = { saved },
+                onNetworkDrive = { items, location -> used = items.size to location },
+            ),
+        )
+        compose.onNodeWithTag("useNetwork").assertTextContains("192.168.1.20", substring = true).performClick()
+        assertEquals(1 to saved, used)
+        compose.onNodeWithTag("networkDrive").assertDoesNotExist()
+    }
+
+    @Test
+    fun `restore offers the computer at home only once it is set up, and uses the saved place (C76)`() {
+        val saved = SmbLocation("192.168.1.20", "photos", user = "me", password = "s3cret")
+        var used: SmbLocation? = null
+        var host by androidx.compose.runtime.mutableStateOf<String?>(null)
+        compose.setContent {
+            KeepClearTheme {
+                RestoreDialogs(
+                    RestoreStep.Pick,
+                    RestoreActions(networkHost = host, savedNetworkDrive = { saved }, onNetworkDrive = { used = it }),
+                )
+            }
+        }
+        compose.onNodeWithTag("restoreNetwork").assertDoesNotExist()
+        host = "192.168.1.20"
+        compose.onNodeWithTag("restoreNetwork").performClick()
+        assertEquals(saved, used)
     }
 
     @Test

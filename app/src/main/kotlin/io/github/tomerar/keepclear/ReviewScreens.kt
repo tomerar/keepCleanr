@@ -24,11 +24,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -49,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
@@ -57,6 +59,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.KcIcons
+import io.github.tomerar.keepclear.core.designsystem.KcShapes
+import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.InfoChip
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
+import io.github.tomerar.keepclear.core.designsystem.component.ThumbStrip
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.Confirmation
@@ -121,19 +133,24 @@ fun CategoryListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text(totalText(summary.total(category)), style = MaterialTheme.typography.bodyLarge)
+                Text(totalText(summary.total(category)), style = KeepClearTheme.type.number)
             }
             items(summary.groups(category), key = { it.ruleId }) { group ->
                 val text = RuleText.of(group.ruleId)
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        onOpenGroup(group.ruleId)
-                    }.testTag("group_${group.ruleId}"),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // F2: a group is recognised by its pictures (ThumbStrip), not by a paragraph.
+                val thumbs = rememberThumbPainters(group.items)
+                KcCard(onClick = { onOpenGroup(group.ruleId) }, modifier = Modifier.testTag("group_${group.ruleId}")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(text.group), style = MaterialTheme.typography.titleMedium)
-                        Text(totalText(group.total), style = MaterialTheme.typography.bodyMedium)
-                        Text(stringResource(text.why), style = MaterialTheme.typography.bodySmall)
+                        Text(totalText(group.total), style = KeepClearTheme.type.number)
+                        if (thumbs.isNotEmpty()) ThumbStrip(thumbs, total = group.total.files)
+                        Text(
+                            stringResource(text.why),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
@@ -156,6 +173,8 @@ fun GroupScreen(
     onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
     /** E4: the selection and one-by-one decisions, held by the ViewModel; null keeps them here (tests). */
     selection: GroupSelection? = null,
+    /** PR #48 review: the result's "Empty now" opens the Trash, where emptying is confirmed separately. */
+    onOpenTrash: () -> Unit = {},
 ) {
     val text = RuleText.of(group.ruleId)
     // SAFE-9: other apps' own folders are never selectable for deletion here.
@@ -169,17 +188,15 @@ fun GroupScreen(
     val swipe = if (selection != null) selection.swipe else localSwipe
     val setSwipe: (List<SwipeDecision>?) -> Unit = selection?.onSwipe ?: { localSwipe = it }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
+    var why by remember { mutableStateOf(false) }
     val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
     Scaffold(
         topBar = { SubScreenTopBar(stringResource(text.group), onBack) },
         bottomBar = {
             // Review PR C: no action bar until something is selected; padded above the navigation bar.
             if (selectable && selectedItems.isNotEmpty()) {
-                Button(
-                    onClick = { confirming = selectedItems },
-                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).testTag("deleteSelected"),
-                ) {
-                    Text(
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+                    KcButton(
                         stringResource(
                             R.string.review_delete,
                             totalText(
@@ -188,78 +205,67 @@ fun GroupScreen(
                                 },
                             ),
                         ),
+                        onClick = { confirming = selectedItems },
+                        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)
+                            .testTag("deleteSelected"),
                     )
                 }
             }
         },
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(96.dp),
+            // F2: four columns of thumbnails (brief "Review group").
+            columns = GridCells.Fixed(4),
             modifier = Modifier.padding(padding).fillMaxSize().testTag("grid"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(totalText(group.total), style = MaterialTheme.typography.bodyLarge)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    result?.let { r ->
+                        CleanResultBanner(
+                            r,
+                            onUndo,
+                            onOpenTrash = onOpenTrash,
+                            modifier = Modifier.testTag("deleteResult"),
+                        )
+                    }
+                    Text(totalText(group.total), style = KeepClearTheme.type.number)
+                    // F2: "Why is this here?" opens a sheet; no wall of text above the pictures.
+                    InfoChip(stringResource(R.string.label_why), onClick = { why = true }, Modifier.testTag("whyChip"))
                     if (selectable) {
                         val all = remember(group.items) { group.items.mapTo(HashSet()) { it.item.path } }
                         val allSelected = all.isNotEmpty() && selected.containsAll(all)
                         // One row, so the pictures stay where they were on small screens.
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TextButton(
-                                onClick = { setSelected(if (allSelected) emptySet() else all) },
-                                modifier = Modifier.testTag("selectAll"),
-                            ) {
-                                Text(
-                                    stringResource(
-                                        if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
-                                    ),
-                                )
-                            }
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
                             // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
                             if (group.items.size > 1) {
-                                TextButton(onClick = {
-                                    setSwipe(emptyList())
-                                }, modifier = Modifier.testTag("startSwipe")) {
-                                    Text(stringResource(R.string.swipe_start))
-                                }
+                                KcButton(
+                                    stringResource(R.string.swipe_start),
+                                    onClick = { setSwipe(emptyList()) },
+                                    style = KcButtonStyle.Tonal,
+                                    modifier = Modifier.testTag("startSwipe"),
+                                )
                             }
+                            KcButton(
+                                stringResource(
+                                    if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
+                                ),
+                                onClick = { setSelected(if (allSelected) emptySet() else all) },
+                                style = KcButtonStyle.Text,
+                                modifier = Modifier.testTag("selectAll"),
+                            )
                         }
                         Text(
                             stringResource(R.string.review_long_press_hint),
                             style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    result?.let { r ->
-                        Card(modifier = Modifier.fillMaxWidth().testTag("deleteResult")) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                if (r.androidTrash || r.declined) {
-                                    Column(Modifier.weight(1f)) { AndroidTrashResult(r) }
-                                } else {
-                                    Text(
-                                        stringResource(
-                                            if (r.simulated) R.string.test_mode_would_free else R.string.clean_done,
-                                            totalText(r.done),
-                                        ),
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                                if (!r.simulated && !r.androidTrash && !r.declined) {
-                                    TextButton(onClick = {
-                                        onUndo(r, userConfirmed(r.trashedPaths))
-                                    }, modifier = Modifier.testTag("undo")) {
-                                        Text(stringResource(R.string.clean_undo))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Text(stringResource(R.string.label_why), style = MaterialTheme.typography.labelLarge)
-                    Text(stringResource(text.why), style = MaterialTheme.typography.bodyMedium)
-                    Text(stringResource(R.string.label_if_deleted), style = MaterialTheme.typography.labelLarge)
-                    Text(stringResource(text.ifDeleted), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             for ((bucket, items) in group.buckets) {
@@ -271,21 +277,19 @@ fun GroupScreen(
                         Text(
                             bucketTitle(bucket),
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f).testTag("bucket_$bucket"),
+                            modifier = Modifier.weight(1f).semantics { heading() }.testTag("bucket_$bucket"),
                         )
                         if (selectable) {
                             val paths = items.map { it.item.path }.toSet()
                             val all = selected.containsAll(paths)
-                            TextButton(
+                            KcButton(
+                                stringResource(
+                                    if (all) R.string.review_unselect_month else R.string.review_select_month,
+                                ),
                                 onClick = { setSelected(if (all) selected - paths else selected + paths) },
+                                style = KcButtonStyle.Text,
                                 modifier = Modifier.testTag("selectMonth_$bucket"),
-                            ) {
-                                Text(
-                                    stringResource(
-                                        if (all) R.string.review_unselect_month else R.string.review_select_month,
-                                    ),
-                                )
-                            }
+                            )
                         }
                     }
                 }
@@ -305,6 +309,19 @@ fun GroupScreen(
         }
     }
 
+    if (why) {
+        InfoSheet(
+            title = stringResource(text.group),
+            dismissText = stringResource(R.string.home_notice_dismiss),
+            onDismiss = { why = false },
+            modifier = Modifier.testTag("whySheet"),
+        ) {
+            Text(stringResource(R.string.label_why), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(text.why), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.label_if_deleted), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(text.ifDeleted), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
     if (swipe != null) {
         SwipeReview(
             items = group.items,
@@ -353,59 +370,60 @@ private fun EditableConfirm(
     onDismiss: () -> Unit,
 ) {
     val total = items.fold(Total()) { t, i -> t + i }
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.review_confirm_title, totalText(total))) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.review_confirm_body))
-                LazyColumn(modifier = Modifier.heightIn(max = 240.dp).testTag("confirmList")) {
-                    items(items, key = { it.item.path }) { item ->
-                        // REV-3: a thumbnail and the folder, so files with the same name can be told apart.
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("confirmRow")) {
-                            Box(
-                                modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center,
-                            ) { Thumb(item, 48, showName = false) }
-                            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
-                                Text(
-                                    Bidi.fileName(item.item.path.substringAfterLast('/')),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    Bidi.isolateLtr(item.item.path.substringBeforeLast('/')),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.StartEllipsis,
-                                    modifier = Modifier.testTag("confirmFolder"),
-                                )
-                            }
-                            val keep = stringResource(R.string.review_remove_from_list)
-                            TextButton(
-                                onClick = {
-                                    onRemove(item)
-                                },
-                                modifier = Modifier.semantics { contentDescription = keep }
-                                    .testTag("remove_${item.item.path.substringAfterLast('/')}"),
-                            ) {
-                                Text("✕")
-                            }
-                        }
-                    }
-                }
-            }
-        },
+    ConfirmSheet(
+        title = stringResource(R.string.review_confirm_title, totalText(total)),
+        dismissText = stringResource(R.string.trash_cancel),
+        onDismiss = onDismiss,
+        facts = confirmFacts(total, stringResource(R.string.confirm_where_trash)),
+        note = stringResource(R.string.review_confirm_body),
+        modifier = Modifier.testTag("reviewConfirm"),
         confirmButton = {
             SafeConfirmButton(
                 stringResource(R.string.clean_confirm_yes),
                 onClick = onConfirm,
-                modifier = Modifier.testTag("confirmDelete"),
+                modifier = Modifier.fillMaxWidth().testTag("confirmDelete"),
                 permanent = false,
             )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.trash_cancel)) } },
-    )
+    ) {
+        // Every row can be taken out (REV-3). A lazy list with a bounded height inside the scrolling sheet, so a
+        // selection of thousands composes only what is on screen.
+        LazyColumn(modifier = Modifier.heightIn(max = 320.dp).testTag("confirmList")) {
+            items(items, key = { it.item.path }) { item -> ConfirmRow(item, onRemove) }
+        }
+    }
+}
+
+/** REV-3: a thumbnail and the folder, so files with the same name can be told apart; ✕ takes it out. */
+@Composable
+private fun ConfirmRow(item: ClassifiedItem, onRemove: (ClassifiedItem) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("confirmRow")) {
+        Box(
+            modifier = Modifier.size(48.dp).clip(KcShapes.thumbnail)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) { Thumb(item, 48, showName = false) }
+        Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+            Text(
+                Bidi.fileName(item.item.path.substringAfterLast('/')),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                Bidi.isolateLtr(item.item.path.substringBeforeLast('/')),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.StartEllipsis,
+                modifier = Modifier.testTag("confirmFolder"),
+            )
+        }
+        IconButton(
+            onClick = { onRemove(item) },
+            modifier = Modifier.testTag("remove_${item.item.path.substringAfterLast('/')}"),
+        ) {
+            Icon(KcIcons.Close, contentDescription = stringResource(R.string.review_remove_from_list))
+        }
+    }
 }
 
 /**
@@ -428,6 +446,7 @@ private fun Tile(
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            .clip(KcShapes.thumbnail)
             .combinedClickable(
                 onClick = { if (selectable) onToggle() else onPreview() },
                 onLongClick = onPreview,
@@ -449,10 +468,15 @@ private fun Tile(
     ) {
         Thumb(item, 96)
         if (selected) {
-            Text(
-                "✓",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).clearAndSetSemantics { },
+            // F2: a check-circle on the selected picture (with the state, never colour alone).
+            Icon(
+                KcIcons.Selected,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp)
+                    .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                    .testTag("tileCheck")
+                    .clearAndSetSemantics { },
             )
         }
         // A small corner target, so a tap anywhere else on the tile selects it; long press also previews.
@@ -574,43 +598,52 @@ fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit, actions: PreviewActi
             }
             if (canKeep) {
                 item {
-                    androidx.compose.material3.OutlinedButton(
+                    KcButton(
+                        stringResource(R.string.choice_keep),
                         onClick = {
                             actions.onKeep(item.item.path)
                             onBack()
                         },
+                        style = KcButtonStyle.Tonal,
                         modifier = Modifier.fillMaxWidth().testTag("keepItem"),
-                    ) { Text(stringResource(R.string.choice_keep)) }
+                    )
                 }
             }
             if (canJunk) {
                 item {
-                    TextButton(onClick = { confirmJunk = true }, modifier = Modifier.testTag("alwaysJunk")) {
-                        Text(stringResource(R.string.choice_always_junk))
-                    }
+                    KcButton(
+                        stringResource(R.string.choice_always_junk),
+                        onClick = { confirmJunk = true },
+                        style = KcButtonStyle.Text,
+                        modifier = Modifier.testTag("alwaysJunk"),
+                    )
                 }
             }
         }
     }
     if (confirmJunk) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmJunk = false },
-            title = { Text(stringResource(R.string.choice_always_junk)) },
-            text = { Text(stringResource(R.string.choice_always_junk_body, Bidi.isolateLtr(folder))) },
+        // Not a deletion: it changes what the next scan offers, and Settings can undo it (CLS-7).
+        ConfirmSheet(
+            title = stringResource(R.string.choice_always_junk),
+            dismissText = stringResource(R.string.move_cancel),
+            onDismiss = { confirmJunk = false },
             confirmButton = {
-                androidx.compose.material3.Button(
+                KcButton(
+                    stringResource(R.string.choice_always_junk_confirm),
                     onClick = {
                         confirmJunk = false
                         actions.onAlwaysJunk(folder)
                         onBack()
                     },
-                    modifier = Modifier.testTag("confirmAlwaysJunk"),
-                ) { Text(stringResource(R.string.choice_always_junk_confirm)) }
+                    modifier = Modifier.fillMaxWidth().testTag("confirmAlwaysJunk"),
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { confirmJunk = false }) { Text(stringResource(R.string.move_cancel)) }
-            },
-        )
+        ) {
+            Text(
+                stringResource(R.string.choice_always_junk_body, Bidi.isolateLtr(folder)),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
     }
 }
 

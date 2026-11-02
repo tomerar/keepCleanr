@@ -30,7 +30,8 @@ import org.robolectric.annotation.Config
 
 /** M8: REVIEW selection, select-by-month, editable confirmation (REV-2/3, SAFETY-10). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+// F2: a phone-sized window (the 4-column grid and its header need a phone's height, like the screenshots).
+@Config(sdk = [36], qualifiers = "w360dp-h800dp")
 class ReviewActionsTest {
     @get:Rule
     val compose = createComposeRule()
@@ -73,6 +74,31 @@ class ReviewActionsTest {
 
     private fun awaitEnabled(tag: String) = compose.waitUntil(5_000) {
         compose.onAllNodesWithTag(tag).fetchSemanticsNodes().any { SemanticsProperties.Disabled !in it.config }
+    }
+
+    @Test
+    fun `Empty now in a group's result opens the trash`() {
+        // PR #48 review: the action used to have an empty callback.
+        var opened = 0
+        compose.setContent {
+            val group = summary().group("screenshots", Category.REVIEW)!!
+            KeepClearTheme {
+                GroupScreen(
+                    group,
+                    onOpenItem = {},
+                    onBack = {},
+                    result = CleanResult(
+                        io.github.tomerar.keepclear.engine.classify.Total(1, 1000),
+                        skipped = 0,
+                        failed = 0,
+                        trashedPaths = listOf("/a"),
+                    ),
+                    onOpenTrash = { opened++ },
+                )
+            }
+        }
+        compose.onNodeWithTag("emptyNowLink", useUnmergedTree = true).performClick()
+        assertEquals(1, opened)
     }
 
     @Test

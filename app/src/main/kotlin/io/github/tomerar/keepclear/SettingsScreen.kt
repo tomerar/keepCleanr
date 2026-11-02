@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -22,6 +21,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +35,11 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.i18n.R
 
 /** Always visible while test mode is on (SAFETY-9): nothing will be deleted or moved. */
@@ -66,6 +72,11 @@ class SettingsActions(
     /** M15: the network drive's address, the only place KeepClear connects to; null when none is set up. */
     val networkHost: String? = null,
     val onForgetNetworkDrive: () -> Unit = {},
+    /** F2 (C76): set up the computer at home here (Advanced); KeepClear connects once and saves it if that worked. */
+    val onSetUpNetworkDrive: (io.github.tomerar.keepclear.backup.smb.SmbLocation) -> Unit = {},
+    val savedNetworkDrive: () -> io.github.tomerar.keepclear.backup.smb.SmbLocation? = { null },
+    val networkSetup: NetworkSetup? = null,
+    val onNetworkSetupSeen: () -> Unit = {},
     /** M17b: the Nextcloud's host (Advanced), another place KeepClear may connect to; null when none is set up. */
     val nextcloudHost: String? = null,
     val onForgetNextcloud: () -> Unit = {},
@@ -81,6 +92,10 @@ class SettingsActions(
     /** SET-3: "Remind me when space is low" (off by default). */
     val reminderOn: Boolean = false,
     val onReminder: (Boolean) -> Unit = {},
+    /** F2: Android 13+ asks before showing notifications; the reminder explains first, then asks. */
+    val needsNotificationPermission: Boolean = false,
+    /** Asks Android for the notification permission and reports whether it was granted. */
+    val onAskNotifications: ((granted: Boolean) -> Unit) -> Unit = { it(true) },
     /** Test builds only ([io.github.tomerar.keepclear.devcheck.DeviceCheckGate]): Advanced › Device check. */
     val showDeviceCheck: Boolean = false,
     val onOpenDeviceCheck: () -> Unit = {},
@@ -100,6 +115,8 @@ fun SettingsScreen(
 ) {
     // 0 = no dialog, 1 = first confirmation, 2 = second confirmation.
     var step by rememberSaveable { mutableIntStateOf(0) }
+    var explainReminder by rememberSaveable { mutableStateOf(false) }
+    var networkForm by rememberSaveable { mutableStateOf(false) }
     Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.settings_title), onBack) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
@@ -118,15 +135,15 @@ fun SettingsScreen(
                         )
                     }
             }
-            Card(Modifier.fillMaxWidth().testTag("getBack")) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            KcCard(Modifier.testTag("getBack")) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.settings_get_back_title), style = MaterialTheme.typography.titleSmall)
                     Text(stringResource(R.string.settings_get_back_body), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             if (actions.trashBytes > 0) {
-                Card(Modifier.fillMaxWidth().testTag("beforeUninstall")) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                KcCard(Modifier.testTag("beforeUninstall")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             stringResource(R.string.settings_uninstall_title),
                             style = MaterialTheme.typography.titleSmall,
@@ -147,8 +164,8 @@ fun SettingsScreen(
                 }
             }
             if (actions.choices.kept.isNotEmpty() || actions.choices.junk.isNotEmpty()) {
-                Card(Modifier.fillMaxWidth().testTag("keptByYou")) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                KcCard(Modifier.testTag("keptByYou")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(R.string.group_user_kept), style = MaterialTheme.typography.titleSmall)
                         actions.choices.kept.sorted().forEach { path ->
                             ChoiceRow(path, R.string.choice_kept_label, "removeKept") { actions.onRemoveKept(path) }
@@ -160,25 +177,36 @@ fun SettingsScreen(
                 }
             }
             val reminderLabel = stringResource(R.string.reminder_setting)
-            Card(Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            KcCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(reminderLabel, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.reminder_setting_body), style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(
                         checked = actions.reminderOn,
-                        onCheckedChange = actions.onReminder,
+                        // F2: turning it on without the notification permission explains first; it stays off
+                        // unless Android allows notifications (a reminder nobody can see is no reminder).
+                        onCheckedChange = { on ->
+                            if (on && actions.needsNotificationPermission) {
+                                explainReminder = true
+                            } else {
+                                actions.onReminder(on)
+                            }
+                        },
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("reminderSwitch").semantics { contentDescription = reminderLabel },
                     )
                 }
             }
-            TextButton(onClick = actions.onReplayIntro, modifier = Modifier.testTag("replayIntro")) {
-                Text(stringResource(R.string.settings_replay_intro))
-            }
-            Card(Modifier.fillMaxWidth().testTag("about")) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            KcButton(
+                stringResource(R.string.settings_replay_intro),
+                actions.onReplayIntro,
+                Modifier.testTag("replayIntro"),
+                style = KcButtonStyle.Text,
+            )
+            KcCard(Modifier.testTag("about")) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.settings_about), style = MaterialTheme.typography.titleSmall)
                     Text(
                         stringResource(
@@ -187,16 +215,19 @@ fun SettingsScreen(
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    TextButton(onClick = actions.onOpenPrivacy, modifier = Modifier.testTag("privacy")) {
-                        Text(stringResource(R.string.settings_privacy))
-                    }
+                    KcButton(
+                        stringResource(R.string.settings_privacy),
+                        actions.onOpenPrivacy,
+                        Modifier.testTag("privacy"),
+                        style = KcButtonStyle.Text,
+                    )
                     Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
                 }
             }
             SectionHeading(stringResource(R.string.settings_advanced))
             val testModeLabel = stringResource(R.string.test_mode_title)
-            Card(Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            KcCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(testModeLabel, style = MaterialTheme.typography.titleSmall)
                         Text(stringResource(R.string.test_mode_body), style = MaterialTheme.typography.bodySmall)
@@ -211,14 +242,31 @@ fun SettingsScreen(
             }
             // F1b: the backup places (Advanced only; the default path never shows them). M15/M17b: the only
             // addresses KeepClear may connect to are shown here, with a way to forget them (PRIVACY.md "Network").
-            Card(Modifier.fillMaxWidth().testTag("backupPlacesSettings")) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            KcCard(Modifier.testTag("backupPlacesSettings")) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.backup_places_title), style = MaterialTheme.typography.titleSmall)
+                    // F2 (C76): the computer at home is set up here, not in the backup picker.
+                    Text(stringResource(R.string.move_network_option), style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.settings_network_body), style = MaterialTheme.typography.bodySmall)
+                    KcButton(
+                        stringResource(R.string.settings_network_button),
+                        onClick = {
+                            actions.onNetworkSetupSeen()
+                            networkForm = true
+                        },
+                        enabled = actions.networkSetup != NetworkSetup.Checking,
+                        style = KcButtonStyle.Text,
+                        modifier = Modifier.testTag("setUpNetwork"),
+                    )
+                    NetworkSetupLine(actions.networkSetup)
                     Text(stringResource(R.string.nextcloud_title), style = MaterialTheme.typography.labelLarge)
                     Text(stringResource(R.string.nextcloud_settings_body), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = actions.onOpenNextcloud, modifier = Modifier.testTag("openNextcloud")) {
-                        Text(stringResource(R.string.nextcloud_settings_button))
-                    }
+                    KcButton(
+                        stringResource(R.string.nextcloud_settings_button),
+                        actions.onOpenNextcloud,
+                        Modifier.testTag("openNextcloud"),
+                        style = KcButtonStyle.Text,
+                    )
                     actions.networkHost?.let { host ->
                         Text(
                             stringResource(
@@ -268,8 +316,8 @@ fun SettingsScreen(
                 }
             }
             if (actions.showDeviceCheck) {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                KcCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             stringResource(R.string.debug_device_check_button_body),
                             style = MaterialTheme.typography.bodySmall,
@@ -285,23 +333,57 @@ fun SettingsScreen(
             }
         }
     }
-    when (step) {
-        1 -> AlertDialog(
-            onDismissRequest = { step = 0 },
-            title = { Text(stringResource(R.string.test_mode_off_title)) },
-            text = { Text(stringResource(R.string.test_mode_off_body)) },
-            confirmButton = {
-                TextButton(onClick = { step = 2 }, modifier = Modifier.testTag("testModeOff1")) {
-                    Text(stringResource(R.string.test_mode_off_continue))
-                }
+    if (networkForm) {
+        NetworkDriveDialog(
+            saved = remember { actions.savedNetworkDrive() },
+            onConnect = { location ->
+                networkForm = false
+                actions.onSetUpNetworkDrive(location)
             },
-            dismissButton = { TextButton(onClick = { step = 0 }) { Text(stringResource(R.string.move_cancel)) } },
+            onDismiss = { networkForm = false },
+        )
+    }
+    if (explainReminder) {
+        InfoSheet(
+            title = stringResource(R.string.reminder_setting),
+            dismissText = stringResource(R.string.explainer_not_now),
+            onDismiss = { explainReminder = false },
+            modifier = Modifier.testTag("reminderExplain"),
+            primaryButton = {
+                KcButton(
+                    stringResource(R.string.explainer_continue),
+                    onClick = {
+                        explainReminder = false
+                        actions.onAskNotifications { granted -> if (granted) actions.onReminder(true) }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("reminderContinue"),
+                )
+            },
+        ) {
+            Text(stringResource(R.string.reminder_notif_explain), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    when (step) {
+        1 -> ConfirmSheet(
+            title = stringResource(R.string.test_mode_off_title),
+            dismissText = stringResource(R.string.move_cancel),
+            onDismiss = { step = 0 },
+            note = stringResource(R.string.test_mode_off_body),
+            confirmButton = {
+                KcButton(
+                    stringResource(R.string.test_mode_off_continue),
+                    onClick = { step = 2 },
+                    style = KcButtonStyle.Tonal,
+                    modifier = Modifier.fillMaxWidth().testTag("testModeOff1"),
+                )
+            },
         )
 
-        2 -> AlertDialog(
-            onDismissRequest = { step = 0 },
-            title = { Text(stringResource(R.string.test_mode_off_title2)) },
-            text = { Text(stringResource(R.string.test_mode_off_body2)) },
+        2 -> ConfirmSheet(
+            title = stringResource(R.string.test_mode_off_title2),
+            dismissText = stringResource(R.string.move_cancel),
+            onDismiss = { step = 0 },
+            note = stringResource(R.string.test_mode_off_body2),
             confirmButton = {
                 SafeConfirmButton(
                     stringResource(R.string.test_mode_off_confirm),
@@ -309,12 +391,38 @@ fun SettingsScreen(
                         step = 0
                         onTestModeOff()
                     },
-                    modifier = Modifier.testTag("testModeOff2"),
+                    modifier = Modifier.fillMaxWidth().testTag("testModeOff2"),
+                    // Turning test mode off loses nothing (it can be turned on again): ink, not red (F2).
+                    permanent = false,
                 )
             },
-            dismissButton = { TextButton(onClick = { step = 0 }) { Text(stringResource(R.string.move_cancel)) } },
         )
     }
+}
+
+/** F2: the result of setting up the computer at home, in plain words. */
+@Composable
+private fun NetworkSetupLine(setup: NetworkSetup?) {
+    val text = when (setup) {
+        null -> return
+
+        NetworkSetup.Checking -> stringResource(R.string.settings_network_checking)
+
+        is NetworkSetup.Saved -> stringResource(
+            R.string.settings_network_saved,
+            io.github.tomerar.keepclear.core.common.Bidi.isolate(setup.host),
+        )
+
+        is NetworkSetup.Failed -> stringResource(
+            when (setup.problem) {
+                TargetProblem.REFUSED -> R.string.move_problem_refused
+                TargetProblem.NETWORK_ON_THIS_PHONE -> R.string.move_problem_network_phone
+                else -> R.string.move_problem_unreachable
+            },
+        )
+    }
+    Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("networkSetupResult"))
+    if (setup == NetworkSetup.Checking) LinearProgressIndicator(Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -327,9 +435,12 @@ private fun ChoiceRow(path: String, label: Int, tag: String, onRemove: () -> Uni
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        TextButton(onClick = onRemove, modifier = Modifier.testTag("${tag}_$path")) {
-            Text(stringResource(R.string.choice_remove))
-        }
+        KcButton(
+            stringResource(R.string.choice_remove),
+            onRemove,
+            Modifier.testTag("${tag}_$path"),
+            style = KcButtonStyle.Text,
+        )
     }
 }
 
@@ -357,9 +468,12 @@ fun IntroScreen(onDone: () -> Unit) {
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (page < pages.lastIndex) {
-                    TextButton(onClick = onDone, modifier = Modifier.testTag("introSkip")) {
-                        Text(stringResource(R.string.intro_skip))
-                    }
+                    KcButton(
+                        stringResource(R.string.intro_skip),
+                        onDone,
+                        Modifier.testTag("introSkip"),
+                        style = KcButtonStyle.Text,
+                    )
                 }
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 androidx.compose.material3.Button(

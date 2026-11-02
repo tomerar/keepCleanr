@@ -13,17 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -126,7 +121,13 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val summary = state.summary
+                // F2: the measured result of the last action, on top, where the eye is after tapping.
                 state.measured?.takeIf { it.origin == Screen.Home }?.let { MeasuredBanner(it) }
+                state.cleanResult?.takeIf { it.origin == Screen.Home }?.let { r ->
+                    CleanResultBanner(r, actions.onUndo, actions.onOpenTrash)
+                }
+                // F2: a running action shows progress, not just disabled buttons.
+                if (state.busy) BusyLine()
                 when (state.spaceMode) {
                     SpaceMode.LIGHT -> Banner(stringResource(R.string.low_space_light))
                     SpaceMode.MINIMAL -> Banner(stringResource(R.string.low_space_minimal))
@@ -165,22 +166,17 @@ fun HomeScreen(
                                     review = summary?.phoneTotal(Category.REVIEW)?.bytes ?: 0,
                                     move = summary?.phoneTotal(Category.MOVE)?.bytes ?: 0,
                                 ),
-                                description = stringResource(
-                                    R.string.home_storage_line,
-                                    size(state.totalBytes - state.freeBytes),
-                                    size(state.freeBytes),
-                                ),
+                                description = stripDescription(state, summary, ::size),
                                 modifier = Modifier.testTag("storage"),
                             )
+                            // F2: "Where your space is" is the strip's legend now, not a section of its own.
+                            if (summary != null) StripLegend(summary, ::size)
                         },
                         action = safeAction,
                         modifier = Modifier.testTag("hero"),
                     )
                 } else {
                     KcCard(Modifier.testTag("safeCard")) { safeAction() }
-                }
-                state.cleanResult?.takeIf { it.origin == Screen.Home }?.let { r ->
-                    CleanResultCard(r, actions.onUndo, actions.onOpenTrash)
                 }
                 if (confirmClean && safeItems.isNotEmpty()) {
                     CleanConfirmDialog(safeItems, onClean = actions.onClean, onDismiss = { confirmClean = false })
@@ -225,7 +221,6 @@ fun HomeScreen(
                     onOneByOne = actions.onOneByOne,
                 )
                 MoreFilesCard(state, onExplain = { explainer = it })
-                if (summary != null) Areas(summary)
                 // Notices at the bottom; closing one hides it for this visit (C75).
                 var clonedDismissed by rememberSaveable { mutableStateOf(false) }
                 if (state.cloned.hidden && !clonedDismissed) {
@@ -244,7 +239,11 @@ fun HomeScreen(
                     )
                 }
                 if (showDebugTools) {
-                    TextButton(onClick = { forceFlip = !forceFlip }) { Text(stringResource(R.string.debug_toggle_rtl)) }
+                    KcButton(
+                        stringResource(R.string.debug_toggle_rtl),
+                        onClick = { forceFlip = !forceFlip },
+                        style = KcButtonStyle.Text,
+                    )
                 }
                 Spacer(Modifier.heightIn(min = 8.dp))
             }
@@ -417,7 +416,7 @@ private fun Notice(
             }
         }
         Text(body, style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(onClick = onClick, modifier = Modifier.padding(top = 8.dp).testTag(tag)) { Text(button) }
+        KcButton(button, onClick, Modifier.padding(top = 8.dp).testTag(tag), style = KcButtonStyle.Tonal)
     }
 }
 
@@ -486,7 +485,7 @@ private fun ScanLine(state: HomeUiState, actions: HomeActions, size: (Long) -> S
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = actions.onCancelScan) { Text(stringResource(R.string.scan_cancel)) }
+                    KcButton(stringResource(R.string.scan_cancel), actions.onCancelScan, style = KcButtonStyle.Text)
                 }
 
                 is ScanState.Done -> {
@@ -495,16 +494,22 @@ private fun ScanLine(state: HomeUiState, actions: HomeActions, size: (Long) -> S
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = actions.onScanAgain, modifier = Modifier.testTag("scanAgain")) {
-                        Text(stringResource(R.string.scan_again))
-                    }
+                    KcButton(
+                        stringResource(R.string.scan_again),
+                        actions.onScanAgain,
+                        Modifier.testTag("scanAgain"),
+                        style = KcButtonStyle.Text,
+                    )
                 }
 
                 ScanState.Idle -> {
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = actions.onScanAgain, modifier = Modifier.testTag("scanAgain")) {
-                        Text(stringResource(R.string.scan_again))
-                    }
+                    KcButton(
+                        stringResource(R.string.scan_again),
+                        actions.onScanAgain,
+                        Modifier.testTag("scanAgain"),
+                        style = KcButtonStyle.Text,
+                    )
                 }
             }
         }
@@ -519,21 +524,15 @@ private fun ScanLine(state: HomeUiState, actions: HomeActions, size: (Long) -> S
     }
 }
 
-/** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)" (review PR C). */
+/** F2: a running action shows progress (an indeterminate bar and a plain line), not only disabled buttons. */
 @Composable
-fun MeasuredBanner(m: Measured) {
-    val locale = LocalConfiguration.current.locales[0]
-
-    fun s(b: Long) = Bidi.isolate(ByteSize.format(b, locale))
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("measured"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+internal fun BusyLine(modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxWidth().semantics(mergeDescendants = true) { }.testTag("busy"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            stringResource(R.string.result_freed, s(m.freed), s(m.nowFree), s(m.wasFree)),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp),
-        )
+        Text(stringResource(R.string.home_busy), style = MaterialTheme.typography.bodyMedium)
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -542,9 +541,13 @@ fun MeasuredBanner(m: Measured) {
 private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneByOne: () -> Unit) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]
-    Card(modifier = Modifier.fillMaxWidth().testTag("trimCard")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.trim_title), style = MaterialTheme.typography.titleMedium)
+    KcCard(Modifier.testTag("trimCard")) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                stringResource(R.string.trim_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
             result?.let {
                 Text(
@@ -556,33 +559,31 @@ private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneB
                     modifier = Modifier.testTag("homeTrimResult"),
                 )
             }
-            OutlinedButton(onClick = { confirm = true }, enabled = enabled, modifier = Modifier.testTag("homeTrim")) {
-                Text(stringResource(R.string.trim_button))
-            }
+            KcButton(
+                stringResource(R.string.trim_button),
+                onClick = { confirm = true },
+                enabled = enabled,
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.testTag("homeTrim"),
+            )
             // SAFE-5 → SAFE-10: when Android trims little, the guided per-app list is the next step.
-            TextButton(onClick = onOneByOne, modifier = Modifier.testTag("oneByOneLink")) {
-                Text(stringResource(R.string.one_by_one_button))
-            }
+            KcButton(
+                stringResource(R.string.one_by_one_button),
+                onClick = onOneByOne,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("oneByOneLink"),
+            )
         }
     }
     if (confirm) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirm = false },
-            title = { Text(stringResource(R.string.trim_title)) },
-            text = { Text(stringResource(R.string.trim_confirm_body)) },
-            confirmButton = {
-                SafeConfirmButton(
-                    stringResource(R.string.trim_button),
-                    onClick = {
-                        confirm = false
-                        onTrim()
-                    },
-                    modifier = Modifier.testTag("confirmHomeTrim"),
-                )
+        TrimConfirmSheet(
+            onTrim = {
+                confirm = false
+                onTrim()
             },
-            dismissButton = {
-                TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.trash_cancel)) }
-            },
+            onDismiss = { confirm = false },
+            tag = "confirmHomeTrim",
+            bodyTag = "homeTrimLabel",
         )
     }
 }
@@ -604,50 +605,63 @@ private fun ActionCard(
     onClick: () -> Unit,
     primary: Boolean = true,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+    KcCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text(body, style = MaterialTheme.typography.bodyMedium)
-            if (primary) {
-                Button(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(button) }
-            } else {
-                OutlinedButton(onClick = onClick, modifier = Modifier.testTag(tag)) { Text(button) }
-            }
+            KcButton(
+                button,
+                onClick,
+                Modifier.testTag(tag),
+                style = if (primary) KcButtonStyle.Primary else KcButtonStyle.Tonal,
+            )
         }
     }
 }
 
 @Composable
 private fun Banner(text: String, action: String? = null, onAction: () -> Unit = {}) {
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("banner"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(text, style = MaterialTheme.typography.bodyMedium)
-            if (action != null) {
-                TextButton(onClick = onAction, modifier = Modifier.testTag("bannerAction")) { Text(action) }
-            }
+    KcCard(Modifier.testTag("banner"), containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+        if (action != null) {
+            KcButton(action, onAction, Modifier.testTag("bannerAction"), style = KcButtonStyle.Text)
         }
     }
 }
 
+private val areaLabels = mapOf(
+    ClassificationSummary.Area.CAMERA to R.string.area_camera,
+    ClassificationSummary.Area.WHATSAPP to R.string.area_whatsapp,
+    ClassificationSummary.Area.JUNK to R.string.area_junk,
+    ClassificationSummary.Area.OTHER to R.string.area_other,
+)
+
+/** F2: "Where your space is" as one line under the strip (camera, WhatsApp, junk, other, with exact sizes). */
 @Composable
-private fun Areas(summary: ClassificationSummary) {
-    val locale = LocalConfiguration.current.locales[0]
-    val labels = mapOf(
-        ClassificationSummary.Area.CAMERA to R.string.area_camera,
-        ClassificationSummary.Area.WHATSAPP to R.string.area_whatsapp,
-        ClassificationSummary.Area.JUNK to R.string.area_junk,
-        ClassificationSummary.Area.OTHER to R.string.area_other,
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.testTag("areas")) {
-        Text(stringResource(R.string.areas_title), style = MaterialTheme.typography.titleSmall)
-        summary.areas().forEach { (area, bytes) ->
-            Text(
-                "${stringResource(labels.getValue(area))}: ${ByteSize.format(bytes, locale)}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
+private fun StripLegend(summary: ClassificationSummary, size: (Long) -> String) {
+    val parts = mutableListOf<String>()
+    for ((area, bytes) in summary.areas()) {
+        parts +=
+            stringResource(R.string.area_value, stringResource(areaLabels.getValue(area)), Bidi.isolate(size(bytes)))
     }
+    if (parts.isEmpty()) return
+    Text(
+        parts.joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp).testTag("areas"),
+    )
+}
+
+/** The strip's spoken description: used and free, then what each lane could free (D5: phone storage only). */
+@Composable
+private fun stripDescription(state: HomeUiState, summary: ClassificationSummary?, size: (Long) -> String): String {
+    val base =
+        stringResource(R.string.home_storage_line, size(state.totalBytes - state.freeBytes), size(state.freeBytes))
+    if (summary == null) return base
+    val lanes = mutableListOf(base)
+    for (category in listOf(Category.SAFE, Category.REVIEW, Category.MOVE)) {
+        lanes += stringResource(R.string.area_value, categoryTitle(category), size(summary.phoneTotal(category).bytes))
+    }
+    return lanes.joinToString(" · ")
 }

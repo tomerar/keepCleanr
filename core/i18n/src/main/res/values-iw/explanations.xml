@@ -16,7 +16,7 @@
     <string name="if_deleted_wa_status_fresh">לא תוכלו לצפות בהם שוב.</string>
     <string name="group_legacy_wa">תיקיית וואטסאפ ישנה</string>
     <string name="why_legacy_wa">וואטסאפ השתמש בתיקייה הזו לפני 2022. היום האפליקציה שומרת קבצים במקום אחר.</string>
-    <string name="if_deleted_legacy_wa">תמונות וסרטונים שנמצאים רק כאן ימחקו. הצ\'אטים הנוכחיים לא נפגעים.</string>
+    <string name="if_deleted_legacy_wa">תמונות וסרטונים שנמצאים רק כאן יימחקו. הצ\'אטים הנוכחיים לא נפגעים.</string>
     <string name="group_wa_sent_copy">עותקים של תמונות ששלחתם</string>
     <string name="why_wa_sent_copy">וואטסאפ שומר עותק של כל תמונה שנשלחת. אלה עותקים זהים לגמרי של תמונות שעדיין נמצאות בגלריה.</string>
     <string name="if_deleted_wa_sent_copy">המקור נשאר בגלריה. בתוך הצ\'אט ייתכן שהתמונות האלה לא ייפתחו.</string>
@@ -92,10 +92,10 @@
     <string name="group_app_content">בתוך התיקיות של אפליקציות</string>
     <string name="why_app_content">הקבצים האלה שייכים לאפליקציה אחרת (למשל מוזיקה או סרטונים שהיא הורידה). האפליקציה הזו מנהלת אותם.</string>
     <string name="if_deleted_app_content">‏KeepClear לא מוחק אותם. אפשר לפתוח את האפליקציה ולהסיר את ההורדות שם, כדי שהיא תדע שהן נמחקו.</string>
-    <string name="group_user_kept">נשמר לבקשתך</string>
-    <string name="why_user_kept">סימנת שזה חשוב. KeepClear אף פעם לא מציעה למחוק או להעביר את זה.</string>
-    <string name="if_deleted_user_kept">KeepClear לא תמחק את זה. כדי לשנות, יש לפתוח את ההגדרות › נשמר לבקשתך.</string>
-    <string name="group_user_junk">סומן כזבל לבקשתך</string>
-    <string name="why_user_junk">ביקשת מ-KeepClear להתייחס תמיד לקבצים בתיקייה הזו כזבל.</string>
-    <string name="if_deleted_user_junk">הקובץ עובר קודם לסל המחזור ל-30 יום, כך שאפשר להחזיר אותו. כדי להפסיק, יש לפתוח את ההגדרות › נשמר לבקשתך.</string>
+    <string name="group_user_kept">מה שבחרתם לשמור</string>
+    <string name="why_user_kept">סימנתם שזה חשוב, ולכן KeepClear לא יציע לגעת בזה.</string>
+    <string name="if_deleted_user_kept">KeepClear לא ימחק את זה. כדי לשנות: הגדרות › מה שבחרתם לשמור.</string>
+    <string name="group_user_junk">מה שביקשתם להציע תמיד לנקות</string>
+    <string name="why_user_junk">ביקשתם מ-KeepClear להציע תמיד לנקות את הקבצים בתיקייה הזו.</string>
+    <string name="if_deleted_user_junk">הקובץ עובר קודם לסל המחזור ל-30 יום, כך שאפשר להחזיר אותו. כדי להפסיק: הגדרות › מה שבחרתם לשמור.</string>
 </resources>

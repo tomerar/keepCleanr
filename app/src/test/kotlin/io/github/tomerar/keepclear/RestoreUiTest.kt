@@ -36,7 +36,8 @@ class RestoreUiTest {
     private val plenty = Space(allocatable = 50_000_000_000, total = 128_000_000_000)
     private val catalog = RestoreStep.Catalog("KeepClear/OnePlus 10T", groups, plenty)
 
-    private fun text(tag: String) = compose.onNodeWithTag(tag).fetchSemanticsNode()
+    // F2: a catalog row is one toggleable target, so its lines are read from the unmerged tree.
+    private fun text(tag: String) = compose.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode()
         .config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
     private var shown: androidx.compose.runtime.MutableState<RestoreReport>? = null
@@ -143,7 +144,7 @@ class RestoreUiTest {
     fun `the catalog says which files are already on the phone (PR 42 review)`() {
         compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
         assert("already on the phone" in text("restoreAlready_WhatsApp Images|2021-03"))
-        compose.onNodeWithTag("restoreAlready_Camera|2021-01").assertDoesNotExist()
+        compose.onNodeWithTag("restoreAlready_Camera|2021-01", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

@@ -307,6 +307,7 @@ private fun CurrentScreen(
                     onDelete = safeActions.onClean,
                     result = result,
                     onUndo = safeActions.onUndo,
+                    onOpenTrash = safeActions.onOpenTrash,
                     selection = selectionActions?.let { a ->
                         GroupSelection(
                             selected = state.selections[key].orEmpty(),
@@ -335,6 +336,7 @@ private fun CurrentScreen(
                 state.appsInfo,
                 System.currentTimeMillis(),
                 appsActions,
+                loading = !state.appsLoaded,
                 onBack = onBack.takeIf { state.screens.size > 1 },
                 links = AppsTabLinks(
                     onOneByOne = safeActions.onOneByOne,
@@ -366,6 +368,9 @@ private fun CurrentScreen(
         }
 
         Screen.Trash -> {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            // F2: read once per visit; the note stays for this visit and is gone on the next one.
+            val noteSeen = androidx.compose.runtime.remember { TrashNotes.uninstallNoteSeen(context) }
             TrashScreen(
                 state.trash,
                 onRestore,
@@ -376,6 +381,8 @@ private fun CurrentScreen(
                 busy = state.busy,
                 onAndroidTrash = safeActions.onAndroidTrash,
                 onRelease = safeActions.onRelease ?: onPurge,
+                showUninstallNote = !noteSeen,
+                onUninstallNoteShown = { TrashNotes.setUninstallNoteSeen(context) },
             )
         }
 

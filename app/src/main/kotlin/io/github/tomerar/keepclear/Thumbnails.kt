@@ -9,7 +9,12 @@ import android.os.CancellationSignal
 import android.provider.MediaStore
 import android.util.LruCache
 import android.util.Size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -74,3 +79,28 @@ open class ThumbnailLoader(private val resolver: ContentResolver?) {
 
 /** Null in previews and tests: items show a neutral placeholder. */
 val LocalThumbnailLoader = staticCompositionLocalOf<ThumbnailLoader?> { null }
+
+/**
+ * F2: up to [max] real thumbnails for a group card's ThumbStrip (design-system.md §8.3), as painters. Files without
+ * a picture are left out; without a loader (tests, previews) the list is empty and the card shows none.
+ */
+@androidx.compose.runtime.Composable
+fun rememberThumbPainters(
+    items: List<io.github.tomerar.keepclear.engine.classify.ClassifiedItem>,
+    max: Int = 4,
+    sizeDp: Int = 56,
+): List<androidx.compose.ui.graphics.painter.Painter> {
+    val loader = LocalThumbnailLoader.current ?: return emptyList()
+    val px = with(androidx.compose.ui.platform.LocalDensity.current) { sizeDp.dp.roundToPx() }
+    // A few more than shown, so a file without a picture doesn't leave the strip short.
+    val candidates = remember(items) { items.take(max * 2).map { it.item } }
+    val bitmaps by produceState(emptyList<Bitmap>(), candidates, loader, px) {
+        val loaded = mutableListOf<Bitmap>()
+        for (item in candidates) {
+            if (loaded.size >= max) break
+            loader.load(item, px)?.let { loaded += it }
+        }
+        value = loaded
+    }
+    return remember(bitmaps) { bitmaps.map { androidx.compose.ui.graphics.painter.BitmapPainter(it.asImageBitmap()) } }
+}
