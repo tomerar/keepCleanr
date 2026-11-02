@@ -41,21 +41,212 @@ data class RestoreReport(
     val restored: List<String> = emptyList(),
     /** Already on the phone with the same content: nothing written. */
     val alreadyThere: Int = 0,
-    /** The copy on the drive doesn't match the manifest (or is missing): nothing written. */
+    /** The copy on the drive doesn't match the manifest (or is missing, or is longer than it says): nothing written. */
     val damaged: Int = 0,
-    /** Put into the restore folder instead of the original place (unsafe, taken or on another volume). */
+    /** Put into the restore folder instead of the original place (unsafe, unknown, taken or on another volume). */
     val redirected: Int = 0,
     val failed: Int = 0,
     /** The drive went away mid-restore: what is done stays done, the rest can be restored again. */
     val interrupted: Boolean = false,
+    /** D2: hidden files and programs in the manifest, never written anywhere. */
+    val skipped: Int = 0,
+    /** D1: the selection didn't fit before starting (or free space couldn't be measured): nothing was written. */
+    val notEnoughRoom: RoomCheck? = null,
+    /** D1: free space fell to the reserve mid-restore: what is done stays done, the rest was not started. */
+    val stoppedLowSpace: Boolean = false,
+    /** D1, SAFETY-9: test mode. Nothing was written; this is what would have happened. */
+    val simulated: RestorePreview? = null,
 )
+
+/** Free space on the phone's shared storage (D1). Measured by the app (`StorageManager.getAllocatableBytes`). */
+data class Space(val allocatable: Long, val total: Long) {
+    /** D1: what restoring always leaves free, so the phone keeps working: 5% of the storage, at least 1 GB. */
+    val reserve: Long get() = maxOf(total / 20, MIN_RESERVE)
+
+    /** How much may be restored now without eating into [reserve]. */
+    val room: Long get() = (allocatable - reserve).coerceAtLeast(0)
+
+    companion object {
+        /** Decimal, like Android's Settings (1 GB = 1000³ bytes). */
+        const val MIN_RESERVE = 1_000_000_000L
+    }
+}
+
+/** Port: measures [Space]; keeps the engine pure JVM (D1). Null when it can't be measured. */
+fun interface SpaceProbe {
+    suspend fun measure(): Space?
+}
+
+/**
+ * D2 port: whether KeepClear on **this phone** moved a file away from [src] whose content had this [sha256] (a
+ * MoveJob/MoveFile record). Only then is the manifest's `src` used as the place to put the file back.
+ */
+fun interface MoveRecords {
+    suspend fun movedFrom(src: String, sha256: String): Boolean
+
+    companion object {
+        /** No records: every file goes to the restore folder. */
+        val NONE = MoveRecords { _, _ -> false }
+    }
+}
+
+/** D1: needed bytes against the room there is. [space] null = couldn't measure, which never fits. */
+data class RoomCheck(val needed: Long, val space: Space?) {
+    val fits: Boolean get() = space != null && needed <= space.room
+}
+
+/** D1 test mode: what restoring would do. [bytes] counts the files that would be written. */
+data class RestorePreview(val toOriginal: Int, val toRestoreFolder: Int, val skipped: Int, val bytes: Long) {
+    val files: Int get() = toOriginal + toRestoreFolder
+}
+
+/** Where one backed-up file would go (D2). */
+enum class Where { ORIGINAL, RESTORE_FOLDER, SKIPPED }
+
+/** Why a file from a backup is never written to the phone (D2). */
+enum class RestoreSkip {
+    /** A name that starts with a dot (`.nomedia` would hide a whole folder from the gallery). */
+    HIDDEN_FILE,
+
+    /** An app or program (`.apk`, `.sh`, `.exe`, …). */
+    PROGRAM,
+}
+
+data class Placement(val entry: BackupEntry, val where: Where, val path: String?, val skip: RestoreSkip? = null)
+
+/**
+ * D2: which names a backup may put back. Pure and table-driven. Hidden files and programs are never written;
+ * anything that isn't a known photo, video, audio or document type goes only to the restore folder.
+ */
+object RestoreNames {
+    private val MEDIA_AND_DOCUMENTS = setOf(
+        // Photos
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "webp",
+        "heic",
+        "heif",
+        "avif",
+        "bmp",
+        "dng",
+        "tif",
+        "tiff",
+        "cr2",
+        "cr3",
+        "nef",
+        "arw",
+        "orf",
+        "rw2",
+        "raf",
+        // Videos
+        "mp4",
+        "m4v",
+        "mov",
+        "3gp",
+        "3g2",
+        "mkv",
+        "webm",
+        "avi",
+        "mts",
+        "m2ts",
+        // Audio and voice notes
+        "mp3",
+        "m4a",
+        "aac",
+        "ogg",
+        "oga",
+        "opus",
+        "wav",
+        "flac",
+        "amr",
+        "awb",
+        "mid",
+        "midi",
+        // Documents
+        "pdf",
+        "txt",
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+        "ppt",
+        "pptx",
+        "odt",
+        "ods",
+        "odp",
+        "rtf",
+        "csv",
+        "epub",
+        "vcf",
+    )
+    private val PROGRAMS = setOf(
+        "apk",
+        "apks",
+        "apkm",
+        "xapk",
+        "aab",
+        "dex",
+        "odex",
+        "oat",
+        "jar",
+        "so",
+        "elf",
+        "bin",
+        "sh",
+        "bash",
+        "zsh",
+        "py",
+        "pl",
+        "rb",
+        "js",
+        "mjs",
+        "jsx",
+        "vbs",
+        "ps1",
+        "bat",
+        "cmd",
+        "com",
+        "exe",
+        "msi",
+        "scr",
+        "dll",
+        "app",
+        "dmg",
+        "pkg",
+        "deb",
+        "rpm",
+        "run",
+        "desktop",
+        "lnk",
+    )
+
+    /** Lower-case extension, ignoring trailing dots and spaces ("x.apk." is an `apk`). */
+    fun extension(name: String): String = name.trimEnd('.', ' ').substringAfterLast('.', "").lowercase()
+
+    fun skipReason(name: String): RestoreSkip? = when {
+        name.startsWith('.') -> RestoreSkip.HIDDEN_FILE
+        extension(name) in PROGRAMS -> RestoreSkip.PROGRAM
+        else -> null
+    }
+
+    fun isMediaOrDocument(name: String): Boolean = skipReason(name) == null && extension(name) in MEDIA_AND_DOCUMENTS
+}
 
 /**
  * MOVE-17: lists a backup from its manifest and copies selected files back to the phone.
  *
  * - The manifest is untrusted (SEC-3, E-SEC-5): only lines that parse strictly are offered.
- * - The original place is used only when [RestorePathValidator] accepts it (inside [volumeRoot], not PROTECTED,
- *   not the trash, real folders); otherwise the file goes to [restoreDirRel] (`Pictures/KeepClear Restored`).
+ * - D2: the manifest's `src` is used only when KeepClear on this phone moved a file with the same SHA-256 away
+ *   from there ([records]), its name equals the backed-up name, it is a photo/video/audio/document type and
+ *   [RestorePathValidator] accepts it (inside [volumeRoot], not PROTECTED, not the trash, real folders);
+ *   otherwise the file goes to [restoreDirRel] (`Pictures/KeepClear Restored`). Hidden files and programs are
+ *   skipped ([RestoreNames]).
+ * - D1: never fills the phone. The selection must fit with [Space.reserve] left over before anything starts,
+ *   free space is measured again before each file (stop cleanly at the reserve), and a read from the drive
+ *   never goes past the manifest's size for that file (a hostile server could stream forever).
+ * - D1, SAFETY-9: in test mode ([isDryRun]) nothing is written; the report says what would have been.
  * - **Never overwrites:** a taken name gets a free one in the restore folder; a file already there with the same
  *   content is left alone.
  * - Each copy is checked twice: the bytes read from the drive must match the manifest's SHA-256 while copying,
@@ -68,6 +259,12 @@ class RestoreEngine(
     private val protectedPaths: ProtectedPaths,
     /** The phone's shared storage, e.g. `/storage/emulated/0`. */
     private val volumeRoot: String,
+    /** D1: free space on [volumeRoot]. */
+    private val space: SpaceProbe,
+    /** D2: what KeepClear moved off this phone. */
+    private val records: MoveRecords = MoveRecords.NONE,
+    /** D1, SAFETY-9: test mode, read at the start of every [restore]. */
+    private val isDryRun: () -> Boolean = { false },
     private val restoreDirRel: String = RESTORE_DIR,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) {
@@ -88,20 +285,63 @@ class RestoreEngine(
             .distinctBy { it.line.rel }
     }
 
-    /** Where [entry] would go: its original path if that is safe, else the restore folder. */
-    suspend fun destinationFor(entry: BackupEntry): Pair<String, Boolean> {
+    /** D2: where [entry] would go: its original path only when every check passes, else the restore folder. */
+    suspend fun placement(entry: BackupEntry): Placement {
+        RestoreNames.skipReason(entry.name)?.let { return Placement(entry, Where.SKIPPED, null, it) }
         val original = entry.line.src
-        val onThisVolume = original.startsWith("$volumeRoot/")
-        if (onThisVolume && validator.check(original, volumeRoot, phone) == null) return original to false
-        return "$volumeRoot/$restoreDirRel/${entry.group}/${entry.name}" to true
+        val honoured = original.startsWith("$volumeRoot/") &&
+            original.substringAfterLast('/') == entry.name &&
+            RestoreNames.isMediaOrDocument(entry.name) &&
+            validator.check(original, volumeRoot, phone) == null &&
+            records.movedFrom(original, entry.line.sha256)
+        return if (honoured) {
+            Placement(entry, Where.ORIGINAL, original)
+        } else {
+            Placement(entry, Where.RESTORE_FOLDER, restoreFolderPath(entry))
+        }
+    }
+
+    /** Where every entry would go, for the catalog (D2). */
+    suspend fun plan(entries: List<BackupEntry>): List<Placement> = entries.map { placement(it) }
+
+    /** D1: whether [entries] fit with the reserve left free. Skipped files need no room. */
+    suspend fun roomCheck(entries: List<BackupEntry>): RoomCheck = RoomCheck(
+        needed = entries.filter { RestoreNames.skipReason(it.name) == null }.sumOf { it.line.size },
+        space = runCatching { space.measure() }.getOrNull(),
+    )
+
+    /** D1 test mode: what [restore] would do, without writing anything. */
+    suspend fun preview(entries: List<BackupEntry>): RestorePreview {
+        val placements = plan(entries)
+        return RestorePreview(
+            toOriginal = placements.count { it.where == Where.ORIGINAL },
+            toRestoreFolder = placements.count { it.where == Where.RESTORE_FOLDER },
+            skipped = placements.count { it.where == Where.SKIPPED },
+            bytes = placements.filter { it.where != Where.SKIPPED }.sumOf { it.entry.line.size },
+        )
     }
 
     suspend fun restore(entries: List<BackupEntry>, onProgress: (Int) -> Unit = {}): RestoreReport {
+        if (isDryRun()) return RestoreReport(simulated = preview(entries))
+        val room = roomCheck(entries)
+        if (!room.fits) return RestoreReport(notEnoughRoom = room)
         val restored = mutableListOf<String>()
         var already = 0
         var damaged = 0
         var redirected = 0
         var failed = 0
+        var skipped = 0
+
+        fun report(interrupted: Boolean = false, lowSpace: Boolean = false) = RestoreReport(
+            restored,
+            already,
+            damaged,
+            redirected,
+            failed,
+            interrupted = interrupted,
+            skipped = skipped,
+            stoppedLowSpace = lowSpace,
+        )
         for ((index, entry) in entries.withIndex()) {
             currentCoroutineContext().ensureActive()
             try {
@@ -118,16 +358,22 @@ class RestoreEngine(
                     Outcome.Damaged -> {
                         damaged++
                     }
+
+                    Outcome.Skipped -> {
+                        skipped++
+                    }
                 }
             } catch (e: StorageException.Disconnected) {
-                return RestoreReport(restored, already, damaged, redirected, failed, interrupted = true)
+                return report(interrupted = true)
+            } catch (e: OutOfRoom) {
+                return report(lowSpace = true)
             } catch (e: java.io.IOException) {
                 // Any other storage or stream failure (e.g. the phone is full): this file failed, go on (PR #26).
                 failed++
             }
             onProgress(index + 1)
         }
-        return RestoreReport(restored, already, damaged, redirected, failed)
+        return report()
     }
 
     private sealed interface Outcome {
@@ -136,21 +382,32 @@ class RestoreEngine(
         data object AlreadyThere : Outcome
 
         data object Damaged : Outcome
+
+        data object Skipped : Outcome
     }
+
+    /** D1: free space reached the reserve; the restore stops before this file. */
+    private class OutOfRoom : Exception()
+
+    /** D1: the drive sent more bytes than the manifest says the file has. */
+    private class TooLong : Exception()
 
     private suspend fun restoreOne(entry: BackupEntry): Outcome {
         val expected = entry.line.sha256
+        val placement = placement(entry)
+        if (placement.where == Where.SKIPPED) return Outcome.Skipped
         val onDrive = target.stat(entry.targetRel)
         if (onDrive == null || !onDrive.isFile || onDrive.size != entry.line.size) return Outcome.Damaged
 
-        var (destination, redirected) = destinationFor(entry)
+        var destination = placement.path!!
+        var redirected = placement.where == Where.RESTORE_FOLDER
         val existing = phone.stat(KPath.Local(destination))
         if (existing != null) {
             if (existing.isFile && existing.size == entry.line.size && hashOnPhone(destination) == expected) {
                 return Outcome.AlreadyThere
             }
             // Taken by something else: never overwrite, use the restore folder instead.
-            destination = "$volumeRoot/$restoreDirRel/${entry.group}/${entry.name}"
+            destination = restoreFolderPath(entry)
             redirected = true
         }
         // Restored there before (an earlier or interrupted run)? Then it is already there, not copied again.
@@ -159,6 +416,9 @@ class RestoreEngine(
             val reason = validator.check(destination, volumeRoot, phone)
             if (reason != null) throw StorageException.Unsupported(KPath.Local(destination), reason)
         }
+        // D1: measured again right before writing; stop cleanly instead of eating into the reserve.
+        val now = runCatching { space.measure() }.getOrNull()
+        if (now == null || entry.line.size > now.room) throw OutOfRoom()
         val dest = KPath.Local(destination)
         val dir = mkdirs(dest.parent!!)
         val temp = ".kc-restore-${newId()}"
@@ -168,9 +428,14 @@ class RestoreEngine(
             phone.create(dir, temp).use { out ->
                 target.openRead(entry.targetRel).use { input ->
                     val buf = ByteArray(BUFFER)
+                    var total = 0L
                     while (true) {
+                        currentCoroutineContext().ensureActive()
                         val n = input.read(buf)
                         if (n < 0) break
+                        total += n
+                        // D1: never write past the size the manifest gives (a hostile server can stream forever).
+                        if (total > entry.line.size) throw TooLong()
                         digest.update(buf, 0, n)
                         out.write(buf, 0, n)
                     }
@@ -184,11 +449,23 @@ class RestoreEngine(
             }
             val final = rename(tempPath, dir, dest.name)
             return Outcome.Restored(final, redirected)
+        } catch (e: TooLong) {
+            runCatching { phone.delete(tempPath) }
+            return Outcome.Damaged
         } catch (e: java.io.IOException) {
             // Includes raw stream failures (a full phone): never leave a partial temporary file behind.
             runCatching { phone.delete(tempPath) }
             throw e
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            runCatching { phone.delete(tempPath) }
+            throw e
         }
+    }
+
+    /** `Pictures/KeepClear Restored/<group>/<name>`; a group name can't make the folder hidden. */
+    private fun restoreFolderPath(entry: BackupEntry): String {
+        val group = entry.group.trimStart('.').ifEmpty { "Other" }
+        return "$volumeRoot/$restoreDirRel/$group/${entry.name}"
     }
 
     /** Whether [destination] or one of its numbered names ("x (2).jpg") already holds this exact file. */
