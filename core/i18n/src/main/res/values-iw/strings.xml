@@ -109,6 +109,11 @@
         <item quantity="two">שני קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם.</item>
         <item quantity="other">%1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם.</item>
     </plurals>
+    <plurals name="clean_skipped_protected">
+        <item quantity="one">קובץ אחד מוגן (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בו.</item>
+        <item quantity="two">שני קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
+        <item quantity="other">%1$s קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
+    </plurals>
     <string name="clean_undo">להחזיר הכול</string>
     <string name="trim_title">לנקות קבצים זמניים של אפליקציות</string>
     <string name="trim_body">אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן.</string>

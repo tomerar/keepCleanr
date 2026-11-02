@@ -109,6 +109,10 @@
         <item quantity="one">%1$s file changed since the scan, so we left it alone.</item>
         <item quantity="other">%1$s files changed since the scan, so we left them alone.</item>
     </plurals>
+    <plurals name="clean_skipped_protected">
+        <item quantity="one">%1$s file is protected (chats, a backup, or something you kept), so we left it alone.</item>
+        <item quantity="other">%1$s files are protected (chats, a backup, or something you kept), so we left them alone.</item>
+    </plurals>
     <string name="clean_undo">Put it all back</string>
     <string name="trim_title">Clear apps\' temporary files</string>
     <string name="trim_body">Android deletes temporary files that apps download again by themselves.</string>

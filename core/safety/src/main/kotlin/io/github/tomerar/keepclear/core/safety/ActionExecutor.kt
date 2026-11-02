@@ -7,6 +7,7 @@ import io.github.tomerar.keepclear.core.storage.Stat
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
 import kotlinx.coroutines.flow.toList
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Performs the actual change for one op. Implemented by the trash module (M6); the executor is the
@@ -75,6 +76,12 @@ enum class SkipReason {
 
     /** The storage can't do this for this item (e.g. a MediaStore row Android's trash doesn't accept). */
     UNSUPPORTED,
+
+    /**
+     * D5: the item is PROTECTED (chats, backups, KeepClear's trash, a backup folder, something the user kept). The
+     * guard refuses it per item; the rest of the plan runs and the result says how many were left alone.
+     */
+    PROTECTED,
 }
 
 sealed interface ExecutionReport {
@@ -97,7 +104,9 @@ sealed interface ExecutionReport {
  * For each op, in order: re-stat without following links → compare size/mtime/identity → for
  * directories, walk the subtree and refuse if anything inside is PROTECTED → for MOVE originals,
  * re-hash (strict mode) → perform via [handler] (or simulate in [dryRun]).
- * Storage errors become [OpResult.Failed]; they never crash the run (LOW-4).
+ * Storage errors become [OpResult.Failed]; they never crash the run (LOW-4). Any other error (D6: a full database,
+ * `SQLiteFullException`, a Room error in the trash index) is reported as [OpResult.Failed] too, and every later op
+ * is skipped as [SkipReason.STOPPED]: after an error KeepClear doesn't understand, it doesn't carry on.
  */
 class ActionExecutor(
     private val gateway: StorageGateway,
@@ -131,7 +140,11 @@ class ActionExecutor(
         for (op in plan.ops) {
             val result = if (stopped) OpResult.Skipped(op, SkipReason.STOPPED) else runOne(op)
             if (result is OpResult.Failed &&
-                (result.error is StorageException.PermissionDenied || result.error is StorageException.Disconnected)
+                (
+                    result.error is StorageException.PermissionDenied ||
+                        result.error is StorageException.Disconnected ||
+                        result.error.message?.startsWith(UNEXPECTED) == true
+                    )
             ) {
                 stopped = true
             }
@@ -142,14 +155,22 @@ class ActionExecutor(
         if (needConsent.isEmpty()) return ExecutionReport.Ran(results)
         return try {
             ExecutionReport.Ran(results, handler.requestConsent(needConsent))
-        } catch (e: StorageException) {
-            ExecutionReport.Ran(results.map { if (it is OpResult.NeedsConsent) OpResult.Failed(it.op, e) else it })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val error = e as? StorageException ?: unexpected(needConsent.first(), e)
+            ExecutionReport.Ran(results.map { if (it is OpResult.NeedsConsent) OpResult.Failed(it.op, error) else it })
         }
     }
 
+    private fun unexpected(op: PlannedOp, e: Exception) = StorageException.Io(op.ref, e, UNEXPECTED)
+
     private suspend fun runOne(op: PlannedOp): OpResult = try {
         val removes = op.kind == OpKind.TRASH || op.kind == OpKind.MOVE_DELETE_ORIGINAL
-        if (removes && (keptNow(op.displayPath) || op.shownAs?.let(keptNow) == true)) {
+        val protectedReason = guard.skipReason(op)
+        if (protectedReason != null) {
+            OpResult.Skipped(op, protectedReason)
+        } else if (removes && (keptNow(op.displayPath) || op.shownAs?.let(keptNow) == true)) {
             OpResult.Skipped(op, SkipReason.CONTAINS_PROTECTED)
         } else {
             precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
@@ -165,6 +186,11 @@ class ActionExecutor(
         }
     } catch (e: StorageException) {
         OpResult.Failed(op, e)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        // D6: e.g. SQLiteFullException from the trash index. Reported, never a crash; the run stops after it.
+        OpResult.Failed(op, unexpected(op, e))
     }
 
     /** Returns a skip result, or null when the op may proceed. */
@@ -185,16 +211,30 @@ class ActionExecutor(
             return OpResult.Skipped(op, SkipReason.CONTAINS_PROTECTED)
         }
         for (w in op.witnesses) {
-            val ws = gateway.stat(w.ref)
-            if (ws == null || !ws.isFile || ws.size != w.size || ws.path == stat.path) {
-                return OpResult.Skipped(op, SkipReason.WITNESS_GONE)
-            }
+            if (!witnessUnchanged(w, stat)) return OpResult.Skipped(op, SkipReason.WITNESS_GONE)
         }
         if (op.kind == OpKind.MOVE_DELETE_ORIGINAL && strictRehash) {
             val actual = gateway.openRead(op.ref).use { Sha256.of(it) }
             if (actual != op.expectedSha256) return OpResult.Skipped(op, SkipReason.HASH_MISMATCH)
         }
         return null
+    }
+
+    /**
+     * D6: the witness must still be a plain file, not the op's own file, with the same size, the same modification
+     * time when one was recorded, and the same SHA-256 when one was recorded. Unreadable counts as changed.
+     */
+    private suspend fun witnessUnchanged(w: Witness, target: Stat): Boolean {
+        val ws = gateway.stat(w.ref) ?: return false
+        if (!ws.isFile || ws.isSymlink || ws.size != w.size || ws.path == target.path) return false
+        if (w.mtime != null && ws.mtimeMillis != w.mtime) return false
+        val sha = w.sha256 ?: return true
+        val actual = try {
+            gateway.openRead(w.ref).use { Sha256.of(it) }
+        } catch (e: java.io.IOException) {
+            return false
+        }
+        return actual == sha
     }
 
     private suspend fun subtreeHasProtected(dir: Stat): Boolean {
@@ -209,5 +249,10 @@ class ActionExecutor(
             }
         }
         return false
+    }
+
+    companion object {
+        /** Message of the [StorageException.Io] that reports an error that wasn't a storage error (D6). */
+        const val UNEXPECTED = "unexpected error"
     }
 }

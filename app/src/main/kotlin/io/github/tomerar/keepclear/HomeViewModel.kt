@@ -324,30 +324,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Loads the trash; on the first call per process also recovers it (E-DEL-8/9). */
     fun loadTrash() {
         viewModelScope.launch {
-            val manager = app.trashManager
-            if (!trashRecovered) {
-                manager.recover()
-                if (!app.testMode.isOn) manager.purgeExpired()
-                trashRecovered = true
+            // D6: a full disk makes Room throw (SQLiteFullException). The Trash then keeps what it showed; never a crash.
+            try {
+                loadTrashNow()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "trash not loaded: ${e.javaClass.simpleName}")
             }
-            val entries = manager.entries().sortedByDescending { it.deletedAt }
-            val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
-                dest != entries.first { it.id == id }.originalPath
-            }
-            // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
-            val confirmed = app.moveController.store.let { store ->
-                store.jobs().flatMap { store.files(it.id) }
-                    .filter { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED }
-                    .filter { it.confirmedAt != null }
-                    .map { it.sourcePath }
-                    .toSet()
-            }
-            val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
-            // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
-            val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
-            _state.update {
-                it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed, android = it.trash.android))
-            }
+        }
+    }
+
+    private suspend fun loadTrashNow() {
+        val manager = app.trashManager
+        if (!trashRecovered) {
+            manager.recover()
+            if (!app.testMode.isOn) manager.purgeExpired()
+            trashRecovered = true
+        }
+        val entries = manager.entries().sortedByDescending { it.deletedAt }
+        val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
+            dest != entries.first { it.id == id }.originalPath
+        }
+        // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
+        val confirmed = app.moveController.store.let { store ->
+            store.jobs().flatMap { store.files(it.id) }
+                .filter { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED }
+                .filter { it.confirmedAt != null }
+                .map { it.sourcePath }
+                .toSet()
+        }
+        val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
+        // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
+        val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
+        _state.update {
+            it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed, android = it.trash.android))
         }
     }
 
@@ -425,8 +436,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             val before = freeNow()
-            // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
-            app.trashManager.forgetMissing(entries)
+            // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6). A database
+            // error here (D6, disk full) only means they stay listed; the executor re-checks each one anyway.
+            try {
+                app.trashManager.forgetMissing(entries)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "missing entries not dropped: ${e.javaClass.simpleName}")
+            }
             val ops = entries.mapNotNull { e ->
                 val stat = app.localGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
                 PlannedOp(
@@ -480,6 +498,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             var done = emptyList<PlannedOp>()
             var simulated = false
             var skipped = unsupported.size
+            var protectedSkipped = 0
             var failed = 0
             if (ops.isNotEmpty()) {
                 val plan = unconfirmed.confirm(confirmation, app.sessionId)
@@ -499,7 +518,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             lastCopyGroupSizes = plan.duplicateGroupSizes
                             _state.update { it.copy(lastCopy = lastCopies) }
                         }
-                        skipped += report.skipped.size - lastCopies.size
+                        // D5: a PROTECTED item is left alone with its own reason; the rest of the plan ran.
+                        protectedSkipped = report.skipped.count {
+                            it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.PROTECTED
+                        }
+                        skipped += report.skipped.size - lastCopies.size - protectedSkipped
                         failed = report.failed.size
                     }
 
@@ -516,6 +539,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         failed = failed,
                         // Nothing to undo in test mode: nothing was moved.
                         trashedPaths = if (simulated) emptyList() else done.map { op -> op.displayPath },
+                        protectedSkipped = protectedSkipped,
                         simulated = simulated,
                         origin = origin,
                     ),

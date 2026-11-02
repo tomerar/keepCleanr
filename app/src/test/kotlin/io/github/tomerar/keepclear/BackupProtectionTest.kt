@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
-import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.safety.SafetyGuard
+import io.github.tomerar.keepclear.core.safety.SkipReason
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.move.MoveJob
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -31,15 +30,11 @@ class BackupProtectionTest {
     }
 
     @Test
-    fun `a clean plan touching the backup folder is rejected by the guard`() {
+    fun `a clean plan touching the backup folder is refused by the guard, per item (D5)`() {
         val jobs = listOf(MoveJob("a", "t", "SanDisk", "KeepClear/Phone", 1, targetRef = tree))
         val paths = BackupRoots.protectedPaths(jobs)
         val inBackup = "/storage/1234-ABCD/Backups/KeepClear/Phone/Camera/2021/01/IMG_1.jpg"
-        val plan = ActionPlan(
-            "p",
-            listOf(PlannedOp(KPath.Local(inBackup), inBackup, OpKind.TRASH, false, 1, 1)),
-            "clean",
-        ).confirm(1, "s")
-        assertTrue(SafetyGuard(paths).check(plan, "s") is SafetyGuard.Verdict.Rejected)
+        val op = PlannedOp(KPath.Local(inBackup), inBackup, OpKind.TRASH, false, 1, 1)
+        assertEquals(SkipReason.PROTECTED, SafetyGuard(paths).skipReason(op))
     }
 }

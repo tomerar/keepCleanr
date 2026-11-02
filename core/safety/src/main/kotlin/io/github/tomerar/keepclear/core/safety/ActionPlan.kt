@@ -74,8 +74,19 @@ class Confirmation private constructor(val at: Long, val paths: Set<String>) {
     }
 }
 
-/** A file that must still be there, unchanged in size, for an op to proceed (H2, SAFETY-8). */
-data class Witness(val ref: KPath, val path: String, val size: Long)
+/**
+ * A file that must still be there, unchanged, for an op to proceed (H2, SAFETY-8). The executor compares the size,
+ * the modification time when [mtime] is known, and the SHA-256 when [sha256] was recorded (D6).
+ */
+data class Witness(
+    val ref: KPath,
+    val path: String,
+    val size: Long,
+    /** Modification time when the witness was found; null = not recorded (only the size is compared). */
+    val mtime: Long? = null,
+    /** SHA-256 the witness had when it was found (duplicates); null = not recorded. */
+    val sha256: String? = null,
+)
 
 /**
  * What the user confirmed (design.md §3.3). The confirmation UI renders from the plan; [confirm]
