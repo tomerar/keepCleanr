@@ -21,6 +21,7 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
         }
         configureKotlinCompiler()
         registerDependencyConfinement()
+        registerForbiddenApis()
         dependencies {
             add("testImplementation", platform(libs.lib("junit5-bom")))
             add("testImplementation", libs.lib("junit5-jupiter"))
