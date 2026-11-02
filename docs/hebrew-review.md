@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-547 Hebrew strings.
+549 Hebrew strings.
 
 ## Contents
 
@@ -16,7 +16,7 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (17)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (164)
+- [Move to backup and restore](#move-to-backup-and-restore) (166)
 - [Trash](#trash) (42)
 - [Apps](#apps) (29)
 - [Settings](#settings) (35)
@@ -246,10 +246,12 @@ string; "also" lists other screens.
 | `move_issue_too_large_unknown` | [one] %1$s file is larger than 4 GB. KeepClear can't tell if this drive takes files that big, so to be safe it stays on the phone. / [other] %1$s files are larger than 4 GB. KeepClear can't tell if this drive takes files that big, so to be safe they stay on the phone. | [one] קובץ אחד גדול מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הוא נשאר בטלפון. / [two] שני קבצים גדולים מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הם נשארים בטלפון. / [other] %1$s קבצים גדולים מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הם נשארים בטלפון. |  |
 | `move_keep_going` | Keep going | להמשיך לגבות |  |
 | `move_network_bad_host` | Type only the computer's name or address, without \\\\ or smb://. | יש להקליד רק את שם המחשב או את הכתובת, בלי \\\\ ובלי smb://. |  |
+| `move_network_bad_share` | Type only the shared folder's name (no \\, / or :, and not ..). | צריך להקליד רק את השם של התיקייה המשותפת (בלי \\, / או :, ולא ..). |  |
 | `move_network_connect` | Connect | התחברות |  |
 | `move_network_guest_copy_only` | Without a name and password, KeepClear only copies to this computer and never frees space on the phone. | בלי שם משתמש וסיסמה, KeepClear רק מעתיק למחשב הזה ואף פעם לא מפנה מקום בטלפון. |  |
 | `move_network_host` | Address (for example 192.168.1.20 or my-pc) | כתובת (למשל 192.168.1.20 או my-pc) |  |
 | `move_network_intro` | A computer or NAS at home that shares a folder. KeepClear connects only to the address you type here, reads every copy back over the network to check it, and frees space only when you tap it. | מחשב או NAS בבית שמשתף תיקייה. KeepClear מתחברת רק לכתובת שמוקלדת כאן, קוראת כל עותק בחזרה דרך הרשת כדי לבדוק אותו, ומפנה מקום רק אחרי הקשה. |  |
+| `move_network_not_accepted` | KeepClear can't use these details. Check the address and the folder name. | KeepClear לא יכול להשתמש בפרטים האלה. כדאי לבדוק את הכתובת ואת שם התיקייה. |  |
 | `move_network_option` | Use a network drive instead (a computer or NAS at home) | להשתמש בכונן רשת במקום (מחשב או NAS בבית) |  |
 | `move_network_password` | Password | סיסמה |  |
 | `move_network_share` | Shared folder name | שם התיקייה המשותפת |  |
