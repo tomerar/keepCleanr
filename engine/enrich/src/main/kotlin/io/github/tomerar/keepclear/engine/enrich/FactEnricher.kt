@@ -108,7 +108,11 @@ class FactEnricher(
                 val b = fullHash(original) ?: continue
                 if (a == b) {
                     found[candidate.path] =
-                        Evidence("dup:$a", listOf(Witness(original.ref, original.path, original.size)))
+                        Evidence(
+                            "dup:$a",
+                            // D6: the executor re-checks size, date and content of the copy that stays.
+                            listOf(Witness(original.ref, original.path, original.size, original.mtimeMillis, b)),
+                        )
                     break
                 }
             }
@@ -180,7 +184,7 @@ class FactEnricher(
             } catch (e: StorageException) {
                 continue
             }
-            if (crc == entry.crc32) matched += Witness(target, target.absolute, stat.size)
+            if (crc == entry.crc32) matched += Witness(target, target.absolute, stat.size, stat.mtimeMillis)
         }
         return when (matched.size) {
             files.size -> Fact.ARCHIVE_FULLY_EXTRACTED to matched

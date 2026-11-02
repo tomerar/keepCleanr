@@ -37,18 +37,27 @@ class SafetyGuardTest {
     }
 
     @Test
-    fun `one protected op rejects the whole plan (SAFETY-3)`() {
-        val verdict = guard.check(
-            plan(op(photo), op("$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14")),
-            SESSION,
-        )
-        (verdict as SafetyGuard.Verdict.Rejected).reasons shouldHaveSize 1
+    fun `a protected op is refused per item, not by rejecting the whole plan (SAFETY-3, D5)`() {
+        val db = op("$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14")
+        guard.check(plan(op(photo), db), SESSION) shouldBe SafetyGuard.Verdict.Accepted
+        guard.skipReason(db) shouldBe SkipReason.PROTECTED
+        guard.skipReason(op(photo)) shouldBe null
+        // Shown as a protected path (e.g. by its original path) counts too.
+        guard.skipReason(op(photo).copy(shownAs = db.displayPath)) shouldBe SkipReason.PROTECTED
+        // Items already in the trash are contained by the trash checks instead.
+        guard.skipReason(op("$ROOT/.KeepClearTrash/1/x.jpg", OpKind.PURGE)) shouldBe null
     }
 
     @Test
-    fun `directory op on a messenger root is rejected`() {
-        guard.check(plan(op("$ROOT/Android/media/com.whatsapp/WhatsApp", dir = true)), SESSION)
-            .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+    fun `directory op on a messenger root is refused`() {
+        guard.skipReason(op("$ROOT/Android/media/com.whatsapp/WhatsApp", dir = true)) shouldBe SkipReason.PROTECTED
+    }
+
+    @Test
+    fun `structural problems still reject the whole plan (D5)`() {
+        val db = op("$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14")
+        val verdict = guard.check(ActionPlan("p", listOf(op(photo), db), "t"), SESSION)
+        (verdict as SafetyGuard.Verdict.Rejected).reasons shouldHaveSize 2 // unconfirmed + no confirmation list
     }
 
     @Test
@@ -151,10 +160,10 @@ class SafetyGuardTest {
             OpKind.PURGE,
         ).copy(ref = io.github.tomerar.keepclear.core.storage.KPath.Media("external_primary", 3))
         guard.check(plan(row), SESSION) shouldBe SafetyGuard.Verdict.Accepted
-        // Still PROTECTED-checked like everything else? PURGE is trash-only, so a protected display path is rejected
-        // only for non-trash kinds; a TRASH of the same protected row is rejected.
+        // Still PROTECTED-checked like everything else? PURGE is trash-only, so a protected display path is refused
+        // only for non-trash kinds; a TRASH of the same protected row is refused (per item, D5).
         val protectedRow = op("$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14")
             .copy(ref = io.github.tomerar.keepclear.core.storage.KPath.Media("external_primary", 4))
-        guard.check(plan(protectedRow), SESSION).shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
+        guard.skipReason(protectedRow) shouldBe SkipReason.PROTECTED
     }
 }

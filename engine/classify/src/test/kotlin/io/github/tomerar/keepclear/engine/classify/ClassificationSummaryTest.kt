@@ -35,6 +35,28 @@ class ClassificationSummaryTest {
     }
 
     @Test
+    fun `Home totals and areas count only the phone's own storage, never a card or USB drive (D5)`() {
+        fun at(path: String, size: Long) =
+            classifier.classify(ScanItem(KPath.Local(path), path, size, 1_600_000_000_000), now = now)
+        val mixed = ClassificationSummary.of(
+            items + listOf(
+                at("/storage/1234-ABCD/DCIM/.thumbnails/t.jpg", 70),
+                at("/storage/1234-ABCD/DCIM/Camera/IMG.jpg", 7_000),
+                at("/storage/emulated/999/DCIM/Camera/clone.jpg", 300),
+            ),
+        )
+        mixed.total(Category.SAFE) shouldBe Total(2, 80)
+        mixed.phoneTotal(Category.SAFE) shouldBe Total(1, 10)
+        mixed.total(Category.MOVE) shouldBe Total(3, 12_300)
+        mixed.phoneTotal(Category.MOVE) shouldBe Total(2, 5_300)
+        mixed.areas()[ClassificationSummary.Area.CAMERA] shouldBe 5_300
+        mixed.areas()[ClassificationSummary.Area.JUNK] shouldBe 10
+        PhoneStorage.contains("/sdcard/DCIM/a.jpg") shouldBe true
+        PhoneStorage.contains("/storage/emulated/0") shouldBe false
+        PhoneStorage.contains("/storage/1234-ABCD/x") shouldBe false
+    }
+
+    @Test
     fun `groups are largest first and buckets newest first`() {
         summary.groups.map { it.total.bytes } shouldBe summary.groups.map { it.total.bytes }.sortedDescending()
         val screenshots = summary.group("screenshots", Category.REVIEW)!!

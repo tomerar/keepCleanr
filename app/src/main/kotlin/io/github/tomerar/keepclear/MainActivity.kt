@@ -321,6 +321,7 @@ class MainActivity : ComponentActivity() {
                             onOneByOne = { openOneByOne(vm) },
                             onDismissLastCopy = vm::dismissLastCopies,
                             onAndroidTrash = vm::androidTrash,
+                            onRelease = vm::release,
                         ),
                         home = {
                             HomeScreen(

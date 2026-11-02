@@ -4,8 +4,11 @@ package io.github.tomerar.keepclear.core.safety
 import io.github.tomerar.keepclear.core.hash.Sha256
 
 /**
- * Plan-level checks before anything runs (design.md §3.3). Any violation rejects the **whole plan**:
- * a plan that reaches the guard with a PROTECTED op is a bug, never a user choice (SAFETY-3).
+ * Plan-level checks before anything runs (design.md §3.3). A **structural** problem rejects the whole plan: not
+ * confirmed, confirmed in another session, an op the user didn't see, a ref that differs from the path shown, a
+ * purge outside the trash, a MOVE original without a verified SHA-256, a duplicate group that would lose its last
+ * copy. A PROTECTED item (SAFETY-3) is refused per item instead ([skipReason], D5): the executor skips it with
+ * [SkipReason.PROTECTED] and the result says so, while the rest of the plan still runs.
  */
 class SafetyGuard(
     private val protectedPaths: ProtectedPaths,
@@ -40,14 +43,7 @@ class SafetyGuard(
             if (ref is io.github.tomerar.keepclear.core.storage.KPath.Local && ref.absolute != op.displayPath) {
                 reasons += "Op target differs from what is shown: ${op.displayPath}"
             }
-            val trashOnly = op.kind == OpKind.PURGE || op.kind == OpKind.RESTORE || op.kind == OpKind.RESTORE_CHANGED
-            if (!trashOnly) {
-                if (protectedPaths.isProtected(op.displayPath)) {
-                    reasons += "PROTECTED path in plan (SAFETY-3): ${op.displayPath}"
-                } else if (op.isDirectory && protectedPaths.isProtectedContainer(op.displayPath)) {
-                    reasons += "Directory op on a protected container (SAFETY-3): ${op.displayPath}"
-                }
-            } else if (op.kind == OpKind.PURGE && op.ref !is io.github.tomerar.keepclear.core.storage.KPath.Media &&
+            if (op.kind == OpKind.PURGE && op.ref !is io.github.tomerar.keepclear.core.storage.KPath.Media &&
                 !isInsideTrash(op.displayPath)
             ) {
                 // A MediaStore row may be purged only while it is in Android's trash; the media handler checks that
@@ -70,6 +66,20 @@ class SafetyGuard(
             }
         }
         return if (reasons.isEmpty()) Verdict.Accepted else Verdict.Rejected(reasons)
+    }
+
+    /**
+     * D5: [SkipReason.PROTECTED] when [op] would change a PROTECTED path (SAFETY-3) or act on a folder that holds
+     * protected things (a messenger root), else null. Ops on items already in the trash are exempt (they are
+     * contained by the trash checks in [check]). The executor asks this before anything else for every op.
+     */
+    fun skipReason(op: PlannedOp): SkipReason? {
+        val trashOnly = op.kind == OpKind.PURGE || op.kind == OpKind.RESTORE || op.kind == OpKind.RESTORE_CHANGED
+        if (trashOnly) return null
+        if (protectedPaths.isProtected(op.displayPath)) return SkipReason.PROTECTED
+        if (op.shownAs?.let(protectedPaths::isProtected) == true) return SkipReason.PROTECTED
+        if (op.isDirectory && protectedPaths.isProtectedContainer(op.displayPath)) return SkipReason.PROTECTED
+        return null
     }
 
     /**

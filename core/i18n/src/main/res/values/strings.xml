@@ -88,6 +88,10 @@
     <string name="last_copy_keep">Keep it</string>
     <string name="trash_restore_all">Restore all</string>
     <string name="trash_empty_now">Empty trash now</string>
+    <plurals name="trash_release_held_back">
+        <item quantity="one">%1$s file stayed in the trash: KeepClear couldn\'t confirm just now that its backup copy is intact. Connect the backup place and try again.</item>
+        <item quantity="other">%1$s files stayed in the trash: KeepClear couldn\'t confirm just now that their backup copies are intact. Connect the backup place and try again.</item>
+    </plurals>
     <string name="trash_release_now">Free now (a checked copy exists)</string>
     <string name="trash_verified_copy">Checked copy on %1$s</string>
     <string name="trash_restore_to">Will be restored to %1$s</string>
@@ -108,6 +112,10 @@
     <plurals name="clean_skipped">
         <item quantity="one">%1$s file changed since the scan, so we left it alone.</item>
         <item quantity="other">%1$s files changed since the scan, so we left them alone.</item>
+    </plurals>
+    <plurals name="clean_skipped_protected">
+        <item quantity="one">%1$s file is protected (chats, a backup, or something you kept), so we left it alone.</item>
+        <item quantity="other">%1$s files are protected (chats, a backup, or something you kept), so we left them alone.</item>
     </plurals>
     <string name="clean_undo">Put it all back</string>
     <string name="trim_title">Clear apps\' temporary files</string>
@@ -181,6 +189,10 @@
     <plurals name="move_check_bad">
         <item quantity="one">%1$s file is damaged or missing on the drive. It stays on the phone and will be copied again.</item>
         <item quantity="other">%1$s files are damaged or missing on the drive. They stay on the phone and will be copied again.</item>
+    </plurals>
+    <plurals name="move_check_unproven">
+        <item quantity="one">%1$s file wasn\'t checked this time: the phone may still remember it from the copy. Unplug the drive, plug it back in and check again.</item>
+        <item quantity="other">%1$s files weren\'t checked this time: the phone may still remember them from the copy. Unplug the drive, plug it back in and check again.</item>
     </plurals>
     <string name="move_check_timeout">The drive didn\'t come back. Nothing was changed. Try again when it\'s plugged in.</string>
     <string name="move_check_why">Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that.</string>

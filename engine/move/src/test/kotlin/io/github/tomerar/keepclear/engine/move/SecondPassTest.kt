@@ -32,7 +32,23 @@ class SecondPassTest {
         return "j"
     }
 
-    private fun engine(drive: FakeCapacityDrive) = MoveEngine(fake, drive, store, clock = { 5L }, bootId = { boot })
+    private val attach = AttachTracker("process-1")
+
+    private fun engine(drive: FakeCapacityDrive) = MoveEngine(
+        fake,
+        drive,
+        store,
+        clock = { 5L },
+        bootId = { boot },
+        attachGeneration = { attach.generation("USB-1") },
+    )
+
+    /** D4: unplugged and plugged back in, with both volume events seen by the app. */
+    private fun reattach(drive: FakeCapacityDrive) {
+        drive.eject()
+        attach.onState("USB-1", mounted = false)
+        attach.onState("USB-1", mounted = true)
+    }
 
     @Test
     fun `a fake-capacity stick passes the first check from cache but never frees originals`(): Unit = runBlocking {
@@ -44,7 +60,7 @@ class SecondPassTest {
         // ...but nothing may be freed before a second, uncached pass.
         engine(drive).originalsPlan(id).shouldBeEmpty()
 
-        drive.eject()
+        reattach(drive)
         val result = engine(drive).confirm(id, FreshRead.REATTACHED)
         val intact = store.files(id).filter { f ->
             Sha256.of(drive.openRead(f.relTarget)) == f.sourceSha256
@@ -67,11 +83,13 @@ class SecondPassTest {
     }
 
     @Test
-    fun `a second pass in the same boot without unplugging is refused`(): Unit = runBlocking {
+    fun `a second pass in the same boot without unplugging proves nothing`(): Unit = runBlocking {
         val drive = FakeCapacityDrive(realBytes = 1_000_000)
         val id = job(drive)
         engine(drive).run(id)
-        shouldThrow<IllegalStateException> { engine(drive).confirm(id, FreshRead.REBOOTED) }
+        val same = engine(drive).confirm(id, FreshRead.REBOOTED)
+        same.ok shouldBe 0
+        same.unproven shouldBe 6
         engine(drive).originalsPlan(id).shouldBeEmpty()
         boot = "boot-2"
         engine(drive).confirm(id, FreshRead.REBOOTED).ok shouldBe 6
@@ -100,7 +118,7 @@ class SecondPassTest {
         val drive = FakeCapacityDrive(realBytes = 1_000_000)
         val id = job(drive)
         engine(drive).run(id)
-        drive.eject()
+        reattach(drive)
         engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
         // Same size, different bytes (the drive went bad after the check).
         val victim = store.files(id).first()
@@ -111,4 +129,126 @@ class SecondPassTest {
         (victim.sourcePath in planned) shouldBe false
         planned.size shouldBe 5
     }
+
+    @Test
+    fun `the drive merely failing to open once proves nothing, only real unmount and mount events do (D4)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 25_000)
+            val id = job(drive)
+            engine(drive).run(id)
+            // The app once couldn't open the drive (a hiccup), but Android never unmounted it: the cache may still
+            // hold every copy, so nothing may be read as "fresh".
+            engine(drive).unprovenNow(id) shouldBe 6
+            val hiccup = engine(drive).confirm(id, FreshRead.REATTACHED)
+            hiccup.ok shouldBe 0
+            hiccup.unproven shouldBe 6
+            store.files(id).none { it.confirmedAt != null } shouldBe true
+            // Another drive coming back proves nothing for this one.
+            attach.onState("OTHER-9", mounted = false)
+            attach.onState("OTHER-9", mounted = true)
+            engine(drive).confirm(id, FreshRead.REATTACHED).unproven shouldBe 6
+            engine(drive).originalsPlan(id).shouldBeEmpty()
+        }
+
+    @Test
+    fun `a re-run paused mid-way can't be confirmed from the page cache (D4, per-file boot id)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            val id = job(drive)
+            // First run in boot-1 stops after three files (the job never finishes, so the job has no boot id).
+            var verified = 0
+            val partial = MoveEngine(
+                fake,
+                drive,
+                store,
+                clock = { 5L },
+                bootId = { boot },
+                onProgress = { if (it.state == MoveFileState.VERIFIED && ++verified == 3) throw StopHere() },
+            )
+            runCatching { partial.run(id) }
+            store.files(id).count { it.state == MoveFileState.VERIFIED } shouldBe 3
+            store.job(id)!!.verifyBootId shouldBe null
+            // Same boot: those three were checked in this boot and may still be in the phone's memory.
+            val same = engine(drive).confirm(id, FreshRead.REBOOTED)
+            same.ok shouldBe 0
+            same.unproven shouldBe 3
+            // The rest is copied in boot-2; a "reboot" second pass may confirm only the first three.
+            boot = "boot-2"
+            engine(drive).run(id)
+            engine(drive).unprovenNow(id) shouldBe 3
+            val result = engine(drive).confirm(id, FreshRead.REBOOTED)
+            result.ok shouldBe 3
+            result.unproven shouldBe 3
+            store.files(id).filter { it.confirmedAt != null }.map { it.verifyBootId }.toSet() shouldBe setOf("boot-1")
+        }
+
+    private class StopHere : RuntimeException()
+
+    @Test
+    fun `attach generations compare within and across processes (D4)`() {
+        val t = AttachTracker("p1")
+        t.onState("1234-ABCD", mounted = true) // first sighting: not a re-attach
+        t.generation("1234-abcd") shouldBe AttachGeneration("p1", 0)
+        t.onState("1234-abcd", mounted = false)
+        t.generation("1234-ABCD").count shouldBe 0 // away, not back yet
+        t.onState("1234-ABCD", mounted = true)
+        t.generation("1234-ABCD") shouldBe AttachGeneration("p1", 1)
+        AttachGeneration("p1", 1).reattachedSince(AttachGeneration("p1", 0)) shouldBe true
+        AttachGeneration("p1", 1).reattachedSince(AttachGeneration("p1", 1)) shouldBe false
+        // An earlier process ended before this one began: any re-attach seen now came after it.
+        AttachGeneration("p2", 1).reattachedSince(AttachGeneration("p1", 5)) shouldBe true
+        AttachGeneration("p2", 0).reattachedSince(AttachGeneration("p1", 5)) shouldBe false
+        AttachGeneration.decode(AttachGeneration("p1", 3).encode()) shouldBe AttachGeneration("p1", 3)
+        listOf(null, "", "x@p", "-1@p", "3@", "3").forEach { AttachGeneration.decode(it) shouldBe null }
+    }
+
+    /** Rows as an older version left them: verified, no per-file record; [jobBoot] = the job's own boot id. */
+    private suspend fun legacyJob(drive: FakeCapacityDrive, jobBoot: String?): String {
+        val id = job(drive)
+        engine(drive).run(id)
+        store.putJob(store.job(id)!!.copy(verifyBootId = jobBoot))
+        store.files(id).forEach { store.putFile(it.copy(verifyBootId = null, verifyAttach = null)) }
+        return id
+    }
+
+    @Test
+    fun `older verified files get a baseline, then a real unplug and plug-in proves them (PR 43 review)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            // An interrupted older job: no boot id on the job, none per file.
+            val id = legacyJob(drive, jobBoot = null)
+            val first = engine(drive).confirm(id, FreshRead.REATTACHED)
+            first.ok shouldBe 0
+            first.unproven shouldBe 6
+            // The baseline is now: this boot and the drive's current generation.
+            store.files(id).all { it.verifyBootId == boot && it.verifyAttach == "0@process-1" } shouldBe true
+            // Without a real event nothing changes.
+            drive.eject()
+            engine(drive).confirm(id, FreshRead.REATTACHED).unproven shouldBe 6
+            reattach(drive)
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+            engine(drive).originalsPlan(id).size shouldBe 6
+        }
+
+    @Test
+    fun `the app's pre-check records the baseline, so the unplug it asks for counts (PR 43 review)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            // A completed older job whose boot id is the current boot: nothing proven yet.
+            val id = legacyJob(drive, jobBoot = boot)
+            engine(drive).unprovenNow(id) shouldBe 6
+            reattach(drive)
+            engine(drive).unprovenNow(id) shouldBe 0
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+        }
+
+    @Test
+    fun `an older file's job boot id alone no longer proves a fresh read, a reboot after the baseline does`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            val id = legacyJob(drive, jobBoot = "boot-0")
+            engine(drive).confirm(id, FreshRead.REBOOTED).unproven shouldBe 6
+            boot = "boot-2"
+            engine(drive).confirm(id, FreshRead.REBOOTED).ok shouldBe 6
+        }
 }

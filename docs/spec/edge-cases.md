@@ -35,6 +35,8 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-MOVE-17 | User revokes SAF grant to target mid-job | SecurityException → PAUSED("Access to the drive was removed") → re-pick same drive (marker check). | I |
 | E-MOVE-18 | Target drive is also the source (user picks SD card that holds DCIM) | Pre-flight refuses: "This drive is where the photos are now." Volumes come from the target tree and the source paths (the app used to pass an empty set; review H3). Internal-storage roots (`primary:`, `home:`, Downloads, Media providers) are "on this phone". The backup folder is PROTECTED at the choke point. | U |
 | E-MOVE-19 | Two MOVE jobs at once | Only one active job; second is queued. | U |
+| E-DEL-22 | One path backed up twice with different contents; the newer copy is damaged, the older intact | "Release now" for the newer trash entry is refused: the check matches the trash entry's path, size and SHA-256 (PR #43 review, C57). | U |
+| E-MOVE-21 | Files verified before per-file proof existed (database ≤ 6) | The first check request records a baseline (boot + drive generation); a later restart or real unplug/plug-in proves them (PR #43 review, C54). | U |
 | E-MOVE-20 | Very many small files (10k JPEG) | Single sequential stream; manifest appended in batches of 500; progress by bytes and files. Benchmark target in NFR-3. | U (perf), D |
 | E-MOVE-21 | Live Photos / motion photos / burst groups / RAW+JPEG pairs | Move all parts of a group together (same base name + known sidecars `.xmp`, `.dng`, `MVIMG_`/`PXL_*.MP` embedded). A group is deletable only if all parts verified. | U |
 | E-MOVE-22 | The phone's clock is wrong / timezone change | Year/month buckets use `DATE_TAKEN` then EXIF then mtime; receipt shows the bucket source. | U |
@@ -51,7 +53,7 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-DEL-6 | Restore target path is occupied (user saved a new file with same name) | Restore as `name (restored).ext`; tell the user. | U |
 | E-DEL-16 | The file in the trash was swapped or changed (size or SHA-256 differs from the record; without a recorded SHA-256, size or modification time, owner review D6) | Never restored in place. The Trash shows it as "changed since it was deleted"; after an explicit confirm it can be restored into `KeepClear/Restored-changed/`, never over another file (owner decision 1.2, T1.6). | U |
 | E-DEL-17 | A folder inside the trash is a symlink, or a user folder elsewhere is named `.KeepClearTrash` | Purge only inside `<volume root>/.KeepClearTrash` with every folder on the way a real folder; otherwise refused. | U (real FS) |
-| E-DEL-18 | A duplicate's other copy was deleted between scan and Clean | Executor re-stats the witness and skips the item ("its other copy is gone"). | U |
+| E-DEL-18 | A duplicate's other copy was deleted or changed between scan and Clean | Executor re-stats the witness (size, modification time and, when recorded, SHA-256; owner review D6) and skips the item ("its other copy is gone"). | U |
 | E-DEL-19 | The original is deleted (e.g. from Review) after its duplicate was already cleaned into the trash | The trash entry records its witnesses; before trashing a file that is a witness of an active entry with the same size + SHA-256, the executor skips it as LAST_COPY and the app asks "This is the last copy" (owner decision 1.3). Different sizes (archive vs. extracted file) are blocked too (conservative). | U |
 | E-DEL-7 | Restore target folder no longer exists | Recreate folder (if allowed) else restore to `Download/KeepClear Restored/`. | U |
 | E-DEL-8 | Trash index (Room) lost (app data cleared / reinstall) | On start, `TrashManager.recover()` scans `.KeepClearTrash/*/*.json` sidecars and MediaStore `IS_TRASHED` items owned by us, rebuilds index. | U, I |
@@ -67,6 +69,11 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 
 | ID | Trigger | Behaviour | Test |
 |---|---|---|---|
+| E-STO-6 | A backup drive (or a folder holding KeepClear's backup marker) is mounted while scanning | Never scanned: the whole volume of every known backup folder is left out of the walk and of MediaStore rows, and any folder holding `.keepclear-target` is skipped; the classifier protects the same backup folders as the executor (owner review D5, C55). | U |
+| E-STO-7 | A plan reaches the executor with a PROTECTED item (kept by the user meanwhile, a backup folder) | That item is skipped with reason PROTECTED and counted in the result; the rest runs (owner review D5, C50). | U |
+| E-DEL-20 | The trash index (Room) throws, e.g. `SQLiteFullException`, during clean, restore or purge | Reported as failed, the rest of that run is skipped, never a crash; the next start recovers the trash; no-loss invariant holds (owner review D6, C53). | U (property) |
+| E-DEL-21 | "Release now" while the backup copy is gone, changed or unreachable | The copy is re-checked right before (size + SHA-256 read back); the original stays in the trash and the Trash says how many stayed (owner review D6, C52). | U |
+| E-MOVE-20 | "Check backup" after the drive only failed to open once, or after a re-run paused mid-way in the same boot | No proof → those files are not read and stay unconfirmed; only a first check in an earlier boot or a real unmount → mount of the same volume UUID counts (owner review D4, C54). | U |
 | E-STO-1 | SD card removed during scan | Items on that volume disappear from results with a banner "SD card removed"; no errors for other volumes. | U |
 | E-STO-2 | SD card removed while its trash has items | Entries marked "on removed SD card"; purge skips them; reappear when re-inserted (volume UUID). | U |
 | E-STO-3 | Huge folders (100k+ entries, e.g. `.thumbnails`, WhatsApp Statuses) | Streaming list, paged insert, no full in-memory list; UI shows aggregate rows, not 100k cells. | U (perf) |

@@ -5,5 +5,6 @@ plugins {
 
 dependencies {
     api(project(":core:storage-api"))
+    implementation(project(":core:safety"))
     testImplementation(project(":testing:fixtures"))
 }

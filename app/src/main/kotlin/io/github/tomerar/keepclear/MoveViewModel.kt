@@ -559,15 +559,22 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun engine(target: io.github.tomerar.keepclear.backup.BackupTarget) =
-        MoveEngine(app.localGateway, target, controller.store, bootId = { app.trashClock.bootId() })
+    private fun engine(target: io.github.tomerar.keepclear.backup.BackupTarget) = MoveEngine(
+        app.localGateway,
+        target,
+        controller.store,
+        bootId = { app.trashClock.bootId() },
+        attachGeneration = { app.volumeEvents.generation(target.volumeId) },
+    )
 
     private var checkJob: kotlinx.coroutines.Job? = null
 
     /**
-     * MOVE-15 / H1 "Check backup": re-reads every verified copy in a way the phone's memory can't answer. After a
-     * restart since the backup, it reads right away; otherwise it asks to unplug the drive and plug it back in,
-     * and watches both happen before reading. Nothing is freed here; the user still decides (principle 3).
+     * MOVE-15 / H1 "Check backup": re-reads every verified copy in a way the phone's memory can't answer. When every
+     * copy still to confirm was first checked before a restart, it reads right away; otherwise it asks to unplug
+     * the drive and plug it back in, and watches both happen before reading. D4: the engine itself checks the
+     * proof per file (boot id, and the drive's real unmount → mount events in [VolumeEvents]); files without it
+     * stay unconfirmed and the result says so. Nothing is freed here; the user still decides (principle 3).
      */
     fun checkBackup(jobId: String) {
         checkJob?.cancel()
@@ -587,7 +594,22 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
             // Polling only asks whether the drive is there; each probe is released at once.
             suspend fun present(): Boolean = attached()?.useTarget { true } ?: false
-            val rebooted = job.verifyBootId != null && job.verifyBootId != app.trashClock.bootId()
+
+            // D4: the drive's volume, from the job's own reference (never from what a probe reports).
+            val volume = runCatching {
+                val uri = ref.toUri()
+                SafTargets.volumeId(uri.authority, DocumentsContract.getTreeDocumentId(uri))
+            }.getOrNull()
+
+            fun proofEngine() = MoveEngine(
+                app.localGateway,
+                NoTarget,
+                store,
+                bootId = { app.trashClock.bootId() },
+                attachGeneration = { app.volumeEvents.generation(volume) },
+            )
+            val rebooted = !OpenedTarget.isNetwork(ref) &&
+                withContext(Dispatchers.IO) { proofEngine().unprovenNow(jobId) } == 0
             val evidence = if (OpenedTarget.isNetwork(ref)) {
                 // M15: a network drive's reads all come from the server; a new connection is a fresh read, so
                 // there is nothing to unplug (decided conservatively: progress.md C8).
@@ -606,6 +628,13 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                     while (!present()) kotlinx.coroutines.delay(POLL_MILLIS)
                     true
                 } ?: return@launch timeout(jobId)
+                // D4: Android reports the mount a moment after the files are reachable; wait briefly for it. Without
+                // it the engine proves nothing and the result says how many files still need a check.
+                kotlinx.coroutines.withTimeoutOrNull(MOUNT_EVENT_WAIT_MILLIS) {
+                    while (withContext(Dispatchers.IO) { proofEngine().unprovenNow(jobId) } > 0) {
+                        kotlinx.coroutines.delay(POLL_MILLIS / 4)
+                    }
+                }
                 FreshRead.REATTACHED
             }
             val target = attached() ?: return@launch timeout(jobId)
@@ -669,6 +698,32 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
 private const val CHECK_WAIT_MILLIS = 5 * 60_000L
 private const val POLL_MILLIS = 1_000L
+private const val MOUNT_EVENT_WAIT_MILLIS = 15_000L
+
+/** D4: [MoveEngine.unprovenNow] only reads the job store; it never touches a target. */
+private object NoTarget : io.github.tomerar.keepclear.backup.BackupTarget {
+    override val id = "none"
+    override val label = ""
+    override val caps = io.github.tomerar.keepclear.backup.TargetCaps(canReadBack = false)
+
+    private fun no(): Nothing = throw UnsupportedOperationException("no target")
+
+    override suspend fun freeBytes(): Long? = no()
+
+    override suspend fun mkdirs(rel: String) = no()
+
+    override suspend fun create(rel: String): java.io.OutputStream = no()
+
+    override suspend fun rename(fromRel: String, toRel: String) = no()
+
+    override suspend fun stat(rel: String): io.github.tomerar.keepclear.core.storage.Stat? = no()
+
+    override suspend fun openRead(rel: String): java.io.InputStream = no()
+
+    override suspend fun delete(rel: String) = no()
+
+    override suspend fun list(relDir: String): List<io.github.tomerar.keepclear.core.storage.Stat> = no()
+}
 
 /** Folder per source on the drive (MOVE-7). Names are English on the drive so a PC shows the same folders. */
 object MoveSources {

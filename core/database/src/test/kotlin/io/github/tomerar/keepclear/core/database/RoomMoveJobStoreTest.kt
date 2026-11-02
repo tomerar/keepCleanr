@@ -98,6 +98,10 @@ class RoomMoveJobStoreTest {
         store.files("j1").first().verifiedBy shouldBe VerifyMethod.SERVER_DIGEST
         db.openHelper.writableDatabase.execSQL("UPDATE move_file SET verifiedBy = 'FROM_THE_FUTURE'")
         store.files("j1").first().verifiedBy shouldBe null
+        // D4: where the first check ran round-trips per file.
+        store.putFile(file.copy(verifyBootId = "boot-9", verifyAttach = "2@p1"))
+        store.files("j1").first().verifyBootId shouldBe "boot-9"
+        store.files("j1").first().verifyAttach shouldBe "2@p1"
     }
 
     @Test

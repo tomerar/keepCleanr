@@ -175,6 +175,8 @@ class MoveService : Service() {
             },
             cancelReason = { stopReason },
             bootId = { app.trashClock.bootId() },
+            // D4: each file's first check records the drive's mount generation.
+            attachGeneration = { app.volumeEvents.generation(check.target.volumeId) },
         )
         // The target (a network drive's connection) is released when the job ends, fails or is cancelled.
         val end = check.target.useTarget {

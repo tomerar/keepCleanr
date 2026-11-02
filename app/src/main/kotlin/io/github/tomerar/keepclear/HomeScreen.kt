@@ -327,13 +327,14 @@ fun MeasuredBanner(m: Measured) {
 /** SAFE on Home: the one filled button (review PR C). */
 @Composable
 private fun SafeCard(summary: ClassificationSummary, enabled: Boolean, onOpen: () -> Unit) {
-    val total = summary.total(Category.SAFE)
+    // D5: Home counts only the phone's own storage, next to its free space.
+    val total = summary.phoneTotal(Category.SAFE)
     Card(modifier = Modifier.fillMaxWidth().testTag("total_SAFE")) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(categoryTitle(Category.SAFE), style = MaterialTheme.typography.titleMedium)
             Text(totalText(total), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.home_total_safe_body), style = MaterialTheme.typography.bodyMedium)
-            if (total.files > 0) {
+            if (summary.total(Category.SAFE).files > 0) {
                 Button(
                     onClick = onOpen,
                     enabled = enabled,
@@ -504,7 +505,7 @@ private fun TotalCard(category: Category, summary: ClassificationSummary, body: 
     Card(modifier = Modifier.fillMaxWidth().testTag("total_$category")) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(categoryTitle(category), style = MaterialTheme.typography.titleMedium)
-            Text(totalText(summary.total(category)), style = MaterialTheme.typography.headlineSmall)
+            Text(totalText(summary.phoneTotal(category)), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(onClick = { onOpen(category) }, modifier = Modifier.testTag("open_$category")) {
                 Text(stringResource(R.string.action_look))

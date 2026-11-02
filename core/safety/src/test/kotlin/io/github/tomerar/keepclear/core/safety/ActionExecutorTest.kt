@@ -198,9 +198,71 @@ class ActionExecutorTest {
         val ex = ActionExecutor(sneaky, SafetyGuard(protectedPaths), protectedPaths, handler, SESSION)
         val db = "$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14"
         fake.addFile(db, size = 5)
-        ex.run(plan(fake.op(db))).shouldBeInstanceOf<ExecutionReport.Rejected>()
+        ran(ex.run(plan(fake.op(db)))).skipped.single().reason shouldBe SkipReason.PROTECTED
         handler.performed.shouldBeEmpty()
     }
+
+    @Test
+    fun `a protected item is skipped with a reason, the rest of the plan still runs (D5)`(): Unit = runBlocking {
+        val db = "$ROOT/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14"
+        val chats = "$ROOT/Android/media/com.whatsapp/WhatsApp"
+        fake.addFile(db, size = 5)
+        val report = ran(executor().run(plan(fake.op(a), fake.op(db), fake.op(chats), fake.op(b))))
+        report.done.map { it.op.displayPath } shouldBe listOf(a, b)
+        report.skipped.map { it.op.displayPath to it.reason } shouldBe
+            listOf(db to SkipReason.PROTECTED, chats to SkipReason.PROTECTED)
+        handler.performed.map { it.displayPath } shouldBe listOf(a, b)
+        fake.exists(db) shouldBe true
+    }
+
+    @Test
+    fun `a non-storage error (database full) is reported, never thrown, and stops the run (D6)`(): Unit =
+        runBlocking {
+            val full = object : ActionHandler {
+                override suspend fun perform(op: PlannedOp, gateway: StorageGateway) =
+                    throw IllegalStateException("database or disk is full (code 13 SQLITE_FULL)")
+            }
+            val report = ran(executor(h = full).run(plan(fake.op(a), fake.op(b))))
+            report.failed.single().op.displayPath shouldBe a
+            (report.failed.single().error.cause is IllegalStateException) shouldBe true
+            report.skipped.single().reason shouldBe SkipReason.STOPPED
+            fake.exists(a) shouldBe true
+            fake.exists(b) shouldBe true
+        }
+
+    @Test
+    fun `an error in the handler's own check (veto) is reported, never thrown (D6)`(): Unit = runBlocking {
+        val broken = object : ActionHandler {
+            override suspend fun perform(op: PlannedOp, gateway: StorageGateway) = handler.perform(op, gateway)
+
+            override suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? =
+                throw RuntimeException("Room: cannot open database")
+        }
+        val report = ran(executor(h = broken).run(plan(fake.op(a))))
+        report.failed.single().op.displayPath shouldBe a
+        handler.performed.shouldBeEmpty()
+    }
+
+    @Test
+    fun `a witness with a new date, or new content of the same size and date, is gone (D6)`(): Unit =
+        runBlocking {
+            val shaB = fake.openRead(KPath.Local(b)).use { Sha256.of(it) }
+            val witness = Witness(KPath.Local(b), b, size = 2000, mtime = 20, sha256 = shaB)
+            ran(executor(dryRun = true).run(plan(fake.op(a).copy(witnesses = listOf(witness))))).results.single()
+                .shouldBeInstanceOf<OpResult.Simulated>()
+
+            // Same size, new date: the copy that stays was edited.
+            fake.setMtime(b, 21)
+            val dated = ran(executor().run(plan(fake.op(a).copy(witnesses = listOf(witness)))))
+            (dated.results.single() as OpResult.Skipped).reason shouldBe SkipReason.WITNESS_GONE
+
+            // Same size, same date, other bytes: only the recorded SHA-256 catches it.
+            fake.modify(b, FakeStorageGateway.Content.Virtual(4242, 2000), mtime = 20)
+            val swapped = ran(executor().run(plan(fake.op(a).copy(witnesses = listOf(witness)))))
+            (swapped.results.single() as OpResult.Skipped).reason shouldBe SkipReason.WITNESS_GONE
+            handler.performed.shouldBeEmpty()
+            fake.exists(a) shouldBe true
+        }
 
     @Test
     fun `a duplicate whose witness vanished or changed is skipped (H2, SAFETY-8)`(): Unit = runBlocking {

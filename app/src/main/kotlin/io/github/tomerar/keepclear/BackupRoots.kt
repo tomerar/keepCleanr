@@ -18,6 +18,21 @@ object BackupRoots {
         SafTargets.localPath(uri.authority, docId)
     }.distinct()
 
+    /**
+     * D5: what a scan must never walk: every known backup folder and the whole drive it is on (a backup drive is
+     * not the phone's storage, and its copies must never be offered for cleaning). Only card/USB volumes have a
+     * local backup path, so the phone's own storage is never excluded here.
+     */
+    fun scanExclusions(backupRoots: List<String>): List<String> = backupRoots.flatMap { root ->
+        val segments = root.split('/').filter { it.isNotEmpty() }
+        val volume = if (segments.size >= 2 && segments[0] == "storage" && segments[1] != "emulated") {
+            "/storage/${segments[1]}"
+        } else {
+            null
+        }
+        listOfNotNull(root, volume)
+    }.distinct()
+
     fun protectedPaths(
         jobs: List<MoveJob>,
         ownPackage: String = "io.github.tomerar.keepclear",

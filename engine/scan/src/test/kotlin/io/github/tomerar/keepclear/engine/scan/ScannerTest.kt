@@ -170,6 +170,38 @@ class ScannerTest {
         items.map { it.source }.toSet() shouldBe setOf(Source.MEDIA_STORE)
         items.single { it.mediaId == 2L }.isTrashed shouldBe true
     }
+
+    @Test
+    fun `backup drives, backup folders and anything with the backup marker are never scanned (D5)`(): Unit =
+        runBlocking {
+            val usb = "/storage/1234-ABCD"
+            val stick = "/storage/5678-EF01"
+            val fake = FakeStorageGateway(volumeRoots = listOf(OwnerDevice.ROOT, usb, stick))
+            fake.addFile("${OwnerDevice.ROOT}/DCIM/Camera/a.jpg", size = 10)
+            val backedUp = "$usb/Backups/KeepClear/Phone/Camera/2021/01/a.jpg"
+            fake.addFile(backedUp, size = 10)
+            fake.addFile("$usb/DCIM/other.jpg", size = 10)
+            // A backup place KeepClear doesn't know about (another install), recognised by its marker.
+            fake.addFile("$stick/Old backup/.keepclear-target", size = 32)
+            fake.addFile("$stick/Old backup/KeepClear/Phone/Camera/b.jpg", size = 10)
+            fake.addFile("$stick/Music/song.mp3", size = 10)
+            // MediaStore indexes the backup drive's photos too.
+            val rows = listOf(
+                MediaRow(1, "1234-abcd", backedUp, 10, 1, null, false, false, 1),
+                MediaRow(2, "1234-abcd", "$usb/DCIM/other.jpg", 10, 1, null, false, false, 2),
+            )
+            val scanner = Scanner(
+                fake,
+                MediaSource { rows },
+                excluded = listOf(usb),
+                skipFoldersWith = ".keepclear-target",
+            )
+            scanner.items(KPath.Local(OwnerDevice.ROOT), KPath.Local(usb), KPath.Local(stick)).map { it.path }
+                .toSet() shouldBe setOf("${OwnerDevice.ROOT}/DCIM/Camera/a.jpg", "$stick/Music/song.mp3")
+            // Only the phone in MediaStore-only mode: the excluded drive's rows are dropped as well.
+            Scanner(fake, MediaSource { rows }, excluded = listOf("$usb/backups")).items().map { it.path } shouldBe
+                listOf("$usb/DCIM/other.jpg")
+        }
 }
 
 class ScanDiffTest {

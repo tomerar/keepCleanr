@@ -158,7 +158,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanJob: Job? = null
 
     /** CLS-7: the user's kept and always-junk choices apply to every classification. */
-    private fun classifier(): Classifier = homeClassifier(app)
+    private suspend fun classifier(): Classifier = homeClassifier(app)
 
     /** The last scan's items, so a choice can be applied without scanning again. */
     private var lastItems: List<ScanItem> = emptyList()
@@ -244,10 +244,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         val s = _state.value
         // M12b: without All files access, granted folders (WhatsApp's) are walked at their real paths.
-        val roots = ScanRoots.of(s.allFiles == true, app.volumeRoots(), s.cloned.readable, s.grantedFolders)
-        val scanner = Scanner(app.localGateway, app.mediaSource)
         val persist = s.spaceMode.persistScanResults
         scanJob = viewModelScope.launch {
+            // D5: never the backup drives or KeepClear's backup folders.
+            val excluded = backupScanExclusions(app)
+            val roots =
+                ScanRoots.of(s.allFiles == true, app.volumeRoots(), s.cloned.readable, s.grantedFolders, excluded)
+            val scanner = backupAwareScanner(app, excluded)
             _state.update { it.copy(scan = ScanState.Running(0, 0)) }
             // LOW-3/LOW-4: a database write failure (e.g. disk full) never crashes the scan; it continues in
             // memory and the result is shown as incomplete.
@@ -313,7 +316,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (!classifyRuns.isLatest(run)) return
         evidence = ev
         // SET-3: the reminder can say how much is ready to clean without scanning in the background.
-        runCatching { app.reminderPrefs.lastJunkBytes = summary.total(Category.SAFE).bytes }
+        runCatching { app.reminderPrefs.lastJunkBytes = summary.phoneTotal(Category.SAFE).bytes }
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
         _state.update { it.copy(summary = summary, trash = it.trash.copy(android = androidTrash)) }
@@ -324,30 +327,50 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Loads the trash; on the first call per process also recovers it (E-DEL-8/9). */
     fun loadTrash() {
         viewModelScope.launch {
-            val manager = app.trashManager
-            if (!trashRecovered) {
-                manager.recover()
-                if (!app.testMode.isOn) manager.purgeExpired()
-                trashRecovered = true
+            // D6: a full disk makes Room throw (SQLiteFullException). The Trash then keeps what it showed; never a crash.
+            try {
+                loadTrashNow()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "trash not loaded: ${e.javaClass.simpleName}")
             }
-            val entries = manager.entries().sortedByDescending { it.deletedAt }
-            val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
-                dest != entries.first { it.id == id }.originalPath
-            }
-            // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
-            val confirmed = app.moveController.store.let { store ->
-                store.jobs().flatMap { store.files(it.id) }
-                    .filter { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED }
-                    .filter { it.confirmedAt != null }
-                    .map { it.sourcePath }
-                    .toSet()
-            }
-            val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
-            // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
-            val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
-            _state.update {
-                it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed, android = it.trash.android))
-            }
+        }
+    }
+
+    private suspend fun loadTrashNow() {
+        val manager = app.trashManager
+        if (!trashRecovered) {
+            manager.recover()
+            if (!app.testMode.isOn) manager.purgeExpired()
+            trashRecovered = true
+        }
+        val entries = manager.entries().sortedByDescending { it.deletedAt }
+        val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
+            dest != entries.first { it.id == id }.originalPath
+        }
+        // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
+        val confirmed = app.moveController.store.let { store ->
+            store.jobs().flatMap { store.files(it.id) }
+                .filter { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED }
+                .filter { it.confirmedAt != null }
+                .map { it.sourcePath }
+                .toSet()
+        }
+        val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
+        // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
+        val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
+        _state.update {
+            it.copy(
+                trash = TrashUi(
+                    entries,
+                    destinations,
+                    releasable.toSet(),
+                    changed,
+                    android = it.trash.android,
+                    releaseHeldBack = it.trash.releaseHeldBack,
+                ),
+            )
         }
     }
 
@@ -415,6 +438,46 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun purge(entries: List<TrashEntry>, confirmation: Confirmation) = runTrashPlan(entries, OpKind.PURGE, confirmation)
 
+    /**
+     * D6: "Release now/all". Right before the permanent delete, every backup copy is re-checked on its backup place
+     * (size and SHA-256 read back now, C52). Only originals whose copy is intact are purged; the others stay in the
+     * trash and the Trash says how many.
+     */
+    fun release(entries: List<TrashEntry>, confirmation: Confirmation) {
+        if (entries.isEmpty() || _state.value.busy) return
+        _state.update { it.copy(busy = true, trash = it.trash.copy(releaseHeldBack = 0)) }
+        viewModelScope.launch {
+            val intact = try {
+                withContext(Dispatchers.IO) { intactCopies(entries.filter { it.verifiedCopy != null }) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "release check failed: ${e.javaClass.simpleName}")
+                emptySet()
+            }
+            // PR #43 review: the check is keyed by the trashed content itself; no recorded SHA-256 → not released.
+            val (go, keep) = entries.partition { e -> releaseKey(e)?.let { it in intact } == true }
+            _state.update { it.copy(busy = false, trash = it.trash.copy(releaseHeldBack = keep.size)) }
+            if (go.isNotEmpty()) runTrashPlan(go, OpKind.PURGE, confirmation)
+        }
+    }
+
+    private fun releaseKey(e: TrashEntry) = e.sha256?.takeIf { e.verifiedCopy != null }?.let {
+        io.github.tomerar.keepclear.engine.move.ReleaseKey(e.originalPath, e.size, it)
+    }
+
+    private suspend fun intactCopies(
+        entries: List<TrashEntry>,
+    ): Set<io.github.tomerar.keepclear.engine.move.ReleaseKey> {
+        if (entries.isEmpty()) return emptySet()
+        val store = app.moveController.store
+        val check = io.github.tomerar.keepclear.engine.move.ReleaseCheck(store, store.jobs()) { job ->
+            val ref = job.targetRef ?: return@ReleaseCheck null
+            (app.openTargetRef(ref, job.targetLabel) as? OpenedTarget.Ok)?.target
+        }
+        return check.intact(entries.mapNotNull { releaseKey(it) })
+    }
+
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind, confirmation: Confirmation) {
         if (entries.isEmpty()) {
             loadTrash()
@@ -425,8 +488,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             val before = freeNow()
-            // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6).
-            app.trashManager.forgetMissing(entries)
+            // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6). A database
+            // error here (D6, disk full) only means they stay listed; the executor re-checks each one anyway.
+            try {
+                app.trashManager.forgetMissing(entries)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "missing entries not dropped: ${e.javaClass.simpleName}")
+            }
             val ops = entries.mapNotNull { e ->
                 val stat = app.localGateway.stat(KPath.Local(e.trashedPath)) ?: return@mapNotNull null
                 PlannedOp(
@@ -480,6 +550,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             var done = emptyList<PlannedOp>()
             var simulated = false
             var skipped = unsupported.size
+            var protectedSkipped = 0
             var failed = 0
             if (ops.isNotEmpty()) {
                 val plan = unconfirmed.confirm(confirmation, app.sessionId)
@@ -499,7 +570,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             lastCopyGroupSizes = plan.duplicateGroupSizes
                             _state.update { it.copy(lastCopy = lastCopies) }
                         }
-                        skipped += report.skipped.size - lastCopies.size
+                        // D5: a PROTECTED item is left alone with its own reason; the rest of the plan ran.
+                        protectedSkipped = report.skipped.count {
+                            it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.PROTECTED
+                        }
+                        skipped += report.skipped.size - lastCopies.size - protectedSkipped
                         failed = report.failed.size
                     }
 
@@ -516,6 +591,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         failed = failed,
                         // Nothing to undo in test mode: nothing was moved.
                         trashedPaths = if (simulated) emptyList() else done.map { op -> op.displayPath },
+                        protectedSkipped = protectedSkipped,
                         simulated = simulated,
                         origin = origin,
                     ),
@@ -669,17 +745,48 @@ object ScanRoots {
      * With All files access: every mounted volume plus readable cloned-app storage (MSG-3, same rules). Without it
      * (M12b): granted folders (WhatsApp's) at their real paths; MediaStore adds the rest.
      */
-    fun of(allFiles: Boolean, volumes: List<String>, clonedReadable: List<String>, granted: List<String>) =
-        if (allFiles) {
-            (volumes + clonedReadable).distinct().map { KPath.Local(it) }
-        } else {
-            granted.map { KPath.Local(it) }
-        }
+    fun of(
+        allFiles: Boolean,
+        volumes: List<String>,
+        clonedReadable: List<String>,
+        granted: List<String>,
+        /** D5: backup drives and folders ([BackupRoots.scanExclusions]); a volume among them is not walked. */
+        excluded: List<String> = emptyList(),
+    ): List<KPath.Local> {
+        val roots = if (allFiles) (volumes + clonedReadable).distinct() else granted
+        val out = excluded.map { it.lowercase(java.util.Locale.ROOT) }
+        return roots.filterNot { root ->
+            val r = root.lowercase(java.util.Locale.ROOT)
+            out.any { r == it || r.startsWith("$it/") }
+        }.map { KPath.Local(it) }
+    }
 }
 
-/** CLS-7: Home's classifier, with the user's kept and always-junk choices (shared with the device check). */
-fun homeClassifier(app: KeepClearApplication): Classifier = app.userChoices.state.value.let {
-    Classifier(protectedPaths = app.protectedPaths, keptByUser = it.kept, junkFolders = it.junk)
+/** D5: every known backup folder and the drive it is on; read from the MOVE jobs (off the main thread). */
+suspend fun backupScanExclusions(app: KeepClearApplication): List<String> =
+    BackupRoots.scanExclusions(BackupRoots.of(withContext(Dispatchers.IO) { app.moveController.store.jobs() }))
+
+/** D5: a scanner that skips [excluded] and any folder holding a backup place's marker file. */
+fun backupAwareScanner(app: KeepClearApplication, excluded: List<String>) = Scanner(
+    app.localGateway,
+    app.mediaSource,
+    excluded = excluded,
+    skipFoldersWith = io.github.tomerar.keepclear.backup.saf.SafTargets.MARKER,
+)
+
+/**
+ * CLS-7: Home's classifier, with the user's kept and always-junk choices (shared with the device check). D5: it
+ * protects the same backup folders as the executor ([KeepClearApplication.executor]), so a backup copy is never
+ * offered for anything even if a scan reached it.
+ */
+suspend fun homeClassifier(app: KeepClearApplication): Classifier {
+    val jobs = withContext(Dispatchers.IO) { app.moveController.store.jobs() }
+    val choices = app.userChoices.state.value
+    return Classifier(
+        protectedPaths = BackupRoots.protectedPaths(jobs, app.packageName),
+        keptByUser = choices.kept,
+        junkFolders = choices.junk,
+    )
 }
 
 /** Home's classification of one scan run: second-pass facts (twins, extracted archives; M7), then the rules. */

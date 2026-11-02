@@ -9,10 +9,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
-import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.safety.SafetyGuard
+import io.github.tomerar.keepclear.core.safety.SkipReason
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.Classifier
 import io.github.tomerar.keepclear.engine.scan.ScanItem
@@ -38,10 +38,14 @@ class UserChoicesTest {
     )
 
     @Test
-    fun `always-junk is only for folders two levels deep, outside memories and app data (C12)`() {
-        listOf("$root/Download/Memes", "$root/Telegram/Telegram Images", "/storage/1234-ABCD/Old/Junk")
+    fun `always-junk is only for folders two levels deep, outside memories, app data and chats (C12, D6)`() {
+        listOf("$root/Download/Memes", "/storage/1234-ABCD/Old/Junk")
             .forEach { assertTrue(it, UserChoices.canBeJunk(it)) }
         listOf(
+            // D6: messenger folders under any user id.
+            "$root/Telegram/Telegram Images",
+            "/storage/emulated/999/WhatsApp/Media",
+            "$root/WhatsApp Business/Media",
             "$root/Download",
             "$root/DCIM/Camera",
             "$root/Pictures/Screenshots",
@@ -66,8 +70,8 @@ class UserChoicesTest {
         val path = "$root/Download/Tax/2023.zip"
         val protected = BackupRoots.protectedPaths(emptyList(), kept = listOf("$root/Download/Tax"))
         val op = PlannedOp(KPath.Local(path), path, OpKind.TRASH, false, 1, 1)
-        val verdict = SafetyGuard(protected).check(ActionPlan("p", listOf(op), "t").confirm(1, "s"), "s")
-        assertTrue(verdict is SafetyGuard.Verdict.Rejected)
+        // D5: refused per item at the choke point (the executor skips it as PROTECTED).
+        assertEquals(SkipReason.PROTECTED, SafetyGuard(protected).skipReason(op))
     }
 
     @Test

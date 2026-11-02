@@ -48,6 +48,8 @@ data class CleanResult(
     val skipped: Int,
     val failed: Int,
     val trashedPaths: List<String>,
+    /** D5: items the choke point refused because they are PROTECTED; the rest of the plan ran. */
+    val protectedSkipped: Int = 0,
     /** Test mode (SAFETY-9): nothing was changed; [done] is what would have been freed. */
     val simulated: Boolean = false,
     /** The screen the action was started from; the result (and its Undo) shows only there (review PR C). */
@@ -133,6 +135,12 @@ fun SafeScreen(
                                 )
                             }
                             if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
+                            if (r.protectedSkipped > 0) {
+                                Text(
+                                    countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped),
+                                    Modifier.testTag("protectedSkipped"),
+                                )
+                            }
                             if (!r.simulated && !r.androidTrash && !r.declined) {
                                 UndoRow(onUndo = {
                                     onUndo(r, userConfirmed(r.trashedPaths))

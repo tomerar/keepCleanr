@@ -53,6 +53,8 @@ data class TrashUi(
     val changed: Set<String> = emptySet(),
     /** M12: photos and videos in Android's own trash (any app's "Recently deleted"). */
     val android: List<io.github.tomerar.keepclear.engine.scan.ScanItem> = emptyList(),
+    /** D6: items the last "Release" kept, because their backup copy couldn't be found intact right then. */
+    val releaseHeldBack: Int = 0,
 ) {
     val bytes: Long get() = entries.sumOf { it.size }
 }
@@ -184,6 +186,8 @@ fun TrashScreen(
         Boolean,
         Confirmation,
     ) -> Unit = { _, _, _ -> },
+    /** D6: "Release now/all"; the backup copies are re-checked first. Defaults to a plain purge. */
+    onRelease: (List<TrashEntry>, Confirmation) -> Unit = onPurge,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -211,6 +215,12 @@ fun TrashScreen(
                     Text(stringResource(R.string.trash_title), style = MaterialTheme.typography.titleLarge)
                 }
                 measured?.let { MeasuredBanner(it) }
+                if (trash.releaseHeldBack > 0) {
+                    Text(
+                        countSentence(R.plurals.trash_release_held_back, trash.releaseHeldBack),
+                        modifier = Modifier.testTag("releaseHeldBack"),
+                    )
+                }
                 if (trash.entries.isEmpty() && trash.android.isEmpty()) {
                     Text(stringResource(R.string.trash_empty_state), modifier = Modifier.testTag("trashEmpty"))
                 } else {
@@ -421,7 +431,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_confirm_release_yes),
                         onClick = {
                             pending = null
-                            onPurge(listOf(p.entry), trashConfirmed(listOf(p.entry)))
+                            onRelease(listOf(p.entry), trashConfirmed(listOf(p.entry)))
                         },
                         modifier = Modifier.testTag("confirmPurge"),
                     )
@@ -506,7 +516,7 @@ fun TrashScreen(
                         stringResource(R.string.trash_confirm_release_yes),
                         onClick = {
                             pending = null
-                            onPurge(p.entries, trashConfirmed(p.entries))
+                            onRelease(p.entries, trashConfirmed(p.entries))
                         },
                         modifier = Modifier.testTag("confirmReleaseAll"),
                     )

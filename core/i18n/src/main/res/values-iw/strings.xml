@@ -87,6 +87,11 @@
     <string name="trash_restore">לשחזר</string>
     <string name="trash_restore_all">לשחזר הכול</string>
     <string name="trash_empty_now">לרוקן את סל המחזור</string>
+    <plurals name="trash_release_held_back">
+        <item quantity="one">קובץ אחד נשאר בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותק שלו בגיבוי שלם. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
+        <item quantity="two">שני קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
+        <item quantity="other">%1$s קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
+    </plurals>
     <string name="trash_release_now">לפנות עכשיו (יש עותק שנבדק)</string>
     <string name="trash_verified_copy">עותק שנבדק נמצא ב-%1$s</string>
     <string name="trash_restore_to">ישוחזר אל %1$s</string>
@@ -108,6 +113,11 @@
         <item quantity="one">קובץ אחד השתנה מאז הסריקה, ולכן לא נגענו בו.</item>
         <item quantity="two">שני קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם.</item>
         <item quantity="other">%1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם.</item>
+    </plurals>
+    <plurals name="clean_skipped_protected">
+        <item quantity="one">קובץ אחד מוגן (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בו.</item>
+        <item quantity="two">שני קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
+        <item quantity="other">%1$s קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
     </plurals>
     <string name="clean_undo">להחזיר הכול</string>
     <string name="trim_title">לנקות קבצים זמניים של אפליקציות</string>
@@ -186,6 +196,11 @@
         <item quantity="one">קובץ אחד פגום או חסר בכונן. הוא יישאר בטלפון ויועתק שוב.</item>
         <item quantity="two">שני קבצים פגומים או חסרים בכונן. הם יישארו בטלפון ויועתקו שוב.</item>
         <item quantity="other">%1$s קבצים פגומים או חסרים בכונן. הם יישארו בטלפון ויועתקו שוב.</item>
+    </plurals>
+    <plurals name="move_check_unproven">
+        <item quantity="one">קובץ אחד לא נבדק הפעם: ייתכן שהטלפון עדיין זוכר אותו מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב.</item>
+        <item quantity="two">שני קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב.</item>
+        <item quantity="other">%1$s קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב.</item>
     </plurals>
     <string name="move_check_timeout">הכונן לא חובר שוב. שום דבר לא השתנה. אפשר לנסות שוב כשהוא מחובר.</string>
     <string name="move_check_why">למה: מיד אחרי ההעתקה הטלפון עשוי לענות מהזיכרון שלו ולא מהכונן. ניתוק וחיבור מחדש מנקים את זה.</string>
