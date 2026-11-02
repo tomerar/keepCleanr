@@ -111,8 +111,14 @@ def load(path, text=None) -> dict:
     return out
 
 
+# Keys whose every use sits inside a FUNCTION_SCREENS function (filled by usages()). That function is more specific
+# than the key's prefix: the trial-mode banner shows above every screen, not in Settings where its switch is (F3).
+FUNCTION_ONLY: dict = {}
+
+
 def usages() -> dict:
     found: dict = {}
+    by_function: dict = {}
     pattern = re.compile(r"R\.(?:string|plurals)\.([a-zA-Z0-9_]+)")
     function = re.compile(r"^(?:internal |private |public )?fun (?:[\w.<>, ]+\.)?(\w+)\(", re.M)
     for d in CODE_DIRS:
@@ -128,8 +134,13 @@ def usages() -> dict:
                         break
                     around = name
                 found.setdefault(m.group(1), set()).add(screen_of(f, around))
+                by_function.setdefault(m.group(1), []).append(FUNCTION_SCREENS.get(around))
     for key in found:
         found[key].discard(None)
+    FUNCTION_ONLY.clear()
+    for key, screens in by_function.items():
+        if all(screens) and len(set(screens)) == 1:
+            FUNCTION_ONLY[key] = screens[0]
     return {k: v for k, v in found.items() if v}
 
 
@@ -167,7 +178,7 @@ def render() -> str:
             screen, also = "Explanations (why / if deleted)", ""
         elif key in used:
             screens = sorted(used[key], key=order.index)
-            first = screen_of_key(key) or screens[0]
+            first = FUNCTION_ONLY.get(key) or screen_of_key(key) or screens[0]
             screen, also = first, ", ".join(x for x in screens if x != first)
         else:
             screen, also = "Not used in code", ""
