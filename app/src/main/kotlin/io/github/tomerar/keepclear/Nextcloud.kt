@@ -164,8 +164,11 @@ sealed interface NextcloudStep {
     /** Talking to the server (starting the sign-in, checking the app password, opening the backup place). */
     data object Working : NextcloudStep
 
-    /** Waiting for the user to sign in on [loginUrl] in the browser. */
-    data class Browser(val loginUrl: String) : NextcloudStep
+    /**
+     * Waiting for the user to sign in on [loginUrl] in the browser. E13: [opened] once the page was opened by itself,
+     * so turning the phone or switching language doesn't open the browser again (the button still does).
+     */
+    data class Browser(val loginUrl: String, val opened: Boolean = false) : NextcloudStep
 
     data class Done(val host: String) : NextcloudStep
 }
@@ -196,6 +199,12 @@ class NextcloudViewModel(application: Application) : AndroidViewModel(applicatio
         flow?.close()
         flow = null
         if (_state.value.step !is NextcloudStep.Done) _state.update { it.copy(step = NextcloudStep.Form) }
+    }
+
+    /** E13: the sign-in page was opened by itself; it isn't opened again when the screen is recreated. */
+    fun loginOpened() = _state.update { s ->
+        val step = s.step
+        if (step is NextcloudStep.Browser) s.copy(step = step.copy(opened = true)) else s
     }
 
     /** "Sign in with the browser": Login Flow v2. */
@@ -284,6 +293,8 @@ class NextcloudUi(
     val onManual: (String, String, String) -> Unit = { _, _, _ -> },
     /** Opens the sign-in page in the browser (checked to be on the typed server by the engine). */
     val onOpenLogin: (String) -> Unit = {},
+    /** E13: the page was opened by itself once (kept by the ViewModel). */
+    val onLoginOpened: () -> Unit = {},
     val onCancel: () -> Unit = {},
     /** L6: test builds with the public test key say "use a test account". */
     val testAccountNotice: Boolean = TestKey.showNotice,
@@ -390,7 +401,12 @@ fun NextcloudScreen(ui: NextcloudUi, onBack: () -> Unit) {
 
                 is NextcloudStep.Browser -> {
                     // The page opens once by itself; the button opens it again (e.g. after closing the browser).
-                    LaunchedEffect(step.loginUrl) { ui.onOpenLogin(step.loginUrl) }
+                    LaunchedEffect(step.loginUrl, step.opened) {
+                        if (!step.opened) {
+                            ui.onLoginOpened()
+                            ui.onOpenLogin(step.loginUrl)
+                        }
+                    }
                     Text(stringResource(R.string.nextcloud_browser), modifier = Modifier.testTag("nextcloudWaiting"))
                     OutlinedButton(
                         onClick = { ui.onOpenLogin(step.loginUrl) },

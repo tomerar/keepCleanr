@@ -100,6 +100,9 @@ dependencies {
     testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    // Owner review PR E: ViewModel tests on the real graph with the engines' fakes (FakeSigner, FakeStorageGateway).
+    testImplementation(testFixtures(project(":engine:trash")))
+    testImplementation(testFixtures(project(":core:storage-api")))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     // Fake USB drive for instrumented MOVE tests; inert until a test enables it. Never in release.
     debugImplementation(project(":testing:usb-provider"))

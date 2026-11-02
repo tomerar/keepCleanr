@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -164,15 +163,22 @@ fun GroupScreen(
     onDelete: (List<ClassifiedItem>, Confirmation) -> Unit = { _, _ -> },
     result: CleanResult? = null,
     onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
+    /** E4: the selection and one-by-one decisions, held by the ViewModel; null keeps them here (tests). */
+    selection: GroupSelection? = null,
 ) {
     val text = RuleText.of(group.ruleId)
     // SAFE-9: other apps' own folders are never selectable for deletion here.
     val selectable = (group.category == Category.SAFE || group.category == Category.REVIEW) &&
         group.ruleId != io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID
-    var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
+    // E4: never a 10,000-path set in saved state (TransactionTooLarge); the ViewModel keeps it.
+    var localSelected by remember { mutableStateOf(setOf<String>()) }
+    var localSwipe by remember { mutableStateOf<List<SwipeDecision>?>(null) }
+    val selected = selection?.selected ?: localSelected
+    val setSelected: (Set<String>) -> Unit = selection?.onSelect ?: { localSelected = it }
+    val swipe = if (selection != null) selection.swipe else localSwipe
+    val setSwipe: (List<SwipeDecision>?) -> Unit = selection?.onSwipe ?: { localSwipe = it }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
-    var swiping by rememberSaveable { mutableStateOf(false) }
-    val selectedItems = group.items.filter { it.item.path in selected }
+    val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
     Scaffold(
         bottomBar = {
             // Review PR C: no action bar until something is selected; padded above the navigation bar.
@@ -207,12 +213,12 @@ fun GroupScreen(
                     BackRow(stringResource(text.group), onBack)
                     Text(totalText(group.total), style = MaterialTheme.typography.bodyLarge)
                     if (selectable) {
-                        val all = group.items.map { it.item.path }.toSet()
+                        val all = remember(group.items) { group.items.mapTo(HashSet()) { it.item.path } }
                         val allSelected = all.isNotEmpty() && selected.containsAll(all)
                         // One row, so the pictures stay where they were on small screens.
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             TextButton(
-                                onClick = { selected = if (allSelected) emptySet() else all },
+                                onClick = { setSelected(if (allSelected) emptySet() else all) },
                                 modifier = Modifier.testTag("selectAll"),
                             ) {
                                 Text(
@@ -223,7 +229,9 @@ fun GroupScreen(
                             }
                             // REV-5: decide one by one; nothing happens until the usual confirmation at the end.
                             if (group.items.size > 1) {
-                                TextButton(onClick = { swiping = true }, modifier = Modifier.testTag("startSwipe")) {
+                                TextButton(onClick = {
+                                    setSwipe(emptyList())
+                                }, modifier = Modifier.testTag("startSwipe")) {
                                     Text(stringResource(R.string.swipe_start))
                                 }
                             }
@@ -278,7 +286,7 @@ fun GroupScreen(
                             val paths = items.map { it.item.path }.toSet()
                             val all = selected.containsAll(paths)
                             TextButton(
-                                onClick = { selected = if (all) selected - paths else selected + paths },
+                                onClick = { setSelected(if (all) selected - paths else selected + paths) },
                                 modifier = Modifier.testTag("selectMonth_$bucket"),
                             ) {
                                 Text(
@@ -297,7 +305,7 @@ fun GroupScreen(
                         selected = isSelected,
                         selectable = selectable,
                         onToggle = {
-                            selected = if (isSelected) selected - item.item.path else selected + item.item.path
+                            setSelected(if (isSelected) selected - item.item.path else selected + item.item.path)
                         },
                         onPreview = { onOpenItem(item) },
                     )
@@ -306,15 +314,17 @@ fun GroupScreen(
         }
     }
 
-    if (swiping) {
+    if (swipe != null) {
         SwipeReview(
             items = group.items,
             onDone = { list ->
-                swiping = false
-                selected = list.map { it.item.path }.toSet()
+                setSwipe(null)
+                setSelected(list.map { it.item.path }.toSet())
                 if (list.isNotEmpty()) confirming = list
             },
-            onClose = { swiping = false },
+            onClose = { setSwipe(null) },
+            decisions = swipe,
+            onDecisions = { setSwipe(it) },
         )
     }
     confirming?.let { list ->
@@ -323,17 +333,25 @@ fun GroupScreen(
             onRemove = { removed ->
                 val rest = list - removed
                 confirming = rest.ifEmpty { null }
-                selected = selected - removed.item.path
+                setSelected(selected - removed.item.path)
             },
             onConfirm = {
                 confirming = null
-                selected = emptySet()
+                setSelected(emptySet())
                 onDelete(list, userConfirmed(list.map { it.item.path }))
             },
             onDismiss = { confirming = null },
         )
     }
 }
+
+/** E4: a group's selection and one-by-one decisions, kept by the ViewModel ([HomeUiState.selections]). */
+class GroupSelection(
+    val selected: Set<String>,
+    val onSelect: (Set<String>) -> Unit,
+    val swipe: List<SwipeDecision>?,
+    val onSwipe: (List<SwipeDecision>?) -> Unit,
+)
 
 /** REV-3: the user sees and can trim exactly what will move to the trash. */
 @Composable

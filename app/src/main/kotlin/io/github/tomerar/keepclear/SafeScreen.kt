@@ -58,6 +58,8 @@ data class CleanResult(
     val androidTrash: Boolean = false,
     /** M12: the user said no in Android's dialog; nothing changed. */
     val declined: Boolean = false,
+    /** E13: the trash entries this action added; Undo restores exactly these. */
+    val trashedIds: Set<String> = emptySet(),
 )
 
 /**

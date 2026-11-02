@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,16 +43,44 @@ import io.github.tomerar.keepclear.engine.classify.Total
 /** REV-5: one decision per item, in order. Nothing happens until the summary's "Review and delete". */
 enum class SwipeChoice { KEEP, DELETE, SKIP }
 
-/** Pure swipe-session logic, unit-testable: decisions in order, undo pops the last one. */
-object SwipeSession {
-    fun decide(decisions: List<SwipeChoice>, choice: SwipeChoice, total: Int) =
-        if (decisions.size >= total) decisions else decisions + choice
+/** E11: one decision, for the file at [path] (never for a position in the list, which can change). */
+data class SwipeDecision(val path: String, val choice: SwipeChoice)
 
-    fun undo(decisions: List<SwipeChoice>) = decisions.dropLast(1)
+/**
+ * Pure swipe-session logic, unit-testable: decisions in order, undo pops the last one. E11 (also a safety rule):
+ * every decision is tied to the file's path. If the list changes while the user decides (a scan finished, a file
+ * went away), a decision still belongs to the file it was made for, and "Delete" can never move to another file.
+ */
+object SwipeSession {
+    /** The first item without a decision, or null when every item has one. */
+    fun next(items: List<ClassifiedItem>, decisions: List<SwipeDecision>): ClassifiedItem? {
+        val decided = decisions.mapTo(HashSet()) { it.path }
+        return items.firstOrNull { it.item.path !in decided }
+    }
+
+    /** Decides [choice] for [shown], the item on screen; nothing if it already has a decision or isn't listed. */
+    fun decide(
+        decisions: List<SwipeDecision>,
+        shown: ClassifiedItem?,
+        choice: SwipeChoice,
+    ): List<SwipeDecision> {
+        if (shown == null || decisions.any { it.path == shown.item.path }) return decisions
+        return decisions + SwipeDecision(shown.item.path, choice)
+    }
+
+    fun undo(decisions: List<SwipeDecision>) = decisions.dropLast(1)
+
+    /** How many of [items] have a decision. */
+    fun decided(items: List<ClassifiedItem>, decisions: List<SwipeDecision>): Int {
+        val decided = decisions.mapTo(HashSet()) { it.path }
+        return items.count { it.item.path in decided }
+    }
 
     /** The items the user swiped toward Delete; never anything else (SAFETY-10: no pre-selection). */
-    fun toDelete(items: List<ClassifiedItem>, decisions: List<SwipeChoice>) =
-        items.zip(decisions).filter { (_, c) -> c == SwipeChoice.DELETE }.map { it.first }
+    fun toDelete(items: List<ClassifiedItem>, decisions: List<SwipeDecision>): List<ClassifiedItem> {
+        val delete = decisions.filter { it.choice == SwipeChoice.DELETE }.mapTo(HashSet()) { it.path }
+        return items.filter { it.item.path in delete }
+    }
 }
 
 /**
@@ -61,41 +88,52 @@ object SwipeSession {
  * deferred; at the end a summary hands the items to delete to the usual editable confirmation (REV-3).
  */
 @Composable
-fun SwipeReview(items: List<ClassifiedItem>, onDone: (List<ClassifiedItem>) -> Unit, onClose: () -> Unit) {
-    var decisions by rememberSaveable { mutableStateOf(listOf<SwipeChoice>()) }
+fun SwipeReview(
+    items: List<ClassifiedItem>,
+    onDone: (List<ClassifiedItem>) -> Unit,
+    onClose: () -> Unit,
+    /** E4: the decisions live in the ViewModel when given; otherwise here (previews and tests). */
+    decisions: List<SwipeDecision>? = null,
+    onDecisions: (List<SwipeDecision>) -> Unit = {},
+) {
+    var local by remember { mutableStateOf(listOf<SwipeDecision>()) }
+    val current = decisions ?: local
+    val setDecisions: (List<SwipeDecision>) -> Unit = if (decisions != null) onDecisions else { d -> local = d }
     val locale = LocalConfiguration.current.locales[0]
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val shown = SwipeSession.next(items, current)
+    val decidedCount = SwipeSession.decided(items, current)
 
     fun decide(choice: SwipeChoice) {
-        decisions = SwipeSession.decide(decisions, choice, items.size)
+        setDecisions(SwipeSession.decide(current, shown, choice))
     }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize().testTag("swipe")) {
             Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        stringResource(R.string.swipe_progress, minOf(decisions.size + 1, items.size), items.size),
+                        stringResource(R.string.swipe_progress, minOf(decidedCount + 1, items.size), items.size),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f).testTag("swipeProgress"),
                     )
                     TextButton(
-                        onClick = { decisions = SwipeSession.undo(decisions) },
-                        enabled = decisions.isNotEmpty(),
+                        onClick = { setDecisions(SwipeSession.undo(current)) },
+                        enabled = current.isNotEmpty(),
                         modifier = Modifier.testTag("swipeUndo"),
                     ) { Text(stringResource(R.string.swipe_undo)) }
                     TextButton(onClick = onClose, modifier = Modifier.testTag("swipeClose")) {
                         Text(stringResource(R.string.swipe_close))
                     }
                 }
-                if (decisions.size < items.size) {
-                    val item = items[decisions.size]
-                    var drag by remember(decisions.size) { mutableFloatStateOf(0f) }
+                if (shown != null) {
+                    val item = shown
+                    var drag by remember(item.item.path) { mutableFloatStateOf(0f) }
                     Text(stringResource(R.string.swipe_hint), style = MaterialTheme.typography.bodySmall)
                     // The picture takes the space left over, so the buttons always stay on screen.
                     Box(
                         modifier = Modifier.fillMaxWidth().weight(1f)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .pointerInput(decisions.size) {
+                            .pointerInput(item.item.path) {
                                 detectHorizontalDragGestures(
                                     onDragEnd = {
                                         // Toward the end edge (where Delete sits) deletes; toward the start keeps.
@@ -129,9 +167,10 @@ fun SwipeReview(items: List<ClassifiedItem>, onDone: (List<ClassifiedItem>) -> U
                         ) { Text(stringResource(R.string.swipe_delete)) }
                     }
                 } else {
-                    val toDelete = SwipeSession.toDelete(items, decisions)
-                    val kept = decisions.count { it == SwipeChoice.KEEP }
-                    val skipped = decisions.count { it == SwipeChoice.SKIP }
+                    val toDelete = SwipeSession.toDelete(items, current)
+                    val listed = items.mapTo(HashSet()) { it.item.path }
+                    val kept = current.count { it.choice == SwipeChoice.KEEP && it.path in listed }
+                    val skipped = current.count { it.choice == SwipeChoice.SKIP && it.path in listed }
                     Column(Modifier.testTag("swipeSummary"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             stringResource(

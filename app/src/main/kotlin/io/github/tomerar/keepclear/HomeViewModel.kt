@@ -31,8 +31,11 @@ import io.github.tomerar.keepclear.engine.scan.SpaceMode
 import io.github.tomerar.keepclear.engine.trash.TrashEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -83,7 +86,20 @@ data class HomeUiState(
     val perAppFreed: Map<String, Long> = emptyMap(),
     /** M13: apps with sizes and last use; null without usage access (ONB-7). */
     val appsInfo: List<io.github.tomerar.keepclear.engine.classify.AppInfo>? = null,
+    /**
+     * E4: what the user selected in each group (by [GroupKey]), kept here and not in the screen's saved state: a
+     * 10,000-path set in saved state crashes Android (TransactionTooLarge). A group's selection ends when its
+     * screen is left with Back.
+     */
+    val selections: Map<String, Set<String>> = emptyMap(),
+    /** E4, E11: the one-by-one review's decisions per group, by path; null while not reviewing one by one. */
+    val swipes: Map<String, List<SwipeDecision>> = emptyMap(),
 )
+
+/** E4: the key of a group's selection. */
+object GroupKey {
+    fun of(ruleId: String, category: Category) = "$ruleId|${category.name}"
+}
 
 /**
  * M12: what Android must confirm, one dialog per [requests] entry, launched one at a time by the activity. Only
@@ -95,11 +111,20 @@ data class MediaConsent(
     val approved: List<PlannedOp> = emptyList(),
     val declined: Int = 0,
     val failed: Int = 0,
+    /** E12: the id of the first request; each answered request moves it on, so every dialog has its own id. */
+    val headId: Int = 0,
+    /** E12: the id of the dialog Android shows right now; it is not shown again (rotation, theme, language). */
+    val launchedId: Int? = null,
 ) {
+    /** E12: the first request still has to be shown. */
+    val needsLaunch: Boolean get() = requests.isNotEmpty() && launchedId != headId
+
     /** The user answered the first request (or it could not be shown: [couldNotShow]). */
     fun answer(approved: Boolean, couldNotShow: Boolean = false): MediaConsent {
         val head = requests.firstOrNull() ?: return this
         return copy(
+            headId = headId + 1,
+            launchedId = null,
             requests = requests.drop(1),
             approved = if (approved) this.approved + head.ops else this.approved,
             declined = declined + if (!approved && !couldNotShow) head.ops.size else 0,
@@ -157,6 +182,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val state: StateFlow<HomeUiState> = _state
     private var scanJob: Job? = null
 
+    /** E13: the user cancelled the scan; it stays cancelled (also on resume) until they start one again. */
+    private var scanCancelled = false
+
+    init {
+        // E3: a free, check or restore ended in the foreground service: free space, trash and scan are new.
+        viewModelScope.launch {
+            app.moveController.finished.drop(1).collect {
+                refreshNow()
+                loadTrash()
+                scan()
+            }
+        }
+    }
+
     /** CLS-7: the user's kept and always-junk choices apply to every classification. */
     private suspend fun classifier(): Classifier = homeClassifier(app)
 
@@ -193,7 +232,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** SAFE-10: the user is about to open Android's app-info screen for [pkg]. */
     fun openingAppInfo(pkg: String) {
-        appInfoOpened = pkg to freeNow()
+        viewModelScope.launch { appInfoOpened = pkg to freeNow() }
     }
 
     fun setApps(apps: List<AppEntry>) = _state.update { it.copy(apps = apps) }
@@ -203,32 +242,54 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Called on every resume: permissions and free space can change outside the app. */
     fun refresh() {
+        viewModelScope.launch { refreshNow() }
+    }
+
+    /** What [refresh] measures; read off the main thread (E1: it reads storage). */
+    private class Probe(
+        val total: Long,
+        val free: Long,
+        val media: MediaAccess,
+        val allFiles: Boolean?,
+        val granted: List<String>,
+        val cloned: ClonedStorage,
+    )
+
+    private suspend fun probe(): Probe = withContext(Dispatchers.IO) {
         val stat = StatFs(app.filesDir.absolutePath)
-        val free = stat.availableBytes
+        app.refreshGrantedFolders()
+        val allFiles = if (BuildConfig.FLAVOR == "foss") MediaAccess.hasAllFiles() else null
+        Probe(
+            total = stat.totalBytes,
+            free = stat.availableBytes,
+            media = MediaAccess.current(app),
+            allFiles = allFiles,
+            granted = app.grantedFolders.keys.sorted(),
+            cloned = ClonedApps.probe(
+                allFiles = allFiles == true,
+                exists = { java.io.File(it).exists() },
+                canList = { java.io.File(it).list() != null },
+            ),
+        )
+    }
+
+    private suspend fun refreshNow() {
+        val p = probe()
         appInfoOpened?.let { (pkg, before) ->
             // Measured, never estimated (SAFE-10).
-            _state.update { it.copy(perAppFreed = it.perAppFreed + (pkg to (free - before).coerceAtLeast(0))) }
+            _state.update { it.copy(perAppFreed = it.perAppFreed + (pkg to (p.free - before).coerceAtLeast(0))) }
             appInfoOpened = null
         }
         val before = _state.value
-        app.refreshGrantedFolders()
         _state.update {
             it.copy(
-                grantedFolders = app.grantedFolders.keys.sorted(),
-                totalBytes = stat.totalBytes,
-                freeBytes = free,
-                mediaAccess = MediaAccess.current(app),
-                allFiles = if (BuildConfig.FLAVOR == "foss") MediaAccess.hasAllFiles() else null,
-                spaceMode = SpaceMode.of(free),
-            )
-        }
-        _state.update { s ->
-            s.copy(
-                cloned = ClonedApps.probe(
-                    allFiles = s.allFiles == true,
-                    exists = { java.io.File(it).exists() },
-                    canList = { java.io.File(it).list() != null },
-                ),
+                grantedFolders = p.granted,
+                totalBytes = p.total,
+                freeBytes = p.free,
+                mediaAccess = p.media,
+                allFiles = p.allFiles,
+                spaceMode = SpaceMode.of(p.free),
+                cloned = p.cloned,
             )
         }
         val after = _state.value
@@ -236,11 +297,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             before.cloned.readable != after.cloned.readable ||
             before.grantedFolders != after.grantedFolders
         val canScan = after.mediaAccess != MediaAccess.NONE || after.grantedFolders.isNotEmpty()
-        if (canScan && (after.scan == ScanState.Idle || gainedAccess)) scan()
+        // E13: a scan the user cancelled is not started again by coming back to KeepClear.
+        if (canScan && !scanCancelled && (after.scan == ScanState.Idle || gainedAccess)) scan()
         if (after.allFiles == true || after.grantedFolders.isNotEmpty()) loadTrash()
     }
 
     fun scan() {
+        scanCancelled = false
         scanJob?.cancel()
         val s = _state.value
         // M12b: without All files access, granted folders (WhatsApp's) are walked at their real paths.
@@ -259,11 +322,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Every item of this run, persisted or not: classification uses the whole run even when the index
             // fell back to memory halfway through (the index is for diffs and history, not the source of truth here).
             val runItems = mutableListOf<ScanItem>()
-            scanner.scan(roots).collect { event ->
+            // E1: the walk itself runs off the main thread; only its events arrive here.
+            scanner.scan(roots).flowOn(Dispatchers.IO).collect { event ->
                 when (event) {
                     is ScanEvent.Batch -> {
                         val id = runId
                         val written = id != null && runCatching { app.scanIndex.write(id, event.items) }.isSuccess
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
                         if (id != null && !written) {
                             runId = null
                             storageFailed = true
@@ -286,6 +351,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                 event.maxGeneration,
                             )
                         }.isSuccess
+                        // E13: runCatching above also catches a cancellation (the user cancelled the scan while the
+                        // index was being written); a cancelled scan never reports itself as done.
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
                         // If finalising the index failed, the stale-entry cleanup didn't happen: say so.
                         val complete = event.complete && !storageFailed && finished
                         _state.update { it.copy(scan = ScanState.Done(event.files, event.bytes, complete)) }
@@ -311,25 +379,48 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val run = classifyRuns.start()
         val classifier = classifier()
         val (summary, ev) = withContext(Dispatchers.Default) {
-            classifyRun(app.localGateway, classifier, items, System.currentTimeMillis())
+            classifyRun(app.localGateway, classifier, items, System.currentTimeMillis(), app.hashCache)
         }
         if (!classifyRuns.isLatest(run)) return
         evidence = ev
         // SET-3: the reminder can say how much is ready to clean without scanning in the background.
-        runCatching { app.reminderPrefs.lastJunkBytes = summary.phoneTotal(Category.SAFE).bytes }
+        withContext(Dispatchers.IO) {
+            runCatching { app.reminderPrefs.lastJunkBytes = summary.phoneTotal(Category.SAFE).bytes }
+        }
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
         _state.update { it.copy(summary = summary, trash = it.trash.copy(android = androidTrash)) }
     }
 
-    private var trashRecovered = false
+    @Volatile private var trashRecovered = false
 
-    /** Loads the trash; on the first call per process also recovers it (E-DEL-8/9). */
+    /** E5: the newest trash load; a newer one replaces it (latest wins). */
+    private var trashLoad: Job? = null
+
+    /**
+     * E5: what each trash entry needs a file check for (where it would go back, whether it changed in the trash),
+     * worked out once per entry and kept until the next trash action, so coming back to KeepClear doesn't check
+     * thousands of files again. Restoring re-checks every item anyway (content check, executor).
+     */
+    private val trashDetails = java.util.concurrent.ConcurrentHashMap<String, TrashDetail>()
+
+    private class TrashDetail(val restoreTo: String?, val changed: Boolean)
+
+    /**
+     * Loads the trash; on the first call per process also recovers it (E-DEL-8/9). E5: off the main thread, one load
+     * at a time (a newer call replaces an older one), no file check of entries already known.
+     */
     fun loadTrash() {
-        viewModelScope.launch {
+        trashLoad?.cancel()
+        trashLoad = viewModelScope.launch {
             // D6: a full disk makes Room throw (SQLiteFullException). The Trash then keeps what it showed; never a crash.
             try {
-                loadTrashNow()
+                val loaded = withContext(Dispatchers.IO) { loadTrashNow() }
+                _state.update {
+                    it.copy(
+                        trash = loaded.copy(android = it.trash.android, releaseHeldBack = it.trash.releaseHeldBack),
+                    )
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -338,7 +429,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun loadTrashNow() {
+    private suspend fun loadTrashNow(): TrashUi {
         val manager = app.trashManager
         if (!trashRecovered) {
             manager.recover()
@@ -346,9 +437,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             trashRecovered = true
         }
         val entries = manager.entries().sortedByDescending { it.deletedAt }
-        val destinations = entries.associate { it.id to manager.restoreDestination(it) }.filter { (id, dest) ->
-            dest != entries.first { it.id == id }.originalPath
+        val details = HashMap<String, TrashDetail>(entries.size * 2)
+        for (e in entries) {
+            details[e.id] = trashDetails.getOrPut(e.id) {
+                val dest = manager.restoreDestination(e)
+                TrashDetail(dest.takeIf { it != e.originalPath }, manager.isChanged(e))
+            }
         }
+        trashDetails.keys.retainAll(details.keys)
+        val destinations = details.mapNotNull { (id, d) -> d.restoreTo?.let { id to it } }.toMap()
         // H1: "Release now" only where the MOVE record says the copy passed the second, uncached check.
         val confirmed = app.moveController.store.let { store ->
             store.jobs().flatMap { store.files(it.id) }
@@ -359,19 +456,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         val releasable = entries.filter { it.verifiedCopy != null && it.originalPath in confirmed }.map { it.id }
         // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
-        val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
-        _state.update {
-            it.copy(
-                trash = TrashUi(
-                    entries,
-                    destinations,
-                    releasable.toSet(),
-                    changed,
-                    android = it.trash.android,
-                    releaseHeldBack = it.trash.releaseHeldBack,
-                ),
-            )
-        }
+        val changed = details.filterValues { it.changed }.keys + changedFound
+        return TrashUi(entries, destinations, releasable.toSet(), changed)
     }
 
     /**
@@ -379,11 +465,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * Trash UI, made from the entries' original paths (review PR B).
      */
     fun restore(entries: List<TrashEntry>, confirmation: Confirmation) {
+        if (_state.value.busy) return
+        val origin = currentScreen()
+        _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             // Owner decision 1.2: a changed item is never put back in place; it is marked and offered separately.
-            val changed = entries.filter { app.trashManager.isChanged(it, fullCheck = true) }
+            // E1: the content check reads whole files, never on the main thread.
+            val changed = withContext(Dispatchers.IO) {
+                entries.filter { app.trashManager.isChanged(it, fullCheck = true) }
+            }
             changedFound += changed.map { it.id }
-            runTrashPlan(entries - changed.toSet(), OpKind.RESTORE, confirmation)
+            val changedIds = changed.map { it.id }.toSet()
+            runTrashPlanNow(entries.filter { it.id !in changedIds }, OpKind.RESTORE, confirmation, origin)
         }
     }
 
@@ -400,7 +493,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 PlannedOp(it.ref, it.path, kind, false, it.size, it.mtimeMillis, null, shownAs = it.path)
             }
             val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
-            val report = app.executor().run(plan) as? ExecutionReport.Ran ?: return@launch
+            val report = withContext(Dispatchers.IO) { app.executor().run(plan) } as? ExecutionReport.Ran
+                ?: return@launch
             if (report.consent.isNotEmpty()) {
                 _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
             }
@@ -421,7 +515,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val plan = lastCopyPlan(UUID.randomUUID().toString(), ops, lastCopyGroupSizes)
                 .confirm(confirmation, app.sessionId)
-            val report = app.executor().run(plan)
+            val report = withContext(Dispatchers.IO) { app.executor().run(plan) }
             if (report is ExecutionReport.Rejected) {
                 _state.update {
                     it.copy(
@@ -429,6 +523,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+            trashDetails.clear()
             loadTrash()
             scan()
         }
@@ -486,8 +581,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.busy) return
         val origin = currentScreen()
         _state.update { it.copy(busy = true) }
-        viewModelScope.launch {
-            val before = freeNow()
+        viewModelScope.launch { runTrashPlanNow(entries, kind, confirmation, origin) }
+    }
+
+    /** Runs a trash plan; the caller has set [HomeUiState.busy]. E1: every file access off the main thread. */
+    private suspend fun runTrashPlanNow(
+        entries: List<TrashEntry>,
+        kind: OpKind,
+        confirmation: Confirmation,
+        origin: Screen,
+    ) {
+        val before = freeNow()
+        withContext(Dispatchers.IO) {
             // Entries whose file vanished are removed from the list rather than silently skipped (TRASH-6). A database
             // error here (D6, disk full) only means they stay listed; the executor re-checks each one anyway.
             try {
@@ -515,22 +620,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
                 app.executor().run(plan)
             }
-            val after = freeNow()
-            _state.update {
-                it.copy(
-                    busy = false,
-                    // Review PR C: a measured result after emptying, on the screen it came from.
-                    measured = if (kind == OpKind.PURGE) {
-                        Measured((after - before).coerceAtLeast(0), after, before, origin)
-                    } else {
-                        it.measured
-                    },
-                )
-            }
-            refresh()
-            loadTrash()
-            if (kind == OpKind.RESTORE || kind == OpKind.RESTORE_CHANGED) scan()
         }
+        val after = freeNow()
+        trashDetails.clear()
+        _state.update {
+            it.copy(
+                busy = false,
+                // Review PR C: a measured result after emptying, on the screen it came from.
+                measured = if (kind == OpKind.PURGE) {
+                    Measured((after - before).coerceAtLeast(0), after, before, origin)
+                } else {
+                    it.measured
+                },
+            )
+        }
+        refreshNow()
+        loadTrash()
+        if (kind == OpKind.RESTORE || kind == OpKind.RESTORE_CHANGED) scan()
     }
 
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
@@ -552,9 +658,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             var skipped = unsupported.size
             var protectedSkipped = 0
             var failed = 0
+            var trashedIds = emptySet<String>()
             if (ops.isNotEmpty()) {
                 val plan = unconfirmed.confirm(confirmation, app.sessionId)
-                when (val report = app.executor().run(plan)) {
+                // E13: the trash entries this clean adds are told apart from older ones, so Undo restores only them.
+                val earlier = trashIds()
+                // E1: the executor re-checks and may hash (witnesses); never on the main thread.
+                when (val report = withContext(Dispatchers.IO) { app.executor().run(plan) }) {
                     is ExecutionReport.Ran -> {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
@@ -576,6 +686,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         skipped += report.skipped.size - lastCopies.size - protectedSkipped
                         failed = report.failed.size
+                        if (!simulated && earlier != null) {
+                            val paths = report.done.map { it.op.displayPath }.toSet()
+                            trashedIds = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    app.trashManager.entries()
+                                        .filter { it.id !in earlier && it.originalPath in paths }
+                                        .map { it.id }
+                                        .toSet()
+                                }.getOrDefault(emptySet())
+                            }
+                        }
                     }
 
                     is ExecutionReport.Rejected -> {
@@ -583,6 +704,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            trashDetails.clear()
             _state.update {
                 it.copy(
                     cleanResult = CleanResult(
@@ -594,14 +716,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         protectedSkipped = protectedSkipped,
                         simulated = simulated,
                         origin = origin,
+                        trashedIds = trashedIds,
                     ),
                     busy = false,
                 )
             }
-            refresh()
+            refreshNow()
             loadTrash()
             scan()
         }
+    }
+
+    /** Ids in KeepClear's trash right now; null when the index can't be read (then Undo offers nothing). */
+    private suspend fun trashIds(): Set<String>? = withContext(Dispatchers.IO) {
+        runCatching { app.trashManager.entries().map { it.id }.toSet() }.getOrNull()
     }
 
     /**
@@ -624,12 +752,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** E12: Android shows the dialog of request [id] now; it is not launched again after a configuration change. */
+    fun consentLaunched(id: Int) = _state.update { s ->
+        val c = s.consent
+        if (c != null && c.headId == id) s.copy(consent = c.copy(launchedId = id)) else s
+    }
+
     /**
      * M12: the user answered Android's dialog for the first pending request. When the last one is answered, the
-     * result counts only the approved dialogs' items; a rescan then shows what really changed.
+     * result counts only the approved dialogs' items; a rescan then shows what really changed. E12: an answer counts
+     * only while that request's dialog is showing; a late or repeated result is ignored.
      */
     fun consentResult(approved: Boolean, couldNotShow: Boolean = false) {
         val c = _state.value.consent ?: return
+        if (!couldNotShow && c.launchedId != c.headId) return
         val next = c.answer(approved, couldNotShow)
         if (next.requests.isNotEmpty()) {
             _state.update { it.copy(consent = next) }
@@ -654,7 +790,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 runCatching { app.contentResolver.takePersistableUriPermission(uri, flags) }
             }
             _state.update { it.copy(wrongFolder = !ok) }
-            refresh()
+            refreshNow()
         }
     }
 
@@ -675,11 +811,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }.getOrDefault(false)
     }
 
-    /** E-DEL-15: Undo restores everything the last clean moved to the trash. */
+    /**
+     * E-DEL-15: Undo restores what the last clean moved to the trash. E13: only that: the entries it added
+     * ([CleanResult.trashedIds]), never an older entry from the same place.
+     */
     fun undo(result: CleanResult, confirmation: Confirmation) {
+        if (_state.value.busy) return
         viewModelScope.launch {
-            val paths = result.trashedPaths.toSet()
-            val entries = app.trashManager.entries().filter { it.originalPath in paths }
+            val ids = result.trashedIds
+            val entries = withContext(Dispatchers.IO) { app.trashManager.entries() }.filter { it.id in ids }
             _state.update { it.copy(cleanResult = null) }
             restore(entries, confirmation)
         }
@@ -712,28 +852,57 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     measured = if (freed > 0) Measured(freed, after, before, origin) else null,
                 )
             }
-            refresh()
+            refreshNow()
         }
     }
 
-    /** Results belong to the screen they came from; leaving it clears them, so no stale Undo shows elsewhere. */
+    /**
+     * Results belong to the screen they came from; leaving it clears them, so no stale Undo shows elsewhere. E13: a
+     * second tap on the same thing (a double tap) doesn't open it twice.
+     */
     fun open(screen: Screen) = _state.update {
-        it.copy(screens = it.screens + screen, cleanResult = null, measured = null, trimResult = null)
+        if (it.screens.last() == screen) {
+            it
+        } else {
+            it.copy(screens = it.screens + screen, cleanResult = null, measured = null, trimResult = null)
+        }
     }
 
     fun back() = _state.update {
         if (it.screens.size > 1) {
-            it.copy(screens = it.screens.dropLast(1), cleanResult = null, measured = null, trimResult = null)
+            // E4: leaving a group with Back ends its selection (nothing is selected the next time it opens).
+            val key = (it.screens.last() as? Screen.Group)?.let { g -> GroupKey.of(g.ruleId, g.category) }
+            it.copy(
+                screens = it.screens.dropLast(1),
+                cleanResult = null,
+                measured = null,
+                trimResult = null,
+                selections = if (key != null) it.selections - key else it.selections,
+                swipes = if (key != null) it.swipes - key else it.swipes,
+            )
         } else {
             it
         }
     }
 
-    private fun freeNow(): Long = StatFs(app.filesDir.absolutePath).availableBytes
+    /** E4: the selection of the group [key] ([GroupKey]). */
+    fun select(key: String, paths: Set<String>) = _state.update {
+        it.copy(selections = if (paths.isEmpty()) it.selections - key else it.selections + (key to paths))
+    }
+
+    /** E4, E11: the one-by-one review of group [key]; null when it closes. */
+    fun swipe(key: String, decisions: List<SwipeDecision>?) = _state.update {
+        it.copy(swipes = if (decisions == null) it.swipes - key else it.swipes + (key to decisions))
+    }
+
+    private suspend fun freeNow(): Long = withContext(Dispatchers.IO) {
+        StatFs(app.filesDir.absolutePath).availableBytes
+    }
 
     private fun currentScreen(): Screen = _state.value.screens.last()
 
     fun cancelScan() {
+        scanCancelled = true
         scanJob?.cancel()
         _state.update { it.copy(scan = ScanState.Idle) }
     }
@@ -795,9 +964,13 @@ suspend fun classifyRun(
     classifier: Classifier,
     items: List<ScanItem>,
     now: Long,
+    /** E13: full hashes of earlier runs, by path, size and date; null hashes every candidate again. */
+    hashCache: io.github.tomerar.keepclear.engine.enrich.HashCache? = null,
 ): Pair<ClassificationSummary, Map<String, Evidence>> {
     // Only for files KeepClear can read by path.
-    val enrichment = runCatching { FactEnricher(gateway).enrich(items.filter { it.ref is KPath.Local }) }
+    val enrichment = runCatching {
+        FactEnricher(gateway, hashCache).enrich(items.filter { it.ref is KPath.Local })
+    }
         .getOrDefault(Enrichment(emptyMap(), emptyMap()))
     return ClassificationSummary.of(
         items.map { classifier.classify(it, enrichment.facts[it.path].orEmpty(), now) },
