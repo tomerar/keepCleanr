@@ -66,14 +66,13 @@ fun appHint(pkg: String): Int = when {
  */
 @Composable
 fun AppContentScreen(apps: List<Pair<String, Total>>, actions: AppActions, onBack: () -> Unit) {
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.app_content_title), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("appContent"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                BackRow(stringResource(R.string.app_content_title), onBack)
                 Text(stringResource(R.string.app_content_body), style = MaterialTheme.typography.bodyMedium)
             }
             items(apps, key = { it.first }) { (pkg, total) ->
@@ -106,14 +105,13 @@ fun AppContentScreen(apps: List<Pair<String, Total>>, actions: AppActions, onBac
 @Composable
 fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions: AppActions, onBack: () -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.one_by_one_title), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("oneByOne"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                BackRow(stringResource(R.string.one_by_one_title), onBack)
                 Text(stringResource(R.string.one_by_one_body), style = MaterialTheme.typography.bodyMedium)
                 if (apps.none { it.cacheBytes != null }) {
                     Text(stringResource(R.string.one_by_one_sizes_later), style = MaterialTheme.typography.bodySmall)

@@ -73,8 +73,12 @@ data class HomeUiState(
     val lastCopy: List<io.github.tomerar.keepclear.core.safety.PlannedOp>? = null,
     /** Bytes Android freed in the last cache trim (measured, SAFE-5). */
     val trimResult: Long? = null,
-    /** Navigation stack; last is visible. */
+    /** Navigation stack of the shown [tab]; last is visible. */
     val screens: List<Screen> = listOf(Screen.Home),
+    /** F1b: the main tab shown ([Nav]). */
+    val tab: Tab = Tab.FREE,
+    /** F1b: the stacks of the other tabs, as they were left (each tab keeps its own place). */
+    val tabStacks: Map<Tab, List<Screen>> = emptyMap(),
     /** An action is running; buttons that start another one are disabled (review PR C). */
     val busy: Boolean = false,
     /** Free space measured before and after the last action that frees space (review PR C). */
@@ -148,7 +152,11 @@ data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val o
 
 /** Simple in-memory navigation (no navigation library needed yet). */
 sealed interface Screen {
+    /** The "Free up space" tab. */
     data object Home : Screen
+
+    /** F1b: the "Backup" tab: move memories, restore (also without a scan), backup places, history. */
+    data object Backup : Screen
 
     data class CategoryList(val category: Category) : Screen
 
@@ -166,7 +174,7 @@ sealed interface Screen {
     /** SAFE-10: clear one app at a time. */
     data object OneAppAtATime : Screen
 
-    /** M13: apps by size and last use. */
+    /** M13: apps by size and last use; the "Apps" tab. */
     data object Apps : Screen
 
     /** Test builds only: Settings › Advanced › Device check (read-only). */
@@ -858,32 +866,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Results belong to the screen they came from; leaving it clears them, so no stale Undo shows elsewhere. E13: a
-     * second tap on the same thing (a double tap) doesn't open it twice.
+     * second tap on the same thing (a double tap) doesn't open it twice. F1b: a tab's root switches to that tab.
      */
-    fun open(screen: Screen) = _state.update {
-        if (it.screens.last() == screen) {
-            it
-        } else {
-            it.copy(screens = it.screens + screen, cleanResult = null, measured = null, trimResult = null)
-        }
-    }
+    fun open(screen: Screen) = _state.update { Nav.open(it, screen) }
 
-    fun back() = _state.update {
-        if (it.screens.size > 1) {
-            // E4: leaving a group with Back ends its selection (nothing is selected the next time it opens).
-            val key = (it.screens.last() as? Screen.Group)?.let { g -> GroupKey.of(g.ruleId, g.category) }
-            it.copy(
-                screens = it.screens.dropLast(1),
-                cleanResult = null,
-                measured = null,
-                trimResult = null,
-                selections = if (key != null) it.selections - key else it.selections,
-                swipes = if (key != null) it.swipes - key else it.swipes,
-            )
-        } else {
-            it
-        }
-    }
+    /** E4: leaving a group with Back ends its selection; at a tab's root Back goes to the first tab ([Nav.back]). */
+    fun back() = _state.update { Nav.back(it) }
+
+    /** F1b: show [tab] where it was left (the shown tab again: back to its root). */
+    fun selectTab(tab: Tab) = _state.update { Nav.selectTab(it, tab) }
 
     /** E4: the selection of the group [key] ([GroupKey]). */
     fun select(key: String, paths: Set<String>) = _state.update {

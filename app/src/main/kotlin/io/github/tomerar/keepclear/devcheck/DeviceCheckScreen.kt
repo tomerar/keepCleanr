@@ -36,9 +36,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.tomerar.keepclear.BackRow
 import io.github.tomerar.keepclear.BuildConfig
 import io.github.tomerar.keepclear.KeepClearApplication
+import io.github.tomerar.keepclear.SubScreenTopBar
 import io.github.tomerar.keepclear.core.i18n.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -113,13 +113,12 @@ object DeviceCheckShare {
  */
 @Composable
 fun DeviceCheckScreen(ui: DeviceCheckUi, onBack: () -> Unit) {
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.debug_device_check_title), onBack) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
                 .testTag("deviceCheck"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            BackRow(stringResource(R.string.debug_device_check_title), onBack)
             Text(stringResource(R.string.debug_device_check_body), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.debug_device_check_english), style = MaterialTheme.typography.bodySmall)
             val report = ui.state.report

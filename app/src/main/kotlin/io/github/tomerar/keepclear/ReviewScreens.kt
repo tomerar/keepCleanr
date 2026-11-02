@@ -106,14 +106,6 @@ private fun bucketTitle(bucket: String?): String {
     }
 }
 
-@Composable
-internal fun BackRow(title: String, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = onBack, modifier = Modifier.testTag("back")) { Text(stringResource(R.string.back)) }
-        Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
 /** All groups of one category, largest first (REV-1). Nothing is selected or selectable yet. */
 @Composable
 fun CategoryListScreen(
@@ -122,14 +114,13 @@ fun CategoryListScreen(
     onOpenGroup: (String) -> Unit,
     onBack: () -> Unit,
 ) {
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(categoryTitle(category), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("categoryList"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                BackRow(categoryTitle(category), onBack)
                 Text(totalText(summary.total(category)), style = MaterialTheme.typography.bodyLarge)
             }
             items(summary.groups(category), key = { it.ruleId }) { group ->
@@ -180,6 +171,7 @@ fun GroupScreen(
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
     val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
     Scaffold(
+        topBar = { SubScreenTopBar(stringResource(text.group), onBack) },
         bottomBar = {
             // Review PR C: no action bar until something is selected; padded above the navigation bar.
             if (selectable && selectedItems.isNotEmpty()) {
@@ -210,7 +202,6 @@ fun GroupScreen(
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BackRow(stringResource(text.group), onBack)
                     Text(totalText(group.total), style = MaterialTheme.typography.bodyLarge)
                     if (selectable) {
                         val all = remember(group.items) { group.items.mapTo(HashSet()) { it.item.path } }
@@ -536,13 +527,12 @@ fun PreviewScreen(item: ClassifiedItem, onBack: () -> Unit, actions: PreviewActi
     val text = RuleText.of(item.ruleId)
     val date = Instant.ofEpochMilli(item.item.mtimeMillis).atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(text.group), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("preview"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item { BackRow(stringResource(text.group), onBack) }
             item {
                 Box(
                     modifier = Modifier.fillMaxWidth().aspectRatio(

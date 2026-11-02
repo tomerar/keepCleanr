@@ -47,17 +47,26 @@ class AppsActions(
  * uninstall dialog. Without usage access it explains why it's needed first (ONB-7). Nothing is removed by KeepClear.
  */
 @Composable
-fun AppsScreen(apps: List<AppInfo>?, now: Long, actions: AppsActions, onBack: () -> Unit) {
+fun AppsScreen(
+    apps: List<AppInfo>?,
+    now: Long,
+    actions: AppsActions,
+    /** null on the Apps tab (its root: no back arrow). */
+    onBack: (() -> Unit)? = null,
+    /** F1b: the tab's other parts (one app at a time, apps' own folders, the cloned-apps note). */
+    links: AppsTabLinks? = null,
+) {
     val locale = LocalConfiguration.current.locales[0]
 
     fun size(b: Long) = Bidi.isolate(ByteSize.format(b, locale))
-    Scaffold { padding ->
+    Scaffold(topBar = { if (onBack != null) SubScreenTopBar(stringResource(R.string.apps_title), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("apps"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item { BackRow(stringResource(R.string.apps_title), onBack) }
+            if (onBack == null) item { SectionHeading(stringResource(R.string.apps_title)) }
+            links?.let { l -> item { AppsLinks(l) } }
             if (apps == null) {
                 item {
                     Card(Modifier.fillMaxWidth().testTag("usageAccess")) {
@@ -100,6 +109,37 @@ fun AppsScreen(apps: List<AppInfo>?, now: Long, actions: AppsActions, onBack: ()
             }
             item { Text(stringResource(R.string.apps_all), style = MaterialTheme.typography.titleMedium) }
             items(AppsReport.bySize(apps), key = { it.pkg }) { app -> AppRow(app, now, actions, uninstall = false) }
+        }
+    }
+}
+
+/** F1b: what else the Apps tab holds besides the list of apps. */
+class AppsTabLinks(
+    /** SAFE-10: clear one app's temporary files at a time. */
+    val onOneByOne: () -> Unit = {},
+    /** SAFE-9: other apps' own folders; null when the scan found none. */
+    val onAppContent: (() -> Unit)? = null,
+    /** MSG-3: cloned apps' storage exists but KeepClear can't see it. */
+    val clonedHidden: Boolean = false,
+)
+
+@Composable
+private fun AppsLinks(links: AppsTabLinks) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextButton(onClick = links.onOneByOne, modifier = Modifier.testTag("appsOneByOne")) {
+            Text(stringResource(R.string.one_by_one_button))
+        }
+        links.onAppContent?.let { open ->
+            TextButton(onClick = open, modifier = Modifier.testTag("appsAppContent")) {
+                Text(stringResource(R.string.app_content_title))
+            }
+        }
+        if (links.clonedHidden) {
+            Text(
+                stringResource(R.string.cloned_hidden_body),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("appsClonedNote"),
+            )
         }
     }
 }

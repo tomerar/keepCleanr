@@ -137,15 +137,15 @@ class M11Test {
 
     @Test
     fun `settings warns before uninstall while the trash holds files (TRASH-7)`() {
-        var opened = 0
         compose.setContent {
             KeepClearTheme {
                 SettingsScreen(true, {
-                }, {}, {}, SettingsActions(trashBytes = 3_100_000_000, onOpenTrash = { opened++ }))
+                }, {}, {}, SettingsActions(trashBytes = 3_100_000_000))
             }
         }
-        compose.onNodeWithTag("settingsOpenTrash").performScrollTo().performClick()
-        assertEquals(1, opened)
+        compose.onNodeWithTag("beforeUninstall").performScrollTo().assertExists()
+        // F1b: the Trash has one entry point (the chip on the main tabs, plus links from results), none here.
+        compose.onNodeWithTag("settingsOpenTrash").assertDoesNotExist()
     }
 
     @Test

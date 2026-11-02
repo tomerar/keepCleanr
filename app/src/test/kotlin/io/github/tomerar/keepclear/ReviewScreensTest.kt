@@ -110,10 +110,11 @@ class ReviewScreensTest {
         showApp(summary())
         compose.onNodeWithTag("total_REVIEW").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("total_MOVE").assertExists()
-        compose.onNodeWithTag("total_SAFE").assertExists()
+        // F1b: SAFE is the main button in the free-space card (here without a measured phone size).
+        compose.onNodeWithTag("safeCard").assertExists()
         // 450 MB of chat databases may appear in "where your space is", never in an action total.
-        for (category in listOf("SAFE", "REVIEW", "MOVE")) {
-            compose.onAllNodes(hasText("450", substring = true) and hasAnyAncestor(hasTestTag("total_$category")))
+        for (tag in listOf("safeCard", "total_REVIEW", "total_MOVE")) {
+            compose.onAllNodes(hasText("450", substring = true) and hasAnyAncestor(hasTestTag(tag)))
                 .assertCountEquals(0)
         }
     }
@@ -134,9 +135,9 @@ class ReviewScreensTest {
         compose.onNodeWithTag("preview").performScrollToIndex(0)
         compose.onNodeWithTag("back").performClick()
         compose.onNodeWithTag("grid").assertIsDisplayed()
-        // E4: the grid came back where it was (scrolled to the picture), so its Back row is scrolled to first.
+        // E4: the grid came back where it was (scrolled to the picture); F1b: the back arrow is in the pinned top
+        // app bar, so it is there without scrolling.
         compose.onNodeWithTag("preview_Screenshot_0.png").assertIsDisplayed()
-        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("back"))
         compose.onNodeWithTag("back").performClick()
         compose.onNodeWithTag("categoryList").assertIsDisplayed()
     }

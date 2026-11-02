@@ -27,9 +27,9 @@ class HomeScreenTest {
         compose.setContent { KeepClearTheme { HomeScreen(state = state, showDebugTools = false, actions = actions) } }
 
     @Test
-    fun `shows tagline and no debug tools in release mode`() {
+    fun `no debug tools in release mode`() {
         show(HomeUiState())
-        compose.onNodeWithTag("tagline").assertIsDisplayed()
+        compose.onNodeWithTag("homeScreen").assertIsDisplayed()
         compose.onNodeWithText("Flip layout direction (debug)").assertDoesNotExist()
     }
 
@@ -37,7 +37,7 @@ class HomeScreenTest {
     @Config(qualifiers = "iw")
     fun `renders Hebrew`() {
         show(HomeUiState())
-        compose.onNodeWithText("שומרים את מה שחשוב. מפנים את השאר.").assertIsDisplayed()
+        compose.onNodeWithText("לבחור מה להשאיר").assertIsDisplayed()
     }
 
     @Test
@@ -72,12 +72,16 @@ class HomeScreenTest {
     @Test
     fun `all-files card only where the flavor allows it`() {
         show(HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = false, scan = ScanState.Done(1, 1, true)))
+        // F1b: the permission steps are in ONE collapsed "See more files" card.
+        compose.onNodeWithTag("allowAllFiles").assertDoesNotExist()
+        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
         compose.onNodeWithTag("allowAllFiles").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `play flavor never offers all-files`() {
         show(HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = null, scan = ScanState.Done(1, 1, true)))
+        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
         compose.onNodeWithTag("allowAllFiles").assertDoesNotExist()
     }
 

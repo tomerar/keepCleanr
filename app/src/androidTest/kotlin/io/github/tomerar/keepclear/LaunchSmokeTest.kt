@@ -23,6 +23,8 @@ class LaunchSmokeTest {
         if (compose.onAllNodesWithTag("intro").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag("introSkip").performClick()
         }
-        compose.onNodeWithTag("tagline").assertIsDisplayed()
+        // F1b: Home is the first tab, under the top app bar with the wordmark.
+        compose.onNodeWithTag("wordmark").assertIsDisplayed()
+        compose.onNodeWithTag("homeScreen").assertIsDisplayed()
     }
 }
