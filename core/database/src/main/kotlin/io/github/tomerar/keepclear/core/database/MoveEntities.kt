@@ -83,6 +83,12 @@ interface MoveDao {
 
     @Query("SELECT * FROM move_file WHERE jobId = :jobId ORDER BY fileIndex")
     fun filesFlow(jobId: String): Flow<List<MoveFileEntity>>
+
+    /** D2: whether KeepClear on this phone verified a copy of a file with this content taken from [src]. */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM move_file WHERE sourcePath = :src AND sourceSha256 = :sha AND state = 'VERIFIED')",
+    )
+    suspend fun movedFrom(src: String, sha: String): Boolean
 }
 
 class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
@@ -97,6 +103,9 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
     suspend fun putFiles(files: List<MoveFile>) = dao.putFiles(files.map { it.toEntity() })
 
     suspend fun jobs(): List<MoveJob> = dao.allJobs().map { it.toJob() }
+
+    /** D2: restore uses a backup's original path only when this returns true for it (MoveRecords). */
+    suspend fun movedFrom(src: String, sha256: String): Boolean = dao.movedFrom(src, sha256)
 
     companion object {
         fun MoveJob.toEntity() =

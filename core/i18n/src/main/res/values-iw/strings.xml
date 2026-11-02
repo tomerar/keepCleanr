@@ -455,7 +455,7 @@
     <string name="restore_no_backup">לא נמצא שם גיבוי של KeepClear.</string>
     <string name="restore_which_phone">הגיבוי של איזה טלפון?</string>
     <string name="restore_choose">מה להחזיר</string>
-    <string name="restore_where">כל קובץ חוזר למקום שבו היה. אם המקום תפוס או לא בטוח, הקובץ נשמר בתמונות › KeepClear Restored. שום קובץ בטלפון לא מוחלף.</string>
+    <string name="restore_where">קבצים חוזרים למקום המקורי רק אם KeepClear העביר אותם משם בטלפון הזה. השאר נשמרים בתמונות › KeepClear Restored. קבצים מוסתרים ואפליקציות לא משוחזרים. שום קובץ בטלפון לא מוחלף.</string>
     <string name="restore_run">שחזור</string>
     <string name="restore_running">משחזרים…</string>
     <string name="restore_interrupted">הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים.</string>
@@ -558,6 +558,21 @@
     <string name="move_problem_nextcloud_sign_in">ה-Nextcloud כבר לא מקבל את הכניסה של KeepClear. יש להיכנס שוב בהגדרות › מתקדם.</string>
     <string name="move_problem_nextcloud_unreachable">ה-Nextcloud לא ענה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב.</string>
     <string name="restore_from_nextcloud">הגיבוי ב-Nextcloud (%1$s)</string>
+    <string name="restore_to_original">למקום המקורי</string>
+    <string name="restore_to_folder">לתיקיית שחזור (תמונות › KeepClear Restored)</string>
+    <string name="restore_to_mixed">%1$s למקום המקורי, %2$s לתיקיית שחזור</string>
+    <plurals name="restore_skipped">
+        <item quantity="one">פריט אחד לא ישוחזר (קובץ מוסתר או אפליקציה)</item>
+        <item quantity="two">%1$s פריטים לא ישוחזרו (קבצים מוסתרים או אפליקציות)</item>
+        <item quantity="other">%1$s פריטים לא ישוחזרו (קבצים מוסתרים או אפליקציות)</item>
+    </plurals>
+    <string name="restore_space">פנוי בטלפון: %1$s. נבחרו: %2$s.</string>
+    <string name="restore_space_unknown">KeepClear לא הצליח לבדוק כמה מקום פנוי בטלפון, ולכן לא ישחזר עכשיו. אפשר לנסות שוב בעוד רגע.</string>
+    <string name="restore_too_big">אין מספיק מקום לכל מה שבחרתם. KeepClear תמיד משאיר %1$s פנויים כדי שהטלפון ימשיך לעבוד. אפשר לבחור פחות חודשים.</string>
+    <string name="restore_fit">לבחור רק מה שנכנס</string>
+    <string name="restore_not_enough_room">שום דבר לא שוחזר: אין מספיק מקום בטלפון. KeepClear תמיד משאיר %1$s פנויים.</string>
+    <string name="restore_stopped_low_space">השחזור נעצר כי הטלפון כמעט מלא. מה שכבר שוחזר נשאר. אפשר לפנות מקום ולשחזר שוב כדי להשלים.</string>
+    <string name="restore_simulated">היו משוחזרים %1$s (מצב ניסיון): %2$s למקום המקורי, %3$s לתמונות › KeepClear Restored. שום דבר לא נכתב לטלפון.</string>
     <plurals name="move_receipt_verified_nextcloud">
         <item quantity="one">קובץ אחד (%2$s) הועתק. ה-Nextcloud בדק אותו: מה שנשמר זהה למקור.</item>
         <item quantity="two">שני קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>

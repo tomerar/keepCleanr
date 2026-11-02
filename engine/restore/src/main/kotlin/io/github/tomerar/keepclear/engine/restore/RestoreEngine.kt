@@ -231,7 +231,7 @@ object RestoreNames {
         else -> null
     }
 
-    fun isMediaOrDocument(name: String): Boolean = skipReason(name) == null && extension(name) in MEDIA_AND_DOCUMENTS
+    fun isKnownMediaType(name: String): Boolean = skipReason(name) == null && extension(name) in MEDIA_AND_DOCUMENTS
 }
 
 /**
@@ -291,7 +291,7 @@ class RestoreEngine(
         val original = entry.line.src
         val honoured = original.startsWith("$volumeRoot/") &&
             original.substringAfterLast('/') == entry.name &&
-            RestoreNames.isMediaOrDocument(entry.name) &&
+            RestoreNames.isKnownMediaType(entry.name) &&
             validator.check(original, volumeRoot, phone) == null &&
             records.movedFrom(original, entry.line.sha256)
         return if (honoured) {

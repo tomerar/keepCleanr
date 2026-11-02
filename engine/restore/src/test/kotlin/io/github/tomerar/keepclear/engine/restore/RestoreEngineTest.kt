@@ -397,7 +397,7 @@ class RestoreEngineTest {
             "tool.sh" to (RestoreSkip.PROGRAM to false),
         )
         table.forEach { (name, expected) ->
-            (RestoreNames.skipReason(name) to RestoreNames.isMediaOrDocument(name)) shouldBe expected
+            (RestoreNames.skipReason(name) to RestoreNames.isKnownMediaType(name)) shouldBe expected
         }
     }
 

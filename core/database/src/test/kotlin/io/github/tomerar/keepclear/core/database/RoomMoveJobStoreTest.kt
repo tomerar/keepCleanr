@@ -56,6 +56,17 @@ class RoomMoveJobStoreTest {
     )
 
     @Test
+    fun `a backup's original path counts only for a verified file with the same content (D2)`(): Unit =
+        runBlocking {
+            store.putFile(file)
+            store.putFile(file.copy(index = 1, sourcePath = "/storage/emulated/0/x.jpg", state = MoveFileState.FAILED))
+            store.movedFrom(file.sourcePath, file.sourceSha256!!) shouldBe true
+            store.movedFrom(file.sourcePath, "cd".repeat(32)) shouldBe false
+            store.movedFrom("/storage/emulated/0/DCIM/Camera/other.jpg", file.sourceSha256!!) shouldBe false
+            store.movedFrom("/storage/emulated/0/x.jpg", file.sourceSha256!!) shouldBe false
+        }
+
+    @Test
     fun `jobs and files round-trip`(): Unit = runBlocking {
         val job = MoveJob(
             "j1",

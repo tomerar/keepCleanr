@@ -433,7 +433,7 @@
     <string name="restore_no_backup">No KeepClear backup was found there.</string>
     <string name="restore_which_phone">Which phone\'s backup?</string>
     <string name="restore_choose">What to bring back</string>
-    <string name="restore_where">Each file goes back to where it was. If that place is taken or not safe, it goes to Pictures › KeepClear Restored. Nothing on the phone is replaced.</string>
+    <string name="restore_where">Files go back to where they were only if KeepClear moved them from there on this phone. Others go to Pictures › KeepClear Restored. Hidden files and apps are not restored. Nothing on the phone is replaced.</string>
     <string name="restore_run">Restore</string>
     <string name="restore_running">Restoring…</string>
     <string name="restore_interrupted">The drive was disconnected. What was restored stays; restore again to finish.</string>
@@ -528,6 +528,20 @@
     <string name="move_problem_nextcloud_sign_in">Your Nextcloud no longer accepts KeepClear\'s sign-in. Sign in again in Settings › Advanced.</string>
     <string name="move_problem_nextcloud_unreachable">Your Nextcloud didn\'t answer. Check the internet connection and try again.</string>
     <string name="restore_from_nextcloud">It\'s on your Nextcloud (%1$s)</string>
+    <string name="restore_to_original">Back to where they were</string>
+    <string name="restore_to_folder">To the restore folder (Pictures › KeepClear Restored)</string>
+    <string name="restore_to_mixed">%1$s back to where they were, %2$s to the restore folder</string>
+    <plurals name="restore_skipped">
+        <item quantity="one">%1$s item is not restored (a hidden file or an app)</item>
+        <item quantity="other">%1$s items are not restored (hidden files or apps)</item>
+    </plurals>
+    <string name="restore_space">Free on the phone: %1$s. Chosen: %2$s.</string>
+    <string name="restore_space_unknown">KeepClear couldn\'t check the free space on the phone, so it won\'t restore now. Try again in a moment.</string>
+    <string name="restore_too_big">There isn\'t enough room for all of this. KeepClear always leaves %1$s free so the phone keeps working. Choose fewer months.</string>
+    <string name="restore_fit">Choose only what fits</string>
+    <string name="restore_not_enough_room">Nothing was restored: there isn\'t enough room on the phone. KeepClear always leaves %1$s free.</string>
+    <string name="restore_stopped_low_space">Stopped because the phone is almost full. What was restored stays; make room, then restore again to finish.</string>
+    <string name="restore_simulated">Would have restored %1$s (trial mode): %2$s back to where they were, %3$s to Pictures › KeepClear Restored. Nothing was written to the phone.</string>
     <plurals name="move_receipt_verified_nextcloud">
         <item quantity="one">%1$s file (%2$s) copied. Your Nextcloud checked it: what it stored matches the original.</item>
         <item quantity="other">%1$s files (%2$s) copied. Your Nextcloud checked each file: what it stored matches the original.</item>
