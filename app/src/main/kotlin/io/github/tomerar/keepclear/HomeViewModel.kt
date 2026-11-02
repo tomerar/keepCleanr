@@ -455,20 +455,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 android.util.Log.w("KeepClear-Trash", "release check failed: ${e.javaClass.simpleName}")
                 emptySet()
             }
-            val (go, keep) = entries.partition { it.verifiedCopy != null && it.originalPath in intact }
+            // PR #43 review: the check is keyed by the trashed content itself; no recorded SHA-256 → not released.
+            val (go, keep) = entries.partition { e -> releaseKey(e)?.let { it in intact } == true }
             _state.update { it.copy(busy = false, trash = it.trash.copy(releaseHeldBack = keep.size)) }
             if (go.isNotEmpty()) runTrashPlan(go, OpKind.PURGE, confirmation)
         }
     }
 
-    private suspend fun intactCopies(entries: List<TrashEntry>): Set<String> {
+    private fun releaseKey(e: TrashEntry) = e.sha256?.takeIf { e.verifiedCopy != null }?.let {
+        io.github.tomerar.keepclear.engine.move.ReleaseKey(e.originalPath, e.size, it)
+    }
+
+    private suspend fun intactCopies(
+        entries: List<TrashEntry>,
+    ): Set<io.github.tomerar.keepclear.engine.move.ReleaseKey> {
         if (entries.isEmpty()) return emptySet()
         val store = app.moveController.store
         val check = io.github.tomerar.keepclear.engine.move.ReleaseCheck(store, store.jobs()) { job ->
             val ref = job.targetRef ?: return@ReleaseCheck null
             (app.openTargetRef(ref, job.targetLabel) as? OpenedTarget.Ok)?.target
         }
-        return check.intact(entries.map { it.originalPath })
+        return check.intact(entries.mapNotNull { releaseKey(it) })
     }
 
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind, confirmation: Confirmation) {

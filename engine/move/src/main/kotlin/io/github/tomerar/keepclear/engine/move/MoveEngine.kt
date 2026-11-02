@@ -428,13 +428,14 @@ class MoveEngine(
         }
         val boot = bootId()
         val attach = attachGeneration()
+        if (evidence != FreshRead.NEW_SESSION) recordLegacyBaselines(jobId, boot, attach)
         var ok = 0
         var damaged = 0
         var missing = 0
         var unproven = 0
         for (f in store.files(jobId).filter { it.state == MoveFileState.VERIFIED }) {
             currentCoroutineContext().ensureActive()
-            if (evidence != FreshRead.NEW_SESSION && !freshReadProven(f, job, boot, attach)) {
+            if (evidence != FreshRead.NEW_SESSION && !freshReadProven(f, boot, attach)) {
                 if (f.confirmedAt == null) unproven++
                 continue
             }
@@ -482,21 +483,38 @@ class MoveEngine(
      * Reads only the job store, never the target.
      */
     suspend fun unprovenNow(jobId: String): Int {
-        val job = store.job(jobId) ?: return 0
+        store.job(jobId) ?: return 0
         val boot = bootId()
         val attach = attachGeneration()
+        // Before the app asks to unplug: older files get their baseline now, so that unplug can prove them.
+        recordLegacyBaselines(jobId, boot, attach)
         return store.files(jobId).count {
-            it.state == MoveFileState.VERIFIED && it.confirmedAt == null && !freshReadProven(it, job, boot, attach)
+            it.state == MoveFileState.VERIFIED && it.confirmedAt == null && !freshReadProven(it, boot, attach)
+        }
+    }
+
+    /**
+     * D4, PR #43 review: a verified, unconfirmed file from before the per-file record (database version 7) has
+     * neither [MoveFile.verifyBootId] nor [MoveFile.verifyAttach]. Nothing says when its first check ran, so this
+     * records **now** as its baseline (this boot and the drive's current attach generation): a reboot or a real
+     * unmount → mount of the drive after this moment proves a fresh read, exactly as for a newly verified file.
+     * Until then it stays unproven (C54). Writes the job store only.
+     */
+    private suspend fun recordLegacyBaselines(jobId: String, boot: String, attach: AttachGeneration?) {
+        for (f in store.files(jobId)) {
+            val legacy = f.state == MoveFileState.VERIFIED && f.confirmedAt == null &&
+                f.verifyBootId == null && f.verifyAttach == null
+            if (legacy) store.putFile(f.copy(verifyBootId = boot, verifyAttach = attach?.encode()))
         }
     }
 
     /**
      * D4: a read of [f] now can't come from the page cache: its first check ran in an earlier boot, or before the
-     * app saw this volume unmounted and mounted again. Files verified before the per-file record existed fall back
-     * to the job's boot (C54); without any record nothing is proven.
+     * app saw this volume unmounted and mounted again. Older files get a baseline first
+     * ([recordLegacyBaselines]); a file without any record proves nothing (C54).
      */
-    private fun freshReadProven(f: MoveFile, job: MoveJob, boot: String, attach: AttachGeneration?): Boolean {
-        val verifiedIn = f.verifyBootId ?: job.verifyBootId.takeIf { f.verifyAttach == null }
+    private fun freshReadProven(f: MoveFile, boot: String, attach: AttachGeneration?): Boolean {
+        val verifiedIn = f.verifyBootId
         if (verifiedIn != null && verifiedIn != boot) return true
         val then = AttachGeneration.decode(f.verifyAttach) ?: return false
         return attach != null && attach.reattachedSince(then)

@@ -201,4 +201,54 @@ class SecondPassTest {
         AttachGeneration.decode(AttachGeneration("p1", 3).encode()) shouldBe AttachGeneration("p1", 3)
         listOf(null, "", "x@p", "-1@p", "3@", "3").forEach { AttachGeneration.decode(it) shouldBe null }
     }
+
+    /** Rows as an older version left them: verified, no per-file record; [jobBoot] = the job's own boot id. */
+    private suspend fun legacyJob(drive: FakeCapacityDrive, jobBoot: String?): String {
+        val id = job(drive)
+        engine(drive).run(id)
+        store.putJob(store.job(id)!!.copy(verifyBootId = jobBoot))
+        store.files(id).forEach { store.putFile(it.copy(verifyBootId = null, verifyAttach = null)) }
+        return id
+    }
+
+    @Test
+    fun `older verified files get a baseline, then a real unplug and plug-in proves them (PR 43 review)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            // An interrupted older job: no boot id on the job, none per file.
+            val id = legacyJob(drive, jobBoot = null)
+            val first = engine(drive).confirm(id, FreshRead.REATTACHED)
+            first.ok shouldBe 0
+            first.unproven shouldBe 6
+            // The baseline is now: this boot and the drive's current generation.
+            store.files(id).all { it.verifyBootId == boot && it.verifyAttach == "0@process-1" } shouldBe true
+            // Without a real event nothing changes.
+            drive.eject()
+            engine(drive).confirm(id, FreshRead.REATTACHED).unproven shouldBe 6
+            reattach(drive)
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+            engine(drive).originalsPlan(id).size shouldBe 6
+        }
+
+    @Test
+    fun `the app's pre-check records the baseline, so the unplug it asks for counts (PR 43 review)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            // A completed older job whose boot id is the current boot: nothing proven yet.
+            val id = legacyJob(drive, jobBoot = boot)
+            engine(drive).unprovenNow(id) shouldBe 6
+            reattach(drive)
+            engine(drive).unprovenNow(id) shouldBe 0
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+        }
+
+    @Test
+    fun `an older file's job boot id alone no longer proves a fresh read, a reboot after the baseline does`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            val id = legacyJob(drive, jobBoot = "boot-0")
+            engine(drive).confirm(id, FreshRead.REBOOTED).unproven shouldBe 6
+            boot = "boot-2"
+            engine(drive).confirm(id, FreshRead.REBOOTED).ok shouldBe 6
+        }
 }
