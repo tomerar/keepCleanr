@@ -126,6 +126,33 @@ class ScannerTest {
     }
 
     @Test
+    fun `a folder without permission is skipped and the rest is still scanned (E10)`(): Unit = runBlocking {
+        val f = OwnerDevice.build()
+        // The first folder the walk opens is unreadable (whichever it is, so most of the walk comes after it).
+        var denied: String? = null
+        f.gateway.fail(Op.LIST, matches = { p ->
+            val s = p.toString()
+            if (s != OwnerDevice.ROOT && denied == null) denied = s
+            s == denied
+        }) { StorageException.PermissionDenied(it) }
+        val events = Scanner(f.gateway).scan(listOf(root)).toList()
+        events.filterIsInstance<ScanEvent.Unreadable>().single().path shouldBe denied
+        val paths = events.filterIsInstance<ScanEvent.Batch>().flatMap { it.items }.map { it.path }
+        // Everything outside that folder is still found; the scan is not complete, so nothing is forgotten.
+        val everythingElse = Scanner(OwnerDevice.build().gateway).items(root).map { it.path }
+            .filterNot { it.startsWith("$denied/") }
+        paths.sorted() shouldBe everythingElse.sorted()
+        (events.last() as ScanEvent.Done).complete shouldBe false
+    }
+
+    @Test
+    fun `a drive removed mid-scan makes the scan incomplete, so its rows are kept (E10)`(): Unit = runBlocking {
+        val f = OwnerDevice.build()
+        f.gateway.disconnect(OwnerDevice.CLONE_ROOT)
+        (Scanner(f.gateway).scan(listOf(clone, root)).toList().last() as ScanEvent.Done).complete shouldBe false
+    }
+
+    @Test
     fun `MediaStore rows enrich walked files`(): Unit = runBlocking {
         val f = OwnerDevice.build()
         val photo = f.paths(OwnerDevice.Tag.CAMERA).first()
