@@ -46,6 +46,21 @@ Replaces the single Home feed. Decisions C72–C78 in [progress.md](../progress.
 - **Settings:** language, how to get files back, the uninstall note while the trash isn't empty, kept by you, the reminder, the intro again, About + privacy. **מתקדם:** test mode, backup places (Nextcloud set-up; the saved addresses with "Forget"), device check (test builds).
 - **Explainers** (why a permission is needed) open as a bottom sheet from the button that was tapped (C77), never at the top of the tab.
 
+### F2 (2026-11-02): screens, UX fixes and Hebrew (UI-5)
+
+Rebuilt on the design system (ADR 0013). Decisions C79–C95 in [progress.md](../progress.md).
+
+- **Confirmations** are a bottom ConfirmSheet: title, how many, how much, where it goes ("לסל המחזור של KeepClear, ל-30 יום"), the editable list where there is one, the specific verb, Cancel. The confirm keeps `SafeConfirmButton` (delay + covered-screen check); it now has no default colour: red only for permanent actions (empty the trash, release now / all, empty Android's trash), ink for everything else (to the trash, trim, restore a changed file, last copy, test mode off) (C79).
+- **Results** are a ResultBanner on top of the screen: a clean says what moved to the trash and when the space comes back, with Undo and "לרוקן עכשיו"; the measured line ("פונו 7.9GB · עכשיו פנויים 24.7GB (היו 16.8GB)") shows after the space really comes back (trim, emptying or releasing the trash) (C80). A running action shows a progress line.
+- **Free up space:** "where your space is" is one line under the strip (and in the strip's spoken description) (C90); every card is a design-system card.
+- **Review group:** back-arrow bar with the group's name; the size; "למה זה כאן?" chip opens a sheet with why / what happens; "לעבור אחד-אחד" (tonal) and select all; month sections with "לבחור את כל החודש"; 4 columns of thumbnails with a check-circle when selected; the bottom bar ("למחוק 340MB · 12 קבצים") appears only with a selection. Group cards in lists show 3–4 real thumbnails.
+- **Swipe review:** the card follows the finger and tilts (no tilt with "Remove animations"); past a quarter of the width it says „למחוק” or „להשאיר” and ticks; Delete is toward the Delete button (right in English, left in Hebrew); Close or Back with decisions asks „לצאת? 14 החלטות יאבדו” (C83).
+- **Trash:** grouped by what sent items there, each item and group with "עוד 23 ימים"; release-all names how many items have a checked copy (deleted for good) and how many don't (stay in the trash) (C81); the uninstall note on the first visit only, without the hidden folder's name (C82).
+- **Backup tab:** sources are one toggleable row each with thumbnails; age chips wrap; "לבחור לאן לגבות" opens a sheet with the USB drive or memory card and only the places set up in Settings › מתקדם (C84); the summary is a paper slip with the stamp „נבדק קובץ-קובץ”. **Restore:** the same choice of places, then "KeepClear קורא את הגיבוי…" with Cancel, the catalog with "תמונות מהמצלמה · יולי 2021" rows (one target each), and Stop while it runs (C85, C86).
+- **Settings › מתקדם:** "לגבות למחשב בבית (דרך ה-Wi-Fi)": the address form; KeepClear connects once and saves the place only if that worked (C84). The reminder explains first and stays off without notification permission (C88).
+- **Apps:** app icons; each app once (unused apps, then the others); "KeepClear קורא את רשימת האפליקציות…" while loading (C87). One app at a time offers "להפעיל גישה לנתוני שימוש".
+- **Hebrew:** the owner's voice rules (CLAUDE.md) applied to every string: KeepClear masculine, plural address, infinitive buttons, „curly quotes”, "יימחקו"; the store listing uses the app's lane names (C91).
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)
