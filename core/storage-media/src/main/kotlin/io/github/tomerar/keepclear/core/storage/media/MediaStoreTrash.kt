@@ -71,6 +71,9 @@ class MediaConsentHandler(
 
     override fun needsConsent(op: PlannedOp): Boolean = op.ref is KPath.Media
 
+    /** E6/E13: the folder trash reads its index once per plan and keeps its purge out meanwhile. */
+    override suspend fun <T> plan(block: suspend () -> T): T = files.plan(block)
+
     /** Only describes the batches; [MediaRequests.build] makes each Android request when it is about to show. */
     override suspend fun requestConsent(ops: List<PlannedOp>): List<ConsentRequest> = batches(ops)
 

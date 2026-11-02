@@ -9,6 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 
 /**
@@ -78,18 +79,23 @@ class Scanner(
                 val children = try {
                     gateway.list(dir).toList()
                 } catch (e: StorageException.PermissionDenied) {
+                    // E10: an unreadable folder (a whole root, or one folder inside it) is skipped and the walk goes
+                    // on; the scan is never called complete, so the index keeps what it knew about that folder.
                     flush()
                     emit(ScanEvent.Unreadable(dir.absolute, "permission denied"))
-                    if (dir == root) {
-                        // A whole root is unreadable: keep scanning other roots, but never call this complete.
-                        incomplete = true
-                        continue
+                    incomplete = true
+                    // E-PERM-1: if the root can't be read any more either, access was taken back: stop cleanly.
+                    if (dir != root && !canList(root)) {
+                        emit(ScanEvent.Done(false, files, bytes, symlinks, restricted, maxGeneration))
+                        return@flow
                     }
-                    emit(ScanEvent.Done(false, files, bytes, symlinks, restricted, maxGeneration))
-                    return@flow
+                    continue
                 } catch (e: StorageException.Disconnected) {
+                    // E10: the drive went away mid-scan (unplugged, card out). Never complete: a complete scan drops
+                    // the rows it didn't see, and this drive's rows must stay.
                     flush()
                     emit(ScanEvent.VolumeLost(root.absolute))
+                    incomplete = true
                     lost = true
                     continue
                 } catch (e: StorageException) {
@@ -156,6 +162,13 @@ class Scanner(
         }
         flush()
         emit(ScanEvent.Done(!incomplete, files, bytes, symlinks, restricted, maxGeneration))
+    }
+
+    private suspend fun canList(dir: KPath.Local): Boolean = try {
+        gateway.list(dir).take(1).toList()
+        true
+    } catch (e: StorageException) {
+        false
     }
 
     private fun isRestrictedAppDir(root: KPath.Local, dir: KPath.Local): Boolean {

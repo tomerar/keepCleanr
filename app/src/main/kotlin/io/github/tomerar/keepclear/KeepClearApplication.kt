@@ -30,7 +30,15 @@ class KeepClearApplication : Application() {
     /** Identifies this process for plan confirmation (SAFETY-1, MIG-5). */
     val sessionId: String = UUID.randomUUID().toString()
 
-    val database by lazy { KeepClearDatabase.build(this) }
+    /** Tests only: stand-ins set before first use (Robolectric has no key store, tests use their own folders). */
+    internal var databaseFactory: (android.content.Context) -> KeepClearDatabase = { KeepClearDatabase.build(it) }
+    internal var sidecarSigner: () -> io.github.tomerar.keepclear.engine.trash.SidecarSigner = ::KeystoreSidecarSigner
+    internal var gatewayWrapper: (io.github.tomerar.keepclear.core.storage.StorageGateway) ->
+    io.github.tomerar.keepclear.core.storage.StorageGateway = { it }
+    internal var volumeRootsOverride: List<String>? = null
+    internal var targetOpener: (suspend (ref: String, label: String) -> OpenedTarget)? = null
+
+    val database by lazy { databaseFactory(this) }
     val scanIndex by lazy { ScanIndex(database) }
     val fileGateway by lazy { FileGateway() }
 
@@ -87,28 +95,32 @@ class KeepClearApplication : Application() {
 
     /** Every file path goes through here: the phone's files, or a granted folder's documents (M12b). */
     val localGateway by lazy {
-        io.github.tomerar.keepclear.core.storage.MountedGateway(fileGateway) { grantedFolders }
+        gatewayWrapper(io.github.tomerar.keepclear.core.storage.MountedGateway(fileGateway) { grantedFolders })
     }
     val mediaSource by lazy { MediaStoreSource(contentResolver) }
 
     /** SET-3: the opt-in low-space reminder. */
-    val reminderPrefs by lazy { ReminderPrefs(getSharedPreferences("space-reminder", MODE_PRIVATE)) }
+    val reminderPrefs by lazy {
+        MainThreadPolicy.settings { ReminderPrefs(getSharedPreferences("space-reminder", MODE_PRIVATE)) }
+    }
 
     /** CLS-7 / SET-2: what the user kept or marked as junk. */
-    val userChoices by lazy { UserChoices(getSharedPreferences("user-choices", MODE_PRIVATE)) }
+    val userChoices by lazy {
+        MainThreadPolicy.settings { UserChoices(getSharedPreferences("user-choices", MODE_PRIVATE)) }
+    }
 
     /** Own folders are PROTECTED under this build's real package (test builds end in `.test`). */
     val protectedPaths by lazy { ProtectedPaths(ownPackage = packageName) }
 
     /** Mounted volume roots (internal storage, SD card, OTG). */
-    fun volumeRoots(): List<String> = getSystemService(StorageManager::class.java).storageVolumes
+    fun volumeRoots(): List<String> = volumeRootsOverride ?: getSystemService(StorageManager::class.java).storageVolumes
         .mapNotNull { v -> v.directory?.takeIf { v.state == "mounted" }?.absolutePath }
 
     val trashManager by lazy {
         TrashManager(
             gateway = localGateway,
             index = RoomTrashIndex(database.trashDao()),
-            signer = KeystoreSidecarSigner(),
+            signer = sidecarSigner(),
             clock = trashClock,
             protectedPaths = protectedPaths,
             volumeRoots = volumeRoots(),
@@ -125,7 +137,7 @@ class KeepClearApplication : Application() {
         )
     }
 
-    val trashClock by lazy { SystemTrashClock(contentResolver, this) }
+    val trashClock by lazy { MainThreadPolicy.settings { SystemTrashClock(contentResolver, this) } }
 
     /** File paths through the file gateway, MediaStore rows through MediaStore (M12). */
     val actionGateway by lazy {
@@ -141,7 +153,9 @@ class KeepClearApplication : Application() {
 
     /** M15: the network drive the user set up (password sealed with a key-store key). */
     val networkDrives by lazy {
-        NetworkDriveStore(getSharedPreferences("network-drive", MODE_PRIVATE), KeystoreSecretBox())
+        MainThreadPolicy.settings {
+            NetworkDriveStore(getSharedPreferences("network-drive", MODE_PRIVATE), KeystoreSecretBox())
+        }
     }
 
     /**
@@ -149,7 +163,7 @@ class KeepClearApplication : Application() {
      * it right now, so nothing more is sent to that address (PR #25 review).
      */
     suspend fun forgetNetworkDrive() {
-        networkDrives.clear()
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { networkDrives.clear() }
         val running = moveController.running.value?.let { moveController.store.job(it) }
         if (OpenedTarget.usesNetworkDrive(running)) {
             moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
@@ -172,11 +186,13 @@ class KeepClearApplication : Application() {
 
     /** M17b (Advanced): the user's Nextcloud (app password sealed with its own key-store key). */
     val nextcloud by lazy {
-        NextcloudStore(
-            getSharedPreferences("nextcloud", MODE_PRIVATE),
-            secretBox("keepclear-nextcloud"),
-            nextcloudHosts,
-        )
+        MainThreadPolicy.settings {
+            NextcloudStore(
+                getSharedPreferences("nextcloud", MODE_PRIVATE),
+                secretBox("keepclear-nextcloud"),
+                nextcloudHosts,
+            )
+        }
     }
 
     /**
@@ -196,8 +212,9 @@ class KeepClearApplication : Application() {
         if (OpenedTarget.usesNextcloud(running)) {
             moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
         }
+        val clear = suspend { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { nextcloud.clear() } }
         if (nextcloud.host() == null) {
-            nextcloud.clear()
+            clear()
             return null
         }
         var result = io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED
@@ -210,7 +227,9 @@ class KeepClearApplication : Application() {
         } finally {
             // PR #44 review: "Forget" always forgets on the phone, even when the caller is cancelled (or anything
             // throws) while loading the account or waiting for the server.
-            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { nextcloud.clear() }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable + kotlinx.coroutines.Dispatchers.IO) {
+                nextcloud.clear()
+            }
             if (result == io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED) {
                 // No host, user or password in the log.
                 android.util.Log.w(
@@ -270,7 +289,7 @@ class KeepClearApplication : Application() {
      * Nextcloud. A network reference opens only if it still matches the saved place; the marker then has to match
      * too (E-MOVE-2).
      */
-    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = when {
+    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = targetOpener?.invoke(ref, label) ?: when {
         OpenedTarget.isNextcloud(ref) -> {
             val account = nextcloud.load()?.takeIf { NextcloudStore.ref(it) == ref }
             if (account == null) OpenedTarget.Unavailable else openNextcloud(account, label)
@@ -302,7 +321,7 @@ class KeepClearApplication : Application() {
     }
 
     /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
-    val testMode by lazy { TestMode(this) }
+    val testMode by lazy { MainThreadPolicy.settings { TestMode(this) } }
 
     /**
      * The single choke point for every destructive action (CLAUDE.md safety rule 3). Built per plan so the
@@ -340,6 +359,9 @@ class KeepClearApplication : Application() {
         return cached.second.isProtected(path)
     }
 
+    /** E13: full hashes of files seen in earlier classifications (memory only), so a rescan doesn't read them again. */
+    val hashCache by lazy { MemoryHashCache() }
+
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }
 
@@ -348,11 +370,16 @@ class KeepClearApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // E1: in test builds a disk read or write on the main thread crashes at once (NFR-1).
+        if (BuildConfig.DEBUG) MainThreadPolicy.enable()
         // D4: watch from the start, so an unplug during "Check backup" is never missed. Never fatal.
         runCatching { volumeEvents.register(this) }
-        // Before any trash work, also in a process WorkManager starts for the daily purge (PR #23 review).
-        runCatching { refreshGrantedFolders() }
-        TrashPurgeWorker.schedule(this)
+        // E1: off the main thread (it checks folders). The purge worker refreshes the grants itself before any
+        // trash work (PR #23 review), and Home refreshes them on every resume.
+        moveController.scope.launch {
+            runCatching { refreshGrantedFolders() }
+            TrashPurgeWorker.schedule(this@KeepClearApplication)
+        }
     }
 }
 

@@ -18,7 +18,7 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-MOVE-3 | Target runs out of space mid-batch | Pre-flight should prevent it; if it still happens (other writers), stop at the current file, delete its temp, report "Drive full after N files (X GB). Free space on the drive or pick another." Already-verified files remain deletable. | U |
 | E-MOVE-4 | **Phone** runs low on space during backup | Copy needs no phone space (stream), but Room/WAL and thumbnails do: keep a 100 MB reserve (LOW-2); if raw free space < reserve, pause and offer "Let Android trim caches" (SAFE-5). | U |
 | E-MOVE-5 | Source file changed after hashing but before delete (edited, re-saved by Gallery) | At delete time size+mtime differ → SRC_CHANGED, skipped, re-queued; receipt shows "1 file changed since backup — backed up again or kept". | U |
-| E-MOVE-6 | Source changed *during* copy (WhatsApp still downloading a video) | `stat` after copy differs from before → discard and retry later; files with mtime < 2 min ago are deferred to the end of the job. | U |
+| E-MOVE-6 | Source changed *during* copy (WhatsApp still downloading a video) | `stat` after copy differs from before → discard and retry later; files with mtime < 2 min ago are deferred to the end of the job. After 3 tries the file is settled in that job (receipt: "changed"); the rest of the job is done (owner review E9, C67). | U |
 | E-MOVE-7 | Read-back hash mismatch (bad cable, flaky card, FUSE bug) | Re-copy up to 2×; still mismatching → FAILED("Copy on drive is damaged"), never deletable; suggest another drive. | U (corrupting fake) |
 | E-MOVE-8 | File > 4 GiB to FAT32 target | Pre-flight detects the file system where possible (mount info via all-files on foss; otherwise unknown) and lists those files as "Can't copy to this drive (FAT32 limit). Reformat as exFAT or use another target." Unknown FS: attempt, catch `EFBIG`, mark FAILED with the same message. | U, D |
 | E-MOVE-9 | Duplicate target names (two `IMG_0001.jpg` from different folders, or case-only differences on case-insensitive FS) | Name resolution at plan time: same rel path → append ` (2)`, ` (3)`; recorded in manifest `nameChanged`. Identical content already at target (same SHA-256) → reuse, mark VERIFIED without re-copy. | U |
@@ -74,7 +74,7 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 | E-DEL-20 | The trash index (Room) throws, e.g. `SQLiteFullException`, during clean, restore or purge | Reported as failed, the rest of that run is skipped, never a crash; the next start recovers the trash; no-loss invariant holds (owner review D6, C53). | U (property) |
 | E-DEL-21 | "Release now" while the backup copy is gone, changed or unreachable | The copy is re-checked right before (size + SHA-256 read back); the original stays in the trash and the Trash says how many stayed (owner review D6, C52). | U |
 | E-MOVE-20 | "Check backup" after the drive only failed to open once, or after a re-run paused mid-way in the same boot | No proof → those files are not read and stay unconfirmed; only a first check in an earlier boot or a real unmount → mount of the same volume UUID counts (owner review D4, C54). | U |
-| E-STO-1 | SD card removed during scan | Items on that volume disappear from results with a banner "SD card removed"; no errors for other volumes. | U |
+| E-STO-1 | SD card removed during scan | No errors for other volumes; the scan is marked incomplete, so the index keeps that volume's rows (owner review E10, C61). | U |
 | E-STO-2 | SD card removed while its trash has items | Entries marked "on removed SD card"; purge skips them; reappear when re-inserted (volume UUID). | U |
 | E-STO-3 | Huge folders (100k+ entries, e.g. `.thumbnails`, WhatsApp Statuses) | Streaming list, paged insert, no full in-memory list; UI shows aggregate rows, not 100k cells. | U (perf) |
 | E-STO-4 | Symlink loops / bind mounts (`/sdcard` vs `/storage/emulated/0`) | Canonicalize roots once; don't follow symlinks; dedupe by inode (File) or document id. | U |
@@ -97,7 +97,7 @@ Test kinds: **U** = JVM unit/property with `FakeStorageGateway`, **I** = instrum
 
 | ID | Trigger | Behaviour | Test |
 |---|---|---|---|
-| E-PERM-1 | All-files / media permission revoked mid-scan | Scan stops cleanly; results so far marked incomplete; banner with re-grant action. | I |
+| E-PERM-1 | All-files / media permission revoked mid-scan | Scan stops cleanly; results so far marked incomplete; banner with re-grant action. A single folder without permission is skipped and the walk goes on, incomplete; the scan stops only when the root can't be read either (owner review E10, C61). | I |
 | E-PERM-2 | Permission revoked mid-trash/executor | Current op fails safely (SecurityException), remaining ops not attempted, plan "stopped: permission removed". | U, I |
 | E-PERM-3 | Partial media access (Android 14+) | Banner: "Seeing only N selected photos"; MOVE totals marked partial. | I |
 | E-PERM-4 | Usage access denied | Apps tab shows cache trim (no permission) but not per-app sizes. | I |

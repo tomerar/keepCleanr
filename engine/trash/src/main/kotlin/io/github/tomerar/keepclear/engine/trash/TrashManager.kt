@@ -13,6 +13,8 @@ import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
 import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -48,6 +50,51 @@ class TrashManager(
 ) : ActionHandler {
     private val validator = RestorePathValidator(protectedPaths)
 
+    /**
+     * E13: one change to the trash at a time in this process: a plan (trash, restore, empty), the daily purge, the
+     * recovery at start and dropping vanished entries never run at the same time.
+     */
+    private val lock = Mutex()
+
+    /** True while a plan runs inside [plan]. */
+    @Volatile private var inPlan = false
+
+    /**
+     * E6: the last-copy check's index for the running plan (canonical witness path → active entries listing it), read
+     * from the trash index once per plan and kept up to date as the plan trashes and restores. Null until the first
+     * check needs it.
+     */
+    private var witnesses: HashMap<String, MutableList<TrashEntry>>? = null
+
+    override suspend fun <T> plan(block: suspend () -> T): T = lock.withLock {
+        inPlan = true
+        witnesses = null
+        try {
+            block()
+        } finally {
+            inPlan = false
+            witnesses = null
+        }
+    }
+
+    private fun witnessIndex(entries: Collection<TrashEntry>): HashMap<String, MutableList<TrashEntry>> {
+        val map = HashMap<String, MutableList<TrashEntry>>()
+        for (e in entries) addWitnesses(map, e)
+        return map
+    }
+
+    private fun addWitnesses(map: HashMap<String, MutableList<TrashEntry>>, e: TrashEntry) {
+        if (e.state != TrashState.ACTIVE) return
+        for (w in e.witnessPaths.mapNotNull { CanonicalPath.of(it) }.toSet()) map.getOrPut(w) { mutableListOf() } += e
+    }
+
+    /** Active entries that list [path] as their witness (E6: from the plan's index when a plan runs). */
+    private suspend fun holdersOf(path: String): List<TrashEntry> {
+        if (!inPlan) return witnessIndex(index.all())[path].orEmpty()
+        val map = witnesses ?: witnessIndex(index.all()).also { witnesses = it }
+        return map[path].orEmpty()
+    }
+
     override suspend fun perform(op: PlannedOp, gateway: StorageGateway) {
         when (op.kind) {
             OpKind.TRASH, OpKind.MOVE_DELETE_ORIGINAL -> trash(op)
@@ -68,9 +115,7 @@ class TrashManager(
         // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy.
         if (op.kind != OpKind.TRASH) return null
         val path = CanonicalPath.of(op.displayPath) ?: return null
-        val holders = index.all().filter { e ->
-            e.state == TrashState.ACTIVE && e.witnessPaths.any { CanonicalPath.of(it) == path }
-        }
+        val holders = holdersOf(path)
         if (holders.isEmpty()) return null
         var hash: String? = null
         for (e in holders) {
@@ -143,7 +188,9 @@ class TrashManager(
             index.remove(id)
             throw e
         }
-        index.put(entry.copy(state = TrashState.ACTIVE))
+        val active = entry.copy(state = TrashState.ACTIVE)
+        index.put(active)
+        witnesses?.let { addWitnesses(it, active) }
     }
 
     // ----------------------------------------------------------------------------------- restore
@@ -235,7 +282,7 @@ class TrashManager(
      * TRASH-6: drops entries whose trashed file has gone (deleted by another app or the user), on volumes that
      * are present. Returns how many were dropped, so the UI can say so instead of silently doing nothing.
      */
-    suspend fun forgetMissing(entries: List<TrashEntry>): Int {
+    suspend fun forgetMissing(entries: List<TrashEntry>): Int = lock.withLock {
         var dropped = 0
         for (entry in entries) {
             if (volumeMissing(entry.volumeRoot)) continue
@@ -255,7 +302,9 @@ class TrashManager(
      * as a whole and reported through [onClockJump]. Volumes that are missing are skipped (E-STO-2).
      * Returns the bytes purged.
      */
-    suspend fun purgeExpired(): Long {
+    suspend fun purgeExpired(): Long = lock.withLock { purgeExpiredLocked() }
+
+    private suspend fun purgeExpiredLocked(): Long {
         val now = clock.wallMillis()
         val uptime = clock.uptimeMillis()
         val boot = clock.bootId()
@@ -328,7 +377,9 @@ class TrashManager(
      * Runs on app start (E-DEL-8/9, E-SEC-2/3): resolves PENDING rows, rebuilds lost index rows from
      * sidecars (unverified MAC → untrusted), and drops rows whose files vanished.
      */
-    suspend fun recover(): RecoveryReport {
+    suspend fun recover(): RecoveryReport = lock.withLock { recoverLocked() }
+
+    private suspend fun recoverLocked(): RecoveryReport {
         var pending = 0
         var rebuilt = 0
         var untrusted = 0
@@ -396,6 +447,7 @@ class TrashManager(
             if (emptyDir) gateway.delete(entryDir)
         }
         index.remove(entry.id)
+        witnesses?.values?.forEach { list -> list.removeAll { it.id == entry.id } }
     }
 
     private suspend fun requireRealFolders(root: KPath.Local, path: KPath.Local) {

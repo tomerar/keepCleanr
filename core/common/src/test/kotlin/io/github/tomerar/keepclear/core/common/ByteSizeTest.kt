@@ -11,6 +11,12 @@ class ByteSizeTest {
     private fun he(b: Long) = Bidi.strip(ByteSize.format(b, Locale.forLanguageTag("he-IL")))
 
     @Test
+    fun `a negative or corrupt size never crashes the screen (E13)`() {
+        ByteSize.format(-1, java.util.Locale.US) shouldBe ByteSize.format(0, java.util.Locale.US)
+        ByteSize.format(Long.MIN_VALUE, java.util.Locale.US) shouldBe ByteSize.format(0, java.util.Locale.US)
+    }
+
+    @Test
     fun `decimal units like Android Settings`() {
         en(0) shouldBe "0 B"
         en(999) shouldBe "999 B"

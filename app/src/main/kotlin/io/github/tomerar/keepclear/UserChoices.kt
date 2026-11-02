@@ -26,9 +26,11 @@ class UserChoices(private val prefs: SharedPreferences) {
     )
 
     private fun write(choices: Choices) {
-        prefs.edit(commit = true) {
-            putStringSet(KEPT, choices.kept)
-            putStringSet(JUNK, choices.junk)
+        MainThreadPolicy.settings {
+            prefs.edit(commit = true) {
+                putStringSet(KEPT, choices.kept)
+                putStringSet(JUNK, choices.junk)
+            }
         }
         _state.value = choices
     }

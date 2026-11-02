@@ -68,7 +68,6 @@ class MainActivity : ComponentActivity() {
                 val nextcloudVm: NextcloudViewModel = viewModel()
                 val nextcloudState by nextcloudVm.state.collectAsStateWithLifecycle()
                 val nextcloudHost by app.nextcloud.hostState.collectAsStateWithLifecycle()
-                val move by moveVm.state.collectAsStateWithLifecycle()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
                 // ONB-1: the intro on first launch, or when Settings asks for it again.
@@ -95,14 +94,17 @@ class MainActivity : ComponentActivity() {
                     rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
                         vm.consentResult(result.resultCode == RESULT_OK)
                     }
-                val consent = state.consent
-                androidx.compose.runtime.LaunchedEffect(consent?.requests?.size) {
-                    // Built only now: a second request of the same kind would cancel the first one (M12).
-                    val next = if (consent != null) vm.nextConsentRequest() as? android.content.IntentSender else null
-                    if (next != null) {
-                        consentLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(next).build())
-                    }
-                }
+                // E12: each request's dialog is launched once, also across rotation, theme and language changes.
+                MediaConsentEffect(
+                    consent = state.consent,
+                    build = { vm.nextConsentRequest() },
+                    onLaunched = vm::consentLaunched,
+                    launch = { request ->
+                        (request as? android.content.IntentSender)?.let {
+                            consentLauncher.launch(androidx.activity.result.IntentSenderRequest.Builder(it).build())
+                        }
+                    },
+                )
                 // M12b, ONB-6: the system folder picker, opened at WhatsApp's folder.
                 val whatsAppLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -248,11 +250,14 @@ class MainActivity : ComponentActivity() {
                             onSignIn = nextcloudVm::signIn,
                             onManual = nextcloudVm::manual,
                             onOpenLogin = ::openLoginPage,
+                            onLoginOpened = nextcloudVm::loginOpened,
                             onCancel = nextcloudVm::cancel,
                         ),
                         onRestore = vm::restore,
                         onPurge = vm::purge,
-                        move = move,
+                        // E7: the MOVE screen reads this itself; progress doesn't recompose every screen.
+                        moveFlow = moveVm.state,
+                        selectionActions = SelectionActions(onSelect = vm::select, onSwipe = vm::swipe),
                         notificationsOff = notificationsOff,
                         moveActions = MoveActions(
                             onPickTarget = { items ->
@@ -296,7 +301,9 @@ class MainActivity : ComponentActivity() {
                             onFree = moveVm::freeOriginals,
                             onCheck = moveVm::checkBackup,
                             onCancelCheck = moveVm::cancelCheck,
-                            onShare = { id -> move.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt) },
+                            onShare = { id ->
+                                moveVm.state.value.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt)
+                            },
                             onOpenGooglePhotos = ::openGooglePhotos,
                             hasRemovableDrive = ::hasRemovableDrive,
                             onOpenTrash = {
@@ -372,9 +379,11 @@ class MainActivity : ComponentActivity() {
 
     private val prefs get() = getSharedPreferences("move", MODE_PRIVATE)
 
-    private fun askedNotifications() = prefs.getBoolean("askedNotifications", false)
+    private fun askedNotifications() = MainThreadPolicy.settings { prefs.getBoolean("askedNotifications", false) }
 
-    private fun markAskedNotifications() = prefs.edit { putBoolean("askedNotifications", true) }
+    private fun markAskedNotifications() = MainThreadPolicy.settings {
+        prefs.edit { putBoolean("askedNotifications", true) }
+    }
 
     /** MOVE-16: hand over to Google Photos' own "Free up space"; KeepClear can't see its cloud state. */
     private fun openGooglePhotos() {

@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.tomerar.keepclear.devcheck.DeviceCheckScreen
 import io.github.tomerar.keepclear.devcheck.DeviceCheckUi
 
@@ -48,6 +49,10 @@ fun AppScreens(
     previewActions: PreviewActions = PreviewActions(),
     deviceCheck: DeviceCheckUi = DeviceCheckUi(),
     nextcloud: NextcloudUi = NextcloudUi(),
+    /** E4: group selections kept by the ViewModel; null keeps them in each group screen (tests). */
+    selectionActions: SelectionActions? = null,
+    /** E7: the MOVE state as a flow, read only by the MOVE screen (not by every screen on each copied file). */
+    moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>? = null,
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -72,6 +77,8 @@ fun AppScreens(
                     previewActions,
                     deviceCheck,
                     nextcloud,
+                    selectionActions,
+                    moveFlow,
                 )
             }
         }
@@ -124,8 +131,82 @@ private fun ScreenContent(
     previewActions: PreviewActions,
     deviceCheck: DeviceCheckUi,
     nextcloud: NextcloudUi,
+    selectionActions: SelectionActions?,
+    moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
+    // E4: each screen in the stack keeps its own saved UI state (scroll position, open sections) while another
+    // screen is on top, and loses it when it is popped.
+    val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val keys = state.screens.mapIndexed { i, s -> screenKey(i, s) }
+    val seen = androidx.compose.runtime.remember { mutableSetOf<String>() }
+    androidx.compose.runtime.SideEffect {
+        (seen - keys.toSet()).forEach { holder.removeState(it) }
+        seen.retainAll(keys.toSet())
+        seen += keys
+    }
+    holder.SaveableStateProvider(keys.last()) {
+        CurrentScreen(
+            state,
+            onOpen,
+            onBack,
+            home,
+            onRestore,
+            onPurge,
+            safeActions,
+            move,
+            moveActions,
+            notificationsOff,
+            testMode,
+            settingsActions,
+            appActions,
+            appsActions,
+            previewActions,
+            deviceCheck,
+            nextcloud,
+            selectionActions,
+            moveFlow,
+        )
+    }
+}
+
+/** E4: the saved-state key of the screen at [index] in the stack (the same screen twice gets two keys). */
+internal fun screenKey(index: Int, screen: Screen): String = "$index:$screen"
+
+/** E4: the ViewModel's group selections, for [GroupScreen]. */
+class SelectionActions(
+    val onSelect: (key: String, paths: Set<String>) -> Unit = { _, _ -> },
+    val onSwipe: (key: String, decisions: List<SwipeDecision>?) -> Unit = { _, _ -> },
+)
+
+@Composable
+private fun CurrentScreen(
+    state: HomeUiState,
+    onOpen: (Screen) -> Unit,
+    onBack: () -> Unit,
+    home: @Composable () -> Unit,
+    onRestore: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit,
+    onPurge: (
+        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+        io.github.tomerar.keepclear.core.safety.Confirmation,
+    ) -> Unit,
+    safeActions: SafeActions,
+    moveValue: MoveUiState,
+    moveActions: MoveActions,
+    notificationsOff: Boolean,
+    testMode: TestModeUi,
+    settingsActions: SettingsActions,
+    appActions: AppActions,
+    appsActions: AppsActions,
+    previewActions: PreviewActions,
+    deviceCheck: DeviceCheckUi,
+    nextcloud: NextcloudUi,
+    selectionActions: SelectionActions?,
+    moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
+) {
     val summary = state.summary
     val current = state.screens.last()
     // Review PR C: a result belongs to the screen it came from (no stale Undo elsewhere).
@@ -157,7 +238,10 @@ private fun ScreenContent(
 
                 screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> MoveScreen(
                     summary = summary,
-                    state = move,
+                    // E7: only this screen reads the MOVE state, so progress doesn't recompose the others.
+                    state = moveFlow?.let { flow ->
+                        flow.collectAsStateWithLifecycle().value
+                    } ?: moveValue,
                     now = System.currentTimeMillis(),
                     notificationsOff = notificationsOff,
                     // Every action is forwarded (a field-by-field copy once dropped "Check backup").
@@ -198,6 +282,7 @@ private fun ScreenContent(
             if (group == null) {
                 home()
             } else {
+                val key = GroupKey.of(screen.ruleId, screen.category)
                 GroupScreen(
                     group,
                     onOpenItem = { onOpen(Screen.Preview(it.item.path, screen.ruleId, screen.category)) },
@@ -205,6 +290,14 @@ private fun ScreenContent(
                     onDelete = safeActions.onClean,
                     result = result,
                     onUndo = safeActions.onUndo,
+                    selection = selectionActions?.let { a ->
+                        GroupSelection(
+                            selected = state.selections[key].orEmpty(),
+                            onSelect = { a.onSelect(key, it) },
+                            swipe = state.swipes[key],
+                            onSwipe = { a.onSwipe(key, it) },
+                        )
+                    },
                 )
             }
         }
