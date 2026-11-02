@@ -1,6 +1,6 @@
 # KeepClear: implementation progress
 
-> **Latest test APK (after the owner review of 25a3be7: PRs #42–#49, new "Paper & Ink" design):** [Actions run #143](https://github.com/tomerar/keepCleanr/actions/runs/41495308265), artifact **`keepclear-test-143-1457bfa.apk`** (from `main` at 1457bfa, kept until 2026-12-02). It installs over the previous "KeepClear test" (same public test key) and starts in test mode: nothing is deleted or moved until test mode is turned off under Settings › Advanced. How to install: "Test build for the phone" below. Before/after pictures: [docs/design/gallery.md](design/gallery.md).
+> **Latest test APK (after the owner's design QA: PR #51):** [Actions run #147](https://github.com/tomerar/keepCleanr/actions/runs/41543516930), artifact **`keepclear-test-147-a86db4c.apk`** (from `main` at a86db4c, kept until 2026-12-02). It installs over the previous "KeepClear test" (same public test key) and starts in test mode: nothing is deleted or moved until test mode is turned off under Settings › Advanced. How to install: "Test build for the phone" below. Before/after pictures: [docs/design/gallery.md](design/gallery.md#design-qa-owner-2026-11-02).
 
 Updated after every milestone so work can resume if a session stops. Plan: [spec/tasks.md](spec/tasks.md).
 
