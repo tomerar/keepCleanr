@@ -157,7 +157,8 @@ class SmbBackupTarget(
         // D3: SMB3 encryption whenever the server offers it (smbj then encrypts instead of signing).
         .withEncryptData(true)
         // D3: refuses this phone's own addresses, after DNS, right before connecting.
-        .withSocketFactory(ThisDevice.socketFactory(location.hosts, (timeoutSeconds * 1000).toInt()))
+        // (Connecting waits at most 5 s, like smbj's own default, so a computer that is off is noticed quickly.)
+        .withSocketFactory(ThisDevice.socketFactory(location.hosts, minOf(timeoutSeconds * 1000, 5_000L).toInt()))
         .build()
 
     // Set when any call or stream saw the connection, session or share go away. smbj's `isConnected` is only a
