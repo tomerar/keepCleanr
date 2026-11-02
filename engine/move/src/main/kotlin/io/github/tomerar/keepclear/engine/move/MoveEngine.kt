@@ -46,11 +46,7 @@ class MoveEngine(
         var job = store.job(jobId) ?: error("unknown job $jobId")
         job = job.copy(state = JobState.RUNNING, pauseReason = null).also { store.putJob(it) }
         val now = clock()
-        val (recent, normal) = store.files(jobId).filter {
-            it.state != MoveFileState.VERIFIED &&
-                it.state != MoveFileState.FAILED &&
-                it.state != MoveFileState.COPIED_UNVERIFIED
-        }
+        val (recent, normal) = store.files(jobId).filter { !settled(it) }
             .partition { now - it.sourceMtime in 0 until recentMillis }
         try {
             for (file in normal + recent) {
@@ -77,10 +73,19 @@ class MoveEngine(
             throw e
         }
         job = job.copy(verifyBootId = bootId())
-        val unfinished = store.files(jobId).any {
-            it.state !in setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED)
-        }
+        val unfinished = store.files(jobId).any { !settled(it) }
         return job.copy(state = if (unfinished) JobState.READY else JobState.DONE).also { store.putJob(it) }
+    }
+
+    /**
+     * Needs no more work in this job. E9: a file that kept changing while it was copied ([MoveFileState.SRC_CHANGED]
+     * after [maxAttempts] tries) is settled like a failed one: the receipt names it, and the rest of the job is done
+     * (its receipt, "Check backup" and "Free up space" stay available). A new backup can try it again.
+     */
+    private fun settled(f: MoveFile): Boolean = when (f.state) {
+        MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED -> true
+        MoveFileState.SRC_CHANGED -> f.attempts >= maxAttempts
+        else -> false
     }
 
     private class Pause(val reason: PauseReason) : Exception()
@@ -125,7 +130,9 @@ class MoveEngine(
                 // The size is announced so a network target can send it up front (M17); a source that grows or
                 // shrinks mid-copy then fails the upload, which is caught as a source change below.
                 guarded { target.create(file.tempRel, before.size) }.use { output ->
-                    Sha256.copy(input, output, contentHash)
+                    // E2: a pause or Android's time limit stops the copy within one buffer, not after the file.
+                    val context = currentCoroutineContext()
+                    Sha256.copy(input, output, contentHash, beforeEachRead = { context.ensureActive() })
                 }
             }
         } catch (e: Pause) {
@@ -255,7 +262,8 @@ class MoveEngine(
     }
 
     private suspend fun readBackHash(rel: String): String? = try {
-        guarded { target.openRead(rel) }.use { Sha256.of(it) }
+        val context = currentCoroutineContext()
+        guarded { target.openRead(rel) }.use { input -> Sha256.of(input) { context.ensureActive() } }
     } catch (e: Pause) {
         throw e
     } catch (e: StorageException) {

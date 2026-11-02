@@ -173,6 +173,7 @@ class MoveEngineTest {
         val rig = Rig(files = 3, caps = TargetCaps(canReadBack = true, canFreeOriginals = false))
         rig.engine().run(rig.newJob())
         rig.verifiedTargets().size shouldBe 3
+        // D4: the second check needs a real unplug and plug-in of the drive first.
         rig.reattach()
         rig.engine().confirm("job1", FreshRead.REATTACHED).ok shouldBe 3
         rig.engine().originalsPlan("job1").shouldBeEmpty()
