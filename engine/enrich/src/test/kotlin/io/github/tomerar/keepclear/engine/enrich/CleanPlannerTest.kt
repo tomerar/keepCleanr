@@ -75,4 +75,26 @@ class CleanPlannerTest {
         SafetyGuard(ProtectedPaths()).check(CleanPlanner.plan("q", classified, e.evidence, "c").confirm(1, "s"), "s")
             .shouldBeInstanceOf<SafetyGuard.Verdict.Rejected>()
     }
+
+    @Test
+    fun `only SAFE items are marked as SAFE in the plan, so REVIEW deletions never become permanent`() {
+        val now = OwnerDevice.NOW
+        val thumb = "$root/DCIM/.thumbnails/1.jpg"
+        val day = 24L * 3_600_000
+        val items = listOf(
+            io.github.tomerar.keepclear.engine.scan.ScanItem(KPath.Local(thumb), thumb, 10, now - 40 * day),
+            io.github.tomerar.keepclear.engine.scan.ScanItem(
+                KPath.Local(thumb),
+                thumb,
+                10,
+                now - 40 * day,
+                isFavorite = true,
+            ),
+        ).map { Classifier().classify(it, emptySet(), now) }
+        items.map { it.category } shouldBe listOf(Category.SAFE, Category.REVIEW)
+        val ops = CleanPlanner.plan("p", items, emptyMap(), "clean").ops
+        ops.map { it.classifiedSafe } shouldBe listOf(true, false)
+        ops.map { io.github.tomerar.keepclear.core.safety.PermanentKinds.reasonFor(it, now) } shouldBe
+            listOf(io.github.tomerar.keepclear.core.safety.PermanentReason.REBUILDS_ITSELF, null)
+    }
 }

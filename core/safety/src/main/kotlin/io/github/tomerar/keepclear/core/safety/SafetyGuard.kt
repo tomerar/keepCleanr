@@ -50,6 +50,11 @@ class SafetyGuard(
                 // right before acting (M12). Anything else must be inside KeepClear's own trash.
                 reasons += "PURGE outside the trash (SAFETY-2): ${op.displayPath}"
             }
+            // Owner decision 2026-11-02: only the executor decides that an item is deleted for good, per item, from
+            // its classification and path (PermanentKinds). A plan can't ask for it.
+            if (op.kind == OpKind.DELETE_FOR_GOOD || op.permanentReason != null) {
+                reasons += "Permanent delete requested by the plan, not decided by the executor: ${op.displayPath}"
+            }
             if (op.kind == OpKind.MOVE_DELETE_ORIGINAL) {
                 val sha = op.expectedSha256
                 if (sha == null || !Sha256.isValidHex(sha)) {

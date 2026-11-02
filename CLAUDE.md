@@ -38,7 +38,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 ## Safety rules (non-negotiable)
 
 1. **Never delete without explicit confirmation** in the current session. No background or scheduled deletion of user files.
-2. **Every user-file deletion goes to the 30-day trash** (`engine:trash`). Permanent deletion happens only through purge, "Empty now" with a second confirmation, or system cache trimming that is labelled as such.
+2. **Every user-file deletion goes to the 30-day trash** (`engine:trash`). Permanent deletion happens only through purge, "Empty now" with a second confirmation, system cache trimming that is labelled as such, or (owner, 2026-11-02, ADR 0006 amendment) the two kinds `ActionExecutor` itself decides per item with `PermanentKinds`: items that rebuild themselves (`thumbnails`, `temp_files`, `os_junk`, `wa_status_old`) and items already in another app's bin (`other_app_bin`), SAFE only, rule and strict path agreeing, never duplicates/witnesses/folders. Everything else (duplicates, extracted archives, REVIEW, MOVE originals) still goes to the trash.
 3. **One choke point**: only `ActionExecutor` in `core:safety` (plus the trash and storage implementations) may call `File.delete`, `DocumentsContract.deleteDocument`, `ContentResolver.delete`, `MediaStore.create*Request`, or rename user files. Konsist enforces this.
 4. **PROTECTED paths are enforced at the choke point**: WhatsApp `Databases/`, `Backups/`, `*.crypt*`, `msgstore*`, our trash, the active backup target, and user exclusions.
 5. **MOVE deletes an original only after an L3 (SHA-256 read-back) verification**, a size/mtime re-check and a re-hash of the original right before deleting (strict mode, on by default; ADR 0007).
@@ -58,7 +58,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 ## Design rules ("Paper & Ink", ADR 0013, `docs/design/design-system.md`)
 
 - New and rebuilt screens use only `core:designsystem` components (`KcButton`, `KcCard`, `LaneCard`, `StorageStrip`, `HeroNumber`, `ConfirmSheet`, `ResultBanner`, `DaysLeftChip`, `ThumbStrip`, `VerifiedStamp`, `InfoChip`) and theme tokens; no hard-coded colours, fonts or shapes in `app`.
-- One ink colour (`primary`) for actions. Red (`error`, `KcButtonStyle.Destructive`, `ConfirmSheet(permanent = true)`) **only** for permanent, unrecoverable actions; going to the 30-day trash is not permanent.
+- One ink colour (`primary`) for actions. Red (`error`, `KcButtonStyle.Destructive` / `OutlinedDestructive`, `ConfirmSheet(permanent = true)`) **only** for permanent, unrecoverable actions; going to the 30-day trash is not permanent. No parentheses in button labels (`ButtonLabelsTest`).
 - Lanes (SAFE sage, REVIEW slate, MOVE amber) are always icon + label, never colour alone. Dynamic colour stays off by default.
 - Sizes and counts: `ByteSize` (decimal) in Rubik with tabular figures (`KeepClearTheme.type.number` / `hero`).
 - Stable Material 3 only (no Expressive beta, no new `@ExperimentalMaterial3Api` use). Motion respects `KeepClearTheme.reducedMotion`.

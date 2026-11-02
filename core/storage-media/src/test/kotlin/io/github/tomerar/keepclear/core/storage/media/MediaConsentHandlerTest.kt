@@ -79,4 +79,16 @@ class MediaConsentHandlerTest {
         assertEquals(SkipReason.CHANGED, handler.veto(op(2, OpKind.TRASH), gatewayWith(trashed = true)))
         assertEquals(SkipReason.MISSING, handler.veto(op(2, OpKind.RESTORE), gatewayWith(trashed = null)))
     }
+
+    @Test
+    fun `a row already in Android's trash is deleted for good only while it is still there`(): Unit = runBlocking {
+        val inBin = op(2, OpKind.DELETE_FOR_GOOD).copy(
+            permanentReason = io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN,
+        )
+        assertNull(handler.veto(inBin, gatewayWith(trashed = true)))
+        assertEquals(SkipReason.CHANGED, handler.veto(inBin, gatewayWith(trashed = false)))
+        assertEquals(SkipReason.MISSING, handler.veto(inBin, gatewayWith(trashed = null)))
+        val batches = handler.requestConsent(listOf(inBin, op(4))).map { it as MediaBatch }
+        assertEquals(listOf(OpKind.DELETE_FOR_GOOD, OpKind.TRASH), batches.map { it.kind })
+    }
 }

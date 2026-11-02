@@ -1,6 +1,6 @@
 # ADR 0006: 30-day trash for every user-file deletion; honest space accounting
 
-Status: Accepted (2026-10-31) · Date: 2026-10-31
+Status: Accepted (2026-10-31), amended 2026-11-02 (owner) · Date: 2026-10-31
 
 ## Context
 The product promise: every deletion goes to a 30-day trash first. Research shows:
@@ -27,3 +27,36 @@ The product promise: every deletion goes to a 30-day trash first. Research shows
 - Copy into app-private storage (Clearo): doubles space, slow, fails when full.
 - Permanent delete with only a confirmation (SD Maid SE): violates the core promise.
 - Only MediaStore trash: doesn't cover WhatsApp `.nomedia` / SAF files.
+
+## Amended 2026-11-02 (owner)
+
+The owner's design QA of 2026-11-02 changes requirements Q2 for **two kinds only**. They are deleted for good right
+after the clean's confirmation instead of going to the 30-day trash:
+
+1. **Items that rebuild themselves** (owner decision B1's regenerable kinds): thumbnails, temporary files, OS junk
+   (`.DS_Store`, `Thumbs.db`, `desktop.ini`, `.directory`, `._*`) and WhatsApp statuses older than 24 h (rules
+   `thumbnails`, `temp_files`, `os_junk`, `wa_status_old`).
+2. **Items already in another app's bin**: MediaStore `IS_TRASHED` rows (deleted through Android's delete request,
+   only while still trashed), `.trashed-<digits>-<name>` files and `<volume root>/.FileManagerRecycler/` (rule
+   `other_app_bin`). This replaces exception (b) above ("moved into our trash").
+
+Everything else keeps this ADR unchanged: duplicates, extracted archives, LOST.DIR, "Always treat as junk", REVIEW
+deletions and MOVE originals go to the trash for 30 days.
+
+How it stays safe:
+- **Decided at the choke point, per item, from data.** `ActionExecutor` asks `PermanentKinds` for each plain trash op:
+  one file, classified SAFE (not moved to REVIEW by a keep signal), no duplicate group, no witnesses, and the rule
+  **and** a strict, lossless path test name the same kind. It then hands the op to the trash module as
+  `DELETE_FOR_GOOD`; a plan that asks for that itself is rejected. The delete stays inside `TrashManager` (a plain
+  file by path, never a folder or anything in a KeepClear trash) and `MediaConsentHandler` (Android's delete request).
+- **Same guarantees as trashing:** PROTECTED paths, "kept" paths, the re-check of size/date/identity, witness checks,
+  the last-copy check, the confirmation in the current session and test mode (dry run) apply unchanged.
+- **Said plainly before and after:** the confirmation says which part is deleted for good and why ("they rebuild
+  themselves" / "they were already deleted once, so they can't be put back"); the result shows the **measured** free
+  space for that part (`StatFs` before and after, off the main thread) and "<size> in the trash, freed on <date>" with
+  Undo and Empty now for the rest. Undo covers only the trashed part.
+- **Honest accounting** is unchanged for everything in the trash.
+
+Tests: `PermanentKindsTest`, `PermanentDeleteTest` (each kind deleted, each other kind trashed, PROTECTED refused, test
+mode, changed items, no confirmation), `PermanentKillPointPropertyTest` (the no-loss invariant for every other kind
+under random kill points), `MediaConsentHandlerTest`, `CleanPlannerTest`, app `DesignQaTest`. Threat model T8b (SEC-10).

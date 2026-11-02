@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import io.github.tomerar.keepclear.core.safety.ActionHandler
 import io.github.tomerar.keepclear.core.safety.ConsentRequest
 import io.github.tomerar.keepclear.core.safety.OpKind
+import io.github.tomerar.keepclear.core.safety.PermanentReason
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.safety.SkipReason
 import io.github.tomerar.keepclear.core.storage.KPath
@@ -59,8 +60,13 @@ class MediaConsentHandler(
         val trashed = gateway.stat(row)?.identity?.let { MediaGateway.isTrashed(it) } ?: return SkipReason.MISSING
         val stateOk = when (op.kind) {
             OpKind.PURGE, OpKind.RESTORE -> trashed
+
             OpKind.TRASH, OpKind.MOVE_DELETE_ORIGINAL -> !trashed
+
             OpKind.RESTORE_CHANGED -> false
+
+            // Owner decision 2026-11-02: "already in another app's bin" must still be in Android's trash right now.
+            OpKind.DELETE_FOR_GOOD -> trashed || op.permanentReason == PermanentReason.REBUILDS_ITSELF
         }
         return when {
             !stateOk -> SkipReason.CHANGED
@@ -105,7 +111,7 @@ class AndroidMediaRequests(private val resolver: ContentResolver) : MediaRequest
     override suspend fun build(batch: MediaBatch): Any {
         val uris = batch.rows.map { itemUri(it) ?: throw StorageException.Unsupported(it, "not image/video/audio") }
         return when (batch.kind) {
-            OpKind.PURGE -> MediaStore.createDeleteRequest(resolver, uris)
+            OpKind.PURGE, OpKind.DELETE_FOR_GOOD -> MediaStore.createDeleteRequest(resolver, uris)
             OpKind.RESTORE -> MediaStore.createTrashRequest(resolver, uris, false)
             else -> MediaStore.createTrashRequest(resolver, uris, true)
         }.intentSender
