@@ -445,8 +445,8 @@ class MoveEngine(
             } catch (e: Pause) {
                 return CheckResult(ok, damaged, missing, interrupted = true, unproven = unproven)
             } catch (e: StorageException) {
-                if (pauseFor(e) != null) return CheckResult(ok, damaged, missing, interrupted = true, unproven = unproven)
-                throw e
+                pauseFor(e) ?: throw e
+                return CheckResult(ok, damaged, missing, interrupted = true, unproven = unproven)
             }
             val (stat, hash) = read
             when {

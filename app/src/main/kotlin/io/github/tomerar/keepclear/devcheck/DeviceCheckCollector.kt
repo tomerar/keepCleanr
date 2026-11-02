@@ -19,11 +19,10 @@ import io.github.tomerar.keepclear.KeepClearApplication
 import io.github.tomerar.keepclear.MoveNotifications
 import io.github.tomerar.keepclear.ScanRoots
 import io.github.tomerar.keepclear.backup.saf.DriveFormat
-import io.github.tomerar.keepclear.classifyRun
-import io.github.tomerar.keepclear.core.storage.media.MediaAccess
-import io.github.tomerar.keepclear.engine.scan.Scanner
 import io.github.tomerar.keepclear.backupAwareScanner
 import io.github.tomerar.keepclear.backupScanExclusions
+import io.github.tomerar.keepclear.classifyRun
+import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.homeClassifier
 import kotlinx.coroutines.CancellationException
 

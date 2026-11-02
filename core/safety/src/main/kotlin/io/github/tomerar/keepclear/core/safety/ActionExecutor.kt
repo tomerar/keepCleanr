@@ -144,7 +144,7 @@ class ActionExecutor(
                     result.error is StorageException.PermissionDenied ||
                         result.error is StorageException.Disconnected ||
                         result.error.message?.startsWith(UNEXPECTED) == true
-                    )
+                )
             ) {
                 stopped = true
             }

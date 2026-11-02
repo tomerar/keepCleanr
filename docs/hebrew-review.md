@@ -7,17 +7,17 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-535 Hebrew strings.
+538 Hebrew strings.
 
 ## Contents
 
 - [Intro and permissions](#intro-and-permissions) (39)
 - [Home](#home) (44)
-- [Clean now](#clean-now) (16)
+- [Clean now](#clean-now) (17)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (158)
-- [Trash](#trash) (41)
+- [Move to backup and restore](#move-to-backup-and-restore) (159)
+- [Trash](#trash) (42)
 - [Apps](#apps) (29)
 - [Settings](#settings) (33)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (24)
@@ -134,6 +134,7 @@ string; "also" lists other screens.
 | `clean_empty_now` | Empty now | לרוקן עכשיו | Move to backup and restore |
 | `clean_selected` | Selected: %1$s | נבחרו: %1$s |  |
 | `clean_skipped` | [one] %1$s file changed since the scan, so we left it alone. / [other] %1$s files changed since the scan, so we left them alone. | [one] קובץ אחד השתנה מאז הסריקה, ולכן לא נגענו בו. / [two] שני קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. / [other] %1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. |  |
+| `clean_skipped_protected` | [one] %1$s file is protected (chats, a backup, or something you kept), so we left it alone. / [other] %1$s files are protected (chats, a backup, or something you kept), so we left them alone. | [one] קובץ אחד מוגן (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בו. / [two] שני קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. / [other] %1$s קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. |  |
 | `clean_title` | Clean now | לנקות עכשיו |  |
 | `clean_undo` | Put it all back | להחזיר הכול | Review (categories, groups, item preview) |
 | `obscured_touch_hint` | Something is covering the screen, so the tap was ignored. Close other apps' bubbles or overlays and try again. | משהו מכסה את המסך, ולכן הלחיצה לא נקלטה. אפשר לסגור בועות או חלונות של אפליקציות אחרות ולנסות שוב. |  |
@@ -215,6 +216,7 @@ string; "also" lists other screens.
 | `move_check_plug_back` | Now plug %1$s back in. | עכשיו לחבר שוב את %1$s. |  |
 | `move_check_timeout` | The drive didn't come back. Nothing was changed. Try again when it's plugged in. | הכונן לא חובר שוב. שום דבר לא השתנה. אפשר לנסות שוב כשהוא מחובר. |  |
 | `move_check_unplug` | Unplug %1$s now, then plug it back in. | עכשיו לנתק את %1$s ולחבר אותו שוב. |  |
+| `move_check_unproven` | [one] %1$s file wasn't checked this time: the phone may still remember it from the copy. Unplug the drive, plug it back in and check again. / [other] %1$s files weren't checked this time: the phone may still remember them from the copy. Unplug the drive, plug it back in and check again. | [one] קובץ אחד לא נבדק הפעם: ייתכן שהטלפון עדיין זוכר אותו מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. / [two] שני קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. / [other] %1$s קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. |  |
 | `move_check_why` | Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that. | למה: מיד אחרי ההעתקה הטלפון עשוי לענות מהזיכרון שלו ולא מהכונן. ניתוק וחיבור מחדש מנקים את זה. |  |
 | `move_continue` | Continue | להמשיך |  |
 | `move_favourites_note` | Favourites are never included. | מועדפים אף פעם לא נכללים. |  |
@@ -384,6 +386,7 @@ string; "also" lists other screens.
 | `trash_group_review` | Chosen by you | קבצים שבחרתם למחוק |  |
 | `trash_hide_files` | Hide files | להסתיר את הקבצים |  |
 | `trash_release_all` | Free everything that has a checked copy (%1$s) | לפנות את כל מה שיש לו עותק שנבדק (%1$s) |  |
+| `trash_release_held_back` | [one] %1$s file stayed in the trash: KeepClear couldn't confirm just now that its backup copy is intact. Connect the backup place and try again. / [other] %1$s files stayed in the trash: KeepClear couldn't confirm just now that their backup copies are intact. Connect the backup place and try again. | [one] קובץ אחד נשאר בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותק שלו בגיבוי שלם. אפשר לחבר את מקום הגיבוי ולנסות שוב. / [two] שני קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב. / [other] %1$s קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב. |  |
 | `trash_release_now` | Free now (a checked copy exists) | לפנות עכשיו (יש עותק שנבדק) |  |
 | `trash_restore` | Restore | לשחזר |  |
 | `trash_restore_all` | Restore all | לשחזר הכול |  |
