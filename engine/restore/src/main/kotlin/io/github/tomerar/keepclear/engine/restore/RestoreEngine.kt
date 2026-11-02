@@ -95,13 +95,29 @@ data class RoomCheck(val needed: Long, val space: Space?) {
     val fits: Boolean get() = space != null && needed <= space.room
 }
 
-/** D1 test mode: what restoring would do. [bytes] counts the files that would be written. */
-data class RestorePreview(val toOriginal: Int, val toRestoreFolder: Int, val skipped: Int, val bytes: Long) {
+/**
+ * D1 test mode: what restoring would do. [bytes] counts only the files that would be written; files already on
+ * the phone with the same content ([alreadyThere]) and skipped ones are not.
+ */
+data class RestorePreview(
+    val toOriginal: Int,
+    val toRestoreFolder: Int,
+    val skipped: Int,
+    val bytes: Long,
+    val alreadyThere: Int = 0,
+) {
     val files: Int get() = toOriginal + toRestoreFolder
 }
 
 /** Where one backed-up file would go (D2). */
-enum class Where { ORIGINAL, RESTORE_FOLDER, SKIPPED }
+enum class Where {
+    ORIGINAL,
+    RESTORE_FOLDER,
+
+    /** Already on the phone with the same content (same size and SHA-256): nothing is written. */
+    ALREADY_THERE,
+    SKIPPED,
+}
 
 /** Why a file from a backup is never written to the phone (D2). */
 enum class RestoreSkip {
@@ -112,7 +128,10 @@ enum class RestoreSkip {
     PROGRAM,
 }
 
-data class Placement(val entry: BackupEntry, val where: Where, val path: String?, val skip: RestoreSkip? = null)
+data class Placement(val entry: BackupEntry, val where: Where, val path: String?, val skip: RestoreSkip? = null) {
+    /** Whether restoring writes this file (and so needs room for it). */
+    val writes: Boolean get() = where == Where.ORIGINAL || where == Where.RESTORE_FOLDER
+}
 
 /**
  * D2: which names a backup may put back. Pure and table-driven. Hidden files and programs are never written;
@@ -301,29 +320,60 @@ class RestoreEngine(
         }
     }
 
-    /** Where every entry would go, for the catalog (D2). */
-    suspend fun plan(entries: List<BackupEntry>): List<Placement> = entries.map { placement(it) }
+    /**
+     * The one decision the catalog, test mode, the room check and [restore] share (PR #42 review): [placement],
+     * then what is already on the phone. An original place taken by another file sends the file to the restore
+     * folder; the same content (size and SHA-256) at the destination, or at one of its numbered names in the
+     * restore folder, is [Where.ALREADY_THERE] and needs neither writing nor room.
+     */
+    suspend fun resolve(entry: BackupEntry): Placement {
+        val placement = placement(entry)
+        if (placement.where == Where.SKIPPED) return placement
+        var destination = placement.path!!
+        var where = placement.where
+        val existing = phone.stat(KPath.Local(destination))
+        if (existing != null) {
+            if (existing.isFile && existing.size == entry.line.size && hashOnPhone(destination) == entry.line.sha256) {
+                return Placement(entry, Where.ALREADY_THERE, destination)
+            }
+            // Taken by something else: never overwrite, use the restore folder instead.
+            destination = restoreFolderPath(entry)
+            where = Where.RESTORE_FOLDER
+        }
+        // Restored there before (an earlier or interrupted run)? Then it is already there, not copied again.
+        if (where == Where.RESTORE_FOLDER) {
+            sameInRestoreFolder(destination, entry)?.let { return Placement(entry, Where.ALREADY_THERE, it) }
+        }
+        return Placement(entry, where, destination)
+    }
 
-    /** D1: whether [entries] fit with the reserve left free. Skipped files need no room. */
-    suspend fun roomCheck(entries: List<BackupEntry>): RoomCheck = RoomCheck(
-        needed = entries.filter { RestoreNames.skipReason(it.name) == null }.sumOf { it.line.size },
+    /** Where every entry would go, for the catalog (D2), including what is already on the phone. */
+    suspend fun plan(entries: List<BackupEntry>): List<Placement> = entries.map { resolve(it) }
+
+    /**
+     * D1: whether [placements] fit with the reserve left free. Skipped files and files already on the phone
+     * (proven by [resolve]'s size and SHA-256 check) need no room.
+     */
+    suspend fun roomCheck(placements: List<Placement>): RoomCheck = RoomCheck(
+        needed = placements.filter { it.writes }.sumOf { it.entry.line.size },
         space = runCatching { space.measure() }.getOrNull(),
     )
 
     /** D1 test mode: what [restore] would do, without writing anything. */
-    suspend fun preview(entries: List<BackupEntry>): RestorePreview {
-        val placements = plan(entries)
-        return RestorePreview(
-            toOriginal = placements.count { it.where == Where.ORIGINAL },
-            toRestoreFolder = placements.count { it.where == Where.RESTORE_FOLDER },
-            skipped = placements.count { it.where == Where.SKIPPED },
-            bytes = placements.filter { it.where != Where.SKIPPED }.sumOf { it.entry.line.size },
-        )
-    }
+    suspend fun preview(entries: List<BackupEntry>): RestorePreview = preview(plan(entries))
+
+    private fun preview(placements: List<Placement>) = RestorePreview(
+        toOriginal = placements.count { it.where == Where.ORIGINAL },
+        toRestoreFolder = placements.count { it.where == Where.RESTORE_FOLDER },
+        skipped = placements.count { it.where == Where.SKIPPED },
+        bytes = placements.filter { it.writes }.sumOf { it.entry.line.size },
+        alreadyThere = placements.count { it.where == Where.ALREADY_THERE },
+    )
 
     suspend fun restore(entries: List<BackupEntry>, onProgress: (Int) -> Unit = {}): RestoreReport {
-        if (isDryRun()) return RestoreReport(simulated = preview(entries))
-        val room = roomCheck(entries)
+        val placements = plan(entries)
+        if (isDryRun()) return RestoreReport(simulated = preview(placements))
+        val room = roomCheck(placements)
         if (!room.fits) return RestoreReport(notEnoughRoom = room)
         val restored = mutableListOf<String>()
         var already = 0
@@ -394,24 +444,24 @@ class RestoreEngine(
 
     private suspend fun restoreOne(entry: BackupEntry): Outcome {
         val expected = entry.line.sha256
-        val placement = placement(entry)
-        if (placement.where == Where.SKIPPED) return Outcome.Skipped
+        // Resolved again right before acting (SAFETY-6): the phone may have changed since the plan.
+        val placement = resolve(entry)
+        when (placement.where) {
+            Where.SKIPPED -> {
+                return Outcome.Skipped
+            }
+
+            Where.ALREADY_THERE -> {
+                return Outcome.AlreadyThere
+            }
+
+            Where.ORIGINAL, Where.RESTORE_FOLDER -> {}
+        }
         val onDrive = target.stat(entry.targetRel)
         if (onDrive == null || !onDrive.isFile || onDrive.size != entry.line.size) return Outcome.Damaged
 
-        var destination = placement.path!!
-        var redirected = placement.where == Where.RESTORE_FOLDER
-        val existing = phone.stat(KPath.Local(destination))
-        if (existing != null) {
-            if (existing.isFile && existing.size == entry.line.size && hashOnPhone(destination) == expected) {
-                return Outcome.AlreadyThere
-            }
-            // Taken by something else: never overwrite, use the restore folder instead.
-            destination = restoreFolderPath(entry)
-            redirected = true
-        }
-        // Restored there before (an earlier or interrupted run)? Then it is already there, not copied again.
-        if (redirected && alreadyInRestoreFolder(destination, entry)) return Outcome.AlreadyThere
+        val destination = placement.path!!
+        val redirected = placement.where == Where.RESTORE_FOLDER
         if (redirected) {
             val reason = validator.check(destination, volumeRoot, phone)
             if (reason != null) throw StorageException.Unsupported(KPath.Local(destination), reason)
@@ -468,18 +518,18 @@ class RestoreEngine(
         return "$volumeRoot/$restoreDirRel/$group/${entry.name}"
     }
 
-    /** Whether [destination] or one of its numbered names ("x (2).jpg") already holds this exact file. */
-    private suspend fun alreadyInRestoreFolder(destination: String, entry: BackupEntry): Boolean {
+    /** [destination] or one of its numbered names ("x (2).jpg") if it already holds this exact file, else null. */
+    private suspend fun sameInRestoreFolder(destination: String, entry: BackupEntry): String? {
         val dest = KPath.Local(destination)
-        val dir = dest.parent ?: return false
+        val dir = dest.parent ?: return null
         for (attempt in 1..MAX_NAME_TRIES) {
             val candidate = dir.child(if (attempt == 1) dest.name else numbered(dest.name, attempt))
-            val stat = phone.stat(candidate) ?: return false
+            val stat = phone.stat(candidate) ?: return null
             if (stat.isFile && stat.size == entry.line.size && hashOnPhone(candidate.absolute) == entry.line.sha256) {
-                return true
+                return candidate.absolute
             }
         }
-        return false
+        return null
     }
 
     /** Gives the temp file its final name, or the next free one ("name (2).jpg"); never overwrites. */

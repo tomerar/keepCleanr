@@ -38,7 +38,7 @@ import io.github.tomerar.keepclear.engine.restore.Where
 data class RestoreGroup(
     val group: String,
     val month: String,
-    /** Bytes of the files that would be written (skipped ones not counted, D1). */
+    /** Bytes of the files that would be written (skipped and already-there ones not counted, D1). */
     val bytes: Long,
     /** D2: files that go back to where they were. */
     val toOriginal: Int,
@@ -46,6 +46,8 @@ data class RestoreGroup(
     val toRestoreFolder: Int,
     /** D2: hidden files and programs, never written. */
     val skipped: Int = 0,
+    /** Already on the phone with the same content: nothing written, no room needed. */
+    val alreadyThere: Int = 0,
 ) {
     val key: String get() = "$group|$month"
 
@@ -60,10 +62,11 @@ fun restoreGroups(placements: List<Placement>): List<RestoreGroup> =
         RestoreGroup(
             group = first.group,
             month = first.month,
-            bytes = list.filter { it.where != Where.SKIPPED }.sumOf { it.entry.line.size },
+            bytes = list.filter { it.writes }.sumOf { it.entry.line.size },
             toOriginal = list.count { it.where == Where.ORIGINAL },
             toRestoreFolder = list.count { it.where == Where.RESTORE_FOLDER },
             skipped = list.count { it.where == Where.SKIPPED },
+            alreadyThere = list.count { it.where == Where.ALREADY_THERE },
         )
     }.sortedWith(compareBy({ it.group }, { it.month }))
 
@@ -248,6 +251,9 @@ private fun doneLines(r: RestoreReport): List<String> {
                         countText(simulated.toRestoreFolder),
                     ),
                 )
+                if (simulated.alreadyThere > 0) {
+                    add(countSentence(R.plurals.restore_already_on_phone, simulated.alreadyThere))
+                }
                 if (simulated.skipped > 0) add(countSentence(R.plurals.restore_skipped, simulated.skipped))
                 return@buildList
             }
@@ -341,6 +347,13 @@ private fun CatalogDialog(step: RestoreStep.Catalog, actions: RestoreActions) {
                                     it,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.testTag("restoreWhere_${g.key}"),
+                                )
+                            }
+                            if (g.alreadyThere > 0) {
+                                Text(
+                                    countSentence(R.plurals.restore_already_on_phone, g.alreadyThere),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("restoreAlready_${g.key}"),
                                 )
                             }
                             if (g.skipped > 0) {

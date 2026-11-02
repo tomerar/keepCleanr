@@ -8,10 +8,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.engine.restore.Placement
 import io.github.tomerar.keepclear.engine.restore.RestorePreview
 import io.github.tomerar.keepclear.engine.restore.RestoreReport
 import io.github.tomerar.keepclear.engine.restore.RoomCheck
 import io.github.tomerar.keepclear.engine.restore.Space
+import io.github.tomerar.keepclear.engine.restore.Where
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +31,7 @@ class RestoreUiTest {
     private val groups = listOf(
         RestoreGroup("Camera", "2021-01", 30_000, toOriginal = 3, toRestoreFolder = 0),
         RestoreGroup("WhatsApp Images", "2021-02", 5_000, toOriginal = 0, toRestoreFolder = 2, skipped = 1),
-        RestoreGroup("WhatsApp Images", "2021-03", 7_000, toOriginal = 1, toRestoreFolder = 1),
+        RestoreGroup("WhatsApp Images", "2021-03", 7_000, toOriginal = 1, toRestoreFolder = 1, alreadyThere = 2),
     )
     private val plenty = Space(allocatable = 50_000_000_000, total = 128_000_000_000)
     private val catalog = RestoreStep.Catalog("KeepClear/OnePlus 10T", groups, plenty)
@@ -138,9 +140,39 @@ class RestoreUiTest {
     }
 
     @Test
+    fun `the catalog says which files are already on the phone (PR 42 review)`() {
+        compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
+        assert("already on the phone" in text("restoreAlready_WhatsApp Images|2021-03"))
+        compose.onNodeWithTag("restoreAlready_Camera|2021-01").assertDoesNotExist()
+    }
+
+    @Test
+    fun `months group what is already on the phone apart from what is written (PR 42 review)`() {
+        val line = { rel: String ->
+            io.github.tomerar.keepclear.engine.move.Manifest.Line(rel, "/x/$rel", 1_000, 0, "a".repeat(64), 0, false)
+        }
+        val entry = { rel: String -> io.github.tomerar.keepclear.engine.restore.BackupEntry("KeepClear/P", line(rel)) }
+        val placements = listOf(
+            Placement(entry("Camera/a.jpg"), Where.ORIGINAL, "/x/a.jpg"),
+            Placement(entry("Camera/b.jpg"), Where.ALREADY_THERE, "/x/b.jpg"),
+            Placement(entry("Camera/c.jpg"), Where.RESTORE_FOLDER, "/r/c.jpg"),
+        )
+        val group = restoreGroups(placements).single()
+        assertEquals(2_000L, group.bytes)
+        assertEquals(2, group.count)
+        assertEquals(1, group.alreadyThere)
+    }
+
+    @Test
     fun `trial mode says what would be restored and that nothing was written (D1)`() {
-        val text = done(RestoreReport(simulated = RestorePreview(3, 2, 1, 2_000_000_000)))
-        listOf("Would have restored", "trial mode", "Nothing was written", "not restored").forEach {
+        val text = done(RestoreReport(simulated = RestorePreview(3, 2, 1, 2_000_000_000, alreadyThere = 4)))
+        listOf(
+            "Would have restored",
+            "trial mode",
+            "Nothing was written",
+            "not restored",
+            "already on the phone",
+        ).forEach {
             assert(it in text) { "missing \"$it\" in: $text" }
         }
         assert("files restored and checked" !in text)

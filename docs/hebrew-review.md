@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-534 Hebrew strings.
+535 Hebrew strings.
 
 ## Contents
 
@@ -16,7 +16,7 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (16)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (157)
+- [Move to backup and restore](#move-to-backup-and-restore) (158)
 - [Trash](#trash) (41)
 - [Apps](#apps) (29)
 - [Settings](#settings) (33)
@@ -320,6 +320,7 @@ string; "also" lists other screens.
 | `move_title` | Move to backup | העברה לגיבוי |  |
 | `move_view` | Show | להציג |  |
 | `move_what` | What to move | מה להעביר |  |
+| `restore_already_on_phone` | [one] %1$s file is already on the phone (nothing to copy) / [other] %1$s files are already on the phone (nothing to copy) | [one] קובץ אחד כבר נמצא בטלפון (אין מה להעתיק) / [two] %1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק) / [other] %1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק) |  |
 | `restore_already_there` | [one] %1$s was already on the phone / [other] %1$s were already on the phone | [one] %1$s כבר היה בטלפון / [two] %1$s כבר היו בטלפון / [other] %1$s כבר היו בטלפון |  |
 | `restore_choose` | What to bring back | מה להחזיר |  |
 | `restore_damaged` | [one] %1$s copy on the drive doesn't match the backup list and was not restored / [other] %1$s copies on the drive don't match the backup list and were not restored | [one] עותק %1$s בכונן לא תואם לרשימת הגיבוי ולא שוחזר / [two] %1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו / [other] %1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו |  |

@@ -276,6 +276,72 @@ class RestoreEngineTest {
         fake.exists("$phone/Pictures") shouldBe false
     }
 
+    // ------------------------------------------------------------------ PR #42 review: what is on the phone now
+
+    @Test
+    fun `an occupied original place is shown as the restore folder in the plan and in test mode`(): Unit =
+        runBlocking {
+            val rootRel = backUpAndLoseOriginals()
+            val catalog = engine().catalog(rootRel)!!
+            fake.addFile(items[1].path, "someone else's file".toByteArray())
+            val plan = engine().plan(catalog).associateBy { it.entry.line.src }
+            plan.getValue(items[1].path).where shouldBe Where.RESTORE_FOLDER
+            plan.getValue(items[1].path).path shouldStartWith "$phone/Pictures/KeepClear Restored/Camera/"
+            plan.getValue(items[0].path).where shouldBe Where.ORIGINAL
+            val simulated = engine(dryRun = true).restore(catalog).simulated!!
+            simulated.toOriginal shouldBe 3
+            simulated.toRestoreFolder shouldBe 1
+            // And that is what restoring then does.
+            engine().restore(catalog).redirected shouldBe 1
+        }
+
+    @Test
+    fun `files already on the phone are not counted as written in the plan, test mode or the room check`(): Unit =
+        runBlocking {
+            val rootRel = backUpAndLoseOriginals()
+            val catalog = engine().catalog(rootRel)!!
+            fake.addFile(items[0].path, originals.getValue(items[0].path).toByteArray())
+            engine().plan(catalog).single { it.entry.line.src == items[0].path }.where shouldBe Where.ALREADY_THERE
+            val simulated = engine(dryRun = true).restore(catalog).simulated!!
+            simulated shouldBe RestorePreview(
+                toOriginal = 3,
+                toRestoreFolder = 0,
+                skipped = 0,
+                bytes = 40_006 - 10_000,
+                alreadyThere = 1,
+            )
+            // Room for exactly the three files still missing: the one already there needs none.
+            space = Space(allocatable = 1_000_030_006, total = 16_000_000_000)
+            val report = engine().restore(catalog)
+            report.notEnoughRoom shouldBe null
+            report.restored shouldHaveSize 3
+            report.alreadyThere shouldBe 1
+        }
+
+    @Test
+    fun `a same-size file with other content still needs room (only a matching SHA-256 counts)`(): Unit =
+        runBlocking {
+            val rootRel = backUpAndLoseOriginals()
+            val catalog = engine().catalog(rootRel)!!
+            fake.addFile(items[0].path, ByteArray(10_000) { 7 })
+            space = Space(allocatable = 1_000_030_006, total = 16_000_000_000)
+            engine().restore(catalog).notEnoughRoom!!.needed shouldBe 40_006
+        }
+
+    @Test
+    fun `restoring the same selection again isn't refused for room when everything is back`(): Unit = runBlocking {
+        val rootRel = backUpAndLoseOriginals()
+        val catalog = engine().catalog(rootRel)!!
+        fake.addFile(items[1].path, "someone else's file".toByteArray())
+        engine().restore(catalog).restored shouldHaveSize 4
+        // The phone is now nearly full, but nothing needs writing (one copy sits in the restore folder).
+        space = Space(allocatable = 1_000_000_000, total = 16_000_000_000)
+        val again = engine().restore(catalog)
+        again.notEnoughRoom shouldBe null
+        again.alreadyThere shouldBe 4
+        again.restored.shouldBeEmpty()
+    }
+
     // ------------------------------------------------------------------ D2: the manifest's src is only a hint
 
     /** Puts a file on the drive and its line in the manifest; [recorded] adds a MOVE record for [src] too. */

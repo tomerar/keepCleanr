@@ -569,6 +569,11 @@
     <string name="restore_space">פנוי בטלפון: %1$s. נבחרו: %2$s.</string>
     <string name="restore_space_unknown">KeepClear לא הצליח לבדוק כמה מקום פנוי בטלפון, ולכן לא ישחזר עכשיו. אפשר לנסות שוב בעוד רגע.</string>
     <string name="restore_too_big">אין מספיק מקום לכל מה שבחרתם. KeepClear תמיד משאיר %1$s פנויים כדי שהטלפון ימשיך לעבוד. אפשר לבחור פחות חודשים.</string>
+    <plurals name="restore_already_on_phone">
+        <item quantity="one">קובץ אחד כבר נמצא בטלפון (אין מה להעתיק)</item>
+        <item quantity="two">%1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק)</item>
+        <item quantity="other">%1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק)</item>
+    </plurals>
     <string name="restore_fit">לבחור רק מה שנכנס</string>
     <string name="restore_not_enough_room">שום דבר לא שוחזר: אין מספיק מקום בטלפון. KeepClear תמיד משאיר %1$s פנויים.</string>
     <string name="restore_stopped_low_space">השחזור נעצר כי הטלפון כמעט מלא. מה שכבר שוחזר נשאר. אפשר לפנות מקום ולשחזר שוב כדי להשלים.</string>
