@@ -108,11 +108,22 @@ class MoveRunnerTest {
 
     @Test
     fun `a start while a job winds down runs right after it, then the service stops`() {
-        val r = runner { _, _ -> awaitCancellation() }
+        // Job a's checkpoint after the pause takes a moment; b is tapped during it. Without the latch, a could end
+        // before b's start, and then the service would (rightly) stop once in between.
+        val windingDown = CountDownLatch(1)
+        val r = runner { id, _ ->
+            try {
+                awaitCancellation()
+            } finally {
+                if (id == "a") withContext(NonCancellable) { windingDown.await(10, TimeUnit.SECONDS) }
+            }
+        }
         r.start("a")
         eventually("job a runs") { started.toList() == listOf("a") }
         r.pause(PauseReason.PAUSED_BY_USER)
         r.start("b")
+        assertEquals("b", r.pending) // a is still ending: b waits for it
+        windingDown.countDown()
         eventually("job b runs") { started.toList() == listOf("a", "b") }
         assertEquals(0, stops.get())
         r.pause(PauseReason.CANCELLED)
