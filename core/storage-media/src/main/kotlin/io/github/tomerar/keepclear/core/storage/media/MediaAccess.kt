@@ -60,7 +60,7 @@ enum class MediaAccess {
             }
         }
 
-        /** All files access (foss flavor, ONB-5). */
-        fun hasAllFiles(): Boolean = Environment.isExternalStorageManager()
+        /** All files access (foss flavor, ONB-5). Never throws: if Android can't answer, it counts as not granted. */
+        fun hasAllFiles(): Boolean = runCatching { Environment.isExternalStorageManager() }.getOrDefault(false)
     }
 }

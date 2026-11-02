@@ -77,6 +77,13 @@ data class Sidecar(
             } catch (e: Exception) {
                 return Decoded.Rejected("malformed: ${e.javaClass.simpleName}")
             }
+            // E13: a size or time that can't be real (negative) is corrupt or hostile; such a sidecar is ignored (the
+            // file stays in the trash folder) rather than shown with an impossible size.
+            if (signed.body.size < 0 || signed.body.mtimeMillis < 0 || signed.body.deletedAt < 0 ||
+                signed.body.expiresAt < 0
+            ) {
+                return Decoded.Rejected("impossible size or time")
+            }
             if (signed.body.v > VERSION) return Decoded.Ok(signed.body, trusted = false) // newer app wrote it (E-MIG-4)
             val canonical = json.encodeToString(serializer(), signed.body).toByteArray(Charsets.UTF_8)
             return Decoded.Ok(signed.body, trusted = signer.verify(canonical, signed.mac))

@@ -12,9 +12,9 @@ import java.util.Locale
 object ByteSize {
     private val units = listOf("B", "KB", "MB", "GB", "TB")
 
+    /** E13: never throws; a negative size (corrupt or hostile data) shows as 0 B. */
     fun format(bytes: Long, locale: Locale): String {
-        require(bytes >= 0) { "negative size" }
-        var value = bytes.toDouble()
+        var value = bytes.coerceAtLeast(0).toDouble()
         var unit = 0
         while (value >= 1000 && unit < units.lastIndex) {
             value /= 1000
