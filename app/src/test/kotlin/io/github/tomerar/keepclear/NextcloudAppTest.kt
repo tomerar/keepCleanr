@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear
 
 import androidx.test.core.app.ApplicationProvider
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.github.tomerar.keepclear.backup.webdav.NextcloudAccount
+import io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke
 import io.github.tomerar.keepclear.backup.webdav.NextcloudServer
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.move.JobState
@@ -41,6 +46,8 @@ class NextcloudAppTest {
         attach.isAccessible = true
         attach.invoke(this, ApplicationProvider.getApplicationContext<android.app.Application>())
         secretBox = { NextcloudStoreTest.FakeBox() }
+        // The test servers run on this machine (D3: only tests may).
+        nextcloudHosts = TestsOnThisDevice
     }
 
     @After
@@ -52,7 +59,7 @@ class NextcloudAppTest {
     }
 
     private val account = NextcloudAccount(
-        NextcloudServer.parse("http://127.0.0.1:9"),
+        NextcloudServer.parse("http://127.0.0.1:9", TestsOnThisDevice),
         "dana",
         "dana",
         "A1b2".repeat(18),
@@ -86,6 +93,42 @@ class NextcloudAppTest {
     }
 
     @Test
+    fun `forgetting revokes the app password on the server first, then removes it from the phone (D6)`(): Unit =
+        runBlocking {
+            val seenWhileSaved = mutableListOf<Boolean>()
+            val server = com.sun.net.httpserver.HttpServer.create(java.net.InetSocketAddress("127.0.0.1", 0), 0)
+            server.createContext("/ocs/v2.php/core/apppassword") { ex ->
+                // At this moment the phone must still hold the account: revoke first, then forget.
+                seenWhileSaved += ex.requestMethod == "DELETE" && app.nextcloud.host() != null &&
+                    ex.requestHeaders.getFirst("OCS-APIRequest") == "true"
+                ex.sendResponseHeaders(200, -1)
+                ex.close()
+            }
+            server.start()
+            try {
+                val live = NextcloudAccount(
+                    NextcloudServer.parse("http://127.0.0.1:${server.address.port}", TestsOnThisDevice),
+                    "dana",
+                    "dana",
+                    "A1b2".repeat(18),
+                )
+                app.nextcloud.save(live)
+                assertEquals(NextcloudRevoke.REVOKED, app.forgetNextcloud())
+                assertEquals(listOf(true), seenWhileSaved)
+                assertNull(app.nextcloud.load())
+                assertNull(app.nextcloud.host())
+            } finally {
+                server.stop(0)
+            }
+            // Nothing answers (port 9): the phone forgets it anyway and says the password may still work.
+            app.nextcloud.save(account)
+            assertEquals(NextcloudRevoke.NOT_REVOKED, app.forgetNextcloud())
+            assertNull(app.nextcloud.host())
+            // Nothing saved: nothing to say.
+            assertNull(app.forgetNextcloud())
+        }
+
+    @Test
     fun `a davs reference reopens only the saved Nextcloud, and nothing answering is unavailable`(): Unit =
         runBlocking {
             val ref = NextcloudStore.ref(account)
@@ -105,7 +148,7 @@ class NextcloudAppTest {
             val url = System.getenv("KEEPCLEAR_NEXTCLOUD_URL")
             assumeTrue("no Nextcloud test server (scripts/nextcloud-test-server.sh)", url != null)
             val real = NextcloudAccount.verify(
-                NextcloudServer.parse(url!!),
+                NextcloudServer.parse(url!!, TestsOnThisDevice),
                 System.getenv("KEEPCLEAR_NEXTCLOUD_USER")!!,
                 System.getenv("KEEPCLEAR_NEXTCLOUD_PASSWORD")!!,
             )

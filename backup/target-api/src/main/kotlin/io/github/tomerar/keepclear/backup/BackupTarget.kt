@@ -38,6 +38,13 @@ data class TargetCaps(
      * [io.github.tomerar.keepclear.core.storage.StorageException.Unsupported] and leaves it in place.
      */
     val canDeleteFolders: Boolean = true,
+    /**
+     * D3: false when the place can't prove that what it reads back is what it stores, because nobody can vouch for
+     * the connection: an SMB **guest** session can't be signed, so anyone on the Wi-Fi could change it. Copies are
+     * made and checked as usual, but originals are never freed against such a place (copy only), whatever the
+     * checks said. Enforced in the move engine (`MoveEngine.originalsPlan`), not only in the UI.
+     */
+    val canFreeOriginals: Boolean = true,
 ) {
     companion object {
         const val FAT32_MAX_FILE: Long = 4L * 1024 * 1024 * 1024 - 1

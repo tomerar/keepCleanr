@@ -2,7 +2,10 @@
 package io.github.tomerar.keepclear.backup.webdav
 
 import io.github.tomerar.keepclear.backup.net.HostHttpClient
+import io.github.tomerar.keepclear.backup.net.HostRule
 import io.github.tomerar.keepclear.backup.net.HttpProtocolException
+import io.github.tomerar.keepclear.backup.net.ThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceException
 import io.github.tomerar.keepclear.backup.webdav.NextcloudJson.obj
 import io.github.tomerar.keepclear.backup.webdav.NextcloudJson.string
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +36,9 @@ enum class NextcloudProblem {
     /** Plain http to another device: refused, the app password would travel unencrypted (ADR 0011). */
     NEEDS_HTTPS,
 
+    /** D3: the address is this phone itself (`localhost`, its own address); a backup there is no backup. */
+    THIS_PHONE,
+
     /** Nothing answered (server off, wrong address, no internet). */
     UNREACHABLE,
 
@@ -56,14 +62,17 @@ class NextcloudException(val problem: NextcloudProblem, cause: Throwable? = null
 
 /**
  * A Nextcloud server address as the user typed it, checked (M17b). `cloud.example.com` means
- * `https://cloud.example.com`; a sub path (`https://example.com/nextcloud`) is kept. HTTPS only, plain http only
- * to this phone itself (ADR 0011, C16). No user name, password, query or fragment in the address.
+ * `https://cloud.example.com`; a sub path (`https://example.com/nextcloud`) is kept. HTTPS only (ADR 0011, C16),
+ * never this phone itself (D3: [NextcloudProblem.THIS_PHONE]; only tests pass [hosts] = `TestsOnThisDevice`, and
+ * only they may use plain http, to `localhost`). No user name, password, query or fragment in the address.
  */
 class NextcloudServer private constructor(
     val https: Boolean,
     val host: String,
     val port: Int,
     val basePath: List<String>,
+    /** D3: the app always uses [HostRule.NetworkOnly]. */
+    val hosts: HostRule,
 ) {
     /** Canonical, without a trailing slash: the same server always gives the same string. */
     val url: String
@@ -87,21 +96,22 @@ class NextcloudServer private constructor(
     }
 
     internal fun client(timeoutSeconds: Long, trustManager: X509TrustManager?) =
-        HostHttpClient(https, host, port, (timeoutSeconds * 1000).toInt(), trustManager)
+        HostHttpClient(https, host, port, (timeoutSeconds * 1000).toInt(), trustManager, hosts)
 
-    override fun equals(other: Any?) = other is NextcloudServer && other.url == url
+    override fun equals(other: Any?) = other is NextcloudServer && other.url == url && other.hosts == hosts
 
     override fun hashCode() = url.hashCode()
 
     override fun toString() = url
 
     companion object {
-        private val LOOPBACK = setOf("localhost", "127.0.0.1", "::1")
-
         private fun defaultPort(https: Boolean) = if (https) 443 else 80
 
-        /** The checked server, or a [NextcloudException] with [NextcloudProblem.BAD_ADDRESS] / `NEEDS_HTTPS`. */
-        fun parse(typed: String): NextcloudServer {
+        /**
+         * The checked server, or a [NextcloudException] with [NextcloudProblem.BAD_ADDRESS], `NEEDS_HTTPS` or
+         * `THIS_PHONE`. The app calls it with the default [hosts]; only tests may pass `TestsOnThisDevice`.
+         */
+        fun parse(typed: String, hosts: HostRule = HostRule.NetworkOnly): NextcloudServer {
             val text = typed.trim()
             if (text.isEmpty() || text.any { it.isWhitespace() || it.isISOControl() }) bad()
             val withScheme = if ("://" in text) text else "https://$text"
@@ -114,13 +124,15 @@ class NextcloudServer private constructor(
             if (scheme != "https" && scheme != "http") bad()
             if (uri.rawUserInfo != null || uri.rawQuery != null || uri.rawFragment != null) bad()
             val host = uri.host?.removePrefix("[")?.removeSuffix("]")?.lowercase()
-            if (host.isNullOrEmpty()) bad()
-            if (scheme == "http" && host !in LOOPBACK) throw NextcloudException(NextcloudProblem.NEEDS_HTTPS)
+            if (host.isNullOrEmpty() || ThisDevice.isAmbiguousNumber(host)) bad()
+            val local = ThisDevice.isLocalName(host)
+            if (local && !hosts.allowsThisDevice) throw NextcloudException(NextcloudProblem.THIS_PHONE)
+            if (scheme == "http" && !local) throw NextcloudException(NextcloudProblem.NEEDS_HTTPS)
             val https = scheme == "https"
             val port = if (uri.port == -1) defaultPort(https) else uri.port
             if (port !in 1..65535) bad()
             val base = DavPath.split(uri.rawPath.orEmpty()) ?: bad()
-            return NextcloudServer(https, host, port, base)
+            return NextcloudServer(https, host, port, base, hosts)
         }
 
         /** Null when [typed] is acceptable, else why not (for the form, before anything is sent). */
@@ -154,7 +166,7 @@ class NextcloudAccount(
 
     /** Where backups go: the account's own files, at [folder] (M17b: the top, like a drive; C29). */
     fun location(folder: String = ""): WebDavLocation =
-        WebDavLocation.nextcloud(server.url, loginName, appPassword, folder, filesUser = userId)
+        WebDavLocation.nextcloud(server.url, loginName, appPassword, folder, filesUser = userId, hosts = server.hosts)
 
     override fun toString() = "NextcloudAccount(${server.url}, login=$loginName, user=$userId)"
 
@@ -166,7 +178,43 @@ class NextcloudAccount(
 
     override fun hashCode() = server.hashCode() * 31 + loginName.hashCode()
 
+    /**
+     * D6: revokes this app password **on the server** (`DELETE /ocs/v2.php/core/apppassword`, Nextcloud's own
+     * endpoint for "log this app out"), so a copy of it, e.g. from an old phone backup, stops working. Network I/O;
+     * call off the main thread. Never throws: what happened is the answer.
+     */
+    fun revoke(timeoutSeconds: Long = 30, trustManager: X509TrustManager? = null): NextcloudRevoke = try {
+        server.client(timeoutSeconds, trustManager).use { http ->
+            http.send(
+                "DELETE",
+                server.path("ocs", "v2.php", "core", "apppassword"),
+                listOf(
+                    "Authorization" to basicAuth(loginName, appPassword),
+                    "OCS-APIRequest" to "true",
+                    "Accept" to "application/json",
+                ),
+                repeatable = false,
+            ).use { r ->
+                when (r.status) {
+                    200 -> NextcloudRevoke.REVOKED
+
+                    // The server no longer accepts it (revoked in Nextcloud's settings already, account removed).
+                    401 -> NextcloudRevoke.ALREADY_INVALID
+
+                    else -> NextcloudRevoke.NOT_REVOKED
+                }
+            }
+        }
+    } catch (_: IOException) {
+        NextcloudRevoke.NOT_REVOKED
+    } catch (_: RuntimeException) {
+        NextcloudRevoke.NOT_REVOKED
+    }
+
     companion object {
+        internal fun basicAuth(login: String, password: String) =
+            "Basic " + Base64.getEncoder().encodeToString("$login:$password".toByteArray())
+
         fun isLoginName(s: String) = s.length in 1..MAX_NAME && ':' !in s && s.none { it.isISOControl() }
 
         /** Printable ASCII, no spaces: Nextcloud's app passwords are 72 letters and digits. */
@@ -191,7 +239,7 @@ class NextcloudAccount(
             if (!isLoginName(loginName) || !isAppPassword(appPassword)) {
                 throw NextcloudException(NextcloudProblem.REFUSED)
             }
-            val auth = "Basic " + Base64.getEncoder().encodeToString("$loginName:$appPassword".toByteArray())
+            val auth = basicAuth(loginName, appPassword)
             server.client(timeoutSeconds, trustManager).use { http ->
                 val body = NextcloudCalls.call {
                     http.send(
@@ -215,6 +263,18 @@ class NextcloudAccount(
 
         internal const val MAX_ANSWER = 64 * 1024
     }
+}
+
+/** What [NextcloudAccount.revoke] achieved. Stored nowhere; the app tells the user. */
+enum class NextcloudRevoke {
+    /** The server confirmed: the app password no longer works anywhere. */
+    REVOKED,
+
+    /** The server already refused it (revoked before, or the account is gone): it no longer works either. */
+    ALREADY_INVALID,
+
+    /** No answer or another answer: the app password **may still work** on the server. */
+    NOT_REVOKED,
 }
 
 /**
@@ -373,6 +433,9 @@ internal object NextcloudCalls {
         throw e
     } catch (e: HttpProtocolException) {
         throw NextcloudException(NextcloudProblem.NOT_NEXTCLOUD, e)
+    } catch (e: ThisDeviceException) {
+        // D3: the name led to this phone itself (its own address after DNS).
+        throw NextcloudException(NextcloudProblem.THIS_PHONE, e)
     } catch (e: IOException) {
         val certificate = generateSequence<Throwable>(e) { it.cause }.any {
             it is SSLHandshakeException || it is SSLPeerUnverifiedException

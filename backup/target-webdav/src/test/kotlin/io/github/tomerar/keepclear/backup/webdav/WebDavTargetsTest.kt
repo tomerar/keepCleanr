@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldStartWith
@@ -44,8 +48,21 @@ class WebDavTargetsTest {
     fun `a wrong password is Refused, a dead address Unreachable`(): Unit = runBlocking {
         WebDavTargets.open(server.location("x", password = "wrong"), "Cloud", timeoutSeconds = 5) shouldBe
             WebDavCheck.Refused
-        val dead = WebDavLocation("http://127.0.0.1:1/dav", "u", "p")
+        val dead = WebDavLocation("http://127.0.0.1:1/dav", "u", "p", hosts = TestsOnThisDevice)
         WebDavTargets.open(dead, "Cloud", timeoutSeconds = 2) shouldBe WebDavCheck.Unreachable
+    }
+
+    @Test
+    fun `a place that is this machine's own address is OnThisPhone, nothing is sent (D3)`(): Unit = runBlocking {
+        // The test server listens on loopback; an app-rule location can't even be built for it, so take the
+        // machine's LAN address: the text check passes, the socket refuses it.
+        val own = java.net.NetworkInterface.getNetworkInterfaces().toList()
+            .flatMap { it.inetAddresses.toList() }
+            .firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
+        org.junit.jupiter.api.Assumptions.assumeTrue(own != null, "no non-loopback address on this machine")
+        val place = WebDavLocation("https://${own!!.hostAddress}:${server.port}/dav", "u", "p")
+        WebDavTargets.open(place, "Cloud", timeoutSeconds = 2) shouldBe WebDavCheck.OnThisPhone
+        server.requests.size shouldBe 0
     }
 
     @Test

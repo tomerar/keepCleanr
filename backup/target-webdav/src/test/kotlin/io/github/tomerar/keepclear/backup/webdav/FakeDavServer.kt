@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import com.sun.net.httpserver.HttpsConfigurator
 import com.sun.net.httpserver.HttpsServer
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.URI
@@ -89,6 +93,14 @@ class FakeDavServer(
     /** Answer PROPFIND with an XXE payload. */
     @Volatile var xxe = false
 
+    /** Send this many bytes more than the file has on GET (D6), announced in Content-Length or chunked. */
+    @Volatile var longGet = 0
+
+    @Volatile var longGetChunked = false
+
+    /** Pad every (valid) PROPFIND answer with this many spaces inside the multistatus (D6). */
+    @Volatile var padPropfindBytes = 0
+
     /** Answer PROPFIND with a body of this many bytes. */
     @Volatile var hugePropfindBytes: Int? = null
 
@@ -112,7 +124,7 @@ class FakeDavServer(
     )
 
     fun location(folder: String = "", nextcloud: Boolean = this.nextcloud, password: String = this.password) =
-        WebDavLocation(url(folder), user, password, nextcloud)
+        WebDavLocation(url(folder), user, password, nextcloud, hosts = TestsOnThisDevice)
 
     init {
         synchronized(lock) {
@@ -286,6 +298,15 @@ class FakeDavServer(
                     ex.responseBody.flush()
                     throw DropConnection()
                 }
+                if (longGet > 0) {
+                    val body = node.bytes + ByteArray(longGet) { 'x'.code.toByte() }
+                    ex.sendResponseHeaders(200, if (longGetChunked) 0 else body.size.toLong())
+                    runCatching {
+                        ex.responseBody.write(body)
+                        ex.responseBody.close()
+                    }
+                    return
+                }
                 reply(ex, 200, node.bytes)
             }
         }
@@ -348,6 +369,7 @@ class FakeDavServer(
             sb.append("""<?xml version="1.0" encoding="utf-8"?>""")
             sb.append("""<d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">""")
             sb.append(response(path, node))
+            sb.append(" ".repeat(padPropfindBytes))
             if (depth == "1" && node is Node.Dir) {
                 nodes.filterKeys { it != path && parentOf(it) == path }.forEach { (k, v) -> sb.append(response(k, v)) }
                 if (hostileHrefs) {

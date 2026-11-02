@@ -155,6 +155,17 @@ class MoveScreenTest {
     }
 
     @Test
+    fun `a guest network drive is copy-only - no Check, no Free, one plain line (D3)`() {
+        val view = JobView(job, receipt(), canReadBack = true, copyOnly = true)
+        assertEquals(false, view.canFree)
+        assertEquals(false, JobView(job, receipt(confirmed = 0), canReadBack = true, copyOnly = true).needsCheck)
+        show(MoveUiState(jobs = listOf(view)))
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("freeCopyOnly"))
+        compose.onAllNodesWithTag("freeOriginals").fetchSemanticsNodes().size.let { assertEquals(0, it) }
+        compose.onAllNodesWithTag("freeUnavailable").fetchSemanticsNodes().size.let { assertEquals(0, it) }
+    }
+
+    @Test
     fun `a copy checked only once offers Check backup, never Free (H1)`() {
         var checked: String? = null
         val view = JobView(job, receipt(confirmed = 0), canReadBack = true)

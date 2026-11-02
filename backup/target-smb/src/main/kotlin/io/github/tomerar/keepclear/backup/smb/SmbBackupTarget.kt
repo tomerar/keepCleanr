@@ -13,10 +13,13 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import io.github.tomerar.keepclear.backup.BackupTarget
 import io.github.tomerar.keepclear.backup.TargetCaps
+import io.github.tomerar.keepclear.backup.net.HostRule
+import io.github.tomerar.keepclear.backup.net.ThisDevice
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.Stat
 import io.github.tomerar.keepclear.core.storage.StorageException
@@ -42,12 +45,20 @@ data class SmbLocation(
     val password: String = "",
     val domain: String = "",
     val port: Int = 445,
+    /** D3: the app always uses [HostRule.NetworkOnly]; only tests reach a Samba on their own machine. */
+    val hosts: HostRule = HostRule.NetworkOnly,
 ) {
     init {
         require(SmbHosts.isPlainHost(host)) { "host must be a plain name or address" }
-        require(share.isNotBlank() && '/' !in share && '\\' !in share) { "share must be one name" }
+        // D3: a share on the phone itself is a copy on the same phone, not a backup.
+        require(hosts.allowsThisDevice || !SmbHosts.isThisPhone(host)) { "this phone itself" }
+        require(SmbPaths.isSafeSegment(share)) { "share must be one name" }
+        require(folder.split('/').filter { it.isNotEmpty() }.all(SmbPaths::isSafeSegment)) { "folder not allowed" }
         require(port in 1..65535)
     }
+
+    /** D3: no user name means a guest session, which can't be signed: copies only, never "free up space". */
+    val isGuest: Boolean get() = user.isEmpty()
 
     override fun toString(): String = "SmbLocation($host:$port/$share/$folder, user=${user.ifEmpty { "guest" }})"
 }
@@ -57,11 +68,48 @@ object SmbHosts {
     private val name = Regex("""^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$""")
     private val ipv4 = Regex("""^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$""")
 
-    /** A host name or IPv4 address only: no scheme, no path, no user info, no port. */
+    /**
+     * A host name or IPv4 address only: no scheme, no path, no user info, no port, and no number the system would
+     * read in a surprising way (`127.1`, `2130706433`, `010.0.0.1`; D3).
+     */
     fun isPlainHost(host: String): Boolean {
+        if (ThisDevice.isAmbiguousNumber(host)) return false
         ipv4.matchEntire(host)?.let { m -> return m.groupValues.drop(1).all { it.toInt() in 0..255 } }
         return name.matches(host) && !host.contains("..")
     }
+
+    /**
+     * D3: the phone itself by its text (`localhost`, `127.x.x.x`, `0.0.0.0`). The phone's own network addresses and
+     * names that lead to it are refused when connecting ([SmbCheck.OnThisPhone]).
+     */
+    fun isThisPhone(host: String): Boolean = ThisDevice.isLocalName(host)
+}
+
+/** D3: what may be sent to the share as one path segment. */
+object SmbPaths {
+    /**
+     * Not empty, not `.` or `..`, and no `\` or `/` (separators), `:` (an NTFS alternate data stream, `name:stream`) or
+     * control characters. Server-sent names that fail this are never listed or used.
+     */
+    fun isSafeSegment(s: String): Boolean = s.isNotEmpty() && s != "." && s != ".." &&
+        s.none { it == '\\' || it == '/' || it == ':' || it.code < 0x20 || it == '\u007f' }
+}
+
+/** D3: whether an SMB session may be used, and how. */
+internal object SmbSessionCheck {
+    /**
+     * Null when the session is acceptable, else why not. A signed-in user's session must be signed or encrypted and
+     * must really be that user: a server that quietly made it a guest or anonymous session (Samba's
+     * `map to guest = bad user`) didn't check the password, and an unsigned session can be changed on the way
+     * by anyone on the network. A guest place is accepted unsigned, but only ever for copies ([SmbBackupTarget]).
+     */
+    fun problem(guestPlace: Boolean, guest: Boolean, anonymous: Boolean, signed: Boolean, encrypted: Boolean): String? =
+        when {
+            guestPlace -> null
+            guest || anonymous -> "the server signed in as a guest, not as the user"
+            !signed && !encrypted -> "the session is not signed"
+            else -> null
+        }
 }
 
 /**
@@ -72,7 +120,13 @@ object SmbHosts {
  * - **Never overwrite:** files are created with `FILE_CREATE` and renamed with `replaceIfExists = false`.
  * - Every failure becomes a [StorageException]: an unreachable server or dropped Wi-Fi is
  *   [StorageException.Disconnected], so a job pauses and nothing is deleted (E-MOVE-2).
- * - Names follow the Windows rules (case-insensitive, 260-character paths, see `TargetNames`).
+ * - Names follow the Windows rules (case-insensitive, 260-character paths, see `TargetNames`); every path segment
+ *   sent to the share is checked ([SmbPaths], D3).
+ * - D3 (owner review 2026-11-02): message **signing is required** and SMB3 **encryption is preferred** (used when the
+ *   server offers it). A signed-in user's session that isn't signed, or that the server turned into a guest one, is
+ *   refused. A **guest** place can't be signed: KeepClear copies to it but never frees the originals
+ *   ([TargetCaps.canFreeOriginals] false), because anyone on the Wi-Fi could change or fake what it reads back.
+ * - D3: never to the phone itself: every connection checks the address it connects to ([ThisDevice]).
  */
 class SmbBackupTarget(
     private val location: SmbLocation,
@@ -80,8 +134,13 @@ class SmbBackupTarget(
     override val label: String,
     private val timeoutSeconds: Long = 30,
 ) : BackupTarget {
-    override val caps =
-        TargetCaps(canReadBack = true, caseSensitive = false, maxPathChars = 260, readsFromServer = true)
+    override val caps = TargetCaps(
+        canReadBack = true,
+        caseSensitive = false,
+        maxPathChars = 260,
+        readsFromServer = true,
+        canFreeOriginals = !location.isGuest,
+    )
 
     private val mutex = Mutex()
     private var client: SMBClient? = null
@@ -89,10 +148,16 @@ class SmbBackupTarget(
     private var session: Session? = null
     private var diskShare: DiskShare? = null
 
-    private fun config() = SmbConfig.builder()
+    internal fun config(): SmbConfig = SmbConfig.builder()
         .withSecurityProvider(BCSecurityProvider())
         .withTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .withSoTimeout(timeoutSeconds, TimeUnit.SECONDS)
+        // D3: a guest session can't be signed (smbj refuses to try); everything else must be.
+        .withSigningRequired(!location.isGuest)
+        // D3: SMB3 encryption whenever the server offers it (smbj then encrypts instead of signing).
+        .withEncryptData(true)
+        // D3: refuses this phone's own addresses, after DNS, right before connecting.
+        .withSocketFactory(ThisDevice.socketFactory(location.hosts, (timeoutSeconds * 1000).toInt()))
         .build()
 
     // Set when any call or stream saw the connection, session or share go away. smbj's `isConnected` is only a
@@ -115,8 +180,20 @@ class SmbBackupTarget(
         } else {
             AuthenticationContext(location.user, location.password.toCharArray(), location.domain.ifEmpty { null })
         }
-        val s = conn.authenticate(auth)
+        val s = try {
+            conn.authenticate(auth)
+        } catch (e: SMB2GuestSigningRequiredException) {
+            // The server answered a named user with a guest session: the password wasn't checked (D3).
+            throw StorageException.PermissionDenied(KPath.Local("/"), e)
+        }
         session = s
+        SmbSessionCheck.problem(
+            guestPlace = location.isGuest,
+            guest = s.isGuest,
+            anonymous = s.isAnonymous,
+            signed = s.isSigningRequired,
+            encrypted = s.shouldEncryptData(),
+        )?.let { why -> throw StorageException.PermissionDenied(KPath.Local("/"), IOException(why)) }
         val share = s.connectShare(location.share) as? DiskShare
             ?: throw StorageException.Unsupported(KPath.Local("/"), "not a folder share")
         diskShare = share
@@ -134,15 +211,20 @@ class SmbBackupTarget(
         client = null
     }
 
+    /** The current session (tests check how it was set up, D3). */
+    internal fun sessionForTests(): Session? = session
+
     /** Disconnects; the next call connects again. */
     override suspend fun close() = mutex.withLock { closeQuietly() }
 
-    private fun smbPath(rel: String): String {
+    /** D3: every segment checked ([SmbPaths]); a bad one is refused, never sent. */
+    internal fun smbPath(rel: String): String {
         require(!rel.startsWith("/")) { "relative path expected" }
-        return listOf(location.folder.trim('/'), rel.trim('/'))
-            .filter { it.isNotEmpty() }
-            .joinToString("/")
-            .replace('/', '\\')
+        val segments = (location.folder.split('/') + rel.split('/')).filter { it.isNotEmpty() }
+        if (!segments.all(SmbPaths::isSafeSegment)) {
+            throw StorageException.Unsupported(KPath.Local("/"), "name not allowed on a network drive")
+        }
+        return segments.joinToString("\\")
     }
 
     /** A target-relative path shown as `/<rel>` in errors and stats (never a path on the phone). */
@@ -304,7 +386,8 @@ class SmbBackupTarget(
         val p = smbPath(relDir)
         if (p.isNotEmpty() && !share.folderExists(p)) throw StorageException.NotFound(kpath(relDir))
         share.list(p)
-            .filter { it.fileName != "." && it.fileName != ".." }
+            // D3: "." and "..", and any name the server sends that couldn't be used safely, are left out.
+            .filter { SmbPaths.isSafeSegment(it.fileName) }
             .map { e ->
                 val rel = if (relDir.isEmpty()) e.fileName else "${relDir.trimEnd('/')}/${e.fileName}"
                 val dir = e.fileAttributes and FileAttributes.FILE_ATTRIBUTE_DIRECTORY.value != 0L

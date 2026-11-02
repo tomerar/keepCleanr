@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
 import io.github.tomerar.keepclear.backup.BackupTarget
 import io.github.tomerar.keepclear.backup.BackupTargetContract
 import io.github.tomerar.keepclear.backup.DigestKind
 import io.github.tomerar.keepclear.backup.net.HostHttpClient
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.github.tomerar.keepclear.core.storage.FakeStorageGateway
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
@@ -45,14 +49,36 @@ internal object NextcloudTestEnv {
 
     /** A fresh, empty folder for one test. */
     fun location(nextcloud: Boolean = true, folder: String = "KeepClear-test/run-${UUID.randomUUID()}") =
-        WebDavLocation.nextcloud(url!!, user, password, folder).let {
-            if (nextcloud) it else WebDavLocation(it.canonicalUrl, user, password, nextcloud = false)
+        WebDavLocation.nextcloud(url!!, user, password, folder, hosts = TestsOnThisDevice).let {
+            if (nextcloud) {
+                it
+            } else {
+                WebDavLocation(
+                    it.canonicalUrl,
+                    user,
+                    password,
+                    nextcloud = false,
+                    hosts = TestsOnThisDevice,
+                )
+            }
         }
 
     /** A plain client to the same server, for checks behind the target's back. */
     fun raw(): HostHttpClient {
         val u = URI(url!!)
-        return HostHttpClient(u.scheme == "https", u.host, if (u.port == -1) 80 else u.port, 30_000)
+        return HostHttpClient(
+            u.scheme == "https",
+            u.host,
+            if (u.port ==
+                -1
+            ) {
+                80
+            } else {
+                u.port
+            },
+            30_000,
+            hosts = TestsOnThisDevice,
+        )
     }
 
     val auth: Pair<String, String>
@@ -188,7 +214,14 @@ class NextcloudServerTest {
     @Test
     fun `a wrong app password is refused, not a missing server`(): Unit = runBlocking {
         val good = NextcloudTestEnv.location()
-        val bad = WebDavLocation(good.canonicalUrl, NextcloudTestEnv.user, "wrong-password", nextcloud = true)
+        val bad =
+            WebDavLocation(
+                good.canonicalUrl,
+                NextcloudTestEnv.user,
+                "wrong-password",
+                nextcloud = true,
+                hosts = TestsOnThisDevice,
+            )
         shouldThrow<StorageException.PermissionDenied> { target(bad).stat("") }
         WebDavTargets.open(bad, "Nextcloud", timeoutSeconds = 30) shouldBe WebDavCheck.Refused
     }

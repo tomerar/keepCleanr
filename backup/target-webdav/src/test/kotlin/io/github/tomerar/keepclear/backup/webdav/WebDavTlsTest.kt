@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -100,18 +104,22 @@ class WebDavTlsTest {
         val self = keystore("self2", "ip:127.0.0.1")
         FakeDavServer(tls = serverContext(self)).use { server ->
             val e = shouldThrow<NextcloudException> {
-                NextcloudLoginFlow(NextcloudServer.parse(server.url()), timeoutSeconds = 5).use { it.start() }
+                NextcloudLoginFlow(NextcloudServer.parse(server.url(), TestsOnThisDevice), timeoutSeconds = 5).use {
+                    it.start()
+                }
             }
             e.problem shouldBe NextcloudProblem.CERTIFICATE
             shouldThrow<NextcloudException> {
-                NextcloudAccount.verify(NextcloudServer.parse(server.url()), "u", "app-password", 5)
+                NextcloudAccount.verify(NextcloudServer.parse(server.url(), TestsOnThisDevice), "u", "app-password", 5)
             }.problem shouldBe NextcloudProblem.CERTIFICATE
             server.requests.size shouldBe 0
         }
         val other = keystore("other2", "dns:other.example")
         FakeDavServer(tls = serverContext(other)).use { server ->
             shouldThrow<NextcloudException> {
-                NextcloudLoginFlow(NextcloudServer.parse(server.url()), 5, trusting(other)).use { it.start() }
+                NextcloudLoginFlow(NextcloudServer.parse(server.url(), TestsOnThisDevice), 5, trusting(other)).use {
+                    it.start()
+                }
             }.problem shouldBe NextcloudProblem.CERTIFICATE
             server.requests.size shouldBe 0
         }

@@ -25,6 +25,7 @@ import kotlin.concurrent.thread
  * M17, W3: the HTTP client (OkHttp underneath) against a raw socket server that sends exactly the bytes a test
  * wants. Ported from the hand-written client's tests; every case is behavioural, so it holds for any client.
  */
+@OptIn(ThisDeviceInTests::class)
 class HostHttpClientTest {
     private val socket = ServerSocket(0, 50, InetAddress.getLoopbackAddress())
     private val accepted = AtomicInteger()
@@ -64,6 +65,7 @@ class HostHttpClientTest {
         host = "127.0.0.1",
         port = socket.localPort,
         timeoutMillis = 3_000,
+        hosts = TestsOnThisDevice,
     )
 
     @Test
@@ -117,7 +119,7 @@ class HostHttpClientTest {
                     Thread.sleep(200)
                 }
             }
-            val http = HostHttpClient(https = false, host = "127.0.0.1", port = server.localPort, timeoutMillis = 3_000)
+            val http = HostHttpClient(false, "127.0.0.1", server.localPort, 3_000, hosts = TestsOnThisDevice)
             shouldThrow<IOException> { http.send("GET", "/").readBody(100) }
             server.close()
         }
@@ -152,7 +154,7 @@ class HostHttpClientTest {
     @Test
     fun `a server that stops reading an upload can't block it forever (PR 31 review)`() {
         stall()
-        val http = HostHttpClient(https = false, host = "127.0.0.1", port = socket.localPort, timeoutMillis = 1_000)
+        val http = HostHttpClient(false, "127.0.0.1", socket.localPort, 1_000, hosts = TestsOnThisDevice)
         assertTimeoutPreemptively(Duration.ofSeconds(20)) {
             assertThrows(IOException::class.java) { uploadUntilStuck(http) }
         }
@@ -161,7 +163,7 @@ class HostHttpClientTest {
     @Test
     fun `close aborts an upload that is blocked in a write (PR 31 review)`() {
         stall()
-        val http = HostHttpClient(https = false, host = "127.0.0.1", port = socket.localPort, timeoutMillis = 120_000)
+        val http = HostHttpClient(false, "127.0.0.1", socket.localPort, 120_000, hosts = TestsOnThisDevice)
         thread(isDaemon = true) {
             Thread.sleep(1_000)
             http.close()
@@ -243,6 +245,84 @@ class HostHttpClientTest {
     fun `plain http is refused for any host but this device`() {
         shouldThrow<IllegalArgumentException> { HostHttpClient(false, "nas.local", 80, 1_000) }
         shouldThrow<IllegalArgumentException> { HostHttpClient(false, "192.168.1.2", 80, 1_000) }
+        shouldThrow<IllegalArgumentException> {
+            HostHttpClient(false, "192.168.1.2", 80, 1_000, hosts = TestsOnThisDevice)
+        }
+    }
+
+    @Test
+    fun `the app can never reach this device, by name, loopback, any-address or odd numbers (D3)`() {
+        for (host in listOf(
+            "localhost",
+            "LOCALHOST",
+            "x.localhost",
+            "127.0.0.1",
+            "127.8.9.1",
+            "::1",
+            "0.0.0.0",
+            "::",
+        )) {
+            shouldThrow<IllegalArgumentException> { HostHttpClient(true, host, 443, 1_000) }
+            shouldThrow<IllegalArgumentException> { HostHttpClient(false, host, 80, 1_000) }
+        }
+        for (host in listOf("127.1", "2130706433", "0x7f.1", "010.0.0.1")) {
+            shouldThrow<IllegalArgumentException> { HostHttpClient(true, host, 443, 1_000, hosts = TestsOnThisDevice) }
+        }
+    }
+
+    @Test
+    fun `this device's own network address is refused at connect time, before any byte is sent (D3)`() {
+        // An address of this machine that isn't loopback (its LAN address): the text check can't know it, the
+        // socket checks the real address right before connecting.
+        val own = java.net.NetworkInterface.getNetworkInterfaces().toList()
+            .flatMap { it.inetAddresses.toList() }
+            .firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
+        org.junit.jupiter.api.Assumptions.assumeTrue(own != null, "no non-loopback address on this machine")
+        ServerSocket(0, 50, own).use { server ->
+            val seen = AtomicInteger()
+            thread(isDaemon = true) { runCatching { server.accept().close() }.onSuccess { seen.incrementAndGet() } }
+            val http = HostHttpClient(true, own!!.hostAddress, server.localPort, 3_000)
+            shouldThrow<ThisDeviceException> { http.send("GET", "/") }
+            Thread.sleep(200)
+            seen.get() shouldBe 0
+        }
+        // The same goes for loopback through the factory, by address or by name.
+        val factory = ThisDevice.socketFactory(HostRule.NetworkOnly)
+        shouldThrow<ThisDeviceException> { factory.createSocket("localhost", socket.localPort) }
+        shouldThrow<ThisDeviceException> { factory.createSocket(InetAddress.getLoopbackAddress(), socket.localPort) }
+        accepted.get() shouldBe 0
+        // Tests may: the explicit rule lets the same socket connect.
+        ThisDevice.socketFactory(TestsOnThisDevice).createSocket("127.0.0.1", socket.localPort).close()
+    }
+
+    @Test
+    fun `one of this device's own addresses is refused like loopback (D3)`() {
+        val own = InetAddress.getByAddress(byteArrayOf(10, 9, 8, 7))
+        val factory = ThisDevice.socketFactory(HostRule.NetworkOnly, own = {
+            setOf(ThisDevice.ByteArrayKey(own.address))
+        })
+        shouldThrow<ThisDeviceException> { factory.createSocket(own, 445) }
+        ThisDevice.isThisDevice(InetAddress.getByAddress(byteArrayOf(10, 9, 8, 6)), emptySet()) shouldBe false
+        ThisDevice.isThisDevice(InetAddress.getByName("::ffff:127.0.0.1"), emptySet()) shouldBe true
+        // The real interfaces of this machine: each one counts as this device.
+        val mine = ThisDevice.ownAddresses()
+        java.net.NetworkInterface.getNetworkInterfaces().toList().flatMap { it.inetAddresses.toList() }.forEach {
+            ThisDevice.isThisDevice(it, mine) shouldBe true
+        }
+    }
+
+    @Test
+    fun `odd numeric hosts are flagged, real names and plain addresses are not`() {
+        listOf("127.1", "2130706433", "0x7f.1", "0x7f000001", "010.0.0.1", "1.2.3.4.5", "nas.123").forEach {
+            ThisDevice.isAmbiguousNumber(it) shouldBe true
+        }
+        listOf("192.168.1.20", "nas", "nas.local", "cloud.example.com", "0.0.0.0", "my-nas2", "::1").forEach {
+            ThisDevice.isAmbiguousNumber(it) shouldBe false
+        }
+        listOf("192.168.1.20", "nas", "cloud.example.com", "fe80::1x").forEach {
+            ThisDevice.isLocalName(it) shouldBe
+                false
+        }
     }
 
     /** Reads the request head, then counts body bytes until the client closes the connection. */
@@ -379,7 +459,7 @@ class HostHttpClientTest {
             s.getOutputStream().flush()
             // ...and the other 90 bytes never come; the socket stays open.
         }
-        val http = HostHttpClient(https = false, host = "127.0.0.1", port = socket.localPort, timeoutMillis = 120_000)
+        val http = HostHttpClient(false, "127.0.0.1", socket.localPort, 120_000, hosts = TestsOnThisDevice)
         val r = http.send("GET", "/a")
         thread(isDaemon = true) {
             Thread.sleep(1_000)

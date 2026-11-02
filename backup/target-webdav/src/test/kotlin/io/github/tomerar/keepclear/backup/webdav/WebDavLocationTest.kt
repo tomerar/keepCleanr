@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotContain
@@ -12,9 +16,9 @@ class WebDavLocationTest {
     fun `https only, plain http only for this phone itself (ADR 0011)`() {
         WebDavLocation("https://cloud.example.com/remote.php/dav/files/dana/KeepClear", "dana", "pw").https shouldBe
             true
-        WebDavLocation("http://localhost:8080/dav", "u", "p").port shouldBe 8080
-        WebDavLocation("http://127.0.0.1/dav", "u", "p").port shouldBe 80
-        WebDavLocation("http://[::1]:81/dav", "u", "p").host shouldBe "::1"
+        WebDavLocation("http://localhost:8080/dav", "u", "p", hosts = TestsOnThisDevice).port shouldBe 8080
+        WebDavLocation("http://127.0.0.1/dav", "u", "p", hosts = TestsOnThisDevice).port shouldBe 80
+        WebDavLocation("http://[::1]:81/dav", "u", "p", hosts = TestsOnThisDevice).host shouldBe "::1"
         listOf(
             "http://cloud.example.com/dav",
             "http://192.168.1.20/dav",
@@ -33,11 +37,36 @@ class WebDavLocationTest {
     }
 
     @Test
+    fun `the app's locations never point at this phone, only tests opt in (D3)`() {
+        listOf(
+            "https://localhost/dav",
+            "http://localhost:8080/dav",
+            "https://LOCALHOST./dav",
+            "https://nc.localhost/dav",
+            "https://127.0.0.1/dav",
+            "http://127.0.0.1:8089/dav",
+            "https://127.255.0.9/dav",
+            "https://[::1]/dav",
+            "https://[::ffff:127.0.0.1]/dav",
+            "https://0.0.0.0/dav",
+            "https://[::]/dav",
+            "https://127.1/dav",
+            "https://2130706433/dav",
+        ).forEach { url ->
+            shouldThrow<IllegalArgumentException> { WebDavLocation(url, "u", "p") }
+            shouldThrow<IllegalArgumentException> { WebDavLocation.nextcloud(url.removeSuffix("/dav"), "u", "p", "") }
+        }
+        WebDavLocation("https://localhost/dav", "u", "p", hosts = TestsOnThisDevice).host shouldBe "localhost"
+        WebDavLocation("https://192.168.1.20/dav", "u", "p").host shouldBe "192.168.1.20"
+    }
+
+    @Test
     fun `the password never appears in logs or in the stored reference`() {
         val l = WebDavLocation("https://cloud.example.com/dav/KeepClear", "dana", "s3cret-app-pw")
         l.toString() shouldNotContain "s3cret"
         WebDavTargets.ref(l) shouldBe "davs://cloud.example.com/dav/KeepClear"
-        WebDavTargets.ref(WebDavLocation("http://127.0.0.1:8080/dav", "u", "p")) shouldBe "dav://127.0.0.1:8080/dav"
+        WebDavTargets.ref(WebDavLocation("http://127.0.0.1:8080/dav", "u", "p", hosts = TestsOnThisDevice)) shouldBe
+            "dav://127.0.0.1:8080/dav"
     }
 
     @Test

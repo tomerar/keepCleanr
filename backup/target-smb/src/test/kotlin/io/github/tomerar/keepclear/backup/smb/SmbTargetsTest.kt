@@ -48,6 +48,17 @@ class SmbTargetsTest {
     }
 
     @Test
+    fun `a share at this machine's own address is OnThisPhone, never Unreachable (D3)`(): Unit = runBlocking {
+        val own = java.net.NetworkInterface.getNetworkInterfaces().toList()
+            .flatMap { it.inetAddresses.toList() }
+            .firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
+        assumeTrue("no non-loopback address on this machine", own != null)
+        // The app's rule (no test opt-in): the text passes, the socket refuses before connecting.
+        val place = SmbLocation(own!!.hostAddress.orEmpty(), "photos", user = "me", password = "pw", port = 4445)
+        assertEquals(SmbCheck.OnThisPhone, SmbTargets.open(place, "NAS", timeoutSeconds = 3))
+    }
+
+    @Test
     fun `marker parsing is strict`() {
         assertEquals(
             "0123456789abcdef0123456789abcdef",

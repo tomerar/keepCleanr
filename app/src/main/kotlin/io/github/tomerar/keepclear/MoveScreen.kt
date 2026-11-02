@@ -358,6 +358,7 @@ private fun ProblemCard(problem: TargetProblem) {
                     TargetProblem.CERTIFICATE -> R.string.nextcloud_problem_certificate
                     TargetProblem.NEXTCLOUD_SIGN_IN -> R.string.move_problem_nextcloud_sign_in
                     TargetProblem.NEXTCLOUD_UNREACHABLE -> R.string.move_problem_nextcloud_unreachable
+                    TargetProblem.NETWORK_ON_THIS_PHONE -> R.string.move_problem_network_phone
                 },
             ),
             modifier = Modifier.padding(12.dp),
@@ -582,6 +583,12 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                     Text(stringResource(R.string.move_free_button, totalText(Total(r.confirmed, r.confirmedBytes))))
                 }
 
+                // D3: a guest network drive: copies only, said plainly.
+                view.copyOnly -> Text(
+                    stringResource(R.string.move_free_copy_only),
+                    modifier = Modifier.testTag("freeCopyOnly"),
+                )
+
                 !view.canReadBack -> Text(
                     stringResource(R.string.move_free_unavailable),
                     modifier = Modifier.testTag("freeUnavailable"),
@@ -779,6 +786,8 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
 
                         MovePlanner.Issue.CannotVerify -> stringResource(R.string.move_issue_cannot_verify)
 
+                        MovePlanner.Issue.CopyOnly -> stringResource(R.string.move_issue_copy_only)
+
                         MovePlanner.Issue.TargetIsSource -> stringResource(R.string.move_problem_phone)
                     }
                     val label = stringResource(
@@ -819,13 +828,17 @@ internal fun NetworkDriveDialog(
     saved: io.github.tomerar.keepclear.backup.smb.SmbLocation?,
     onConnect: (io.github.tomerar.keepclear.backup.smb.SmbLocation) -> Unit,
     onDismiss: () -> Unit,
+    testAccountNotice: Boolean = TestKey.showNotice,
 ) {
     var host by rememberSaveable { mutableStateOf(saved?.host.orEmpty()) }
     var share by rememberSaveable { mutableStateOf(saved?.share.orEmpty()) }
     var user by rememberSaveable { mutableStateOf(saved?.user.orEmpty()) }
     // The password is never kept in saved instance state.
     var password by remember { mutableStateOf(saved?.password.orEmpty()) }
-    val hostOk = io.github.tomerar.keepclear.backup.smb.SmbHosts.isPlainHost(host.trim())
+    val plainHost = io.github.tomerar.keepclear.backup.smb.SmbHosts.isPlainHost(host.trim())
+    // D3: never the phone itself (its own addresses are refused when connecting, with the same plain line).
+    val thisPhone = plainHost && io.github.tomerar.keepclear.backup.smb.SmbHosts.isThisPhone(host.trim())
+    val hostOk = plainHost && !thisPhone
     val shareOk = share.isNotBlank() && '/' !in share && '\\' !in share
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -836,16 +849,34 @@ internal fun NetworkDriveDialog(
                 modifier = Modifier.testTag("networkDrive").verticalScroll(rememberScrollState()),
             ) {
                 Text(stringResource(R.string.move_network_intro), style = MaterialTheme.typography.bodyMedium)
+                // L6: test builds signed with the public test key: anyone can make an update that reads this.
+                if (testAccountNotice) TestAccountNotice()
+                if (user.isBlank()) {
+                    // D3: without a name and password the session can't be signed: copies only.
+                    Text(
+                        stringResource(R.string.move_network_guest_copy_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("networkGuestNote"),
+                    )
+                }
                 androidx.compose.material3.OutlinedTextField(
                     value = host,
                     onValueChange = { host = it },
                     label = { Text(stringResource(R.string.move_network_host)) },
                     singleLine = true,
                     isError = host.isNotBlank() && !hostOk,
-                    supportingText = if (host.isNotBlank() && !hostOk) {
-                        { Text(stringResource(R.string.move_network_bad_host)) }
-                    } else {
-                        null
+                    supportingText = when {
+                        thisPhone -> {
+                            { Text(stringResource(R.string.move_network_this_phone)) }
+                        }
+
+                        host.isNotBlank() && !hostOk -> {
+                            { Text(stringResource(R.string.move_network_bad_host)) }
+                        }
+
+                        else -> {
+                            null
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().testTag("networkHost"),
                 )

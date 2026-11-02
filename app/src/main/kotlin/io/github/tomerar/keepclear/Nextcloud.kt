@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.tomerar.keepclear.backup.net.HostRule
 import io.github.tomerar.keepclear.backup.webdav.NextcloudAccount
 import io.github.tomerar.keepclear.backup.webdav.NextcloudException
 import io.github.tomerar.keepclear.backup.webdav.NextcloudLoginFlow
@@ -65,7 +66,12 @@ import kotlinx.coroutines.withContext
  * preferences; the **app password** is stored only sealed by [SecretBox] and never logged. The account password is
  * never asked for (Login Flow v2) and never stored.
  */
-class NextcloudStore(private val prefs: SharedPreferences, private val box: SecretBox) {
+class NextcloudStore(
+    private val prefs: SharedPreferences,
+    private val box: SecretBox,
+    /** D3: the app always uses [HostRule.NetworkOnly]; only tests set another one (KeepClearApplication). */
+    private val hosts: HostRule = HostRule.NetworkOnly,
+) {
     private val _hostState = MutableStateFlow(prefs.getString(HOST, null))
 
     /** The saved Nextcloud's host, updated on save and forget (Settings shows it). */
@@ -90,7 +96,7 @@ class NextcloudStore(private val prefs: SharedPreferences, private val box: Secr
             ?.toString(Charsets.UTF_8) ?: return null
         return runCatching {
             NextcloudAccount(
-                NextcloudServer.parse(server),
+                NextcloudServer.parse(server, hosts),
                 prefs.getString(LOGIN, null) ?: return null,
                 prefs.getString(USER_ID, null) ?: return null,
                 password,
@@ -129,6 +135,9 @@ enum class NextcloudIssue {
     REFUSED,
     EXPIRED,
 
+    /** D3: the address is this phone itself. */
+    THIS_PHONE,
+
     /** The account holds a `.keepclear-target` that isn't KeepClear's (SEC-3); nothing is overwritten. */
     DAMAGED_MARKER,
     ;
@@ -143,6 +152,7 @@ enum class NextcloudIssue {
             NextcloudProblem.OTHER_ADDRESS -> OTHER_ADDRESS
             NextcloudProblem.REFUSED -> REFUSED
             NextcloudProblem.EXPIRED -> EXPIRED
+            NextcloudProblem.THIS_PHONE -> THIS_PHONE
         }
     }
 }
@@ -250,7 +260,11 @@ class NextcloudViewModel(application: Application) : AndroidViewModel(applicatio
                 NextcloudIssue.DAMAGED_MARKER
             }
 
-            OpenedTarget.OnThisPhone, OpenedTarget.Unavailable -> {
+            OpenedTarget.OnThisPhone -> {
+                NextcloudIssue.THIS_PHONE
+            }
+
+            OpenedTarget.Unavailable -> {
                 NextcloudIssue.UNREACHABLE
             }
         }
@@ -271,6 +285,8 @@ class NextcloudUi(
     /** Opens the sign-in page in the browser (checked to be on the typed server by the engine). */
     val onOpenLogin: (String) -> Unit = {},
     val onCancel: () -> Unit = {},
+    /** L6: test builds with the public test key say "use a test account". */
+    val testAccountNotice: Boolean = TestKey.showNotice,
 )
 
 @Composable
@@ -290,6 +306,7 @@ fun NextcloudScreen(ui: NextcloudUi, onBack: () -> Unit) {
         ) {
             BackRow(stringResource(R.string.nextcloud_title), onBack)
             Text(stringResource(R.string.nextcloud_intro), style = MaterialTheme.typography.bodyMedium)
+            if (ui.testAccountNotice) TestAccountNotice()
             ui.connectedHost?.let { host ->
                 Text(
                     stringResource(R.string.nextcloud_connected, Bidi.isolate(host)),
@@ -400,6 +417,7 @@ fun NextcloudScreen(ui: NextcloudUi, onBack: () -> Unit) {
 
 private fun addressText(problem: NextcloudProblem) = when (problem) {
     NextcloudProblem.NEEDS_HTTPS -> R.string.nextcloud_needs_https
+    NextcloudProblem.THIS_PHONE -> R.string.nextcloud_this_phone
     else -> R.string.nextcloud_bad_address
 }
 
@@ -413,4 +431,5 @@ private fun issueText(issue: NextcloudIssue) = when (issue) {
     NextcloudIssue.REFUSED -> R.string.nextcloud_problem_refused
     NextcloudIssue.EXPIRED -> R.string.nextcloud_problem_expired
     NextcloudIssue.DAMAGED_MARKER -> R.string.move_problem_marker
+    NextcloudIssue.THIS_PHONE -> R.string.nextcloud_this_phone
 }

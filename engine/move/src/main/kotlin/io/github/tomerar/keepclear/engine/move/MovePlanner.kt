@@ -80,6 +80,11 @@ object MovePlanner {
         data object CannotVerify : Issue {
             override val blocking = false // copy allowed, deleting originals is not (MOVE-14)
         }
+
+        /** D3: an unsigned guest share: copies only, the originals stay on the phone. */
+        data object CopyOnly : Issue {
+            override val blocking = false
+        }
     }
 
     /** "primary" for `/storage/emulated/<user>/…`, the UUID for `/storage/<uuid>/…`, else null. */
@@ -110,7 +115,11 @@ object MovePlanner {
         target.freeBytes()?.let { free -> if (free < withMargin) issues += Issue.NotEnoughSpace(withMargin, free) }
         if (batteryPercent < 20 && !charging) issues += Issue.BatteryLow
         files.count { it.nameChanged }.takeIf { it > 0 }?.let { issues += Issue.NamesChanged(it) }
-        if (!target.caps.canReadBack) issues += Issue.CannotVerify
+        if (!target.caps.canReadBack) {
+            issues += Issue.CannotVerify
+        } else if (!target.caps.canFreeOriginals) {
+            issues += Issue.CopyOnly
+        }
         return issues
     }
 }

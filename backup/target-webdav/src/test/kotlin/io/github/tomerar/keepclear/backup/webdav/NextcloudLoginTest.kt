@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -32,6 +36,8 @@ class NextcloudLoginTest {
     private var startAnswer: ((String) -> Pair<Int, String>)? = null
     private var pollAnswer: ((String) -> Pair<Int, String>)? = null
     private var userAnswer: Pair<Int, String>? = null
+    private var revokeAnswer: Pair<Int, String>? = null
+    private val revoked = java.util.concurrent.atomic.AtomicBoolean(false)
     private var lastPollBody = ""
 
     private val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
@@ -78,6 +84,15 @@ class NextcloudLoginTest {
                 }
             }
 
+            ex.requestMethod == "DELETE" && path == "/ocs/v2.php/core/apppassword" -> {
+                revokeAnswer ?: run {
+                    val ok = ex.requestHeaders.getFirst("Authorization") == "Basic " +
+                        Base64.getEncoder().encodeToString("dana@example.com:$appPassword".toByteArray()) &&
+                        ex.requestHeaders.getFirst("OCS-APIRequest") == "true"
+                    if (ok && revoked.compareAndSet(false, true)) 200 to """{"ocs":{"data":[]}}""" else 401 to "{}"
+                }
+            }
+
             else -> {
                 404 to ""
             }
@@ -88,7 +103,7 @@ class NextcloudLoginTest {
         ex.close()
     }
 
-    private fun flow() = NextcloudLoginFlow(NextcloudServer.parse(base), timeoutSeconds = 5)
+    private fun flow() = NextcloudLoginFlow(NextcloudServer.parse(base, TestsOnThisDevice), timeoutSeconds = 5)
 
     @Test
     fun `sign in in the browser, then the poll hands over the app password once`(): Unit = runBlocking {
@@ -110,7 +125,12 @@ class NextcloudLoginTest {
 
     @Test
     fun `the account check finds the user id for the files path and never shows the password`() {
-        val account = NextcloudAccount.verify(NextcloudServer.parse(base), "dana@example.com", appPassword, 5)
+        val account = NextcloudAccount.verify(
+            NextcloudServer.parse(base, TestsOnThisDevice),
+            "dana@example.com",
+            appPassword,
+            5,
+        )
         account.userId shouldBe "dana"
         account.location().canonicalUrl shouldBe "$base/remote.php/dav/files/dana"
         account.location().user shouldBe "dana@example.com"
@@ -122,7 +142,12 @@ class NextcloudLoginTest {
     @Test
     fun `a wrong app password is refused`() {
         val e = shouldThrow<NextcloudException> {
-            NextcloudAccount.verify(NextcloudServer.parse(base), "dana@example.com", "wrong-password", 5)
+            NextcloudAccount.verify(
+                NextcloudServer.parse(base, TestsOnThisDevice),
+                "dana@example.com",
+                "wrong-password",
+                5,
+            )
         }
         e.problem shouldBe NextcloudProblem.REFUSED
     }
@@ -215,7 +240,7 @@ class NextcloudLoginTest {
         }
         userAnswer = 200 to """{"ocs":{"data":{"id":"../admin"}}}"""
         shouldThrow<NextcloudException> {
-            NextcloudAccount.verify(NextcloudServer.parse(base), "dana@example.com", appPassword, 5)
+            NextcloudAccount.verify(NextcloudServer.parse(base, TestsOnThisDevice), "dana@example.com", appPassword, 5)
         }.problem shouldBe NextcloudProblem.NOT_NEXTCLOUD
     }
 
@@ -239,10 +264,24 @@ class NextcloudLoginTest {
         NextcloudServer.parse(" https://Cloud.Example.com/nextcloud/ ").url shouldBe
             "https://cloud.example.com/nextcloud"
         NextcloudServer.parse("https://cloud.example.com:8443").url shouldBe "https://cloud.example.com:8443"
-        NextcloudServer.parse("http://localhost:8080").url shouldBe "http://localhost:8080"
-        NextcloudServer.parse("http://127.0.0.1:8089").url shouldBe "http://127.0.0.1:8089"
+        NextcloudServer.parse("http://localhost:8080", TestsOnThisDevice).url shouldBe "http://localhost:8080"
+        NextcloudServer.parse("http://127.0.0.1:8089", TestsOnThisDevice).url shouldBe "http://127.0.0.1:8089"
         listOf("http://cloud.example.com", "http://192.168.1.20", "http://nas.local:8080").forEach {
             NextcloudServer.problem(it) shouldBe NextcloudProblem.NEEDS_HTTPS
+        }
+        // D3: the app's parser refuses this phone itself, https or not; only tests opt in to it.
+        listOf(
+            "localhost",
+            "https://localhost:8443",
+            "http://127.0.0.1:8089",
+            "https://127.0.0.1",
+            "127.0.0.53",
+            "https://[::1]/nextcloud",
+            "https://0.0.0.0",
+            "nc.localhost",
+        ).forEach { NextcloudServer.problem(it) shouldBe NextcloudProblem.THIS_PHONE }
+        listOf("127.1", "https://2130706433", "https://0x7f.1").forEach {
+            NextcloudServer.problem(it) shouldBe NextcloudProblem.BAD_ADDRESS
         }
         listOf(
             "",
@@ -256,6 +295,39 @@ class NextcloudLoginTest {
             "cloud example.com",
             "https://cloud.example.com:99999",
         ).forEach { NextcloudServer.problem(it).shouldNotBeNull() shouldBe NextcloudProblem.BAD_ADDRESS }
+    }
+
+    @Test
+    fun `a server at this phone's own network address is reported as this phone (D3)`() {
+        // The text check can't know the phone's own addresses; the socket refuses them before anything is sent.
+        val own = java.net.NetworkInterface.getNetworkInterfaces().toList()
+            .flatMap { it.inetAddresses.toList() }
+            .firstOrNull { it is java.net.Inet4Address && !it.isLoopbackAddress }
+        org.junit.jupiter.api.Assumptions.assumeTrue(own != null, "no non-loopback address on this machine")
+        val mine = NextcloudServer.parse("https://${own!!.hostAddress}:${server.address.port}")
+        shouldThrow<NextcloudException> {
+            NextcloudAccount.verify(mine, "dana@example.com", appPassword, 5)
+        }.problem shouldBe NextcloudProblem.THIS_PHONE
+        shouldThrow<NextcloudException> {
+            NextcloudLoginFlow(mine, timeoutSeconds = 5).use { it.start() }
+        }.problem shouldBe NextcloudProblem.THIS_PHONE
+    }
+
+    @Test
+    fun `forgetting revokes the app password on the server, and says honestly when it couldn't (D6)`() {
+        val server = NextcloudServer.parse(base, TestsOnThisDevice)
+        val account = NextcloudAccount(server, "dana@example.com", "dana", appPassword)
+        account.revoke(5) shouldBe NextcloudRevoke.REVOKED
+        revoked.get() shouldBe true
+        // The server no longer takes it: as good as revoked.
+        account.revoke(5) shouldBe NextcloudRevoke.ALREADY_INVALID
+        // Any other answer, or none: the password may still work there.
+        revokeAnswer = 500 to "{}"
+        account.revoke(5) shouldBe NextcloudRevoke.NOT_REVOKED
+        revokeAnswer = 403 to "{}"
+        account.revoke(5) shouldBe NextcloudRevoke.NOT_REVOKED
+        this.server.stop(0)
+        account.revoke(2) shouldBe NextcloudRevoke.NOT_REVOKED
     }
 
     @Test

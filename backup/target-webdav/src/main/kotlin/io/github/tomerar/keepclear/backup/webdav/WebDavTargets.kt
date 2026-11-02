@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.ThisDeviceException
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import java.security.SecureRandom
@@ -23,6 +24,9 @@ sealed interface WebDavCheck {
 
     /** Nothing answered (server off, wrong address, no network). */
     data object Unreachable : WebDavCheck
+
+    /** D3: the address led to this phone itself (its own address after DNS); a backup there is no backup. */
+    data object OnThisPhone : WebDavCheck
 }
 
 object WebDavTargets {
@@ -81,6 +85,9 @@ object WebDavTargets {
             // Another device created the marker at the same moment: read it next time; nothing overwritten.
             WebDavCheck.Unreachable
         } catch (e: StorageException) {
+            if (generateSequence<Throwable>(e) { it.cause }.any { it is ThisDeviceException }) {
+                return WebDavCheck.OnThisPhone
+            }
             if (generateSequence<Throwable>(e) { it.cause }.any {
                     it is SSLHandshakeException ||
                         it is SSLPeerUnverifiedException

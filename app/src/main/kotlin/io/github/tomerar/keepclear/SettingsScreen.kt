@@ -70,6 +70,10 @@ class SettingsActions(
     /** M17b: the Nextcloud's host (Advanced), another place KeepClear may connect to; null when none is set up. */
     val nextcloudHost: String? = null,
     val onForgetNextcloud: () -> Unit = {},
+    /** D6: true while "Forget" revokes the app password on the server. */
+    val forgettingNextcloud: Boolean = false,
+    /** D6: what forgetting achieved on the server, shown once after it; null before. */
+    val nextcloudForgot: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? = null,
     val onOpenNextcloud: () -> Unit = {},
     /** CLS-7 / SET-2: what the user kept or marked as junk, and how to undo it. */
     val choices: Choices = Choices(),
@@ -218,10 +222,24 @@ fun SettingsScreen(
                         )
                         TextButton(
                             onClick = actions.onForgetNextcloud,
+                            enabled = !actions.forgettingNextcloud,
                             modifier = Modifier.testTag("forgetNextcloud"),
                         ) {
                             Text(stringResource(R.string.settings_nextcloud_forget))
                         }
+                    }
+                    actions.nextcloudForgot?.let { result ->
+                        Text(
+                            stringResource(
+                                if (result == io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED) {
+                                    R.string.settings_nextcloud_forgot_not_revoked
+                                } else {
+                                    R.string.settings_nextcloud_forgot_revoked
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("nextcloudForgot"),
+                        )
                     }
                 }
             }

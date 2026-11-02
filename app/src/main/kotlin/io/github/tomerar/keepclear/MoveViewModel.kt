@@ -70,6 +70,9 @@ enum class TargetProblem {
 
     /** M17b: the Nextcloud didn't answer. */
     NEXTCLOUD_UNREACHABLE,
+
+    /** D3: the network address led to this phone itself (its own address); a backup there is no backup. */
+    NETWORK_ON_THIS_PHONE,
 }
 
 data class JobView(
@@ -83,15 +86,21 @@ data class JobView(
     val doneBytes: Long = 0,
     val phase: MovePhase = MovePhase.COPYING,
     val etaMillis: Long? = null,
+    /**
+     * D3: the place is a network drive used as a guest (no name and password): its session can't be signed, so
+     * KeepClear only copies to it and never offers to free the originals (the engine refuses too).
+     */
+    val copyOnly: Boolean = false,
 ) {
     /**
      * MOVE-9, H1: freeing is offered only once every file is settled and copies passed the second check
-     * ("Check backup"), whose read can't come from the phone's memory.
+     * ("Check backup"), whose read can't come from the phone's memory. Never for a copy-only place (D3).
      */
-    val canFree: Boolean get() = canReadBack && receipt.complete && receipt.confirmed > 0
+    val canFree: Boolean get() = canReadBack && !copyOnly && receipt.complete && receipt.confirmed > 0
 
     /** Verified copies that still need the second check before their originals may be freed (H1). */
-    val needsCheck: Boolean get() = canReadBack && receipt.complete && receipt.verified > receipt.confirmed
+    val needsCheck: Boolean get() =
+        canReadBack && !copyOnly && receipt.complete && receipt.verified > receipt.confirmed
 }
 
 enum class MovePhase { COPYING, CHECKING }
@@ -196,6 +205,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                     doneBytes = done,
                     phase = if (checking) MovePhase.CHECKING else MovePhase.COPYING,
                     etaMillis = eta,
+                    copyOnly = copyOnly(job),
                 )
             }
         }
@@ -316,7 +326,16 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             OpenedTarget.OnThisPhone -> {
-                fail(TargetProblem.ON_THIS_PHONE)
+                fail(
+                    if (OpenedTarget.isNetwork(
+                            ref,
+                        )
+                    ) {
+                        TargetProblem.NETWORK_ON_THIS_PHONE
+                    } else {
+                        TargetProblem.ON_THIS_PHONE
+                    },
+                )
             }
 
             OpenedTarget.DamagedMarker -> {
@@ -671,6 +690,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         SafTargets.classify(uri.authority, DocumentsContract.getTreeDocumentId(uri), app.testDriveAuthorities)
             ?.second?.canReadBack == true
     }.getOrDefault(false)
+
+    /** D3: a job to the saved network drive, set up as a guest, is copy-only. */
+    private fun copyOnly(job: MoveJob): Boolean =
+        OpenedTarget.isSmb(job.targetRef) && runCatching { app.networkDrives.isGuest() }.getOrDefault(true)
 
     fun clearFreeResult() = _state.update { it.copy(freeResult = null) }
 

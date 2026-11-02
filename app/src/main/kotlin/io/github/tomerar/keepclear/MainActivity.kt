@@ -152,6 +152,11 @@ class MainActivity : ComponentActivity() {
                 val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 val choices by app.userChoices.state.collectAsStateWithLifecycle()
                 var reminderOn by androidx.compose.runtime.remember { mutableStateOf(app.reminderPrefs.enabled) }
+                // D6: forgetting the Nextcloud revokes its app password on the server first; the result is said once.
+                var forgettingNextcloud by androidx.compose.runtime.remember { mutableStateOf(false) }
+                var nextcloudForgot by androidx.compose.runtime.remember {
+                    mutableStateOf<io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke?>(null)
+                }
                 CompositionLocalProvider(LocalThumbnailLoader provides thumbnails) {
                     AppScreens(
                         settingsActions = SettingsActions(
@@ -172,7 +177,20 @@ class MainActivity : ComponentActivity() {
                             },
                             onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
                             nextcloudHost = nextcloudHost,
-                            onForgetNextcloud = { lifecycleScope.launch { app.forgetNextcloud() } },
+                            onForgetNextcloud = {
+                                if (!forgettingNextcloud) {
+                                    forgettingNextcloud = true
+                                    lifecycleScope.launch {
+                                        try {
+                                            app.forgetNextcloud()?.let { nextcloudForgot = it }
+                                        } finally {
+                                            forgettingNextcloud = false
+                                        }
+                                    }
+                                }
+                            },
+                            forgettingNextcloud = forgettingNextcloud,
+                            nextcloudForgot = nextcloudForgot,
                             onOpenNextcloud = {
                                 nextcloudVm.begin()
                                 vm.open(Screen.Nextcloud)
