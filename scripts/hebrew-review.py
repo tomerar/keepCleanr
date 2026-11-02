@@ -41,7 +41,7 @@ PREFIXES = [
     ("Swipe review", ["swipe_"]),
     ("Notifications", ["reminder_text", "reminder_title", "reminder_channel"]),
     ("Settings", ["settings_", "reminder_setting", "test_mode", "choice_kept", "choice_junk_list"]),
-    ("Device check (test builds)", ["device_check"]),
+    ("Device check (test builds)", ["debug_device_check"]),
 ]
 
 
