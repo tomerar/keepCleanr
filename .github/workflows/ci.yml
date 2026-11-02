@@ -57,7 +57,8 @@ jobs:
 
   reproducible:
     # M18: F-Droid ships our signed APK only if its own build of the tag is byte-identical (research 05 §6.4).
-    # Builds the unsigned fossRelease twice from two fresh clones at different paths, without the build cache.
+    # Builds the unsigned fossRelease twice from two fresh clones at different paths, without the build cache, each
+    # with its own Gradle home, time zone, locale and umask (D6).
     name: Reproducible build (fossRelease)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -72,6 +73,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: true
+      - name: Install a second locale (Hebrew) for the second build
+        run: sudo locale-gen he_IL.UTF-8
       - name: Build fossRelease twice and compare
         run: KEEPCLEAR_REPRO_DIR="$RUNNER_TEMP/repro" scripts/reproducible-build.sh
       - name: Upload both APKs
@@ -138,11 +141,33 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: true
+      # L6: signed with the owner's private test key when the Actions secrets exist (docs/progress.md, "Waiting
+      # for owner"); without them, with the public test key in keystore/ as before. The key never touches the
+      # repository or the logs: it is written to a temporary file that only this job's build reads.
+      - name: Private test key (when the secrets exist)
+        env:
+          TEST_KEYSTORE_BASE64: ${{ secrets.TEST_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$TEST_KEYSTORE_BASE64" ]; then
+            echo "No private test key in the Actions secrets: the public test key signs (use test accounts only)."
+            exit 0
+          fi
+          keystore="$RUNNER_TEMP/keepclear-test.keystore"
+          printf '%s' "$TEST_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          echo "KEEPCLEAR_TEST_KEYSTORE=$keystore" >> "$GITHUB_ENV"
+          echo "Signing the test APK with the private test key."
       - name: Build fossDebug
+        env:
+          # Read by app/build.gradle.kts only when KEEPCLEAR_TEST_KEYSTORE names a file (the step above).
+          KEEPCLEAR_TEST_KEYSTORE_PASSWORD: ${{ secrets.TEST_KEYSTORE_PASSWORD }}
+          KEEPCLEAR_TEST_KEY_ALIAS: ${{ secrets.TEST_KEY_ALIAS }}
+          KEEPCLEAR_TEST_KEY_PASSWORD: ${{ secrets.TEST_KEY_PASSWORD }}
         run: |
           ./gradlew :app:assembleFossDebug
           short=$(git rev-parse --short HEAD)
           cp app/build/outputs/apk/foss/debug/app-foss-debug.apk "keepclear-test-${GITHUB_RUN_NUMBER}-${short}.apk"
+          if [ -n "${KEEPCLEAR_TEST_KEYSTORE:-}" ]; then rm -f "$KEEPCLEAR_TEST_KEYSTORE"; fi
       - name: Upload test APK
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
