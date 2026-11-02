@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.smb
 
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.github.tomerar.keepclear.core.storage.StorageException
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -165,6 +169,17 @@ class SmbBackupTargetTest {
         expect<StorageException.Disconnected> { off.stat("") }
         off.close()
     }
+
+    @Test
+    fun `the session is signed by the server's real user, encrypted when offered (D3)`(): Unit = runBlocking {
+        // Every operation above ran with signing required; here the session itself is looked at.
+        target.stat("")
+        val session = target.sessionForTests()!!
+        assertFalse(session.isGuest)
+        assertFalse(session.isAnonymous)
+        assertTrue(session.isSigningRequired || session.shouldEncryptData())
+        assertTrue(target.caps.canFreeOriginals)
+    }
 }
 
 /** Fails in CI when the Samba server is missing, so the integration tests above can't be skipped silently there. */
@@ -205,6 +220,8 @@ internal object SmbTestEnv {
             user = System.getenv("KEEPCLEAR_SMB_USER").orEmpty(),
             password = System.getenv("KEEPCLEAR_SMB_PASSWORD").orEmpty(),
             port = System.getenv("KEEPCLEAR_SMB_PORT")?.toInt() ?: 445,
+            // The test Samba runs on this machine's loopback (D3: only tests may do that).
+            hosts = TestsOnThisDevice,
         )
     }
 }

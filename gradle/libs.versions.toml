@@ -65,6 +65,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 # build-logic classpath
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+# build-logic only (checkForbiddenApis, D6): the same ASM the Android Gradle Plugin already brings; never in the app.
+asm = { module = "org.ow2.asm:asm", version = "9.9" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 compose-compiler-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 

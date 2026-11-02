@@ -62,6 +62,7 @@ class WebDavBackupTarget(
         location.port,
         (timeoutSeconds * 1000).toInt(),
         trustManager,
+        location.hosts,
     )
     private val scope = HrefScope(location.https, location.host, location.port, location.baseSegments)
     private val auth =
@@ -350,16 +351,26 @@ class WebDavBackupTarget(
         return io(segs) { statEntry(segs)?.let(::toStat) }
     }
 
+    /**
+     * A GET of the file. SEC (D6): the answer may never be longer than the size the server just reported for the
+     * file (PROPFIND): a longer `Content-Length` is refused before reading, and a body that keeps going past that
+     * size is cut off with an error, so a hostile or broken server can't stream forever into a read-back hash.
+     */
     override suspend fun openRead(rel: String): InputStream {
         val segs = segments(rel)
         val path = kpath(segs)
-        val r = io(segs) {
+        val (r, expected) = io(segs) {
             val e = statEntry(segs) ?: throw StorageException.NotFound(path)
             if (e.isCollection) throw StorageException.IsADirectory(path)
             val r = http.send("GET", urlPath(segs), headers())
             when (r.status) {
                 200 -> {
-                    r
+                    val announced = r.header("content-length")?.toLongOrNull()
+                    if (announced != null && announced > e.size) {
+                        r.close()
+                        throw HttpProtocolException("the answer is larger than the file")
+                    }
+                    r to e.size
                 }
 
                 404 -> {
@@ -374,9 +385,24 @@ class WebDavBackupTarget(
             }
         }
         return object : FilterInputStream(r.body) {
-            override fun read(): Int = mapped(path) { `in`.read() }
+            private var read = 0L
 
-            override fun read(b: ByteArray, off: Int, len: Int): Int = mapped(path) { `in`.read(b, off, len) }
+            private fun <N : Number> counted(n: N): N {
+                if (n.toLong() > 0) {
+                    read += n.toLong()
+                    if (read > expected) {
+                        runCatching { `in`.close() }
+                        throw HttpProtocolException("the answer is larger than the file")
+                    }
+                }
+                return n
+            }
+
+            override fun read(): Int = mapped(path) { `in`.read().also { if (it >= 0) counted(1L) } }
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int = mapped(path) { counted(`in`.read(b, off, len)) }
+
+            override fun skip(n: Long): Long = mapped(path) { counted(`in`.skip(n)) }
 
             override fun close() = mapped(path) { `in`.close() }
         }
@@ -425,8 +451,12 @@ class WebDavBackupTarget(
         private val SHA256_HEX = Regex("^[0-9a-f]{64}$")
         private val CONTENT_XML = "Content-Type" to "application/xml; charset=utf-8"
 
-        /** Folder listings of tens of thousands of files fit; anything larger is refused (SEC). */
-        const val MAX_PROPFIND_BYTES = 32 * 1024 * 1024
+        /**
+         * SEC (D6): the largest PROPFIND answer read. KeepClear lists only small folders of its own (the backups at
+         * the top, a folder it is about to delete); at about 600 bytes per entry on Nextcloud over 10,000 entries
+         * still fit. Anything larger is refused, and the answer is parsed as a stream ([DavXml]), never as a tree.
+         */
+        const val MAX_PROPFIND_BYTES = 8 * 1024 * 1024
 
         private val PROPFIND_BODY = (
             """<?xml version="1.0" encoding="utf-8"?>""" +

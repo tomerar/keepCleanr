@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
 import io.github.tomerar.keepclear.backup.DigestKind
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -186,6 +190,45 @@ class WebDavBackupTargetTest {
     }
 
     @Test
+    fun `a valid listing larger than the cap is refused, well below 32 MiB (D6)`(): Unit = runBlocking {
+        val t = target()
+        t.mkdirs("")
+        t.put("a.txt", "a".toByteArray())
+        WebDavBackupTarget.MAX_PROPFIND_BYTES shouldBe 8 * 1024 * 1024
+        server.padPropfindBytes = 9 * 1024 * 1024 // valid XML, 9 MiB: parsed before D6, refused now
+        shouldThrow<StorageException.Io> { t.list("") }
+        server.padPropfindBytes = 7 * 1024 * 1024
+        t.list("").map { it.name } shouldBe listOf("a.txt")
+    }
+
+    @Test
+    fun `a read-back never goes past the file's size (D6)`(): Unit = runBlocking {
+        val t = target()
+        t.mkdirs("")
+        val bytes = ByteArray(1_000) { it.toByte() }
+        t.put("a.bin", bytes)
+        // Announced longer than the file: refused before reading.
+        server.longGet = 5_000_000
+        shouldThrow<StorageException.Io> { t.openRead("a.bin").use { it.readBytes() } }
+        // Streamed without a length: cut off right after the file's size.
+        server.longGetChunked = true
+        val read = java.util.concurrent.atomic.AtomicLong()
+        shouldThrow<StorageException.Io> {
+            t.openRead("a.bin").use { input ->
+                val buf = ByteArray(8 * 1024)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    read.addAndGet(n.toLong())
+                }
+            }
+        }
+        (read.get() <= bytes.size) shouldBe true
+        server.longGet = 0
+        t.openRead("a.bin").use { it.readBytes() } shouldBe bytes
+    }
+
+    @Test
     fun `redirects are never followed, so the password goes nowhere else`(): Unit = runBlocking {
         FakeDavServer().use { other ->
             val t = target()
@@ -232,7 +275,7 @@ class WebDavBackupTargetTest {
         val port = server.port
         server.close()
         val t = WebDavBackupTarget(
-            WebDavLocation("http://127.0.0.1:$port/dav", "u", "p"),
+            WebDavLocation("http://127.0.0.1:$port/dav", "u", "p", hosts = TestsOnThisDevice),
             "x",
             "x",
             timeoutSeconds = 2,

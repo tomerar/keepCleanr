@@ -17,6 +17,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
         pluginManager.apply("com.android.application")
         registerDependencyConfinement()
+        registerForbiddenApis()
 
         extensions.configure<ApplicationExtension> {
             configureKotlinAndroid(this)

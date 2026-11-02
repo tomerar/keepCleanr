@@ -19,6 +19,7 @@ import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
 import io.github.tomerar.keepclear.core.storage.saf.SafGateway
 import io.github.tomerar.keepclear.core.storage.saf.SafTreeMount
 import io.github.tomerar.keepclear.engine.trash.TrashManager
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -162,20 +163,99 @@ class KeepClearApplication : Application() {
     /** Seals stored passwords; tests on Robolectric (which has no Android key store) put a stand-in here first. */
     internal var secretBox: (alias: String) -> SecretBox = ::KeystoreSecretBox
 
+    /**
+     * D3: which servers the network places may reach. Always [HostRule.NetworkOnly] in the app (never this phone);
+     * only tests, which talk to servers on their own machine, set the test-only rule here before first use.
+     */
+    internal var nextcloudHosts: io.github.tomerar.keepclear.backup.net.HostRule =
+        io.github.tomerar.keepclear.backup.net.HostRule.NetworkOnly
+
     /** M17b (Advanced): the user's Nextcloud (app password sealed with its own key-store key). */
     val nextcloud by lazy {
-        NextcloudStore(getSharedPreferences("nextcloud", MODE_PRIVATE), secretBox("keepclear-nextcloud"))
+        NextcloudStore(
+            getSharedPreferences("nextcloud", MODE_PRIVATE),
+            secretBox("keepclear-nextcloud"),
+            nextcloudHosts,
+        )
     }
 
     /**
-     * "Forget your Nextcloud" (C27, like C9): removes the account and its sealed app password, and pauses a backup
-     * that is running to it right now, so nothing more is sent there.
+     * "Forget your Nextcloud" (C27, like C9; D6): pauses a backup that is running to it right now, then **revokes the
+     * app password on the server** (so a copy of it stops working), then removes the account and its sealed app
+     * password from the phone. When the server can't be reached the account is removed from the phone anyway (C40)
+     * and the answer says the password may still work there, so the user can remove it in Nextcloud.
+     * Returns null when no Nextcloud was saved.
      */
-    suspend fun forgetNextcloud() {
-        nextcloud.clear()
+    suspend fun forgetNextcloud(
+        revoke: suspend (io.github.tomerar.keepclear.backup.webdav.NextcloudAccount) ->
+        io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke = { account ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { account.revoke(timeoutSeconds = 15) }
+        },
+    ): io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? {
         val running = moveController.running.value?.let { moveController.store.job(it) }
         if (OpenedTarget.usesNextcloud(running)) {
             moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
+        }
+        if (nextcloud.host() == null) {
+            nextcloud.clear()
+            return null
+        }
+        var result = io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED
+        try {
+            val account = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { nextcloud.load() }.getOrNull()
+            }
+            // A saved account whose app password can't be opened any more can't be revoked from here either.
+            if (account != null) result = revoke(account)
+        } finally {
+            // PR #44 review: "Forget" always forgets on the phone, even when the caller is cancelled (or anything
+            // throws) while loading the account or waiting for the server.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { nextcloud.clear() }
+            if (result == io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke.NOT_REVOKED) {
+                // No host, user or password in the log.
+                android.util.Log.w(
+                    "KeepClear-Nextcloud",
+                    "forgotten on the phone; the server did not confirm the revoke",
+                )
+            }
+        }
+        return result
+    }
+
+    /** D6 / PR #44 review: whether "Forget your Nextcloud" is running, and what it achieved (Settings shows it). */
+    data class NextcloudForgetState(
+        val forgetting: Boolean = false,
+        val result: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? = null,
+    )
+
+    private val _nextcloudForget = kotlinx.coroutines.flow.MutableStateFlow(NextcloudForgetState())
+    val nextcloudForget: kotlinx.coroutines.flow.StateFlow<NextcloudForgetState> = _nextcloudForget
+
+    /**
+     * Runs for the whole process, not for one screen: an operation started here (forgetting the Nextcloud) isn't
+     * cancelled when the activity is recreated (rotation, language change). Tests may replace it.
+     */
+    internal var appScope: kotlinx.coroutines.CoroutineScope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate,
+        )
+
+    /** "Forget your Nextcloud" from Settings: one at a time, in [appScope]; the outcome lands in [nextcloudForget]. */
+    fun forgetNextcloudInBackground(
+        revoke: suspend (io.github.tomerar.keepclear.backup.webdav.NextcloudAccount) ->
+        io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke = { account ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { account.revoke(timeoutSeconds = 15) }
+        },
+    ): kotlinx.coroutines.Job? {
+        val current = _nextcloudForget.value
+        if (current.forgetting || !_nextcloudForget.compareAndSet(current, current.copy(forgetting = true))) return null
+        return appScope.launch {
+            var result: io.github.tomerar.keepclear.backup.webdav.NextcloudRevoke? = null
+            try {
+                result = forgetNextcloud(revoke)
+            } finally {
+                _nextcloudForget.value = NextcloudForgetState(false, result ?: _nextcloudForget.value.result)
+            }
         }
     }
 

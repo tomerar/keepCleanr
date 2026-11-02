@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.backup.smb
 
+import io.github.tomerar.keepclear.backup.net.ThisDeviceException
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import java.security.SecureRandom
@@ -17,6 +18,9 @@ sealed interface SmbCheck {
 
     /** Nothing answered (computer off or asleep, wrong address, other Wi-Fi). */
     data object Unreachable : SmbCheck
+
+    /** D3: the address led to this phone itself (its own address after DNS); a backup there is no backup. */
+    data object OnThisPhone : SmbCheck
 }
 
 object SmbTargets {
@@ -69,8 +73,12 @@ object SmbTargets {
         } catch (_: StorageException.AlreadyExists) {
             // Another device created the marker at the same moment: read it next time; nothing overwritten.
             SmbCheck.Unreachable
-        } catch (_: StorageException) {
-            SmbCheck.Unreachable
+        } catch (e: StorageException) {
+            if (generateSequence<Throwable>(e) { it.cause }.any { it is ThisDeviceException }) {
+                SmbCheck.OnThisPhone
+            } else {
+                SmbCheck.Unreachable
+            }
         } finally {
             probe.close()
         }

@@ -26,6 +26,8 @@ android {
 
 dependencies {
     api(project(":backup:target-api"))
+    // D3: the guarded socket factory (never this phone) and the host rule shared with the HTTP targets.
+    implementation(project(":backup:net"))
     implementation(libs.smbj)
     // NTLM needs MD4, which Android's own crypto doesn't offer (research 06 §3.1).
     implementation(libs.bouncycastle.bcprov)

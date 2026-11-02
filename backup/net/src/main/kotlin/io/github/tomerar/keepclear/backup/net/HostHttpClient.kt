@@ -79,7 +79,10 @@ class HttpResponse(
  * - Talks **only** to [host]:[port]; redirects are never followed (`followRedirects(false)`,
  *   `followSslRedirects(false)`), so credentials can't be sent anywhere else. No proxy either
  *   (`Proxy.NO_PROXY`): the bytes go straight to the server the user typed, never through a system or Wi-Fi
- *   proxy (ADR 0011 host allowlist). Plain http only to this device itself.
+ *   proxy (ADR 0011 host allowlist).
+ * - Never to this device (D3): every connection goes through [ThisDevice.socketFactory], which refuses the phone's
+ *   own addresses after DNS ([ThisDeviceException]). Only tests ([TestsOnThisDevice]) reach a server on the test
+ *   machine, and only they may use plain http (to `localhost`); the app always needs https.
  * - HTTPS: OkHttp's defaults, i.e. the system's trusted CAs and OkHttp's host-name verifier. Nothing is ever
  *   "trusted all"; [trustManager] only *replaces* the CA set (tests; later a pinned certificate).
  * - HTTP/1.1 only. HTTP/2 multiplexes streams and resets them instead of closing a connection; the
@@ -101,13 +104,17 @@ class HostHttpClient(
     private val port: Int,
     private val timeoutMillis: Int,
     trustManager: X509TrustManager? = null,
+    hosts: HostRule = HostRule.NetworkOnly,
 ) : Closeable {
     init {
         require(host.isNotEmpty() && host.none { it <= ' ' || it == '/' || it == '@' }) { "host not allowed" }
+        require(!ThisDevice.isAmbiguousNumber(host)) { "host not allowed" }
         require(port in 1..65535)
         require(timeoutMillis > 0)
-        // The password never travels unencrypted over a network (ADR 0011).
-        require(https || host in LOOPBACK) { "plain http only to this device itself" }
+        // D3: a backup on the phone itself is no backup; only tests reach a server on their own machine.
+        require(hosts.allowsThisDevice || !ThisDevice.isLocalName(host)) { "this device itself" }
+        // The password never travels unencrypted over a network (ADR 0011): plain http only in tests, to localhost.
+        require(https || ThisDevice.isLocalName(host)) { "plain http only to this device itself" }
     }
 
     private val pool = ConnectionPool(MAX_IDLE, 5, TimeUnit.MINUTES)
@@ -117,6 +124,8 @@ class HostHttpClient(
         .connectTimeout(timeoutMillis.toLong(), TimeUnit.MILLISECONDS)
         .readTimeout(timeoutMillis.toLong(), TimeUnit.MILLISECONDS)
         .writeTimeout(timeoutMillis.toLong(), TimeUnit.MILLISECONDS)
+        // D3: checks the address actually connected to (after DNS), so no name can lead back to this device.
+        .socketFactory(ThisDevice.socketFactory(hosts))
         .apply {
             if (trustManager != null) {
                 val context = SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustManager), null) }
@@ -438,7 +447,6 @@ class HostHttpClient(
     }
 
     companion object {
-        private val LOOPBACK = setOf("localhost", "127.0.0.1", "::1")
         private const val MAX_LINE = 8 * 1024
         private const val MAX_HEADERS = 128
         private const val MAX_HEADER_BYTES = 64 * 1024

@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.dropbox
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.github.tomerar.keepclear.core.hash.DropboxContentHash
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -33,7 +37,7 @@ import java.util.concurrent.atomic.AtomicLong
  * An in-process Dropbox API v2, just enough for KeepClear (M17c): the App folder as root, case-insensitive paths,
  * `files` RPCs on JSON bodies, content endpoints with the argument in the `Dropbox-API-Arg` header, upload
  * sessions, short-lived access tokens with a refresh-token grant, and switches for the ways a real server can fail
- * or lie. One port serves both "hosts" ([DropboxEndpoints.loopback]).
+ * or lie. One port serves both "hosts" ([endpoints]).
  */
 class FakeDropboxServer : AutoCloseable {
     enum class HashMode {
@@ -131,7 +135,8 @@ class FakeDropboxServer : AutoCloseable {
 
     val port: Int get() = server.address.port
 
-    val endpoints: DropboxEndpoints get() = DropboxEndpoints.loopback(port)
+    /** Plain http to this fake on 127.0.0.1: only tests may (D3, [TestsOnThisDevice]). */
+    val endpoints: DropboxEndpoints get() = DropboxEndpoints(false, "127.0.0.1", "127.0.0.1", port, TestsOnThisDevice)
 
     /** The production auth code against this server's token endpoint. */
     fun auth(): RefreshingDropboxAuth = RefreshingDropboxAuth(appKey, refreshToken, endpoints, timeoutSeconds = 5)

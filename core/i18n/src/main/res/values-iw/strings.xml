@@ -604,4 +604,16 @@
         <item quantity="other">%1$s מהם נבדקו על ידי ה-Nextcloud.</item>
     </plurals>
     <string name="details_nextcloud_check">ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת.</string>
+    <!-- D3/D6/L6, owner review 2026-11-02: network places never on the phone itself, guest copy-only, forget revokes, test key. -->
+    <string name="move_issue_copy_only">נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear רק מעתיק אליו: המקור נשאר בטלפון.</string>
+    <string name="move_free_copy_only">המקור נשאר בטלפון: נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear לא יכול להיות בטוח שהעותק שם יישאר כמו שהוא.</string>
+    <string name="move_network_guest_copy_only">בלי שם משתמש וסיסמה, KeepClear רק מעתיק למחשב הזה ואף פעם לא מפנה מקום בטלפון.</string>
+    <string name="move_network_this_phone">זו הכתובת של הטלפון הזה. צריך להקליד את הכתובת של המחשב בבית.</string>
+    <string name="move_problem_network_phone">הכתובת הזו היא של הטלפון הזה עצמו. גיבוי צריך להיות במכשיר אחר.</string>
+    <string name="nextcloud_this_phone">זה הטלפון הזה עצמו. גיבוי צריך להיות במכשיר אחר.</string>
+    <string name="settings_nextcloud_forgot_revoked">KeepClear שכח את ה-Nextcloud שלכם והוציא את הטלפון הזה מהחשבון.</string>
+    <string name="settings_nextcloud_forgot_not_revoked">KeepClear שכח את ה-Nextcloud שלכם בטלפון הזה, אבל לא הצליח להגיע אליו כדי להוציא את הטלפון מהחשבון, ולכן סיסמת האפליקציה עשויה עדיין לעבוד שם. כדי להיות בטוחים, אפשר למחוק אותה ב-Nextcloud שלכם: הגדרות › אבטחה.</string>
+    <string name="test_build_use_test_account">זו גרסת ניסיון, וכל אחד יכול ליצור לה עדכון. כדאי להשתמש כאן בחשבון ניסיון, לא בחשבון האמיתי שלכם.</string>
+    <string name="move_network_bad_share">צריך להקליד רק את השם של התיקייה המשותפת (בלי \\, / או :, ולא ..).</string>
+    <string name="move_network_not_accepted">KeepClear לא יכול להשתמש בפרטים האלה. כדאי לבדוק את הכתובת ואת שם התיקייה.</string>
 </resources>

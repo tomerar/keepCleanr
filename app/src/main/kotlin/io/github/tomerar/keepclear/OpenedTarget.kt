@@ -73,6 +73,7 @@ sealed interface OpenedTarget {
             SmbCheck.Refused -> Refused
             SmbCheck.DamagedMarker -> DamagedMarker
             SmbCheck.Unreachable -> Unavailable
+            SmbCheck.OnThisPhone -> OnThisPhone
         }
 
         fun of(check: WebDavCheck): OpenedTarget = when (check) {
@@ -81,6 +82,7 @@ sealed interface OpenedTarget {
             WebDavCheck.DamagedMarker -> DamagedMarker
             WebDavCheck.CertificateRejected -> CertificateRejected
             WebDavCheck.Unreachable -> Unavailable
+            WebDavCheck.OnThisPhone -> OnThisPhone
         }
     }
 }

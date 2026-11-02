@@ -5,11 +5,22 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
+// L6 (owner review 2026-11-02): CI signs test APKs with a private test key when the owner has added it as Actions
+// secrets (docs/progress.md, "Waiting for owner"). The CI step writes the keystore to a temporary file and passes
+// its path and passwords in these variables; without them, the public key in keystore/ signs, as before.
+val privateTestKeystore: File? = providers.environmentVariable("KEEPCLEAR_TEST_KEYSTORE").orNull
+    ?.takeIf { it.isNotBlank() }
+    ?.let(::File)
+    ?.takeIf { it.isFile }
+
 android {
     namespace = "io.github.tomerar.keepclear"
     defaultConfig {
         versionCode = 1 // 0.0.1 dev; scheme in ADR 0009
         versionName = "0.0.1"
+        // L6: true only in a test build signed with the private test key; the set-up screens of a test build signed
+        // with the public key say "use a test account" (anyone can sign an update of it that reads what is saved).
+        buildConfigField("boolean", "PRIVATE_TEST_KEY", (privateTestKeystore != null).toString())
     }
     androidResources {
         localeFilters += listOf("en", "iw")
@@ -18,10 +29,18 @@ android {
         // Test builds only: a committed, non-secret key so CI test APKs update each other (keystore/README.md).
         // Releases are signed by the owner's key, never from this repository (ADR 0009).
         getByName("debug") {
-            storeFile = rootProject.file("keystore/debug-test.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            if (privateTestKeystore != null) {
+                // L6: the owner's private test key (never committed; an Actions secret written to a temp file).
+                storeFile = privateTestKeystore
+                storePassword = providers.environmentVariable("KEEPCLEAR_TEST_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("KEEPCLEAR_TEST_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("KEEPCLEAR_TEST_KEY_PASSWORD").get()
+            } else {
+                storeFile = rootProject.file("keystore/debug-test.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
         }
     }
     buildFeatures.resValues = true
@@ -57,6 +76,8 @@ dependencies {
     implementation(project(":backup:target-smb"))
     // M17b: Nextcloud under Settings › Advanced (OkHttp stays inside backup:net, W3).
     implementation(project(":backup:target-webdav"))
+    // D3: the host rule of the network places (HostRule). OkHttp itself stays confined to backup:net (W3).
+    implementation(project(":backup:net"))
     implementation(project(":engine:move"))
     implementation(project(":engine:restore"))
     implementation(project(":engine:scan"))

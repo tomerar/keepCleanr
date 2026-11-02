@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.HostRule
+import io.github.tomerar.keepclear.backup.net.ThisDevice
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.net.URISyntaxException
@@ -13,7 +15,8 @@ import java.nio.charset.CodingErrorAction
  * password) is never logged.
  *
  * - [url] is the folder backups go into, e.g. `https://cloud.example.com/remote.php/dav/files/dana/KeepClear`.
- *   HTTPS only; plain HTTP is accepted only for this phone itself (`localhost`, tests), never over a network.
+ *   HTTPS only. Never this phone itself (D3: `localhost`, loopback, the phone's own addresses); only tests pass
+ *   [hosts] = `TestsOnThisDevice` to reach a server on the test machine, and only they may use plain http to it.
  * - [nextcloud]: the server is Nextcloud and computes a SHA-256 of each upload itself (`X-Hash: sha256` →
  *   `X-Hash-SHA256`, ADR 0011). Off for any other WebDAV server, whose copies are verified by reading them back.
  */
@@ -22,6 +25,8 @@ class WebDavLocation(
     val user: String,
     val password: String,
     val nextcloud: Boolean = false,
+    /** D3: the app always uses [HostRule.NetworkOnly]; see [HostRule]. */
+    val hosts: HostRule = HostRule.NetworkOnly,
 ) {
     val https: Boolean
     val host: String
@@ -45,8 +50,11 @@ class WebDavLocation(
         }
         val h = uri.host?.removePrefix("[")?.removeSuffix("]")?.lowercase()
         require(!h.isNullOrEmpty()) { "address needs a host" }
+        require(!ThisDevice.isAmbiguousNumber(h)) { "address not allowed" }
+        // D3: a server on the phone itself is a copy on the same phone, not a backup.
+        require(hosts.allowsThisDevice || !ThisDevice.isLocalName(h)) { "this phone itself" }
         // ADR 0011: the password never travels unencrypted over a network.
-        require(scheme == "https" || h in LOOPBACK) { "plain http only for this phone itself; use https" }
+        require(scheme == "https" || ThisDevice.isLocalName(h)) { "plain http only for this phone itself; use https" }
         https = scheme == "https"
         host = h
         port = if (uri.port == -1) (if (https) 443 else 80) else uri.port
@@ -68,13 +76,12 @@ class WebDavLocation(
         other.canonicalUrl == canonicalUrl &&
         other.user == user &&
         other.password == password &&
-        other.nextcloud == nextcloud
+        other.nextcloud == nextcloud &&
+        other.hosts == hosts
 
     override fun hashCode(): Int = canonicalUrl.hashCode() * 31 + user.hashCode()
 
     companion object {
-        private val LOOPBACK = setOf("localhost", "127.0.0.1", "::1")
-
         /**
          * A Nextcloud account's folder: `<server>/remote.php/dav/files/<filesUser>/<folder>` (Nextcloud's WebDAV
          * endpoint). [server] is what the user typed, e.g. `https://cloud.example.com` or with a sub path. [user]
@@ -87,11 +94,12 @@ class WebDavLocation(
             appPassword: String,
             folder: String,
             filesUser: String = user,
+            hosts: HostRule = HostRule.NetworkOnly,
         ): WebDavLocation {
             require(DavPath.isSafeSegment(filesUser)) { "user id not allowed" }
             val folderSegments = folder.split('/').filter { it.isNotEmpty() }
             val path = DavPath.encode(listOf("remote.php", "dav", "files", filesUser) + folderSegments)
-            return WebDavLocation(server.trim().trimEnd('/') + path, user, appPassword, nextcloud = true)
+            return WebDavLocation(server.trim().trimEnd('/') + path, user, appPassword, nextcloud = true, hosts = hosts)
         }
     }
 }

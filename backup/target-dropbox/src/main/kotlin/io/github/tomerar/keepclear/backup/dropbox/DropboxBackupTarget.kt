@@ -93,8 +93,10 @@ class DropboxBackupTarget(
     }
 
     private val timeout = (timeoutSeconds * 1000).toInt()
-    private val api = HostHttpClient(endpoints.https, endpoints.apiHost, endpoints.port, timeout)
-    private val content = HostHttpClient(endpoints.https, endpoints.contentHost, endpoints.port, timeout)
+    private val api =
+        HostHttpClient(endpoints.https, endpoints.apiHost, endpoints.port, timeout, hosts = endpoints.hosts)
+    private val content =
+        HostHttpClient(endpoints.https, endpoints.contentHost, endpoints.port, timeout, hosts = endpoints.hosts)
 
     // ------------------------------------------------------------------------------------------------- paths
 

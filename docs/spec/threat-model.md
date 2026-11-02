@@ -23,6 +23,8 @@ KeepClear treats **everything outside its private app storage (`/data/data/<pkg>
 | Files and folder names in shared storage | Shared storage | Any app with write access; FUSE is case-insensitive |
 | Archives inspected for "already extracted" (SAFE-3) | Downloads, WhatsApp documents | Anyone who can send the user a file |
 | Backup manifest, `SHA256SUMS`, target marker file | Backup drive / SMB share | Anyone with the drive, any PC it was plugged into |
+| Network answers (SMB, WebDAV/Nextcloud, Dropbox): listings, names, bodies, sizes | The server and the network in between | The server's owner; anyone on the Wi-Fi when a session isn't signed (SMB guest) |
+| Test builds' stored passwords | The `…keepclear.test` app | Anyone who signs an update with the public test key (L6) |
 | Intents, PendingIntents, broadcasts | Other apps, the system | Any installed app |
 | On-screen input | Overlays | Apps with `SYSTEM_ALERT_WINDOW` (tapjacking) |
 | Dependencies and build | Maven Central, Gradle plugins | Supply chain |
@@ -106,6 +108,15 @@ Out of scope: a fully compromised OS or root-level malware (it can already do an
 - Reproducible `foss` builds; signing per [ADR 0009](../adr/0009-signing-and-release.md).
 - GitHub Actions pinned by commit SHA; no secrets in PR workflows.
 
+### T8a. Hostile or spoofed network place (owner review 2026-11-02, D3/D6)
+**Threats:** an unsigned SMB session changed on the way (fake read-back → originals freed against a bad copy); a
+server path with `..`, `\` or `:stream` reaching outside the folder; a "server" on the phone itself (a backup on the
+same storage); a server that streams an endless listing or body; an app password that stays valid after "Forget".
+**Mitigations:** SMB signing required, encryption preferred, guest places copy-only (never free); every SMB path
+segment checked; this phone refused by text and at the socket after DNS (tests opt in explicitly); PROPFIND ≤ 8 MiB,
+streamed, entry/depth/value caps; GET read-back cut at the reported size; "Forget" revokes the app password on the
+server first and says plainly when it couldn't; network APIs confined in bytecode (`checkForbiddenApis`).
+
 ### T9. Privileged helpers (v1, Shizuku/root)
 **Mitigations:**
 - The AIDL user service checks the calling UID equals our app UID.
@@ -123,3 +134,4 @@ Out of scope: a fully compromised OS or root-level malware (it can already do an
 | SEC-6 canonical PROTECTED matching | Table test with case variants, NFD, zero-width chars, `/storage/emulated/999/` (E-SEC-9). |
 | SEC-7 tapjacking | UI test: obscured touch on confirm is ignored (E-SEC-10). |
 | SEC-8 supply chain | CI fails on unverified dependency checksum. |
+| SEC-9 network places (D3/D6) | `SmbSecurityTest`, `HostHttpClientTest`, `WebDavLocationTest`, `NextcloudLoginTest`, `DavXmlTest`, `WebDavBackupTargetTest` (oversized listing, long GET), `NextcloudLoginServerTest` (revoke on the real server), `MoveEngineTest` (copy-only never frees), `NetworkSecurityAppTest`, build-logic `ForbiddenApisTest`. |

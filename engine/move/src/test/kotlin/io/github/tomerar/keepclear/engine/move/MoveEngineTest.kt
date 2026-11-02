@@ -167,6 +167,27 @@ class MoveEngineTest {
     }
 
     @Test
+    fun `a copy-only place (unsigned SMB guest) never gets its originals freed, even when every copy checks (D3)`():
+        Unit = runBlocking {
+        // D4 (PR #43): the second check counts only after a real unplug/plug of the same drive, so it is done here.
+        val rig = Rig(files = 3, caps = TargetCaps(canReadBack = true, canFreeOriginals = false))
+        rig.engine().run(rig.newJob())
+        rig.verifiedTargets().size shouldBe 3
+        rig.reattach()
+        rig.engine().confirm("job1", FreshRead.REATTACHED).ok shouldBe 3
+        rig.engine().originalsPlan("job1").shouldBeEmpty()
+        // The same steps against a place that may free: all three are offered, so only the cap holds them back.
+        val free = Rig(files = 3, caps = TargetCaps(canReadBack = true))
+        free.engine().run(free.newJob())
+        free.reattach()
+        free.engine().confirm("job1", FreshRead.REATTACHED).ok shouldBe 3
+        free.engine().originalsPlan("job1").size shouldBe 3
+        val issues = MovePlanner.preflight(emptyList(), rig.target, emptySet(), 100, true)
+        issues shouldBe listOf(MovePlanner.Issue.CopyOnly)
+        issues.single().blocking shouldBe false
+    }
+
+    @Test
     fun `an unexpected storage error pauses the job instead of crashing (review Low)`(): Unit = runBlocking {
         val rig = Rig()
         rig.fake.fail(Op.MKDIR, matches = { it.toString().startsWith(USB) }) { StorageException.Unsupported(it, "odd") }

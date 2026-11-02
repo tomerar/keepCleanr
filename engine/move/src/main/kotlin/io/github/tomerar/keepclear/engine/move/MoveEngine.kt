@@ -383,10 +383,10 @@ class MoveEngine(
      * MOVE-9/10: the plan the receipt's "Free from phone" button confirms. Only L3-verified files whose
      * copy is still on the target with the right size; each op carries the verified SHA-256 so the
      * executor re-hashes the original right before trashing it (SAFETY-5, strict mode). Never offered
-     * when the target can't be read back (MOVE-14).
+     * when the target can't be read back (MOVE-14), nor against a copy-only place (D3: an unsigned SMB guest share).
      */
     suspend fun originalsPlan(jobId: String): List<PlannedOp> {
-        if (!target.caps.canReadBack) return emptyList()
+        if (!target.caps.canReadBack || !target.caps.canFreeOriginals) return emptyList()
         val job = store.job(jobId) ?: return emptyList()
         return store.files(jobId).filter {
             // H1: verified twice, the second time with a read that couldn't come from the page cache.

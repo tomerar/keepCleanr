@@ -4,6 +4,7 @@ package io.github.tomerar.keepclear.backup.dropbox
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.long
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.string
 import io.github.tomerar.keepclear.backup.net.HostHttpClient
+import io.github.tomerar.keepclear.backup.net.HostRule
 import java.io.IOException
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -11,23 +12,22 @@ import java.security.SecureRandom
 import java.util.Base64
 
 /**
- * Where KeepClear talks to Dropbox (ADR 0011 network rule: fixed provider hosts only). There are exactly two:
- * [PRODUCTION] (HTTPS to Dropbox's API hosts, system CAs and host-name check) and [loopback] for the tests' fake
- * server on this machine. No other host can be configured.
+ * Where KeepClear talks to Dropbox (ADR 0011 network rule: fixed provider hosts only). The app has exactly one:
+ * [PRODUCTION] (HTTPS to Dropbox's API hosts, system CAs and host-name check). The constructor is internal: only
+ * this module's tests build another one, for their fake server on the test machine, and only with the test-only
+ * [HostRule] (D3); main code never can.
  */
-class DropboxEndpoints private constructor(
+class DropboxEndpoints internal constructor(
     val https: Boolean,
     val apiHost: String,
     val contentHost: String,
     val port: Int,
+    val hosts: HostRule = HostRule.NetworkOnly,
 ) {
     override fun toString() = "DropboxEndpoints($apiHost, $contentHost)"
 
     companion object {
         val PRODUCTION = DropboxEndpoints(true, "api.dropboxapi.com", "content.dropboxapi.com", 443)
-
-        /** Tests only: plain HTTP to a fake server on 127.0.0.1. */
-        fun loopback(port: Int) = DropboxEndpoints(false, "127.0.0.1", "127.0.0.1", port)
     }
 }
 
@@ -180,7 +180,13 @@ class RefreshingDropboxAuth(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : DropboxAuth {
     private val http =
-        HostHttpClient(endpoints.https, endpoints.apiHost, endpoints.port, (timeoutSeconds * 1000).toInt())
+        HostHttpClient(
+            endpoints.https,
+            endpoints.apiHost,
+            endpoints.port,
+            (timeoutSeconds * 1000).toInt(),
+            hosts = endpoints.hosts,
+        )
     private val lock = Any()
     private var current: String? = null
     private var expiresAt = 0L

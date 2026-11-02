@@ -106,6 +106,9 @@ class NetworkDriveStore(private val prefs: SharedPreferences, private val box: S
     /** The address shown in Settings ("only to …"), without loading the password. */
     fun host(): String? = prefs.getString(HOST, null)
 
+    /** D3: the saved drive is used as a guest (no user name), so it is copy-only. False when none is saved. */
+    fun isGuest(): Boolean = host() != null && prefs.getString(USER, null).isNullOrEmpty()
+
     fun clear() = prefs.edit(commit = true) { clear() }.also { _hostState.value = null }
 
     private companion object {

@@ -9,6 +9,10 @@ dependencies {
     compileOnly(libs.android.gradle.plugin)
     compileOnly(libs.kotlin.gradle.plugin)
     compileOnly(libs.compose.compiler.gradle.plugin)
+    // checkForbiddenApis (D6) reads class files with ASM, which the Android Gradle Plugin already puts on the build's
+    // classpath at runtime; the tests get the same version.
+    compileOnly(libs.asm)
+    testImplementation(libs.asm)
     testImplementation(platform(libs.junit5.bom))
     testImplementation(libs.junit5.jupiter)
     testRuntimeOnly(libs.junit5.launcher)

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+@file:OptIn(ThisDeviceInTests::class)
+
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.github.tomerar.keepclear.backup.net.TestsOnThisDevice
+import io.github.tomerar.keepclear.backup.net.ThisDeviceInTests
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
@@ -87,7 +91,7 @@ class NextcloudLoginServerTest {
 
     @Test
     fun `sign in with Login Flow v2, get a working app password, and open the backup place`(): Unit = runBlocking {
-        val server = NextcloudServer.parse(NextcloudTestEnv.url!!)
+        val server = NextcloudServer.parse(NextcloudTestEnv.url!!, TestsOnThisDevice)
         NextcloudLoginFlow(server).use { flow ->
             val started = flow.start()
             flow.poll(started) shouldBe null
@@ -105,9 +109,51 @@ class NextcloudLoginServerTest {
         }
     }
 
+    /**
+     * D6 against the real server: a throwaway user (never the shared test account, whose app password other tests
+     * use) gets a fresh app password; revoking it makes the server refuse it.
+     */
+    @Test
+    fun `forgetting revokes the app password on the real server`() {
+        val base = NextcloudTestEnv.url!!.trimEnd('/')
+        val admin = "Basic " + java.util.Base64.getEncoder()
+            .encodeToString("${NextcloudTestEnv.user}:${NextcloudTestEnv.password}".toByteArray())
+        val user = "kcrevoke" + UUID.randomUUID().toString().take(8)
+        val password = "kc-revoke-" + UUID.randomUUID()
+
+        fun call(method: String, path: String, auth: String, form: String? = null): Pair<Int, String> {
+            val c = URI("$base$path").toURL().openConnection(java.net.Proxy.NO_PROXY) as HttpURLConnection
+            c.requestMethod = method
+            c.setRequestProperty("Authorization", auth)
+            c.setRequestProperty("OCS-APIRequest", "true")
+            c.setRequestProperty("Accept", "application/json")
+            if (form != null) {
+                c.doOutput = true
+                c.outputStream.use { it.write(form.toByteArray()) }
+            }
+            val body = (if (c.responseCode < 400) c.inputStream else c.errorStream)?.use { it.readBytes() }
+            return c.responseCode to body?.toString(Charsets.UTF_8).orEmpty()
+        }
+        call("POST", "/ocs/v2.php/cloud/users", admin, "userid=$user&password=$password").first shouldBe 200
+        try {
+            val basic = "Basic " + java.util.Base64.getEncoder().encodeToString("$user:$password".toByteArray())
+            val (status, body) = call("GET", "/ocs/v2.php/core/getapppassword", basic)
+            status shouldBe 200
+            val appPassword = Regex(""""apppassword":"([A-Za-z0-9]+)"""").find(body)!!.groupValues[1]
+            val server = NextcloudServer.parse(base, TestsOnThisDevice)
+            val account = NextcloudAccount.verify(server, user, appPassword)
+            account.revoke() shouldBe NextcloudRevoke.REVOKED
+            shouldThrow<NextcloudException> { NextcloudAccount.verify(server, user, appPassword) }.problem shouldBe
+                NextcloudProblem.REFUSED
+            account.revoke() shouldBe NextcloudRevoke.ALREADY_INVALID
+        } finally {
+            call("DELETE", "/ocs/v2.php/cloud/users/$user", admin)
+        }
+    }
+
     @Test
     fun `manual entry - the app password works, a wrong one is refused`() {
-        val server = NextcloudServer.parse(NextcloudTestEnv.url!!)
+        val server = NextcloudServer.parse(NextcloudTestEnv.url!!, TestsOnThisDevice)
         NextcloudAccount.verify(server, NextcloudTestEnv.user, NextcloudTestEnv.password).userId shouldBe
             NextcloudTestEnv.user
         shouldThrow<NextcloudException> {
