@@ -5,6 +5,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonDefaults
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.math.pow
@@ -91,7 +92,35 @@ class ContrastTest {
         "review/surface" to (k.review.accent to c.surface),
         "move/surface" to (k.move.accent to c.surface),
         "primary/surface (stamp, icons)" to (c.primary to c.surface),
+        // Design QA: KcButtonStyle.OutlinedDestructive's red outline on the screens it sits on.
+        "error outline/background" to (c.error to c.background),
+        "error outline/surface" to (c.error to c.surface),
     )
+
+    /** [fg] at [alpha] over the opaque [bg] (what the confirm button's track looks like). */
+    private fun over(fg: Color, alpha: Float, bg: Color) = Color(
+        red = fg.red * alpha + bg.red * (1 - alpha),
+        green = fg.green * alpha + bg.green * (1 - alpha),
+        blue = fg.blue * alpha + bg.blue * (1 - alpha),
+    )
+
+    @Test
+    fun `the confirm button's label reads on its track while it fills, in light and dark`() {
+        // Design QA item 5 (app SafeConfirmButton): the label is the button's colour on a 16 % track of that colour
+        // over the sheet, and the button's text colour on the fill.
+        for ((name, c, _) in themes) {
+            val pairs = mapOf(
+                "primary/track" to
+                    (c.primary to over(c.primary, KcButtonDefaults.ProgressTrackAlpha, c.surfaceContainerLow)),
+                "error/track" to (c.error to over(c.error, KcButtonDefaults.ProgressTrackAlpha, c.surfaceContainerLow)),
+                "onPrimary/primary" to (c.onPrimary to c.primary),
+                "onError/error" to (c.onError to c.error),
+            )
+            val bad = pairs.filterValues { (fg, bg) -> ratio(fg, bg) < 4.5 }
+                .mapValues { (_, p) -> "%.2f".format(ratio(p.first, p.second)) }
+            assertEquals("$name: confirm label below 4.5:1", emptyMap<String, String>(), bad)
+        }
+    }
 
     @Test
     fun `text roles reach 4,5 to 1 on their backgrounds in light and dark`() {

@@ -76,6 +76,8 @@ class TrashScreenTest {
     fun `empty now needs a second, delayed confirmation (TRASH-4, SEC-7)`() {
         val entries = listOf(entry("a"), entry("b"))
         show(TrashUi(entries))
+        // Design QA item 3: the actions on the whole trash are at the bottom, after the list.
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("emptyNow"))
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag("emptyNow").performClick()
         compose.mainClock.advanceTimeBy(100)

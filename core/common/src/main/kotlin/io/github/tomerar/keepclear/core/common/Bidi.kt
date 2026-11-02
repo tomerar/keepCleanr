@@ -30,8 +30,30 @@ object Bidi {
         '⁩', // isolates
     )
 
-    /** Wraps [value] in FSI…PDI after removing stray bidi controls, so the isolate is always balanced. */
-    fun isolate(value: String): String = "$FSI${strip(value)}$PDI"
+    /** RIGHT-TO-LEFT MARK. */
+    const val RLM = '\u200F'
+
+    /**
+     * Wraps [value] in FSI…PDI after removing stray bidi controls, so the isolate is always balanced.
+     *
+     * Design QA item 8: a right-to-left value that **starts with digits**, such as the Hebrew count "4,983 קבצים", is
+     * wrapped in RLM…RLM instead. Android 11's text layout draws such an isolate wrong when left-to-right text comes
+     * before it on the line („7.9GB · 4,983 קבצים” showed as "קבצים4,983"; reproduced with Robolectric's API 30 text
+     * stack, `BidiLayoutTest`; API 36 is right). In a right-to-left line the marks keep the number with its word just
+     * like the isolate, and they are strong, so a line that starts with the count still reads right to left.
+     */
+    fun isolate(value: String): String {
+        val clean = strip(value)
+        val first = clean.indexOfFirst { Character.getDirectionality(it) in STRONG }
+        val rtlStartingWithDigits = first > 0 && Character.getDirectionality(clean[first]) in RTL
+        return if (rtlStartingWithDigits) "$RLM$clean$RLM" else "$FSI$clean$PDI"
+    }
+
+    private val STRONG = setOf(
+        Character.DIRECTIONALITY_LEFT_TO_RIGHT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
+    )
 
     /** Wraps [value] in LRI…PDI (paths, URIs). */
     fun isolateLtr(value: String): String = "$LRI${strip(value)}$PDI"

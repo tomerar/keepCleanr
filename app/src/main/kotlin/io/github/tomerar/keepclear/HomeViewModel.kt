@@ -138,15 +138,20 @@ data class MediaConsent(
         )
     }
 
-    fun result() = CleanResult(
-        done = Total(approved.size, approved.sumOf { it.expectedSize }),
-        skipped = declined,
-        failed = failed,
-        trashedPaths = emptyList(),
-        origin = origin,
-        androidTrash = approved.isNotEmpty(),
-        declined = approved.isEmpty() && failed == 0,
-    )
+    fun result(): CleanResult {
+        // Owner decision 2026-11-02: rows already in Android's trash were deleted for good, not moved to it.
+        val forGood = approved.filter { it.kind == OpKind.DELETE_FOR_GOOD }
+        return CleanResult(
+            done = Total(approved.size, approved.sumOf { it.expectedSize }),
+            skipped = declined,
+            failed = failed,
+            trashedPaths = emptyList(),
+            origin = origin,
+            androidTrash = approved.size > forGood.size,
+            declined = approved.isEmpty() && failed == 0,
+            deletedForGood = Total(forGood.size, forGood.sumOf { it.expectedSize }),
+        )
+    }
 }
 
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
@@ -657,14 +662,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Files KeepClear can reach by path go to its folder trash (ADR 0010); MediaStore-only items (`play`, or
             // no All files access) go to Android's own trash after Android's confirmation (M12). SAF items: later.
-            val (local, unsupported) = items.partition {
-                it.item.ref is KPath.Local || (it.item.ref is KPath.Media && !it.item.isTrashed)
-            }
+            // Owner decision 2026-11-02: a row already in Android's trash is deleted for good, with Android's consent.
+            val (local, unsupported) = items.partition { it.item.ref is KPath.Local || it.item.ref is KPath.Media }
             // SAFETY-6/8, H2: built from the scan snapshot with duplicate groups and witnesses (CleanPlanner).
             val unconfirmed = CleanPlanner.plan(UUID.randomUUID().toString(), local, evidence, "clean")
             val ops = unconfirmed.ops
             var done = emptyList<PlannedOp>()
+            var forGood = emptyList<PlannedOp>()
             var simulated = false
+            // Owner decision 2026-11-02: what is deleted for good is measured (StatFs before and after, off the main
+            // thread); what goes to the trash frees nothing until the trash is emptied.
+            val before = freeNow()
             var skipped = unsupported.size
             var protectedSkipped = 0
             var failed = 0
@@ -679,6 +687,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
                         done = report.done.map { it.op } + wouldHave
+                        forGood = done.filter { op -> op.kind == OpKind.DELETE_FOR_GOOD }
                         // M12: Android asks the user itself; the result comes back in consentResult().
                         if (report.consent.isNotEmpty()) {
                             _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
@@ -697,7 +706,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         skipped += report.skipped.size - lastCopies.size - protectedSkipped
                         failed = report.failed.size
                         if (!simulated && earlier != null) {
-                            val paths = report.done.map { it.op.displayPath }.toSet()
+                            val paths = report.done.filter { it.op.kind != OpKind.DELETE_FOR_GOOD }
+                                .map { it.op.displayPath }.toSet()
                             trashedIds = withContext(Dispatchers.IO) {
                                 runCatching {
                                     app.trashManager.entries()
@@ -714,6 +724,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            val after = freeNow()
             trashDetails.clear()
             _state.update {
                 it.copy(
@@ -721,8 +732,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         done = Total(done.size, done.sumOf { op -> op.expectedSize }),
                         skipped = skipped,
                         failed = failed,
-                        // Nothing to undo in test mode: nothing was moved.
-                        trashedPaths = if (simulated) emptyList() else done.map { op -> op.displayPath },
+                        // Nothing to undo in test mode (nothing was moved), nor for what was deleted for good.
+                        trashedPaths = if (simulated) {
+                            emptyList()
+                        } else {
+                            done.filter { op -> op.kind != OpKind.DELETE_FOR_GOOD }.map { op -> op.displayPath }
+                        },
+                        deletedForGood = Total(forGood.size, forGood.sumOf { op -> op.expectedSize }),
+                        measured = Measured((after - before).coerceAtLeast(0), after, before, origin)
+                            .takeIf { forGood.isNotEmpty() && !simulated },
                         protectedSkipped = protectedSkipped,
                         simulated = simulated,
                         origin = origin,

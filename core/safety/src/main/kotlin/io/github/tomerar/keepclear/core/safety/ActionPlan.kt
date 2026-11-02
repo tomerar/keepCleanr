@@ -22,6 +22,13 @@ enum class OpKind {
      * (`KeepClear/Restored-changed/`) after an explicit confirmation; never over anything (owner decision 1.2).
      */
     RESTORE_CHANGED,
+
+    /**
+     * Owner decision 2026-11-02: delete one file for good, now, without the 30-day trash. Never in a plan the caller
+     * builds ([SafetyGuard] rejects it): only the [ActionExecutor] turns a [TRASH] op into this, when
+     * [PermanentKinds.reasonFor] says the item rebuilds itself or is already in another app's bin.
+     */
+    DELETE_FOR_GOOD,
 }
 
 /**
@@ -58,6 +65,13 @@ data class PlannedOp(
      * item is shown by its original path). The guard matches the [Confirmation] against this.
      */
     val shownAs: String? = null,
+    /**
+     * The classification put this item in SAFE (not moved to REVIEW by a keep signal). Only SAFE items can be deleted
+     * for good ([PermanentKinds]); REVIEW deletions always go to the trash.
+     */
+    val classifiedSafe: Boolean = false,
+    /** Set only by the [ActionExecutor] on the op it hands over as [OpKind.DELETE_FOR_GOOD]; null in every plan. */
+    val permanentReason: PermanentReason? = null,
 ) {
     /** The path the confirmation must contain for this op (review PR B). */
     val confirmKey: String get() = shownAs ?: displayPath

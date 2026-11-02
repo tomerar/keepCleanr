@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.engine.enrich
 
+import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.ActionPlan
 import io.github.tomerar.keepclear.core.safety.OpKind
+import io.github.tomerar.keepclear.core.safety.PermanentKinds
+import io.github.tomerar.keepclear.core.safety.PermanentReason
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 
@@ -44,8 +47,23 @@ object CleanPlanner {
                 duplicateGroup = group,
                 ruleId = c.ruleId,
                 witnesses = ev?.witnesses.orEmpty(),
+                // Owner decision 2026-11-02: only SAFE items can be deleted for good (the executor decides which).
+                classifiedSafe = c.category == Category.SAFE,
             )
         }
         return ActionPlan(id, ops, reason, duplicateGroupSizes = sizes)
     }
+
+    /**
+     * Owner decision 2026-11-02: which of [items] the executor will delete for good (path → reason), for the
+     * confirmation. The same rule the executor applies ([PermanentKinds]) on the same ops, so the sheet says what
+     * will happen; the executor decides again per item when it acts.
+     */
+    fun permanentReasons(
+        items: List<ClassifiedItem>,
+        now: Long,
+        evidence: Map<String, Evidence> = emptyMap(),
+    ): Map<String, PermanentReason> = plan("preview", items, evidence, "preview").ops
+        .mapNotNull { op -> PermanentKinds.reasonFor(op, now)?.let { op.displayPath to it } }
+        .toMap()
 }

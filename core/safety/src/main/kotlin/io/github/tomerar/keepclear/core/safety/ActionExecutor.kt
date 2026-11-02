@@ -99,6 +99,9 @@ sealed interface ExecutionReport {
         val consent: List<ConsentRequest> = emptyList(),
     ) : ExecutionReport {
         val done get() = results.filterIsInstance<OpResult.Done>()
+
+        /** Owner decision 2026-11-02: what was deleted for good (rebuilds itself, already in another app's bin). */
+        val deletedForGood get() = done.filter { it.op.kind == OpKind.DELETE_FOR_GOOD }
         val skipped get() = results.filterIsInstance<OpResult.Skipped>()
         val failed get() = results.filterIsInstance<OpResult.Failed>()
     }
@@ -109,7 +112,9 @@ sealed interface ExecutionReport {
  *
  * For each op, in order: re-stat without following links → compare size/mtime/identity → for
  * directories, walk the subtree and refuse if anything inside is PROTECTED → for MOVE originals,
- * re-hash (strict mode) → perform via [handler] (or simulate in [dryRun]).
+ * re-hash (strict mode) → perform via [handler] (or simulate in [dryRun]). A plain trash op whose item rebuilds itself
+ * or is already in another app's bin ([PermanentKinds]) is handed over as [OpKind.DELETE_FOR_GOOD] instead, after the
+ * same checks (owner decision 2026-11-02).
  * Storage errors become [OpResult.Failed]; they never crash the run (LOW-4). Any other error (D6: a full database,
  * `SQLiteFullException`, a Room error in the trash index) is reported as [OpResult.Failed] too, and every later op
  * is skipped as [SkipReason.STOPPED]: after an error KeepClear doesn't understand, it doesn't carry on.
@@ -135,6 +140,8 @@ class ActionExecutor(
      * checked; purge and restore act on items already in the trash.
      */
     private val keptNow: (String) -> Boolean = { false },
+    /** Wall clock, for [PermanentKinds] (the 24 h age of a WhatsApp status). */
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun run(plan: ActionPlan): ExecutionReport {
         when (val verdict = guard.check(plan, currentSession)) {
@@ -183,14 +190,18 @@ class ActionExecutor(
         } else if (removes && (keptNow(op.displayPath) || op.shownAs?.let(keptNow) == true)) {
             OpResult.Skipped(op, SkipReason.CONTAINS_PROTECTED)
         } else {
-            precheck(op) ?: handler.veto(op, gateway)?.let { OpResult.Skipped(op, it) } ?: run {
+            // Owner decision 2026-11-02: an item that rebuilds itself or is already in another app's bin is deleted
+            // for good; decided here, per item, after the PROTECTED and "kept" checks and before every other check.
+            val acting = PermanentKinds.reasonFor(op, clock())
+                ?.let { op.copy(kind = OpKind.DELETE_FOR_GOOD, permanentReason = it) } ?: op
+            precheck(acting) ?: handler.veto(acting, gateway)?.let { OpResult.Skipped(acting, it) } ?: run {
                 if (isDryRun()) {
-                    OpResult.Simulated(op)
-                } else if (handler.needsConsent(op)) {
-                    OpResult.NeedsConsent(op)
+                    OpResult.Simulated(acting)
+                } else if (handler.needsConsent(acting)) {
+                    OpResult.NeedsConsent(acting)
                 } else {
-                    handler.perform(op, gateway)
-                    OpResult.Done(op)
+                    handler.perform(acting, gateway)
+                    OpResult.Done(acting)
                 }
             }
         }

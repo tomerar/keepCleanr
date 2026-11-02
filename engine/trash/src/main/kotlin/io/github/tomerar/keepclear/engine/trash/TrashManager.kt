@@ -101,6 +101,7 @@ class TrashManager(
             OpKind.RESTORE -> restore(entryFor(op))
             OpKind.RESTORE_CHANGED -> restoreChanged(entryFor(op))
             OpKind.PURGE -> purge(entryFor(op))
+            OpKind.DELETE_FOR_GOOD -> deleteForGood(op)
         }
     }
 
@@ -113,7 +114,7 @@ class TrashManager(
     override suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? {
         if (op.lastCopyConfirmed) return null
         // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy.
-        if (op.kind != OpKind.TRASH) return null
+        if (op.kind != OpKind.TRASH && op.kind != OpKind.DELETE_FOR_GOOD) return null
         val path = CanonicalPath.of(op.displayPath) ?: return null
         val holders = holdersOf(path)
         if (holders.isEmpty()) return null
@@ -191,6 +192,26 @@ class TrashManager(
         val active = entry.copy(state = TrashState.ACTIVE)
         index.put(active)
         witnesses?.let { addWitnesses(it, active) }
+    }
+
+    // ----------------------------------------------------------------------------- delete for good
+
+    /**
+     * Owner decision 2026-11-02: one file that rebuilds itself or is already in another app's bin, deleted for good
+     * (no trash entry). The executor has decided it ([io.github.tomerar.keepclear.core.safety.PermanentKinds]) and
+     * re-checked it (PROTECTED, kept, size/date/identity, witnesses) right before this. Only a plain file by path,
+     * never a folder, a link or anything inside a KeepClear trash.
+     */
+    private suspend fun deleteForGood(op: PlannedOp) {
+        val path = op.ref as? KPath.Local ?: throw StorageException.Unsupported(op.ref, "delete for good needs a path")
+        if (op.permanentReason == null) throw StorageException.Unsupported(path, "no reason to delete for good")
+        val canonical = CanonicalPath.of(path.absolute) ?: throw StorageException.Unsupported(path, "unreadable path")
+        if (canonical.split('/').any { it == TrashPolicy.TRASH_DIR.lowercase() }) {
+            throw StorageException.Unsupported(path, "inside a KeepClear trash")
+        }
+        val stat = gateway.stat(path) ?: throw StorageException.NotFound(path)
+        if (!stat.isFile) throw StorageException.Unsupported(path, "not a plain file")
+        gateway.delete(path)
     }
 
     // ----------------------------------------------------------------------------------- restore

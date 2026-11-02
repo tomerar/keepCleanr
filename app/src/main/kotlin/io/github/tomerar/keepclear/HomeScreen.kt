@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
@@ -48,8 +49,10 @@ import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.designsystem.component.LaneCard
+import io.github.tomerar.keepclear.core.designsystem.component.StorageLegend
 import io.github.tomerar.keepclear.core.designsystem.component.StorageStrip
 import io.github.tomerar.keepclear.core.designsystem.component.StorageUsage
+import io.github.tomerar.keepclear.core.designsystem.component.StripSegment
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.safety.Confirmation
@@ -158,19 +161,26 @@ fun HomeScreen(
                             )
                         },
                         strip = {
+                            val usage = StorageUsage(
+                                total = state.totalBytes,
+                                free = state.freeBytes,
+                                safe = summary?.phoneTotal(Category.SAFE)?.bytes ?: 0,
+                                review = summary?.phoneTotal(Category.REVIEW)?.bytes ?: 0,
+                                move = summary?.phoneTotal(Category.MOVE)?.bytes ?: 0,
+                            )
                             StorageStrip(
-                                usage = StorageUsage(
-                                    total = state.totalBytes,
-                                    free = state.freeBytes,
-                                    safe = summary?.phoneTotal(Category.SAFE)?.bytes ?: 0,
-                                    review = summary?.phoneTotal(Category.REVIEW)?.bytes ?: 0,
-                                    move = summary?.phoneTotal(Category.MOVE)?.bytes ?: 0,
-                                ),
+                                usage = usage,
                                 description = stripDescription(state, summary, ::size),
                                 modifier = Modifier.testTag("storage"),
                             )
-                            // F2: "Where your space is" is the strip's legend now, not a section of its own.
-                            if (summary != null) StripLegend(summary, ::size)
+                            // Design QA item 2: the legend names the strip's segments in the strip's order, with
+                            // a colour dot, the lane's name and its size (TalkBack hears the strip's description).
+                            StorageLegend(
+                                usage = usage,
+                                labels = stripLabels(summary != null),
+                                sizeText = { Bidi.isolate(size(it)) },
+                                modifier = Modifier.padding(top = 8.dp).testTag("areas").clearAndSetSemantics { },
+                            )
                         },
                         action = safeAction,
                         modifier = Modifier.testTag("hero"),
@@ -657,28 +667,16 @@ private fun Banner(text: String, action: String? = null, onAction: () -> Unit = 
     }
 }
 
-private val areaLabels = mapOf(
-    ClassificationSummary.Area.CAMERA to R.string.area_camera,
-    ClassificationSummary.Area.WHATSAPP to R.string.area_whatsapp,
-    ClassificationSummary.Area.JUNK to R.string.area_junk,
-    ClassificationSummary.Area.OTHER to R.string.area_other,
-)
-
-/** F2: "Where your space is" as one line under the strip (camera, WhatsApp, junk, other, with exact sizes). */
+/** Design QA item 2: the legend's names, „לנקות”, „לבחור”, „לגבות”, „אחר”, „פנוי”; the lanes only after a scan. */
 @Composable
-private fun StripLegend(summary: ClassificationSummary, size: (Long) -> String) {
-    val parts = mutableListOf<String>()
-    for ((area, bytes) in summary.areas()) {
-        parts +=
-            stringResource(R.string.area_value, stringResource(areaLabels.getValue(area)), Bidi.isolate(size(bytes)))
+private fun stripLabels(scanned: Boolean): Map<StripSegment, String> = buildMap {
+    if (scanned) {
+        put(StripSegment.SAFE, stringResource(R.string.strip_legend_safe))
+        put(StripSegment.REVIEW, stringResource(R.string.strip_legend_review))
+        put(StripSegment.MOVE, stringResource(R.string.strip_legend_move))
     }
-    if (parts.isEmpty()) return
-    Text(
-        parts.joinToString(" · "),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 8.dp).testTag("areas"),
-    )
+    put(StripSegment.OTHER, stringResource(R.string.strip_legend_other))
+    put(StripSegment.FREE, stringResource(R.string.strip_legend_free))
 }
 
 /** The strip's spoken description: used and free, then what each lane could free (D5: phone storage only). */

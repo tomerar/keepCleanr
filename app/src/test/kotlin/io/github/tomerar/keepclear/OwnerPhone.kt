@@ -26,8 +26,12 @@ import java.time.format.DateTimeFormatter
  * phone. Used by the screenshot tests and the store screenshots; sizes are spread so the totals come out exact.
  */
 object OwnerPhone {
-    /** 2027-01-15; every date on screen is worked out from this, so the screenshots never change by themselves. */
-    const val NOW = 1_800_000_000_000L
+    /**
+     * 2026-11-01 12:00 UTC, the owner's review week; every date on screen is worked out from this, so the screenshots
+     * never change by themselves. Design QA item 7: every file, trash entry and backup in the fixture is older than
+     * this clock, so no screen shows a month that hasn't happened yet ([OwnerPhoneClockTest]).
+     */
+    const val NOW = 1_793_534_400_000L
     const val DAY = 86_400_000L
     const val TOTAL_BYTES = 128_000_000_000L
     const val FREE_BYTES = 16_800_000_000L
@@ -107,7 +111,8 @@ object OwnerPhone {
         TrashEntry(
             id = id,
             originalPath = "$ROOT/$rel",
-            trashedPath = "$ROOT/.KeepClearTrash/20261220/$id/${rel.substringAfterLast('/')}",
+            trashedPath = "$ROOT/.KeepClearTrash/${day.format(Instant.ofEpochMilli(NOW - daysAgo * DAY))}/$id/" +
+                rel.substringAfterLast('/'),
             volumeRoot = ROOT,
             size = size,
             mtimeMillis = NOW - 400 * DAY,
@@ -126,8 +131,20 @@ object OwnerPhone {
         val entries = listOf(
             trashEntry("t1", "Download/update_3.tmp", 37_837_838, "temp_files", 2),
             trashEntry("t2", "Pictures/.trashed-1735100004-VID_20240304.mp4", 31_250_000, "other_app_bin", 2),
-            trashEntry("s1", "Pictures/Screenshots/Screenshot_20261211_093012.png", 1_250_000, "screenshots", 7),
-            trashEntry("s2", "Pictures/Screenshots/Screenshot_20261208_211544.png", 1_180_000, "screenshots", 7),
+            trashEntry(
+                "s1",
+                "Pictures/Screenshots/Screenshot_${stamp(NOW - 9 * DAY)}.png",
+                1_250_000,
+                "screenshots",
+                7,
+            ),
+            trashEntry(
+                "s2",
+                "Pictures/Screenshots/Screenshot_${stamp(NOW - 12 * DAY)}.png",
+                1_180_000,
+                "screenshots",
+                7,
+            ),
             trashEntry("c1", "DCIM/Camera/IMG_20210714_181203.jpg", 4_480_000, "camera", 1, "USB:KeepClear/Phone/IMG"),
             trashEntry(
                 "c2",

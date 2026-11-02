@@ -40,6 +40,8 @@ class ScreensScreenshotTest(private val locale: String, private val night: Boole
 
     @Test fun trash(): Unit = shots.trash()
 
+    @Test fun trashActions(): Unit = shots.trashActions()
+
     @Test fun backup(): Unit = shots.backup()
 
     @Test fun backupProgress(): Unit = shots.backupProgress()

@@ -63,7 +63,17 @@ data class CleanResult(
     val declined: Boolean = false,
     /** E13: the trash entries this action added; Undo restores exactly these. */
     val trashedIds: Set<String> = emptySet(),
-)
+    /**
+     * Owner decision 2026-11-02: the part of [done] that was deleted for good (rebuilds itself, already in another
+     * app's bin). The rest of [done] went to the trash.
+     */
+    val deletedForGood: Total = Total(),
+    /** Free space measured before and after, when something was deleted for good (the trash part frees nothing yet). */
+    val measured: Measured? = null,
+) {
+    /** What went to a trash (KeepClear's or Android's) and can be put back. */
+    val trashed: Total get() = Total(done.files - deletedForGood.files, done.bytes - deletedForGood.bytes)
+}
 
 /**
  * "Clean now" (SAFE-1…6): SAFE groups are pre-selected (SAFETY-10 allows it only for SAFE), the user can
@@ -265,9 +275,88 @@ internal fun confirmFacts(total: Total, where: String): List<ConfirmFact> {
     )
 }
 
+/** Owner decision 2026-11-02: what a clean confirmation shows, split into "deleted for good" and "to the trash". */
+internal class CleanSheetText(
+    val facts: List<ConfirmFact>,
+    val note: String,
+    val permanentNote: Boolean,
+    val anyForGood: Boolean,
+) {
+    /** "Move to trash" only when everything goes to the trash; "Clean now" when some of it is deleted for good. */
+    val confirmLabel: Int get() = if (anyForGood) R.string.clean_confirm_yes_now else R.string.clean_confirm_yes
+}
+
 /**
- * SAFE-1: the one confirmation before SAFE items go to the trash (30 days), naming exactly [items]. Used by "Clean
- * now" and by the Free-up-space tab's main button (F1b); the confirm is the tapjacking-safe [SafeConfirmButton].
+ * The rows and note of a clean confirmation (SAFE-1, REV-3). When some of [items] are deleted for good (they rebuild
+ * themselves or are already in another app's bin, [CleanPlanner.permanentReasons]), the rows say which part is
+ * deleted for good now and which part goes to the trash for 30 days, and the note says why, in plain words.
+ */
+@Composable
+internal fun cleanSheetText(items: List<ClassifiedItem>): CleanSheetText {
+    val now = remember { System.currentTimeMillis() }
+    val reasons = remember(items) {
+        io.github.tomerar.keepclear.engine.enrich.CleanPlanner.permanentReasons(items, now)
+    }
+    val (forGood, toTrash) = items.partition { it.item.path in reasons }
+    val total = items.fold(Total()) { t, i -> t + i }
+    if (forGood.isEmpty()) {
+        return CleanSheetText(
+            confirmFacts(total, stringResource(R.string.confirm_where_trash)),
+            stringResource(R.string.clean_confirm_note),
+            permanentNote = false,
+            anyForGood = false,
+        )
+    }
+    val why = buildList {
+        if (io.github.tomerar.keepclear.core.safety.PermanentReason.REBUILDS_ITSELF in reasons.values) {
+            add(stringResource(R.string.clean_confirm_for_good_rebuilds))
+        }
+        if (io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN in reasons.values) {
+            add(stringResource(R.string.clean_confirm_for_good_bins))
+        }
+        if (toTrash.isNotEmpty()) add(stringResource(R.string.clean_confirm_note_rest))
+    }.joinToString("\n")
+    val facts = if (toTrash.isEmpty()) {
+        confirmFacts(total, stringResource(R.string.confirm_where_for_good))
+    } else {
+        listOf(
+            ConfirmFact(stringResource(R.string.confirm_fact_for_good), partValue(forGood)),
+            ConfirmFact(stringResource(R.string.confirm_fact_to_trash), partValue(toTrash)),
+        )
+    }
+    val bins = io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN in reasons.values
+    return CleanSheetText(facts, why, permanentNote = bins, anyForGood = true)
+}
+
+/** "4.1GB · 1,234 files", each part isolated. */
+@Composable
+private fun partValue(items: List<ClassifiedItem>): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val total = items.fold(Total()) { t, i -> t + i }
+    val count = pluralStringResource(
+        R.plurals.file_count,
+        total.files,
+        java.text.NumberFormat.getIntegerInstance(locale).format(total.files),
+    )
+    return stringResource(
+        R.string.confirm_part_value,
+        io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(total.bytes, locale)),
+        io.github.tomerar.keepclear.core.common.Bidi.isolate(count),
+    )
+}
+
+/** Design QA item 5: the title is only the question, „לנקות 7.9GB?”; the count and the rest are in the rows. */
+@Composable
+internal fun sizeOnly(items: List<ClassifiedItem>): String {
+    val locale = LocalConfiguration.current.locales[0]
+    return io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(items.sumOf { it.item.size }, locale))
+}
+
+/**
+ * SAFE-1: the one confirmation before SAFE items are cleaned, naming exactly [items]. Used by "Clean now" and by the
+ * Free-up-space tab's main button (F1b); the confirm is the tapjacking-safe [SafeConfirmButton]. Items that rebuild
+ * themselves or are already in another app's bin are deleted for good; the rest go to the trash (owner decision
+ * 2026-11-02), and the sheet says which is which.
  */
 @Composable
 fun CleanConfirmDialog(
@@ -275,17 +364,18 @@ fun CleanConfirmDialog(
     onClean: (List<ClassifiedItem>, Confirmation) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val total = items.fold(Total()) { t, i -> t + i }
+    val text = cleanSheetText(items)
     ConfirmSheet(
-        title = stringResource(R.string.clean_confirm_title, totalText(total)),
+        title = stringResource(R.string.clean_confirm_title, sizeOnly(items)),
         dismissText = stringResource(R.string.trash_cancel),
         onDismiss = onDismiss,
-        facts = confirmFacts(total, stringResource(R.string.confirm_where_trash)),
-        note = stringResource(R.string.clean_confirm_note),
+        facts = text.facts,
+        note = text.note,
+        permanent = text.permanentNote,
         modifier = Modifier.testTag("cleanConfirm"),
         confirmButton = {
             SafeConfirmButton(
-                stringResource(R.string.clean_confirm_yes),
+                stringResource(text.confirmLabel),
                 onClick = {
                     onDismiss()
                     onClean(items, userConfirmed(items.map { it.item.path }))
@@ -298,9 +388,11 @@ fun CleanConfirmDialog(
 }
 
 /**
- * SAFE-1, E-DEL-15 (F2: a ResultBanner): what a cleanup did, with Undo and "Empty now" (opens the Trash). A clean
- * moves files to KeepClear's trash on the same storage, so no free-space change is claimed for it; the space comes
- * back when the trash is emptied, and that is measured then ([MeasuredBanner]).
+ * SAFE-1, E-DEL-15 (F2: a ResultBanner): what a cleanup did, with Undo and "Empty now" (opens the Trash). Moving files
+ * to KeepClear's trash on the same storage frees nothing yet, so no free-space change is claimed for that part; the
+ * space comes back when the trash is emptied. Owner decision 2026-11-02: when something was deleted for good, the
+ * banner leads with the measured result („פונו 4.1GB · עכשיו פנויים 20.9GB”), then the trash part („3.8GB בסל,
+ * יתפנו ב-…”) with Undo and "Empty now", which act on the trash part only.
  */
 @Composable
 fun CleanResultBanner(
@@ -309,18 +401,40 @@ fun CleanResultBanner(
     onOpenTrash: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
+
+    fun s(b: Long) = io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(b, locale))
+    val forGood = r.deletedForGood.files > 0
+    val measured = r.measured.takeIf { forGood && !r.simulated }
+    val trashedPart = r.trashed.files > 0
     val message = when {
         r.simulated -> stringResource(R.string.test_mode_would_free, totalText(r.done))
+        measured != null -> stringResource(R.string.result_freed_now, s(measured.freed), s(measured.nowFree))
         r.declined -> stringResource(R.string.android_trash_declined)
-        r.androidTrash -> stringResource(R.string.android_trash_done, totalText(r.done))
-        else -> stringResource(R.string.clean_done, totalText(r.done))
+        r.androidTrash -> stringResource(R.string.android_trash_done, totalText(r.trashed))
+        forGood && !trashedPart -> stringResource(R.string.clean_deleted_for_good, totalText(r.deletedForGood))
+        else -> stringResource(R.string.clean_done, totalText(r.trashed))
     }
+    val ownTrash = !r.simulated && !r.androidTrash && !r.declined && trashedPart
     val detail = buildList {
-        if (!r.simulated && !r.androidTrash && !r.declined) add(stringResource(R.string.clean_done_space, trashDate()))
+        if (r.simulated && forGood) {
+            add(stringResource(R.string.test_mode_would_delete_for_good, totalText(r.deletedForGood)))
+        }
+        if (!r.simulated && forGood && measured == null && trashedPart) {
+            add(stringResource(R.string.clean_deleted_for_good, totalText(r.deletedForGood)))
+        }
+        if (ownTrash) {
+            if (measured != null) {
+                add(stringResource(R.string.clean_in_trash, s(r.trashed.bytes), trashDate()))
+            } else {
+                add(stringResource(R.string.clean_done_space, trashDate()))
+            }
+        }
         if (r.skipped > 0) add(countSentence(R.plurals.clean_skipped, r.skipped))
         if (r.protectedSkipped > 0) add(countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped))
     }.joinToString("\n").ifEmpty { null }
-    val undoable = !r.simulated && !r.androidTrash && !r.declined
+    // Undo and "Empty now" only for what is in KeepClear's trash; what was deleted for good can't come back.
+    val undoable = ownTrash
     val tag = when {
         r.simulated -> "simulatedResult"
         r.androidTrash || r.declined -> "androidTrashResult"

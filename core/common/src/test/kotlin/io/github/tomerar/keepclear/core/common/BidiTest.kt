@@ -15,6 +15,19 @@ class BidiTest {
     }
 
     @Test
+    fun `a Hebrew count that starts with digits is kept together with right-to-left marks (design QA 8)`() {
+        Bidi.isolate("4,983 קבצים") shouldBe "${Bidi.RLM}4,983 קבצים${Bidi.RLM}"
+        Bidi.isolate("2 קבצים") shouldBe "${Bidi.RLM}2 קבצים${Bidi.RLM}"
+        // Stray marks are removed first, so wrapping twice gives the same result.
+        Bidi.isolate(Bidi.isolate("4,983 קבצים")) shouldBe Bidi.isolate("4,983 קבצים")
+        // Everything else keeps its isolate: left-to-right values, digits only, and Hebrew that starts with a letter.
+        Bidi.isolate("7.9GB") shouldBe "${Bidi.FSI}7.9GB${Bidi.PDI}"
+        Bidi.isolate("4,983 files") shouldBe "${Bidi.FSI}4,983 files${Bidi.PDI}"
+        Bidi.isolate("4,983") shouldBe "${Bidi.FSI}4,983${Bidi.PDI}"
+        Bidi.isolate("קובץ אחד") shouldBe "${Bidi.FSI}קובץ אחד${Bidi.PDI}"
+    }
+
+    @Test
     fun `paths are isolated left to right`() {
         Bidi.isolateLtr("DCIM/Camera/IMG_1.jpg") shouldBe "⁦DCIM/Camera/IMG_1.jpg⁩"
     }

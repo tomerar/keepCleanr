@@ -9,7 +9,7 @@
     <string name="home_card_review_title">Choose what to keep</string>
     <string name="home_card_move_title">Move to backup</string>
     <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
-    <string name="debug_toggle_rtl">Flip layout direction (debug)</string>
+    <string name="debug_toggle_rtl">Debug: flip layout direction</string>
     <string name="home_storage_line">%1$s used · %2$s free</string>
     <string name="access_card_title">See what\'s taking space</string>
     <string name="access_card_body">To look at your photos, videos and files, KeepClear needs your permission. Everything stays on this phone.</string>
@@ -50,10 +50,6 @@
     <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">Show</string>
-    <string name="area_camera">Camera</string>
-    <string name="area_whatsapp">WhatsApp</string>
-    <string name="area_junk">Junk</string>
-    <string name="area_other">Other</string>
     <string name="label_why">Why is this here?</string>
     <string name="label_if_deleted">What happens if it\'s deleted?</string>
     <string name="back">Back</string>
@@ -68,7 +64,7 @@
     <string name="risk_UNKNOWN">Look first</string>
     <string name="trash_title">Trash</string>
     <string name="trash_chip">Trash · %1$s</string>
-    <string name="trash_summary">%1$s · each item is deleted for good 30 days after it came here, and its space comes back then. You can also empty now.</string>
+    <string name="trash_summary">%1$s · deleted for good after 30 days</string>
     <string name="trash_empty_state">The trash is empty.</string>
     <string name="trash_restore">Restore</string>
     <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
@@ -80,12 +76,12 @@
     <string name="last_copy_confirm">Delete the last copy too</string>
     <string name="last_copy_keep">Keep it</string>
     <string name="trash_restore_all">Restore all</string>
-    <string name="trash_empty_now">Empty trash now</string>
+    <string name="trash_empty_now">Empty the trash</string>
     <plurals name="trash_release_held_back">
         <item quantity="one">%1$s file stayed in the trash: KeepClear couldn\'t confirm just now that its backup copy is intact. Connect the backup place and try again.</item>
         <item quantity="other">%1$s files stayed in the trash: KeepClear couldn\'t confirm just now that their backup copies are intact. Connect the backup place and try again.</item>
     </plurals>
-    <string name="trash_release_now">Free now (a checked copy exists)</string>
+    <string name="trash_release_now">Free now</string>
     <string name="trash_verified_copy">Checked copy on %1$s</string>
     <string name="trash_restore_to">Will be restored to %1$s</string>
     <string name="trash_confirm_empty_title">Delete %1$s permanently?</string>
@@ -234,7 +230,7 @@
     </plurals>
     <string name="move_receipt_how_back">Your files are on %1$s, in the folder %2$s. To bring them back to the phone: \"Restore from a backup\" on the Backup tab.</string>
     <string name="move_receipt_unencrypted">The copy on the drive is not encrypted. Anyone with the drive can open it.</string>
-    <string name="move_free_button">Free up the space now (%1$s)</string>
+    <string name="move_free_button">Free up %1$s from the phone</string>
     <string name="move_free_unavailable">The originals stay on the phone: this place can\'t be checked.</string>
     <string name="move_free_confirm_title">Free space on the phone?</string>
     <string name="move_free_confirm_body">%1$s will move to KeepClear\'s trash. Each one is checked against its copy on the drive first. You can restore them for 30 days.</string>
@@ -309,7 +305,7 @@
     <string name="review_long_press_hint">Long-press a picture to see it large.</string>
     <string name="trash_restore_all_title">Restore %1$s?</string>
     <string name="trash_restore_all_body">They go back where they were. This uses no extra space: the files are already on the phone.</string>
-    <string name="trash_release_all">Free everything that has a checked copy (%1$s)</string>
+    <string name="trash_release_all">Free what has a checked copy</string>
     <string name="trash_confirm_release_yes">Free now</string>
     <string name="trash_confirm_empty_body_split">%1$s have a checked copy on your drive. %2$s have no other copy and will be gone for good.</string>
     <string name="trash_group_clean">Cleaned junk</string>
@@ -317,8 +313,8 @@
     <string name="trash_group_move">Backed up and freed</string>
     <string name="trash_group_other">Other</string>
     <string name="trash_restore_group">Restore this group</string>
-    <string name="trash_show_files">Show files</string>
-    <string name="trash_hide_files">Hide files</string>
+    <string name="trash_show_files">Show the list</string>
+    <string name="trash_hide_files">Hide the list</string>
     <string name="move_pause_stop_help">Pause keeps your place and continues from the same file. Stop ends this backup; everything already checked stays on the drive.</string>
     <string name="move_stop_confirm_title">Stop the backup?</string>
     <string name="move_stop_confirm_body">Files already checked stay on the drive. You can start again later; it continues where it stopped.</string>
@@ -533,10 +529,10 @@
     <string name="nextcloud_settings_button">Set up Nextcloud</string>
     <string name="settings_nextcloud_only">Network: only to %1$s (your Nextcloud)</string>
     <string name="settings_nextcloud_forget">Forget your Nextcloud</string>
-    <string name="move_nextcloud_option">Use your Nextcloud (%1$s)</string>
+    <string name="move_nextcloud_option">Use your Nextcloud: %1$s</string>
     <string name="move_problem_nextcloud_sign_in">Your Nextcloud no longer accepts KeepClear\'s sign-in. Sign in again in Settings › Advanced.</string>
     <string name="move_problem_nextcloud_unreachable">Your Nextcloud didn\'t answer. Check the internet connection and try again.</string>
-    <string name="restore_from_nextcloud">Use your Nextcloud (%1$s)</string>
+    <string name="restore_from_nextcloud">Use your Nextcloud: %1$s</string>
     <string name="restore_to_original">Back to where they were</string>
     <string name="restore_to_folder">To the restore folder (Pictures › KeepClear Restored)</string>
     <string name="restore_to_mixed">%1$s back to where they were, %2$s to the restore folder</string>
@@ -607,7 +603,7 @@
         <item quantity="other">%s days left</item>
     </plurals>
     <string name="receipt_stamp">Checked file by file</string>
-    <string name="move_network_saved_option">Use the computer at home (%1$s)</string>
+    <string name="move_network_saved_option">Use the computer at home: %1$s</string>
     <string name="restore_loading">Reading the backup…</string>
     <string name="restore_stop">Stop</string>
     <string name="restore_group_label">%1$s · %2$s</string>
@@ -631,4 +627,25 @@
         <item quantity="other">Leave? %s decisions will be lost</item>
     </plurals>
     <string name="apps_open_app_content">See files inside apps\' own folders</string>
+    <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
+    <string name="confirm_fact_for_good">Deleted for good now</string>
+    <string name="confirm_fact_to_trash">To KeepClear\'s trash, for 30 days</string>
+    <string name="confirm_where_for_good">Deleted for good, now</string>
+    <string name="clean_confirm_yes_now">Clean now</string>
+    <string name="confirm_part_value">%1$s · %2$s</string>
+    <string name="clean_confirm_for_good_rebuilds">Thumbnails, temporary files and old statuses will be deleted for good: they rebuild themselves.</string>
+    <string name="clean_confirm_for_good_bins">Files from other apps\' bins will be deleted for good: they were already deleted once, so they can\'t be put back.</string>
+    <string name="clean_confirm_note_rest">Everything else can be put back from the trash for 30 days.</string>
+    <string name="result_freed_now">Freed %1$s · now %2$s free</string>
+    <string name="clean_in_trash">%1$s in the trash, freed on %2$s</string>
+    <string name="clean_deleted_for_good">%1$s deleted for good.</string>
+    <string name="test_mode_would_delete_for_good">Of these, %1$s would have been deleted for good.</string>
+    <!-- Design QA item 2: the storage strip's legend, in the strip's order. -->
+    <string name="strip_legend_safe">Clean</string>
+    <string name="strip_legend_review">Choose</string>
+    <string name="strip_legend_move">Back up</string>
+    <string name="strip_legend_other">Other</string>
+    <string name="strip_legend_free">Free</string>
+    <!-- Design QA item 3: Trash. -->
+    <string name="trash_from_gallery_bin">From the gallery\'s bin</string>
 </resources>

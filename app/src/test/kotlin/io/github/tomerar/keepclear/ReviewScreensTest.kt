@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
@@ -128,7 +130,7 @@ class ReviewScreensTest {
         compose.onNodeWithTag("deleteSelected").assertDoesNotExist()
         compose.onAllNodesWithTag("tile")[0].assertExists()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_0.png"))
-        compose.onNodeWithTag("preview_Screenshot_0.png").performClick()
+        compose.onNodeWithTag("preview_Screenshot_0.png").performTouchInput { longClick() }
         compose.onNodeWithTag("preview").assertIsDisplayed()
         compose.onNodeWithTag("preview").performScrollToIndex(3)
         compose.onNodeWithText("Why is this here?").assertExists()
@@ -182,7 +184,7 @@ class ReviewScreensTest {
         val selectedText = compose.onNodeWithTag("deleteSelected").fetchSemanticsNode()
             .config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_5000.png"))
-        compose.onNodeWithTag("preview_Screenshot_5000.png").performClick()
+        compose.onNodeWithTag("preview_Screenshot_5000.png").performTouchInput { longClick() }
         compose.onNodeWithTag("preview").assertIsDisplayed()
         compose.onNodeWithTag("back").performClick()
         // Still all 10,000 selected, and still at the same place in the grid.

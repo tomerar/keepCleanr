@@ -117,6 +117,20 @@ segment checked; this phone refused by text and at the socket after DNS (tests o
 streamed, entry/depth/value caps; GET read-back cut at the reported size; "Forget" revokes the app password on the
 server first and says plainly when it couldn't; network APIs confined in bytecode (`checkForbiddenApis`).
 
+### T8b. Look-alike "already deleted" files (owner decision 2026-11-02, SEC-10)
+**Threat:** items already in another app's bin are deleted for good, not moved to KeepClear's trash. An app with
+write access names a user's file like a bin file (`.trashed-…`, invisible or bidi characters, a `.FileManagerRecycler`
+folder deeper down), or a MediaStore row is restored by the gallery between the scan and the clean, so a file the user
+still wants is deleted without the 30-day trash.
+**Mitigations:** the executor decides permanence itself (`PermanentKinds`), never from a UI flag; the rule
+(`other_app_bin`) **and** a strict path test must agree: Android's exact `.trashed-<digits>-<name>` form with no
+invisible or bidi characters, or `<volume root>/.FileManagerRecycler/`, on a lossless canonical `/storage` path; SAFE
+only (a recent or favourite file moved to REVIEW goes to the trash); never a duplicate, a witness or a folder; a
+MediaStore row only while it is still `IS_TRASHED` when Android is asked (Android also shows its own delete dialog).
+PROTECTED, re-check, test mode and the session's confirmation apply as before. An app that can rename the user's
+file could delete it directly, so this adds no new capability to an attacker; it only removes the 30-day trash from
+a file that already looks deleted.
+
 ### T9. Privileged helpers (v1, Shizuku/root)
 **Mitigations:**
 - The AIDL user service checks the calling UID equals our app UID.
@@ -134,4 +148,5 @@ server first and says plainly when it couldn't; network APIs confined in bytecod
 | SEC-6 canonical PROTECTED matching | Table test with case variants, NFD, zero-width chars, `/storage/emulated/999/` (E-SEC-9). |
 | SEC-7 tapjacking | UI test: obscured touch on confirm is ignored (E-SEC-10). |
 | SEC-8 supply chain | CI fails on unverified dependency checksum. |
+| SEC-10 look-alike bin files | `PermanentKindsTest` (strict `.trashed-` parsing, look-alikes, lossless paths), `PermanentDeleteTest`, `PermanentKillPointPropertyTest`, `MediaConsentHandlerTest` (E-SEC-11). |
 | SEC-9 network places (D3/D6) | `SmbSecurityTest`, `HostHttpClientTest`, `WebDavLocationTest`, `NextcloudLoginTest`, `DavXmlTest`, `WebDavBackupTargetTest` (oversized listing, long GET), `NextcloudLoginServerTest` (revoke on the real server), `MoveEngineTest` (copy-only never frees), `NetworkSecurityAppTest`, build-logic `ForbiddenApisTest`. |
