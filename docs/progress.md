@@ -100,6 +100,8 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 
 ## Decided conservatively, please review
 
+C1–C26 were approved by the owner on 2026-11-02. New conservative decisions continue from C27.
+
 | # | Decision |
 |---|---|
 | C2 | "Restore all" asks first but shows no space warning: restoring is a rename on the same volume, so it never needs extra space (the dialog says so). |
@@ -134,13 +136,24 @@ Run on the OnePlus 10T with the phone only (P-1). Steps that need a computer are
 | # | What | Why |
 |---|---|---|
 | W2 | Play Console: create the app and an internal-testing track, upload a `play` build, and fill the `READ_MEDIA_*` declaration (tasks.md M12). Everything else in M12 is built and tested without it. | Needs your Play developer account. |
-| W1 | Before installing the next test APK: in the **old** test app (named "KeepClear"), restore or empty the trash, then uninstall it. The new one is "KeepClear test" and installs alongside. | Test builds now have their own package so the public test key can't update a real install (PR B). |
 | W3 | ADR 0011 amendments (M17a, M17c): WebDAV/Nextcloud and now Dropbox use a small built-in HTTP client (`backup:net` MiniHttp) instead of OkHttp, because Android's `HttpURLConnection` refuses WebDAV methods and no new dependency was wanted. OK, or should both move to OkHttp? | The module is not in the app yet; nothing ships until you decide. |
 | W4 | M17b: a Nextcloud account (or any WebDAV server) to test against for real. Until then everything is tested against a fake server. | Needs your server or account. |
 | W5 | M18: register the package `io.github.tomerar.keepclear` and the release signing key under Android developer verification (research 05 §7), before the 2027 global rollout. | Needs your developer account and the release key, which never live in this repository (ADR 0009). |
 | W6 | M18: a native Hebrew review of the app's strings and of `fastlane/metadata/android/iw-IL/` (gender-neutral, plain words). | Needs a native speaker. |
 | W7 | M18: submit to IzzyOnDroid first, then F-Droid main (a `fdroiddata` merge request with `Binaries:` and `AllowedAPKSigningKeys` so F-Droid ships our signed APK), after the first signed release. | Needs your accounts, the release key's fingerprint and a release tag. |
 | W8 | M17c: register a Dropbox app (Scoped access, **App folder**, name "KeepClear"), allow PKCE with a redirect URI for the app (e.g. `db-<APP_KEY>://auth` or `io.github.tomerar.keepclear:/dropbox`), permissions `files.metadata.read`, `files.content.read`, `files.content.write` (and `account_info.read` for free space), and share the App key (public, no secret needed). After 50 users Dropbox needs a production review. | Needs your Dropbox developer account; the engine is built and tested against a fake server without it. |
+
+## Owner decisions of 2026-11-02
+
+| # | Decision |
+|---|---|
+| W1 | Closed: the owner uninstalls the old test app ("KeepClear") himself. |
+| W3 | Use OkHttp (Apache-2.0) instead of the hand-written HTTP client, in the dependency allowlist but confined to the network target modules (ADR 0008); delete the custom client and port its tests. Reason: TLS, hostname verification, redirects and chunked encoding are too risky to hand-roll in a backup app. |
+| W4 | Don't wait for an account: run the official Nextcloud Docker image in CI (like Samba for SMB) and test the WebDAV target against it, including server checksums. |
+| W2, W5, W7, W8 | Later, after the device checks pass. Dropbox stays engine-only, tested with the strict fake. |
+| W6 | The owner proofreads the Hebrew himself, from [`hebrew-review.md`](hebrew-review.md) (every Hebrew string with its key, the English and the screen, grouped by screen). |
+| C12–C26 | Approved. Added to Later: "trust this certificate" for self-signed home servers (show the fingerprint, pin it, Advanced only). Device matrix: check which user number Samsung uses for cloned apps (Dual Messenger). |
+| Freeze | **Feature freeze until the app runs on the owner's phone.** Only: (1) the flaky SMB test's root cause, (2) a read-only "Device check" screen in test builds (Settings › Advanced) that produces a shareable report without file paths, (3) M17b for Nextcloud only, on OkHttp, under Advanced. The Dropbox UI waits for W8. |
 
 ## Blockers and decisions needed
 

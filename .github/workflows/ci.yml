@@ -32,6 +32,8 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Build-logic unit tests (policy checkers)
         run: ./gradlew -p build-logic test
+      - name: Hebrew review list is current (docs/hebrew-review.md)
+        run: python3 -I scripts/hebrew-review.py --check
       - name: Samba test server for the SMB target's integration tests (M15)
         run: |
           sudo apt-get update -q

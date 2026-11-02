@@ -168,7 +168,7 @@ Run the device checklist on each before a v1 release. Emulators in CI cover API 
 | Device class | Example | Android / skin | Why it's in the matrix | OEM-specific checks |
 |---|---|---|---|---|
 | Google Pixel | Pixel 7/8/9 | Android 16 (and 17 beta) stock | Reference behaviour; first to get new restrictions | MediaStore trash in Google Photos/Files, Files by Google bin, UIDT, `ACCESS_LOCAL_NETWORK` |
-| Samsung | Galaxy A55 / S24 | One UI 7–8 (Android 15–16) | Largest Android share; own Gallery and My Files bins; Device Care | Gallery/My Files recycle bin paths, `MANAGE_MEDIA`, Secure Folder invisible (document), exFAT OTG, background limits |
+| Samsung | Galaxy A55 / S24 | One UI 7–8 (Android 15–16) | Largest Android share; own Gallery and My Files bins; Device Care | Gallery/My Files recycle bin paths, `MANAGE_MEDIA`, Secure Folder invisible (document), exFAT OTG, background limits; **which Android user number Dual Messenger uses for cloned apps** (MSG-3 looks only at 999 today) |
 | Xiaomi | Redmi Note 13 / Xiaomi 14 | HyperOS 2–3 (Android 15–16) | Aggressive background killing; Dual apps (user 999); MIUI legacy folders | Dual apps storage (MSG-3), MIUI Gallery trash, FGS survival, autostart permission |
 | OnePlus | OnePlus 10T (owner), a current OnePlus | OxygenOS 15–16 | Owner's device; ColorOS base; Parallel apps | `.FileManagerRecycler` path, OnePlus Gallery trash, Parallel apps (user 999), FGS kill, USB 2.0 throughput |
 | Low-end | Any 4 GB RAM device | Android 11–12 | minSdk 30 floor, low memory | Scan memory (NFR-2), thumbnail grid performance |
@@ -181,7 +181,7 @@ Each device run records: device, OS build, flavor, checklist results and through
 Added in the spec phase (no app code): `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`, `.github/labels.yml`, `docs/TRANSLATING.md` (Weblate workflow). Label sync and Weblate hookup are applied once the owner approves (they change GitHub/Weblate settings).
 
 ## Later
-Similar photos (dHash + BK-tree), Shizuku tier, Accessibility cache cleaner (foss only, if ADR 0012 is approved), OneDrive, Immich checksum target, SFTP, PC companion, root tier, video squeeze.
+"Trust this certificate" for self-signed home servers (show the fingerprint, pin it on first use, Advanced only; owner 2026-11-02), Dropbox sign-in UI and Google Play listing (after the device checks pass; owner 2026-11-02), similar photos (dHash + BK-tree), Shizuku tier, Accessibility cache cleaner (foss only, if ADR 0012 is approved), OneDrive, Immich checksum target, SFTP, PC companion, root tier, video squeeze.
 
 ---
 
