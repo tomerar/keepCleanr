@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-538 Hebrew strings.
+547 Hebrew strings.
 
 ## Contents
 
@@ -16,13 +16,14 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (17)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (159)
+- [Move to backup and restore](#move-to-backup-and-restore) (164)
 - [Trash](#trash) (42)
 - [Apps](#apps) (29)
-- [Settings](#settings) (33)
-- [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (24)
+- [Settings](#settings) (35)
+- [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25)
 - [Notifications](#notifications) (4)
 - [Device check (test builds)](#device-check-test-builds) (9)
+- [Other](#other) (1)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96)
 
 ## Intro and permissions
@@ -224,6 +225,7 @@ string; "also" lists other screens.
 | `move_free_confirm_body` | %1$s will move to KeepClear's trash. Each one is checked against its copy on the drive first. You can restore them for 30 days. | %1$s יעברו לסל המחזור של KeepClear. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום. |  |
 | `move_free_confirm_title` | Free space on the phone? | לפנות מקום בטלפון? |  |
 | `move_free_confirm_yes` | Move to the trash | להעביר לסל המחזור |  |
+| `move_free_copy_only` | The originals stay on the phone: this computer is used without a name and password, so KeepClear can't be sure the copy there stays as it is. | המקור נשאר בטלפון: נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear לא יכול להיות בטוח שהעותק שם יישאר כמו שהוא. |  |
 | `move_free_done` | %1$s moved to the trash. | %1$s הועברו לסל המחזור. |  |
 | `move_free_failed` | [one] %1$s file couldn't be moved. / [other] %1$s files couldn't be moved. | [one] קובץ אחד לא הועבר. / [two] שני קבצים לא הועברו. / [other] %1$s קבצים לא הועברו. |  |
 | `move_free_skipped` | [one] %1$s file was skipped (changed, or its copy is missing). / [other] %1$s files were skipped (changed, or their copy is missing). | [one] קובץ אחד דולג (השתנה, או שהעותק חסר). / [two] שני קבצים דולגו (השתנו, או שהעותק חסר). / [other] %1$s קבצים דולגו (השתנו, או שהעותק חסר). |  |
@@ -237,6 +239,7 @@ string; "also" lists other screens.
 | `move_history` | Earlier backups | גיבויים קודמים |  |
 | `move_issue_battery` | Battery is below 20 percent. Connect the charger to start. | הסוללה מתחת ל-20 אחוז. כדי להתחיל, צריך לחבר מטען. |  |
 | `move_issue_cannot_verify` | KeepClear can't make sure the copy here is good, so the originals stay on the phone. | KeepClear לא יכול לוודא שהעותק כאן תקין, ולכן המקור יישאר בטלפון. |  |
+| `move_issue_copy_only` | This computer is used without a name and password, so KeepClear only copies to it: the originals stay on the phone. | נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear רק מעתיק אליו: המקור נשאר בטלפון. |  |
 | `move_issue_names` | [one] %1$s file gets a slightly different name so the drive accepts it. The original name is kept in the backup's list. / [other] %1$s files get a slightly different name so the drive accepts them. The original names are kept in the backup's list. | [one] קובץ אחד יקבל שם קצת שונה כדי שהכונן יקבל אותו. השם המקורי שמור ברשימת הגיבוי. / [two] שני קבצים יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים שמורים ברשימת הגיבוי. / [other] %1$s קבצים יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים שמורים ברשימת הגיבוי. |  |
 | `move_issue_space` | Not enough space on the drive: %1$s needed, %2$s free. | אין מספיק מקום בכונן: צריך %1$s, פנויים %2$s. |  |
 | `move_issue_too_large` | [one] %1$s file is larger than 4 GB and can't go to this drive. It stays on the phone. / [other] %1$s files are larger than 4 GB and can't go to this drive. They stay on the phone. | [one] קובץ אחד גדול מ-4GB ולא יכול לעבור לכונן הזה. הוא נשאר בטלפון. / [two] שני קבצים גדולים מ-4GB ולא יכולים לעבור לכונן הזה. הם נשארים בטלפון. / [other] %1$s קבצים גדולים מ-4GB ולא יכולים לעבור לכונן הזה. הם נשארים בטלפון. |  |
@@ -244,11 +247,13 @@ string; "also" lists other screens.
 | `move_keep_going` | Keep going | להמשיך לגבות |  |
 | `move_network_bad_host` | Type only the computer's name or address, without \\\\ or smb://. | יש להקליד רק את שם המחשב או את הכתובת, בלי \\\\ ובלי smb://. |  |
 | `move_network_connect` | Connect | התחברות |  |
+| `move_network_guest_copy_only` | Without a name and password, KeepClear only copies to this computer and never frees space on the phone. | בלי שם משתמש וסיסמה, KeepClear רק מעתיק למחשב הזה ואף פעם לא מפנה מקום בטלפון. |  |
 | `move_network_host` | Address (for example 192.168.1.20 or my-pc) | כתובת (למשל 192.168.1.20 או my-pc) |  |
 | `move_network_intro` | A computer or NAS at home that shares a folder. KeepClear connects only to the address you type here, reads every copy back over the network to check it, and frees space only when you tap it. | מחשב או NAS בבית שמשתף תיקייה. KeepClear מתחברת רק לכתובת שמוקלדת כאן, קוראת כל עותק בחזרה דרך הרשת כדי לבדוק אותו, ומפנה מקום רק אחרי הקשה. |  |
 | `move_network_option` | Use a network drive instead (a computer or NAS at home) | להשתמש בכונן רשת במקום (מחשב או NAS בבית) |  |
 | `move_network_password` | Password | סיסמה |  |
 | `move_network_share` | Shared folder name | שם התיקייה המשותפת |  |
+| `move_network_this_phone` | That's this phone's own address. Type the address of the computer at home. | זו הכתובת של הטלפון הזה. צריך להקליד את הכתובת של המחשב בבית. |  |
 | `move_network_title` | Network drive | כונן רשת |  |
 | `move_network_user` | User name (leave empty for guest) | שם משתמש (ריק לגישת אורח) |  |
 | `move_nextcloud_option` | Use your Nextcloud (%1$s) | להשתמש ב-Nextcloud (%1$s) |  |
@@ -283,6 +288,7 @@ string; "also" lists other screens.
 | `move_preflight_note` | Note | לשים לב |  |
 | `move_preflight_ok` | Ready | מוכן |  |
 | `move_problem_marker` | This folder has a backup KeepClear doesn't recognise. Pick another folder. | בתיקייה הזו יש גיבוי ש-KeepClear לא מזהה. כדאי לבחור תיקייה אחרת. | Nextcloud set-up (Settings › Advanced) |
+| `move_problem_network_phone` | That address is this phone itself. A backup has to go to another device. | הכתובת הזו היא של הטלפון הזה עצמו. גיבוי צריך להיות במכשיר אחר. |  |
 | `move_problem_nextcloud_sign_in` | Your Nextcloud no longer accepts KeepClear's sign-in. Sign in again in Settings › Advanced. | ה-Nextcloud כבר לא מקבל את הכניסה של KeepClear. יש להיכנס שוב בהגדרות › מתקדם. |  |
 | `move_problem_nextcloud_unreachable` | Your Nextcloud didn't answer. Check the internet connection and try again. | ה-Nextcloud לא ענה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב. |  |
 | `move_problem_phone` | This folder is on the phone itself. Choose a USB drive or memory card. | התיקייה הזו נמצאת בטלפון עצמו. צריך לבחור דיסק און קי או כרטיס זיכרון. |  |
@@ -456,6 +462,8 @@ string; "also" lists other screens.
 | `settings_network_forget` | Forget the network drive | לשכוח את כונן הרשת |  |
 | `settings_network_only` | Network: only to %1$s (your network drive) | רשת: רק אל %1$s (כונן הרשת) |  |
 | `settings_nextcloud_forget` | Forget your Nextcloud | לשכוח את ה-Nextcloud |  |
+| `settings_nextcloud_forgot_not_revoked` | KeepClear forgot your Nextcloud on this phone, but couldn't reach it to sign the phone out, so its app password may still work there. To be sure, remove it in your Nextcloud: Settings › Security. | KeepClear שכח את ה-Nextcloud שלכם בטלפון הזה, אבל לא הצליח להגיע אליו כדי להוציא את הטלפון מהחשבון, ולכן סיסמת האפליקציה עשויה עדיין לעבוד שם. כדי להיות בטוחים, אפשר למחוק אותה ב-Nextcloud שלכם: הגדרות › אבטחה. |  |
+| `settings_nextcloud_forgot_revoked` | KeepClear forgot your Nextcloud and signed this phone out of it. | KeepClear שכח את ה-Nextcloud שלכם והוציא את הטלפון הזה מהחשבון. |  |
 | `settings_nextcloud_only` | Network: only to %1$s (your Nextcloud) | רשת: רק אל %1$s (ה-Nextcloud) |  |
 | `settings_open_trash` | Open the trash | לפתוח את סל המחזור |  |
 | `settings_privacy` | Privacy policy | מדיניות פרטיות |  |
@@ -500,6 +508,7 @@ string; "also" lists other screens.
 | `nextcloud_settings_body` | For people who have their own Nextcloud. Sign in once; then it can be chosen when you move files to a backup. Your Nextcloud checks every copy it stores. | למי שיש Nextcloud משלו. נכנסים פעם אחת, ואז אפשר לבחור בו בהעברת קבצים לגיבוי. ה-Nextcloud בודק כל עותק שהוא שומר. | Settings |
 | `nextcloud_settings_button` | Set up Nextcloud | הגדרת Nextcloud | Settings |
 | `nextcloud_sign_in` | Sign in with the browser | כניסה דרך הדפדפן |  |
+| `nextcloud_this_phone` | That's this phone itself. A backup has to go to another device. | זה הטלפון הזה עצמו. גיבוי צריך להיות במכשיר אחר. |  |
 | `nextcloud_title` | Back up to Nextcloud | גיבוי ל-Nextcloud | Settings |
 | `nextcloud_user` | User name | שם משתמש |  |
 | `nextcloud_working` | Connecting to your Nextcloud… | מתחברים ל-Nextcloud… |  |
@@ -526,6 +535,12 @@ string; "also" lists other screens.
 | `debug_device_check_running` | Checking… this can take a minute. | בודקים… זה יכול לקחת כדקה. |  |
 | `debug_device_check_share` | Share | לשתף |  |
 | `debug_device_check_title` | Device check | בדיקת מכשיר |  |
+
+## Other
+
+| Key | English | עברית | Also |
+|---|---|---|---|
+| `test_build_use_test_account` | This is a test build, and anyone can make an update for it. Use a test account here, not your real one. | זו גרסת ניסיון, וכל אחד יכול ליצור לה עדכון. כדאי להשתמש כאן בחשבון ניסיון, לא בחשבון האמיתי שלכם. |  |
 
 ## Explanations (why / if deleted)
 

@@ -49,6 +49,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 ## Product rules
 
 - No ads, analytics, crash SDKs or Google Play Services. No `INTERNET` permission in MVP (ADR 0008). Network/cloud backup targets per ADR 0011 (accepted; Google Drive is **postponed by the owner**, so SMB, then Nextcloud, Dropbox): network code only in dedicated `backup:target-*` modules, and a cloud copy counts as verified only with a checksum the server computed.
+- Network places never point at the phone itself (D3): the app always uses `HostRule.NetworkOnly`; tests that need a server on their own machine pass `TestsOnThisDevice` with `@OptIn(ThisDeviceInTests::class)`, and no main class may refer to it (`checkForbiddenApis`). An SMB guest place is copy-only.
 - No AccessibilityService (ADR 0008). No Accessibility cleaner in v1 (ADR 0012, accepted); the guided per-app list replaces it. Shizuku is Later; "Clear app caches" uses `allocateBytes` (SAFE-5) and `ACTION_CLEAR_APP_CACHE` (SAFE-6).
 - Copy: exact numbers (count + bytes), plain language, no fear or "boost" claims. Every item has why / what-happens-if-deleted texts in **English and Hebrew**.
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).

@@ -452,9 +452,9 @@ class WebDavBackupTarget(
         private val CONTENT_XML = "Content-Type" to "application/xml; charset=utf-8"
 
         /**
-         * SEC (D6): the largest PROPFIND answer read. KeepClear lists one month of one source at a time (about 600
-         * bytes per file on Nextcloud, so over 10,000 files fit); anything larger is refused, and the answer is
-         * parsed as a stream ([DavXml]), never kept as a document tree.
+         * SEC (D6): the largest PROPFIND answer read. KeepClear lists only small folders of its own (the backups at
+         * the top, a folder it is about to delete); at about 600 bytes per entry on Nextcloud over 10,000 entries
+         * still fit. Anything larger is refused, and the answer is parsed as a stream ([DavXml]), never as a tree.
          */
         const val MAX_PROPFIND_BYTES = 8 * 1024 * 1024
 

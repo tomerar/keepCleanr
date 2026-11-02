@@ -98,6 +98,23 @@ Building `backup:target-webdav` showed two points where the decision above needs
 - "The method is recorded per file" is now done: `move_file.verifiedBy` (`READ_BACK` / `SERVER_DIGEST`, Room 5→6).
   The receipt says in plain words that the Nextcloud checked the copies; the hash and header names are under Details.
 
+### Amendment (2026-11-02, owner review D3/D6, PR D-b; local, not yet PR)
+- **Never the phone itself.** A network place may not be the phone: `localhost`, loopback, the "any" address, odd numeric
+  forms (`127.1`, `2130706433`) are refused when typed, and every connection (OkHttp and smbj) goes through a socket that
+  refuses the phone's own addresses after DNS (`backup:net` `ThisDevice`). A server on the phone would be a backup on the
+  same storage. Tests reach their Samba/Nextcloud on the test machine only through an explicit test-only rule
+  (`TestsOnThisDevice`, `@OptIn(ThisDeviceInTests)`, a compile error without it; `checkForbiddenApis` fails if any main
+  class refers to it). Plain http therefore exists only in tests.
+- **SMB:** signing is required and SMB3 encryption preferred. A guest place (no name/password) can't be signed, so it is
+  **copy-only**: copies are made and checked, originals are never freed against it (`TargetCaps.canFreeOriginals`,
+  enforced in the move engine). Every path segment sent to a share is checked (no `\`, `..`, `:`, control characters).
+- **WebDAV:** PROPFIND answers are capped at 8 MiB and parsed as a stream; a GET read-back never goes past the size the
+  server reported. "Forget your Nextcloud" revokes the app password on the server first (`DELETE
+  /ocs/v2.php/core/apppassword`).
+- **Confinement in bytecode:** besides imports (Konsist) and declared dependencies, `checkForbiddenApis` reads every
+  module's compiled classes: `java.net` sockets/URL/URLConnection, `java.net.http`, OkHttp/Okio only in `backup:net`;
+  WebView and DownloadManager nowhere.
+
 ## Consequences
 - Phone-only users get a verified MOVE target. Drive, Dropbox and Nextcloud verify without doubling traffic; SMB, OneDrive and generic WebDAV
   pay a read-back.
