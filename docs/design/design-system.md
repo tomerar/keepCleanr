@@ -175,6 +175,7 @@ All components wrap stable Material 3 (1.4.x) so Expressive can be swapped in la
 | **StorageStrip** | Where the space is | 14dp (default, 16dp max) rounded bar; segments used / SAFE / REVIEW / MOVE / free, filling from the **start** side (right in Hebrew); a ghost segment shows what remains used "after cleaning" | 2dp gaps between segments; segments animate (spring) when values change, jump under reduced motion; one `contentDescription` passed in by the app (e.g. "240GB in total: 16.8GB free, 7.9GB can be cleaned now…") |
 | **HeroNumber** | The free space as the biggest thing on screen | number (Rubik SemiBold 52sp tnum) + label ("free"), then one sentence, then one ink pill button (slots) | Counts up from the previous value (spring, ~600ms) when it changes; no animation under reduced motion; wraps at 200% font, never clips; heading semantics |
 | **ConfirmSheet** | Every confirmation of a destructive action | bottom sheet: title (heading), what / how many / how much (number style) / where it goes, scrollable body slot (editable list), the confirm button slot + cancel | Sheet-like dialog anchored to the bottom (Material's ModalBottomSheet is still experimental in 1.4.x). `permanent = false` (default) uses ink; `permanent = true` uses error red and says it can't be undone. The confirm slot takes the app's `SafeConfirmButton` (tapjacking delay and obscured-touch check, SEC-7). Scrolls at 200% font |
+| **InfoSheet** | Explainers (F1b) | the same bottom-anchored sheet frame as ConfirmSheet: handle, heading title, scrolling body, optional primary button + dismiss | Opens from what was tapped (a card's button, an InfoChip), never at the top of a screen; scrolls at 200% font |
 | **ResultBanner** | The measured result after an action | sage-tinted (or neutral) banner: icon + one or two lines ("Freed 7.9GB · now 24.7GB free (was 16.8GB)") + Undo text button | Polite live region; Undo only when the action can be undone; dismiss button |
 | **DaysLeftChip** | Days until a trashed item is deleted | 12dp chip, `schedule` icon + text ("23 days left") | ≤ 3 days uses the MOVE amber container (attention, not alarm); never red |
 | **ThumbStrip** | 3–4 real thumbnails on a REVIEW/MOVE card | row of up to 4 square 12dp-rounded thumbnails + "+N" tile | The app supplies `Painter`s (it owns thumbnail loading); decorative for TalkBack (the card's label carries the count) |
@@ -212,7 +213,7 @@ All components wrap stable Material 3 (1.4.x) so Expressive can be swapped in la
 
 ## 12. Navigation and information architecture (F1b, after PR E)
 
-Implemented in F1b once PR E's navigation-state changes have landed (to avoid two PRs restructuring the same screens):
+Implemented in F1b (UI-4; decisions C72–C78). Components: `MainTabs`, `MainTopBar`, `SubScreenTopBar` (app, `Navigation.kt`) on stable `NavigationBar`/`NavigationRail`; explainers use `InfoSheet` (core:designsystem), which shares `ConfirmSheet`'s bottom-anchored frame. The plan:
 
 - **Top app bar** on every main tab: small "KeepClear" wordmark, a Trash chip with its size (shown whenever the trash isn't empty), a Settings gear. Sub-screens: top app bar with an auto-mirrored back arrow and a title (no "לחזור" text link). Screen titles have heading semantics.
 - **Bottom navigation**, 3 tabs (NavigationRail on medium/expanded widths):
