@@ -323,11 +323,6 @@ fun restoreMonthLabel(month: String, locale: java.util.Locale): String = Bidi.is
     }.getOrDefault(month),
 )
 
-/** A count on its own, formatted for the locale and isolated. */
-@Composable
-private fun countText(count: Int): String =
-    Bidi.isolate(java.text.NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0]).format(count))
-
 /** D2: where a month's files go. */
 @Composable
 private fun whereText(g: RestoreGroup): String? = when {

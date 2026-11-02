@@ -135,7 +135,11 @@ fun SwipeReview(
             Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        stringResource(R.string.swipe_progress, minOf(decidedCount + 1, items.size), items.size),
+                        stringResource(
+                            R.string.swipe_progress,
+                            countText(minOf(decidedCount + 1, items.size)),
+                            countText(items.size),
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f).testTag("swipeProgress"),
                     )
