@@ -74,6 +74,9 @@ class SettingsActions(
     /** SET-3: "Remind me when space is low" (off by default). */
     val reminderOn: Boolean = false,
     val onReminder: (Boolean) -> Unit = {},
+    /** Test builds only ([io.github.tomerar.keepclear.devcheck.DeviceCheckGate]): Advanced › Device check. */
+    val showDeviceCheck: Boolean = false,
+    val onOpenDeviceCheck: () -> Unit = {},
 )
 
 /**
@@ -216,6 +219,22 @@ fun SettingsScreen(
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("testModeSwitch").semantics { contentDescription = testModeLabel },
                     )
+                }
+            }
+            if (actions.showDeviceCheck) {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            stringResource(R.string.debug_device_check_button_body),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        TextButton(
+                            onClick = actions.onOpenDeviceCheck,
+                            modifier = Modifier.testTag("openDeviceCheck"),
+                        ) {
+                            Text(stringResource(R.string.debug_device_check_button))
+                        }
+                    }
                 }
             }
         }

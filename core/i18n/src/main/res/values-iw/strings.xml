@@ -276,6 +276,15 @@
     <string name="test_mode_off_confirm">לכבות את מצב הניסיון</string>
     <string name="settings_title">הגדרות</string>
     <string name="settings_advanced">מתקדם</string>
+    <string name="debug_device_check_button">בדיקת מכשיר</string>
+    <string name="debug_device_check_button_body">בגרסאות בדיקה בלבד. מריצים בדיקות קריאה בלבד ומקבלים דוח להעתקה או לשיתוף. שום דבר לא משתנה.</string>
+    <string name="debug_device_check_title">בדיקת מכשיר</string>
+    <string name="debug_device_check_body">קריאה בלבד: שום דבר לא נמחק, לא מועבר ולא משתנה. בדוח יש רק מספרים וגדלים, בלי שמות של קבצים או תיקיות.</string>
+    <string name="debug_device_check_english">הדוח באנגלית, כי הוא מיועד לצוות הפיתוח.</string>
+    <string name="debug_device_check_run">להריץ שוב</string>
+    <string name="debug_device_check_copy">להעתיק</string>
+    <string name="debug_device_check_share">לשתף</string>
+    <string name="debug_device_check_running">בודקים… זה יכול לקחת כדקה.</string>
     <string name="home_card_counting">סופרים…</string>
     <string name="home_card_needs_access">צריך גישה</string>
     <string name="home_clean_button">לנקות %1$s</string>

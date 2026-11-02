@@ -33,6 +33,10 @@ import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.core.storage.saf.GrantedFolders
+import io.github.tomerar.keepclear.devcheck.DeviceCheckGate
+import io.github.tomerar.keepclear.devcheck.DeviceCheckShare
+import io.github.tomerar.keepclear.devcheck.DeviceCheckUi
+import io.github.tomerar.keepclear.devcheck.DeviceCheckViewModel
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,6 +61,9 @@ class MainActivity : ComponentActivity() {
                 val app = application as KeepClearApplication
                 val testModeOn by app.testMode.on.collectAsStateWithLifecycle()
                 val moveVm: MoveViewModel = viewModel()
+                // Test builds only: Settings › Advanced › Device check (read-only).
+                val deviceCheckVm: DeviceCheckViewModel = viewModel()
+                val deviceCheckState by deviceCheckVm.state.collectAsStateWithLifecycle()
                 val move by moveVm.state.collectAsStateWithLifecycle()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
@@ -170,6 +177,18 @@ class MainActivity : ComponentActivity() {
                                 vm.loadTrash()
                                 vm.open(Screen.Trash)
                             },
+                            showDeviceCheck = DeviceCheckGate.visible(),
+                            onOpenDeviceCheck = {
+                                deviceCheckVm.runIfEmpty()
+                                vm.open(Screen.DeviceCheck)
+                            },
+                        ),
+                        deviceCheck = DeviceCheckUi(
+                            enabled = DeviceCheckGate.visible(),
+                            state = deviceCheckState,
+                            onRun = deviceCheckVm::run,
+                            onCopy = { DeviceCheckShare.copy(this@MainActivity, it) },
+                            onShare = { DeviceCheckShare.share(this@MainActivity, it) },
                         ),
                         previewActions = PreviewActions(onKeep = vm::keep, onAlwaysJunk = vm::alwaysJunk),
                         appsActions = AppsActions(

@@ -120,7 +120,28 @@ class AccessibilityChecksTest {
                 onTestModeOn = {},
                 onTestModeOff = {},
                 onBack = {},
-                actions = SettingsActions(trashBytes = 3_100_000_000),
+                actions = SettingsActions(trashBytes = 3_100_000_000, showDeviceCheck = true),
+            )
+        },
+        "device check (test builds)" to {
+            io.github.tomerar.keepclear.devcheck.DeviceCheckScreen(
+                io.github.tomerar.keepclear.devcheck.DeviceCheckUi(
+                    enabled = true,
+                    state = io.github.tomerar.keepclear.devcheck.DeviceCheckState(
+                        report = "KeepClear device check\n== Scan (D3-1) ==\n[PASS] Scan time: 21.0 s for 2 storage " +
+                            "areas\n[INFO] Found: 10,472 files, 75,200,000,000 bytes (75.2 GB)\n\nNo file paths are included.\n",
+                    ),
+                ),
+                onBack = {},
+            )
+        },
+        "device check running" to {
+            io.github.tomerar.keepclear.devcheck.DeviceCheckScreen(
+                io.github.tomerar.keepclear.devcheck.DeviceCheckUi(
+                    enabled = true,
+                    state = io.github.tomerar.keepclear.devcheck.DeviceCheckState(running = true),
+                ),
+                onBack = {},
             )
         },
     )
