@@ -101,17 +101,26 @@ class MoveController(private val app: KeepClearApplication) {
     fun runTask(
         context: Context,
         kind: TaskKind,
+        onCancelled: () -> Unit = {},
         block: suspend (progress: (done: Int, total: Int) -> Unit) -> Unit,
     ): Job? {
         synchronized(this) {
-            if (taskJob?.isActive == true) return null
+            // PR #45 review: a cancelled task counts as running until it has completed (its clean-up, e.g. closing
+            // a network connection, may still run), so a replacement can't start under it.
+            if (taskJob?.isCompleted == false) return null
             _task.value = TaskProgress(kind)
             runCatching { startTaskService(context, kind) }
             val job = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
                 try {
                     block { done, total -> _task.value = TaskProgress(kind, done, total) }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // PR #45 review: Android's time limit (or Stop) must never leave a result that blocks the screen.
+                    onCancelled()
+                    throw e
                 } finally {
-                    _task.value = null
+                    // Only the task that owns the state clears it (never a newer one's progress or notification).
+                    val mine = coroutineContext[Job]
+                    synchronized(this@MoveController) { if (taskJob === mine) _task.value = null }
                     ticks.value++
                     finished.value++
                 }

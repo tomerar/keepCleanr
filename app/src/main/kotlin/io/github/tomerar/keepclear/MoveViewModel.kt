@@ -548,7 +548,12 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         if (chosen.isEmpty()) return
 
         fun step(s: RestoreStep) = controller.results.update { it.copy(restore = s) }
-        controller.runTask(app, TaskKind.RESTORE) { progress ->
+        // PR #45 review: stopped by Android's time limit, the restore ends as interrupted (what is done stays done),
+        // so the dialog can be closed and the restore started again.
+        val cancelled = {
+            step(RestoreStep.Done(io.github.tomerar.keepclear.engine.restore.RestoreReport(interrupted = true)))
+        }
+        controller.runTask(app, TaskKind.RESTORE, onCancelled = cancelled) { progress ->
             step(RestoreStep.Running(0, chosen.size))
             progress(0, chosen.size)
             val report = engine.restore(chosen) { done ->
