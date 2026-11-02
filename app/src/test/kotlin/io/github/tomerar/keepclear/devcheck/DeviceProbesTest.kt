@@ -46,6 +46,19 @@ class DeviceProbesTest {
     }
 
     @Test
+    fun `a bin with an unreadable folder inside is reported as partial, never as complete (PR 38 review)`(): Unit =
+        runBlocking {
+            val g = ReadOnlyTreeGateway()
+                .file("$root/.FileManagerRecycler/a", 10)
+                .file("$root/.FileManagerRecycler/private/b", 99)
+                .deny("$root/.FileManagerRecycler/private")
+            val bin = OemBins.check(g, "internal", root).first()
+            assertEquals(BinState.PRESENT_PARTIAL, bin.state)
+            assertEquals(Count(1, 10), bin.count)
+            assertEquals(1, bin.unreadableFolders)
+        }
+
+    @Test
     fun `an unreadable bin is reported, not counted`(): Unit = runBlocking {
         val g = ReadOnlyTreeGateway().file("$root/.FileManagerRecycler/a", 10).deny("$root/.FileManagerRecycler")
         val bin = OemBins.check(g, "internal", root).first()

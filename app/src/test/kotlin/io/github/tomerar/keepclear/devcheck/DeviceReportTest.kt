@@ -183,6 +183,14 @@ class DeviceReportTest {
     }
 
     @Test
+    fun `a partly counted bin says so instead of looking complete (PR 38 review)`() {
+        val bin = BinFacts("internal", "OnePlus and OPPO file manager bin", BinState.PRESENT_PARTIAL, Count(1, 10), 2)
+        val text = DeviceReport.render(realLookingFacts().copy(bins = listOf(bin)))
+        assertTrue(text, "at least 1 file" in text || "at least 1 files" in text)
+        assertTrue(text, "2 folders inside could not be read" in text)
+    }
+
+    @Test
     fun `system strings are cleaned`() {
         assertEquals("CPH2413 sdcard DCIM", ReportText.clean("CPH2413/sdcard/DCIM\u202e"))
         assertEquals("a b", ReportText.clean("a\u0000\n\tb"))

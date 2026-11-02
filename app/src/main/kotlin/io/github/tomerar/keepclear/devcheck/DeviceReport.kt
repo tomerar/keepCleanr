@@ -115,9 +115,16 @@ data class CloneFacts(
     val users: List<CloneUser>,
 )
 
-enum class BinState { PRESENT, ABSENT, UNREADABLE }
+/** [PRESENT_PARTIAL]: found and counted, but some folders inside couldn't be read or the count hit its cap. */
+enum class BinState { PRESENT, PRESENT_PARTIAL, ABSENT, UNREADABLE }
 
-data class BinFacts(val volume: String, val bin: String, val state: BinState, val count: Count = Count())
+data class BinFacts(
+    val volume: String,
+    val bin: String,
+    val state: BinState,
+    val count: Count = Count(),
+    val unreadableFolders: Int = 0,
+)
 
 data class DriveFacts(
     val label: String,
@@ -391,7 +398,15 @@ object DeviceReport {
             val where = "${ReportText.clean(b.volume)}, ${ReportText.clean(b.bin)}"
             when (b.state) {
                 BinState.PRESENT -> item(Level.INFO, "$where: present, ${count(b.count)}")
+
+                BinState.PRESENT_PARTIAL -> item(
+                    Level.WARN,
+                    "$where: present, at least ${count(b.count)}; ${b.unreadableFolders} folders inside " +
+                        "could not be read (or the count stopped at its limit)",
+                )
+
                 BinState.ABSENT -> item(Level.INFO, "$where: not found")
+
                 BinState.UNREADABLE -> item(Level.WARN, "$where: present but not readable")
             }
         }

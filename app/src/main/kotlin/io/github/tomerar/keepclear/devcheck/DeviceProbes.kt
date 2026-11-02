@@ -63,8 +63,13 @@ object OemBins {
                     BinFacts(
                         volumeLabel,
                         spec.label,
-                        if (tree.readable) BinState.PRESENT else BinState.UNREADABLE,
+                        when {
+                            !tree.readable -> BinState.UNREADABLE
+                            tree.complete -> BinState.PRESENT
+                            else -> BinState.PRESENT_PARTIAL
+                        },
                         tree.count,
+                        tree.unreadableFolders,
                     )
                 }
             }
@@ -95,7 +100,18 @@ object WhatsAppFolders {
 object Tree {
     const val DEFAULT_CAP = 2_000_000L
 
-    data class Result(val count: Count, val readable: Boolean, val capped: Boolean)
+    /**
+     * [readable] is false when [root] itself can't be listed; [unreadableFolders] counts folders inside it that
+     * couldn't be listed (PR #38 review), so a partial count is never shown as a complete one.
+     */
+    data class Result(
+        val count: Count,
+        val readable: Boolean,
+        val capped: Boolean,
+        val unreadableFolders: Int = 0,
+    ) {
+        val complete: Boolean get() = readable && !capped && unreadableFolders == 0
+    }
 
     /** Finds [segments] under [root], each matched ignoring case; null when any is missing or unreadable. */
     suspend fun resolve(gateway: StorageGateway, root: KPath.Local, segments: List<String>): KPath.Local? {
@@ -114,13 +130,14 @@ object Tree {
         var files = 0L
         var bytes = 0L
         var readable = true
+        var unreadableFolders = 0
         val stack = ArrayDeque<KPath.Local>().apply { add(root) }
         while (stack.isNotEmpty()) {
             currentCoroutineContext().ensureActive()
             val dir = stack.removeLast()
             val children = listOrNull(gateway, dir)
             if (children == null) {
-                if (dir == root) readable = false
+                if (dir == root) readable = false else unreadableFolders++
                 continue
             }
             for (child in children) {
@@ -135,12 +152,12 @@ object Tree {
                     else -> {
                         files++
                         bytes += child.size
-                        if (files >= cap) return Result(Count(files, bytes), readable, capped = true)
+                        if (files >= cap) return Result(Count(files, bytes), readable, capped = true, unreadableFolders)
                     }
                 }
             }
         }
-        return Result(Count(files, bytes), readable, capped = false)
+        return Result(Count(files, bytes), readable, capped = false, unreadableFolders)
     }
 
     /** Numeric folder names directly under [dir] (Android user ids under the emulated storage); null if unreadable. */
