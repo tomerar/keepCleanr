@@ -3,7 +3,7 @@ package io.github.tomerar.keepclear.backup.dropbox
 
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.long
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.string
-import io.github.tomerar.keepclear.backup.net.MiniHttp
+import io.github.tomerar.keepclear.backup.net.HostHttpClient
 import java.io.IOException
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -179,7 +179,8 @@ class RefreshingDropboxAuth(
     timeoutSeconds: Long = 30,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : DropboxAuth {
-    private val http = MiniHttp(endpoints.https, endpoints.apiHost, endpoints.port, (timeoutSeconds * 1000).toInt())
+    private val http =
+        HostHttpClient(endpoints.https, endpoints.apiHost, endpoints.port, (timeoutSeconds * 1000).toInt())
     private val lock = Any()
     private var current: String? = null
     private var expiresAt = 0L

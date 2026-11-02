@@ -3,13 +3,19 @@ plugins {
     alias(libs.plugins.keepclear.android.library)
 }
 
-// M17, ADR 0011: the only module that talks to the network for WebDAV/Nextcloud. HTTP/1.1 over the JDK's own
-// sockets and TLS through backup:net's MiniHttp (no third-party HTTP library, PRIV-1); INTERNET is declared in the
-// target modules' manifests, nowhere else.
+// M17, ADR 0011: the only module that talks to the network for WebDAV/Nextcloud. HTTP/1.1 through backup:net's
+// HostHttpClient (OkHttp, confined to backup:net, W3); INTERNET is declared in the target modules' manifests,
+// nowhere else.
 android {
     namespace = "io.github.tomerar.keepclear.backup.webdav"
     // The tests use JUnit 5 so they can run the shared BackupTarget contract suite (backup:target-api fixtures).
-    testOptions.unitTests.all { it.useJUnitPlatform() }
+    testOptions.unitTests.all { test ->
+        test.useJUnitPlatform()
+        // W4: real-server tests against Nextcloud's Docker image (scripts/nextcloud-test-server.sh); CI always
+        // provides one.
+        listOf("KEEPCLEAR_NEXTCLOUD_URL", "KEEPCLEAR_NEXTCLOUD_USER", "KEEPCLEAR_NEXTCLOUD_PASSWORD", "CI")
+            .forEach { name -> System.getenv(name)?.let { test.environment(name, it) } }
+    }
 }
 
 dependencies {

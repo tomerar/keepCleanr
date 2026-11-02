@@ -50,4 +50,21 @@ class DependencyAllowlistTest {
             assertTrue(DependencyAllowlist.check(listOf(other)).single().contains("not on the allowlist"))
         }
     }
+
+    @Test
+    fun `OkHttp and Okio are allowed as exact modules only (W3)`() {
+        val net = listOf(
+            "com.squareup.okhttp3:okhttp:4.12.0",
+            "com.squareup.okio:okio:3.6.0",
+            "com.squareup.okio:okio-jvm:3.6.0",
+        )
+        assertTrue(DependencyAllowlist.check(net).isEmpty())
+        for (other in listOf(
+            "com.squareup.okhttp3:okhttp-urlconnection:4.12.0",
+            "com.squareup.okhttp3:logging-interceptor:4.12.0",
+            "com.squareup.retrofit2:retrofit:2.11.0",
+        )) {
+            assertTrue(DependencyAllowlist.check(listOf(other)).single().contains("not on the allowlist"))
+        }
+    }
 }

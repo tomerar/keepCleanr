@@ -135,6 +135,21 @@ class WebDavBackupTargetTest {
     }
 
     @Test
+    fun `a name with an upload running is locked like on Nextcloud (423), which means busy, never a failure`(): Unit =
+        runBlocking {
+            val t = target()
+            t.mkdirs("")
+            val out = t.create("a", 100_000)
+            out.write(ByteArray(50_000) { 1 })
+            out.flush()
+            Thread.sleep(300)
+            shouldThrow<StorageException.Disconnected> { target().put("a", byteArrayOf(9)) }
+            out.write(ByteArray(50_000) { 1 })
+            out.close()
+            server.bytes("KeepClear/a") shouldBe ByteArray(100_000) { 1 }
+        }
+
+    @Test
     fun `a read cut short by the server is a disconnect, never a short file`(): Unit = runBlocking {
         val t = target()
         t.mkdirs("")

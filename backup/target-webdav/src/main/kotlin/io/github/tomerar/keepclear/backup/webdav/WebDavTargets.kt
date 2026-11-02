@@ -6,7 +6,7 @@ import io.github.tomerar.keepclear.core.storage.Streams.readUpTo
 import java.security.SecureRandom
 import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLPeerUnverifiedException
-import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.X509TrustManager
 
 /** What KeepClear found at a WebDAV/Nextcloud folder the user set up (M17). */
 sealed interface WebDavCheck {
@@ -56,9 +56,9 @@ object WebDavTargets {
         location: WebDavLocation,
         label: String,
         timeoutSeconds: Long = 30,
-        sslSocketFactory: SSLSocketFactory? = null,
+        trustManager: X509TrustManager? = null,
     ): WebDavCheck {
-        val probe = WebDavBackupTarget(location, "probe", label, timeoutSeconds, sslSocketFactory)
+        val probe = WebDavBackupTarget(location, "probe", label, timeoutSeconds, trustManager)
         return try {
             probe.mkdirs("")
             val existing = probe.stat(MARKER)
@@ -73,7 +73,7 @@ object WebDavTargets {
                 parseMarker(bytes) ?: return WebDavCheck.DamagedMarker
             }
             WebDavCheck.Ok(
-                WebDavBackupTarget(location, targetId(location, markerId), label, timeoutSeconds, sslSocketFactory),
+                WebDavBackupTarget(location, targetId(location, markerId), label, timeoutSeconds, trustManager),
             )
         } catch (_: StorageException.PermissionDenied) {
             WebDavCheck.Refused

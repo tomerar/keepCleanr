@@ -16,6 +16,7 @@ import org.gradle.kotlin.dsl.register
 class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
         pluginManager.apply("com.android.application")
+        registerDependencyConfinement()
 
         extensions.configure<ApplicationExtension> {
             configureKotlinAndroid(this)

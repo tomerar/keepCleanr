@@ -206,7 +206,22 @@ class FakeDavServer(
         }
     }
 
+    /** Names with an upload in progress. Like Nextcloud, other writes to them get 423 Locked meanwhile. */
+    private val locked = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
     private fun put(ex: HttpExchange, path: String) {
+        if (!locked.add(path)) {
+            ex.requestBody.readAllBytes()
+            return reply(ex, 423)
+        }
+        try {
+            putUnlocked(ex, path)
+        } finally {
+            locked.remove(path)
+        }
+    }
+
+    private fun putUnlocked(ex: HttpExchange, path: String) {
         dropUploadAfter?.let { limit ->
             dropUploadAfter = null
             val buf = ByteArray(limit)
@@ -280,6 +295,7 @@ class FakeDavServer(
         val dest = ex.requestHeaders.getFirst("Destination")?.let { URI(it) }
         if (dest == null || dest.port != port) return reply(ex, 502)
         val to = dest.path.let { if (it.length > 1) it.trimEnd('/') else it }
+        if (path in locked || to in locked) return reply(ex, 423)
         val overwrite = ex.requestHeaders.getFirst("Overwrite") != "F"
         when {
             !nodes.containsKey(path) -> {
@@ -305,6 +321,7 @@ class FakeDavServer(
     }
 
     private fun delete(ex: HttpExchange, path: String): Unit = synchronized(lock) {
+        if (path in locked) return reply(ex, 423)
         if (!nodes.containsKey(path)) return reply(ex, 404)
         nodes.keys.filter { it == path || it.startsWith("$path/") }.forEach { nodes.remove(it) }
         reply(ex, 204)

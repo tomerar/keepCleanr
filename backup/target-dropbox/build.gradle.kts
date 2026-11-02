@@ -4,10 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// M17c, ADR 0011: the only module that talks to Dropbox (HTTP API v2, App folder). HTTP/1.1 over the JDK's own
-// sockets and TLS through backup:net's MiniHttp (no third-party HTTP library or Dropbox SDK, PRIV-1); JSON through
-// kotlinx.serialization, already in the app. INTERNET is declared in this module's manifest. Not wired into the
-// app yet (needs the owner's Dropbox app key, see docs/progress.md).
+// M17c, ADR 0011: the only module that talks to Dropbox (HTTP API v2, App folder). HTTPS through backup:net's
+// HostHttpClient (OkHttp, confined to backup:net, W3; no Dropbox SDK, PRIV-1); JSON through kotlinx.serialization,
+// already in the app. INTERNET is declared in this module's manifest. Not wired into the app yet (needs the
+// owner's Dropbox app key, see docs/progress.md).
 android {
     namespace = "io.github.tomerar.keepclear.backup.dropbox"
     // The tests use JUnit 5 so they can run the shared BackupTarget contract suite (backup:target-api fixtures).

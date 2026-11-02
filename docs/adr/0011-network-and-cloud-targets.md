@@ -41,9 +41,9 @@ backups (no computer), which means network and cloud targets. Research [08](../r
 - **Flavors:** all targets in both flavors. If F-Droid insists on NonFreeNet, accept the label or offer a build property that leaves the
   proprietary-cloud modules out.
 
-### Amendment (2026-11-01, M17a WebDAV/Nextcloud engine; proposed, awaiting the owner's OK)
+### Amendment (2026-11-01, M17a WebDAV/Nextcloud engine; proposed; its first point superseded on 2026-11-02, see below)
 Building `backup:target-webdav` showed two points where the decision above needs detail or a change:
-- **No OkHttp for WebDAV.** Android's `HttpURLConnection` refuses the WebDAV methods (PROPFIND, MKCOL, MOVE) and
+- ~~**No OkHttp for WebDAV.**~~ *Superseded by the owner's decision of 2026-11-02 (below).* Android's `HttpURLConnection` refuses the WebDAV methods (PROPFIND, MKCOL, MOVE) and
   `java.net.http` does not exist on Android, so `backup:target-webdav` speaks HTTP/1.1 itself over the JDK's
   sockets and TLS (`MiniHttp`): no new dependency (PRIV-1), no redirects followed (credentials never leave the
   typed host), bounded responses, system CAs plus host-name check, never "trust all". The shared `backup:net`
@@ -59,8 +59,8 @@ Building `backup:target-webdav` showed two points where the decision above needs
   re-queried). Generic WebDAV has no server digest and works like SMB (read-back, "Check backup" over a new
   connection). Recording the method per file needs a Room migration and comes with the app wiring (M17b).
 
-### Amendment (2026-11-01, M17c Dropbox engine; proposed, awaiting the owner's OK)
-- **One HTTP client, no OkHttp.** `MiniHttp` moved from `backup:target-webdav` into the shared `backup:net` (pure JVM,
+### Amendment (2026-11-01, M17c Dropbox engine; proposed; its first point superseded on 2026-11-02, see below)
+- ~~**One HTTP client, no OkHttp.**~~ *Superseded by the owner's decision of 2026-11-02 (below).* `MiniHttp` moved from `backup:target-webdav` into the shared `backup:net` (pure JVM,
   unchanged behaviour; a `repeatable` flag lets read-only Dropbox RPCs, which are POSTs, be resent once on a fresh
   connection like GET). `backup:target-dropbox` uses it, so there is still no third-party HTTP library and one audited
   client instead of two. OkHttp stays possible later if the owner prefers it (W3).
@@ -72,6 +72,22 @@ Building `backup:target-webdav` showed two points where the decision above needs
 - **Not yet:** the `ResumableUpload` port. An upload session lives only as long as one upload stream; a paused job
   uploads the interrupted file again from the start. The per-request `content_hash` upload argument isn't sent (the
   comparison afterwards is the proof). Both can come with M17b.
+
+### Owner decision (2026-11-02, W3 and W4)
+- **OkHttp in `backup:net`** (W3): "Use OkHttp (Apache-2.0) instead of the hand-written HTTP client. Add it to the
+  dependency allowlist, confined to the network target modules (ADR 0008). Delete the custom client and port its
+  tests. Reason: TLS, hostname verification, redirects and chunked encoding are too risky to hand-roll in a backup
+  app." Done: `MiniHttp` is deleted; `backup:net`'s `HostHttpClient` wraps OkHttp 4.12.0 (and Okio) with the same
+  rules as before (one host, no redirects, no proxy, system CAs + host-name check, HTTP/1.1, bounded answers, no
+  automatic retries, the last byte of an announced length held back, `close()` aborts everything in flight;
+  design.md §6.1). OkHttp and Okio are on the PRIV-1 allowlist as exact modules, and only `backup:net` may declare
+  them (build-logic `checkDependencyConfinement`) or import them (Konsist). The decision's first paragraph above
+  ("one OkHttp factory" in `backup:net`) stands; the two "no OkHttp" points of the amendments are superseded. The
+  rest of both amendments (how server digests are used, Dropbox's re-queryable `content_hash`, "Not yet") stays.
+- **A real Nextcloud in CI** (W4): "Don't wait for an account. Run the official Nextcloud Docker image in CI (like
+  Samba for SMB) and test the WebDAV target against it, including server checksums." Done:
+  `scripts/nextcloud-test-server.sh` and the CI step; findings in design.md §6.1 (one difference from the fake:
+  423 Locked while a name is being uploaded).
 
 ## Consequences
 - Phone-only users get a verified MOVE target. Drive, Dropbox and Nextcloud verify without doubling traffic; SMB, OneDrive and generic WebDAV

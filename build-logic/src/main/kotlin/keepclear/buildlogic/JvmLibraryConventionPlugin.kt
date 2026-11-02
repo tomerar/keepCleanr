@@ -20,6 +20,7 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
             targetCompatibility = JavaVersion.VERSION_17
         }
         configureKotlinCompiler()
+        registerDependencyConfinement()
         dependencies {
             add("testImplementation", platform(libs.lib("junit5-bom")))
             add("testImplementation", libs.lib("junit5-jupiter"))
