@@ -6,11 +6,8 @@
     <!-- Launcher and system label; test builds override it with "KeepClear test" (app/build.gradle.kts). -->
     <string name="launcher_name" translatable="false">KeepClear</string>
     <string name="home_card_safe_title">Clean now</string>
-    <string name="home_card_safe_body">Junk you won\'t miss, cleaned in one tap. Everything waits 30 days in the trash.</string>
     <string name="home_card_review_title">Choose what to keep</string>
-    <string name="home_card_review_body">Things that might matter, explained in plain words. You decide.</string>
     <string name="home_card_move_title">Move to backup</string>
-    <string name="home_card_move_body">Your memories go to your own drive and are checked before anything is deleted.</string>
     <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
     <string name="debug_toggle_rtl">Flip layout direction (debug)</string>
     <string name="home_storage_line">%1$s used · %2$s free</string>
@@ -49,7 +46,6 @@
         <item quantity="one">%s file</item>
         <item quantity="other">%s files</item>
     </plurals>
-    <string name="home_total_safe_body">Junk you won\'t miss. Everything waits 30 days in the trash.</string>
     <string name="home_total_review_body">Screenshots, big videos, old-phone folders. You decide.</string>
     <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
     <string name="total_value">%1$s · %2$s</string>

@@ -3,11 +3,8 @@
 <!-- Hebrew. Gender-neutral (plural/infinitive), see docs/TRANSLATING.md. -->
 <resources>
     <string name="home_card_safe_title">לנקות עכשיו</string>
-    <string name="home_card_safe_body">קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור.</string>
     <string name="home_card_review_title">לבחור מה להשאיר</string>
-    <string name="home_card_review_body">דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם.</string>
     <string name="home_card_move_title">להעביר לגיבוי</string>
-    <string name="home_card_move_body">הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק.</string>
     <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
     <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
     <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
@@ -48,7 +45,6 @@
         <item quantity="two">%s קבצים</item>
         <item quantity="other">%s קבצים</item>
     </plurals>
-    <string name="home_total_safe_body">קבצים מיותרים שלא יחסרו לכם. הכול מחכה 30 יום בסל המחזור.</string>
     <string name="home_total_review_body">צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. ההחלטה שלכם.</string>
     <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
     <string name="total_value">%1$s · %2$s</string>

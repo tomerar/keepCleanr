@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-563 Hebrew strings.
+559 Hebrew strings.
 
 ## Contents
 
@@ -26,7 +26,6 @@ string; "also" lists other screens.
 - [Device check (test builds)](#device-check-test-builds) (9)
 - [Other](#other) (1)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96)
-- [Not used in code](#not-used-in-code) (4)
 
 ## Intro and permissions
 
@@ -661,15 +660,6 @@ string; "also" lists other screens.
 | `why_wa_status_old` | Statuses you already watched. They expire after 24 hours anyway. | סטטוסים שכבר צפיתם בהם. הם פגים אחרי 24 שעות בכל מקרה. |  |
 | `why_zip_extracted` | The folder next to each archive already has all of its files. | בתיקייה שליד כל קובץ כבר נמצאים כל הקבצים שבתוכו. |  |
 | `why_zip_partial` | Only some of the files inside are next to it. | רק חלק מהקבצים שבתוכו נמצאים לידו. |  |
-
-## Not used in code
-
-| Key | English | עברית | Also |
-|---|---|---|---|
-| `home_card_move_body` | Your memories go to your own drive and are checked before anything is deleted. | הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק. |  |
-| `home_card_review_body` | Things that might matter, explained in plain words. You decide. | דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם. |  |
-| `home_card_safe_body` | Junk you won't miss, cleaned in one tap. Everything waits 30 days in the trash. | קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור. |  |
-| `home_total_safe_body` | Junk you won't miss. Everything waits 30 days in the trash. | קבצים מיותרים שלא יחסרו לכם. הכול מחכה 30 יום בסל המחזור. |  |
 
 ## Store listing (F-Droid / IzzyOnDroid)
 
