@@ -11,7 +11,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -219,7 +218,14 @@ class NavigationTest {
     fun `the Trash chip shows the trash's size on every tab and opens the trash`() {
         var opened = 0
         showApp(HomeUiState(trash = TrashUi(listOf(entry(3_100_000_000)))), onOpenTrash = { opened++ })
-        compose.onNodeWithTag("trashChip").assertTextContains("3.1", substring = true)
+        compose.onNodeWithTag("trashChip").assert(
+            SemanticsMatcher("trash label with size") {
+                it.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }.orEmpty().any { d ->
+                    "Trash" in d &&
+                        "3.1" in d
+                }
+            },
+        )
         compose.onNodeWithTag("tab_BACKUP").performClick()
         compose.onNodeWithTag("trashChip").assertIsDisplayed()
         compose.onNodeWithTag("tab_APPS").performClick()

@@ -48,6 +48,44 @@ class HomeScreenshotTest(private val locale: String, private val night: Boolean)
         }
     }
 
+    /** F1b: the main frame (top app bar with the Trash chip, tabs) on Free up space and on Backup before a scan. */
+    @Test
+    fun tabs() {
+        RuntimeEnvironment.setQualifiers("+$locale-${if (night) "night" else "notnight"}")
+        val suffix = "${locale}_${if (night) "dark" else "light"}_api${Build.VERSION.SDK_INT}"
+        val options = RoborazziOptions(compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.005f))
+        val trash = TrashUi(
+            listOf(
+                io.github.tomerar.keepclear.engine.trash.TrashEntry(
+                    "a",
+                    "/storage/emulated/0/DCIM/a.jpg",
+                    "/storage/emulated/0/.KeepClearTrash/1/a/a.jpg",
+                    "/storage/emulated/0",
+                    3_100_000_000,
+                    1,
+                    reason = "TRASH",
+                    deletedAt = 1,
+                    expiresAt = 2,
+                    deletedAtElapsed = 0,
+                    bootId = "b",
+                    state = io.github.tomerar.keepclear.engine.trash.TrashState.ACTIVE,
+                ),
+            ),
+        )
+        val home = scanned.copy(trash = trash)
+        captureRoboImage("src/test/screenshots/tabs_home_$suffix.png", roborazziOptions = options) {
+            KeepClearTheme(darkTheme = night) {
+                AppScreens(state = home, onOpen = {}, onBack = {}, home = {
+                    HomeScreen(state = home, showDebugTools = false)
+                })
+            }
+        }
+        val backup = home.copy(tab = Tab.BACKUP, screens = listOf(Screen.Backup))
+        captureRoboImage("src/test/screenshots/tabs_backup_$suffix.png", roborazziOptions = options) {
+            KeepClearTheme(darkTheme = night) { AppScreens(state = backup, onOpen = {}, onBack = {}, home = {}) }
+        }
+    }
+
     @Test
     fun reviewScreens() {
         RuntimeEnvironment.setQualifiers("+$locale-${if (night) "night" else "notnight"}")

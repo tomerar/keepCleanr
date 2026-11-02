@@ -36,8 +36,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -224,27 +230,43 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
-                modifier = Modifier.weight(1f).semantics { heading() }.testTag("wordmark"),
+                softWrap = false,
+                modifier = Modifier.semantics { heading() }.testTag("wordmark"),
             )
-            val bytes = trashChipBytes(trash)
-            if (bytes != null) {
-                val locale = LocalConfiguration.current.locales[0]
-                AssistChip(
-                    onClick = ui.onOpenTrash,
-                    label = {
-                        Text(
-                            stringResource(R.string.trash_chip, Bidi.isolate(ByteSize.format(bytes, locale))),
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontFamily = KeepClearTheme.type.number.fontFamily,
-                                fontFeatureSettings = KeepClearTheme.type.number.fontFeatureSettings,
-                            ),
-                            maxLines = 1,
-                        )
-                    },
-                    leadingIcon = { Icon(KcIcons.Trash, contentDescription = null, Modifier.size(18.dp)) },
-                    shape = io.github.tomerar.keepclear.core.designsystem.KcShapes.chip,
-                    modifier = Modifier.testTag("trashChip"),
-                )
+            // The wordmark keeps its width; the chip takes what is left and shortens its label if it must.
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                val bytes = trashChipBytes(trash)
+                if (bytes != null) {
+                    val locale = LocalConfiguration.current.locales[0]
+                    val size = Bidi.isolate(ByteSize.format(bytes, locale))
+                    // The chip shows the bin and the size; TalkBack reads "Trash · size" (C73).
+                    val label = stringResource(R.string.trash_chip, size)
+                    AssistChip(
+                        onClick = ui.onOpenTrash,
+                        label = {
+                            Text(
+                                size,
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontFamily = KeepClearTheme.type.number.fontFamily,
+                                    fontFeatureSettings = KeepClearTheme.type.number.fontFeatureSettings,
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = { Icon(KcIcons.Trash, contentDescription = null, Modifier.size(18.dp)) },
+                        shape = io.github.tomerar.keepclear.core.designsystem.KcShapes.chip,
+                        modifier = Modifier.clearAndSetSemantics {
+                            testTag = "trashChip"
+                            contentDescription = label
+                            role = Role.Button
+                            onClick {
+                                ui.onOpenTrash()
+                                true
+                            }
+                        },
+                    )
+                }
             }
             IconButton(onClick = ui.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                 Icon(KcIcons.Settings, contentDescription = stringResource(R.string.settings_title))
