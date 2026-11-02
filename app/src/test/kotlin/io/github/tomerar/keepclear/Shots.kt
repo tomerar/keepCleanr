@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -19,6 +20,9 @@ import io.github.tomerar.keepclear.engine.move.MoveJob
 import io.github.tomerar.keepclear.engine.move.Receipt
 import org.robolectric.RuntimeEnvironment
 import java.util.TimeZone
+
+/** Design QA item 5: screenshots of a confirmation are taken once its button is ready (500 ms, plus a margin). */
+const val CONFIRM_READY_MILLIS = 600L
 
 /**
  * F3: every screen of the app as the user sees it, on [OwnerPhone]. Each screen is captured as the whole window
@@ -86,18 +90,31 @@ class Shots(
     fun confirm() {
         show { Home() }
         compose.onNodeWithTag("open_SAFE").performClick()
+        // Design QA item 5: the picture shows the confirm button ready, after its 500 ms fill.
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmClean").fetchSemanticsNodes()
+                .any { androidx.compose.ui.semantics.SemanticsProperties.Disabled !in it.config }
+        }
         capture("confirm_clean")
     }
 
-    /** Back on Home after cleaning: the ResultBanner with Undo, on top. */
+    /**
+     * Back on Home after cleaning, on top. Owner decision 2026-11-02: what the owner-shaped phone cleans (statuses,
+     * thumbnails, temp files, the gallery's bin) is all deleted for good, so the banner is the measured result.
+     */
     fun result() {
         val safe = OwnerPhone.summary.groups(Category.SAFE).flatMap { it.items }
+        val forGood = io.github.tomerar.keepclear.engine.enrich.CleanPlanner.permanentReasons(safe, OwnerPhone.NOW)
+        val (gone, trashed) = safe.partition { it.item.path in forGood }
+        val freed = gone.sumOf { it.item.size }
         val done = CleanResult(
             safe.fold(Total()) { t, i -> t + i },
             skipped = 0,
             failed = 0,
-            trashedPaths = safe.map { it.item.path },
+            trashedPaths = trashed.map { it.item.path },
             origin = Screen.Home,
+            deletedForGood = Total(gone.size, freed),
+            measured = Measured(freed, OwnerPhone.FREE_BYTES + freed, OwnerPhone.FREE_BYTES, Screen.Home),
         )
         show { Home(OwnerPhone.home.copy(cleanResult = done, trash = OwnerPhone.trash)) }
         capture("result")
@@ -123,6 +140,15 @@ class Shots(
             TrashScreen(OwnerPhone.trash, { _, _ -> }, { _, _ -> }, {}, showUninstallNote = true, now = OwnerPhone.NOW)
         }
         capture("trash")
+    }
+
+    /** Design QA item 3: the bottom of the Trash, with its actions after the list (none of them filled red). */
+    fun trashActions() {
+        show {
+            TrashScreen(OwnerPhone.trash, { _, _ -> }, { _, _ -> }, {}, showUninstallNote = true, now = OwnerPhone.NOW)
+        }
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("emptyNow"))
+        capture("trash_actions")
     }
 
     @Composable

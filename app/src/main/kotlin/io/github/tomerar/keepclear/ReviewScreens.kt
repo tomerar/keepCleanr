@@ -47,9 +47,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -369,17 +371,19 @@ private fun EditableConfirm(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val total = items.fold(Total()) { t, i -> t + i }
+    // Owner decision 2026-11-02: a SAFE group opened from "Clean now" can hold items that are deleted for good.
+    val text = cleanSheetText(items)
     ConfirmSheet(
-        title = stringResource(R.string.review_confirm_title, totalText(total)),
+        title = stringResource(R.string.review_confirm_title, sizeOnly(items)),
         dismissText = stringResource(R.string.trash_cancel),
         onDismiss = onDismiss,
-        facts = confirmFacts(total, stringResource(R.string.confirm_where_trash)),
-        note = stringResource(R.string.review_confirm_body),
+        facts = text.facts,
+        note = if (text.anyForGood) text.note else stringResource(R.string.review_confirm_body),
+        permanent = text.permanentNote,
         modifier = Modifier.testTag("reviewConfirm"),
         confirmButton = {
             SafeConfirmButton(
-                stringResource(R.string.clean_confirm_yes),
+                stringResource(text.confirmLabel),
                 onClick = onConfirm,
                 modifier = Modifier.fillMaxWidth().testTag("confirmDelete"),
                 permanent = false,
@@ -427,8 +431,9 @@ private fun ConfirmRow(item: ClassifiedItem, onRemove: (ClassifiedItem) -> Unit)
 }
 
 /**
- * One picture (REV-2). Review PR C: for TalkBack it is a checkbox with the file name and its state; a tap
- * toggles it, a long press (or ⤢) shows it large.
+ * One picture (REV-2). Review PR C: for TalkBack it is a checkbox with the file name and its state; a tap toggles it,
+ * a long press shows it large. Design QA item 6: no corner glyph; TalkBack offers "Show it large" as a custom action
+ * (and as the long-press label), so the preview stays reachable without a long press.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -443,52 +448,54 @@ private fun Tile(
     val name = item.item.path.substringAfterLast('/')
     val state = stringResource(if (selected) R.string.review_tile_selected else R.string.review_tile_not_selected)
     val previewLabel = stringResource(R.string.review_preview)
-    Box(
-        modifier = modifier
-            .aspectRatio(1f)
-            .clip(KcShapes.thumbnail)
-            .combinedClickable(
-                onClick = { if (selectable) onToggle() else onPreview() },
-                onLongClick = onPreview,
-                onLongClickLabel = previewLabel,
-                role = if (selectable) Role.Checkbox else Role.Image,
-            )
-            .semantics(mergeDescendants = true) {
-                contentDescription = Bidi.strip(name)
-                if (selectable) {
-                    toggleableState = ToggleableState(selected)
-                    stateDescription = state
-                }
-            }
-            .background(
-                if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-            )
-            .testTag(if (selected) "tileSelected" else "tile"),
-        contentAlignment = Alignment.Center,
-    ) {
-        Thumb(item, 96)
-        if (selected) {
-            // F2: a check-circle on the selected picture (with the state, never colour alone).
-            Icon(
-                KcIcons.Selected,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp)
-                    .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
-                    .testTag("tileCheck")
-                    .clearAndSetSemantics { },
-            )
-        }
-        // A small corner target, so a tap anywhere else on the tile selects it; long press also previews.
+    // The outer box only names the picture for tests (outside the tile's merged semantics).
+    Box(modifier.aspectRatio(1f).testTag("preview_$name")) {
         Box(
-            modifier = Modifier.align(Alignment.BottomEnd)
-                .size(32.dp)
-                .clickable(onClickLabel = previewLabel, role = Role.Button, onClick = onPreview)
-                .semantics { contentDescription = previewLabel }
-                .testTag("preview_${item.item.path.substringAfterLast('/')}"),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(KcShapes.thumbnail)
+                .combinedClickable(
+                    onClick = { if (selectable) onToggle() else onPreview() },
+                    onLongClick = onPreview,
+                    onLongClickLabel = previewLabel,
+                    role = if (selectable) Role.Checkbox else Role.Image,
+                )
+                .semantics(mergeDescendants = true) {
+                    contentDescription = Bidi.strip(name)
+                    if (selectable) {
+                        toggleableState = ToggleableState(selected)
+                        stateDescription = state
+                    }
+                    customActions = listOf(
+                        CustomAccessibilityAction(previewLabel) {
+                            onPreview()
+                            true
+                        },
+                    )
+                }
+                .background(
+                    if (selected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                )
+                .testTag(if (selected) "tileSelected" else "tile"),
             contentAlignment = Alignment.Center,
         ) {
-            Text("⤢", style = MaterialTheme.typography.titleMedium)
+            Thumb(item, 96)
+            if (selected) {
+                // F2: a check-circle on the selected picture (with the state, never colour alone).
+                Icon(
+                    KcIcons.Selected,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp)
+                        .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                        .testTag("tileCheck")
+                        .clearAndSetSemantics { },
+                )
+            }
         }
     }
 }

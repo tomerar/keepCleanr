@@ -6,7 +6,7 @@
     <string name="home_card_review_title">לבחור מה להשאיר</string>
     <string name="home_card_move_title">להעביר לגיבוי</string>
     <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
-    <string name="debug_toggle_rtl">להפוך את כיוון המסך (דיבאג)</string>
+    <string name="debug_toggle_rtl">דיבאג: להפוך את כיוון המסך</string>
     <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
     <string name="access_card_title">לראות מה תופס מקום</string>
     <string name="access_card_body">כדי להסתכל על התמונות, הסרטונים והקבצים, KeepClear צריך את האישור שלכם. הכול נשאר בטלפון.</string>
@@ -49,10 +49,6 @@
     <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">להציג</string>
-    <string name="area_camera">מצלמה</string>
-    <string name="area_whatsapp">וואטסאפ</string>
-    <string name="area_junk">קבצים מיותרים</string>
-    <string name="area_other">אחר</string>
     <string name="label_why">למה זה כאן?</string>
     <string name="label_if_deleted">מה יקרה אם זה יימחק?</string>
     <string name="back">לחזור</string>
@@ -67,7 +63,7 @@
     <string name="risk_UNKNOWN">כדאי להציץ</string>
     <string name="trash_title">סל המחזור</string>
     <string name="trash_chip">סל המחזור · %1$s</string>
-    <string name="trash_summary">%1$s · כל פריט יימחק לצמיתות 30 יום אחרי שהגיע לכאן, ואז המקום שלו יתפנה. אפשר גם לרוקן עכשיו.</string>
+    <string name="trash_summary">%1$s · נמחקים לצמיתות אחרי 30 יום</string>
     <string name="trash_empty_state">סל המחזור ריק.</string>
     <string name="trash_changed">השתנה מאז שנמחק</string>
     <string name="trash_restore_changed">לשחזר לתיקייה נפרדת</string>
@@ -79,13 +75,13 @@
     <string name="obscured_touch_hint">משהו מכסה את המסך, ולכן הלחיצה לא נקלטה. אפשר לסגור בועות או חלונות של אפליקציות אחרות ולנסות שוב.</string>
     <string name="trash_restore">לשחזר</string>
     <string name="trash_restore_all">לשחזר הכול</string>
-    <string name="trash_empty_now">לרוקן את סל המחזור</string>
+    <string name="trash_empty_now">לרוקן את הסל</string>
     <plurals name="trash_release_held_back">
         <item quantity="one">קובץ אחד נשאר בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותק שלו בגיבוי שלם. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
         <item quantity="two">שני קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
         <item quantity="other">%1$s קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב.</item>
     </plurals>
-    <string name="trash_release_now">לפנות עכשיו (יש עותק שנבדק)</string>
+    <string name="trash_release_now">לפנות עכשיו</string>
     <string name="trash_verified_copy">עותק שנבדק נמצא ב-%1$s</string>
     <string name="trash_restore_to">ישוחזר אל %1$s</string>
     <string name="trash_confirm_empty_title">למחוק לצמיתות %1$s?</string>
@@ -252,7 +248,7 @@
     </plurals>
     <string name="move_receipt_how_back">הקבצים נמצאים ב-%1$s, בתיקייה %2$s. כדי להחזיר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.</string>
     <string name="move_receipt_unencrypted">העותק בכונן לא מוצפן. כל מי שמחזיק בכונן יכול לפתוח אותו.</string>
-    <string name="move_free_button">לפנות את המקום עכשיו (%1$s)</string>
+    <string name="move_free_button">לפנות %1$s מהטלפון</string>
     <string name="move_free_unavailable">המקור נשאר בטלפון: אי אפשר לבדוק את המקום הזה.</string>
     <string name="move_free_confirm_title">לפנות מקום בטלפון?</string>
     <string name="move_free_confirm_body">%1$s יעברו לסל המחזור של KeepClear. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום.</string>
@@ -327,7 +323,7 @@
     <string name="review_long_press_hint">לחיצה ארוכה על תמונה מציגה אותה בגדול.</string>
     <string name="trash_restore_all_title">לשחזר %1$s?</string>
     <string name="trash_restore_all_body">הם יחזרו למקום שבו היו. זה לא דורש מקום נוסף: הקבצים כבר בטלפון.</string>
-    <string name="trash_release_all">לפנות את כל מה שיש לו עותק שנבדק (%1$s)</string>
+    <string name="trash_release_all">לפנות עותקים שנבדקו</string>
     <string name="trash_confirm_release_yes">לפנות עכשיו</string>
     <string name="trash_confirm_empty_body_split">ל-%1$s יש עותק שנבדק בכונן שלכם. ל-%2$s אין עותק נוסף, והם יימחקו לצמיתות.</string>
     <string name="trash_group_clean">קבצים מיותרים שנוקו</string>
@@ -335,8 +331,8 @@
     <string name="trash_group_move">גובו ופונו מהטלפון</string>
     <string name="trash_group_other">אחר</string>
     <string name="trash_restore_group">לשחזר את הקבוצה</string>
-    <string name="trash_show_files">להציג את הקבצים</string>
-    <string name="trash_hide_files">להסתיר את הקבצים</string>
+    <string name="trash_show_files">להציג את הרשימה</string>
+    <string name="trash_hide_files">להסתיר את הרשימה</string>
     <string name="move_pause_stop_help">השהיה שומרת את המקום וממשיכה מאותו קובץ. עצירה מסיימת את הגיבוי הזה; כל מה שכבר נבדק נשאר בכונן.</string>
     <string name="move_stop_confirm_title">לעצור את הגיבוי?</string>
     <string name="move_stop_confirm_body">קבצים שכבר נבדקו נשארים בכונן. אפשר להתחיל שוב אחר כך, והגיבוי ימשיך מאיפה שעצר.</string>
@@ -566,10 +562,10 @@
     <string name="nextcloud_settings_button">להגדיר Nextcloud</string>
     <string name="settings_nextcloud_only">רשת: רק אל %1$s (ה-Nextcloud)</string>
     <string name="settings_nextcloud_forget">לשכוח את ה-Nextcloud</string>
-    <string name="move_nextcloud_option">להשתמש ב-Nextcloud (%1$s)</string>
+    <string name="move_nextcloud_option">להשתמש ב-Nextcloud: %1$s</string>
     <string name="move_problem_nextcloud_sign_in">ה-Nextcloud כבר לא מקבל את הכניסה של KeepClear. יש להיכנס שוב בהגדרות › מתקדם.</string>
     <string name="move_problem_nextcloud_unreachable">ה-Nextcloud לא ענה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב.</string>
-    <string name="restore_from_nextcloud">להשתמש ב-Nextcloud (%1$s)</string>
+    <string name="restore_from_nextcloud">להשתמש ב-Nextcloud: %1$s</string>
     <string name="restore_to_original">למקום המקורי</string>
     <string name="restore_to_folder">לתיקיית שחזור (תמונות › KeepClear Restored)</string>
     <string name="restore_to_mixed">%1$s למקום המקורי, %2$s לתיקיית שחזור</string>
@@ -645,7 +641,7 @@
         <item quantity="other">עוד %s ימים</item>
     </plurals>
     <string name="receipt_stamp">נבדק קובץ-קובץ</string>
-    <string name="move_network_saved_option">להשתמש במחשב בבית (%1$s)</string>
+    <string name="move_network_saved_option">להשתמש במחשב בבית: %1$s</string>
     <string name="restore_loading">KeepClear קורא את הגיבוי…</string>
     <string name="restore_stop">לעצור</string>
     <string name="restore_group_label">%1$s · %2$s</string>
@@ -670,4 +666,25 @@
         <item quantity="other">לצאת? %s החלטות יאבדו</item>
     </plurals>
     <string name="apps_open_app_content">לראות קבצים בתוך התיקיות של אפליקציות</string>
+    <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
+    <string name="confirm_fact_for_good">יימחקו לצמיתות עכשיו</string>
+    <string name="confirm_fact_to_trash">לסל המחזור של KeepClear, ל-30 יום</string>
+    <string name="confirm_where_for_good">יימחקו לצמיתות, עכשיו</string>
+    <string name="clean_confirm_yes_now">לנקות עכשיו</string>
+    <string name="confirm_part_value">%1$s · %2$s</string>
+    <string name="clean_confirm_for_good_rebuilds">תמונות ממוזערות, קבצים זמניים וסטטוסים ישנים יימחקו לצמיתות: הם נבנים מחדש לבד.</string>
+    <string name="clean_confirm_for_good_bins">קבצים מסלי מחזור של אפליקציות אחרות יימחקו לצמיתות: הם כבר נמחקו פעם אחת, אי אפשר יהיה להחזיר אותם.</string>
+    <string name="clean_confirm_note_rest">את כל השאר אפשר להחזיר מסל המחזור במשך 30 יום.</string>
+    <string name="result_freed_now">פונו %1$s · עכשיו פנויים %2$s</string>
+    <string name="clean_in_trash">%1$s בסל, יתפנו ב-%2$s</string>
+    <string name="clean_deleted_for_good">%1$s נמחקו לצמיתות.</string>
+    <string name="test_mode_would_delete_for_good">מתוכם %1$s היו נמחקים לצמיתות.</string>
+    <!-- Design QA item 2: the storage strip's legend, in the strip's order. -->
+    <string name="strip_legend_safe">לנקות</string>
+    <string name="strip_legend_review">לבחור</string>
+    <string name="strip_legend_move">לגבות</string>
+    <string name="strip_legend_other">אחר</string>
+    <string name="strip_legend_free">פנוי</string>
+    <!-- Design QA item 3: Trash. -->
+    <string name="trash_from_gallery_bin">מסל הגלריה</string>
 </resources>

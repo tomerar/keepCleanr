@@ -130,7 +130,9 @@ class F2ScreensTest {
                 TrashScreen(TrashUi(entries = listOf(entry("1"))), { _, _ -> }, { _, _ -> }, {}, now = now)
             }
         }
-        compose.onNodeWithTag("emptyNow").performScrollTo().performClick()
+        // Design QA item 3: the actions on the whole trash are at the bottom, after the list.
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("emptyNow"))
+        compose.onNodeWithTag("emptyNow").performClick()
         assertEquals(true, permanentOf("confirmPurge"))
         compose.onNodeWithTag("emptyBody").assertExists()
     }
@@ -155,7 +157,8 @@ class F2ScreensTest {
                 TrashScreen(trash, { _, _ -> }, { _, _ -> }, {}, onRelease = { e, _ -> released = e }, now = now)
             }
         }
-        compose.onNodeWithTag("releaseAll").performScrollTo().performClick()
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("releaseAll"))
+        compose.onNodeWithTag("releaseAll").performClick()
         val body = io.github.tomerar.keepclear.core.common.Bidi.strip(
             compose.onNodeWithTag("releaseAllBody").fetchSemanticsNode()
                 .config[SemanticsProperties.Text].joinToString { it.text },

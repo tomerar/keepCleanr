@@ -115,7 +115,19 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest :backup:target-saf:connectedDebugAndroidTest :core:storage-saf:connectedDebugAndroidTest
+          # Design QA item 8: BidiTitleOnDeviceTest saves real screenshots of the Hebrew ConfirmSheet title to the
+          # emulator's Download/KeepClear-bidi; they are pulled even when a test fails, then the job fails as before.
+          script: |
+            ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest :backup:target-saf:connectedDebugAndroidTest :core:storage-saf:connectedDebugAndroidTest || touch instrumented-tests-failed
+            adb pull /sdcard/Download/KeepClear-bidi bidi-screenshots || true
+            test ! -f instrumented-tests-failed
+      - name: Upload the on-device bidi screenshots
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: bidi-screenshots-api${{ matrix.api }}
+          path: bidi-screenshots/
+          if-no-files-found: warn
       - name: Show failed instrumented tests
         if: failure()
         run: |

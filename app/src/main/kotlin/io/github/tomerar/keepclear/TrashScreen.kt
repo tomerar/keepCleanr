@@ -113,7 +113,18 @@ private fun TrashRow(
         modifier = Modifier.fillMaxWidth().testTag("entry_${entry.id}"),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(Bidi.fileName(entry.originalPath.substringAfterLast('/')), style = MaterialTheme.typography.titleSmall)
+        val stored = entry.originalPath.substringAfterLast('/')
+        // Design QA item 3: a file that was in the gallery's bin (`.trashed-<time>-<name>`) shows its own name.
+        val fromGalleryBin = io.github.tomerar.keepclear.core.safety.PermanentKinds.trashedOriginalName(stored)
+        Text(Bidi.fileName(fromGalleryBin ?: stored), style = MaterialTheme.typography.titleSmall)
+        if (fromGalleryBin != null) {
+            Text(
+                stringResource(R.string.trash_from_gallery_bin),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("fromGalleryBin_${entry.id}"),
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 Bidi.isolate(ByteSize.format(entry.size, locale)),
@@ -163,12 +174,12 @@ private fun TrashRow(
                 )
             }
             if (entry.verifiedCopy != null && entry.id in trash.releasable) {
-                // Permanent: red, never ink (design rules); a second confirmation follows.
+                // Permanent: the red second confirmation says so (design QA item 3: no filled red in the list).
                 KcButton(
                     stringResource(R.string.trash_release_now),
                     onClick = { onPending(Pending.Release(entry)) },
                     enabled = !busy,
-                    style = KcButtonStyle.Destructive,
+                    style = KcButtonStyle.Tonal,
                     modifier = Modifier.testTag("release_${entry.id}"),
                 )
             }
@@ -242,36 +253,6 @@ fun TrashScreen(
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(top = 8.dp).testTag("uninstallNote"),
-                        )
-                    }
-                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        KcButton(
-                            stringResource(R.string.trash_restore_all),
-                            onClick = { pending = Pending.RestoreAll(trash.entries) },
-                            enabled = !busy,
-                            style = KcButtonStyle.Tonal,
-                            modifier = Modifier.fillMaxWidth().testTag("restoreAll"),
-                        )
-                        val releasable = trash.entries.filter { it.verifiedCopy != null && it.id in trash.releasable }
-                        if (releasable.isNotEmpty()) {
-                            // Review PR C: free everything that has a checked copy, as one action (permanent: red).
-                            KcButton(
-                                stringResource(
-                                    R.string.trash_release_all,
-                                    Bidi.isolate(ByteSize.format(releasable.sumOf { it.size }, locale)),
-                                ),
-                                onClick = { pending = Pending.ReleaseAll(releasable) },
-                                enabled = !busy,
-                                style = KcButtonStyle.Destructive,
-                                modifier = Modifier.fillMaxWidth().testTag("releaseAll"),
-                            )
-                        }
-                        KcButton(
-                            stringResource(R.string.trash_empty_now),
-                            onClick = { pending = Pending.Empty(trash.entries) },
-                            enabled = !busy,
-                            style = KcButtonStyle.Destructive,
-                            modifier = Modifier.fillMaxWidth().testTag("emptyNow"),
                         )
                     }
                 }
@@ -368,11 +349,45 @@ fun TrashScreen(
                                     stringResource(R.string.trash_android_empty),
                                     onClick = { pending = Pending.AndroidEmpty(trash.android) },
                                     enabled = !busy,
-                                    style = KcButtonStyle.Destructive,
+                                    style = KcButtonStyle.OutlinedDestructive,
                                     modifier = Modifier.testTag("androidEmpty"),
                                 )
                             }
                         }
+                    }
+                }
+            }
+            // Design QA item 3: the list leads; the actions on the whole trash come after it, none of them a filled
+            // red button. Permanent ones say so in their (red) confirmation.
+            if (trash.entries.isNotEmpty()) {
+                item(key = "trashActions") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        KcButton(
+                            stringResource(R.string.trash_restore_all),
+                            onClick = { pending = Pending.RestoreAll(trash.entries) },
+                            enabled = !busy,
+                            style = KcButtonStyle.Tonal,
+                            modifier = Modifier.fillMaxWidth().testTag("restoreAll"),
+                        )
+                        val releasable = trash.entries.filter { it.verifiedCopy != null && it.id in trash.releasable }
+                        if (releasable.isNotEmpty()) {
+                            // Review PR C: free everything that has a checked copy, as one action; permanent, so its
+                            // confirmation is red and says so.
+                            KcButton(
+                                stringResource(R.string.trash_release_all),
+                                onClick = { pending = Pending.ReleaseAll(releasable) },
+                                enabled = !busy,
+                                style = KcButtonStyle.Tonal,
+                                modifier = Modifier.fillMaxWidth().testTag("releaseAll"),
+                            )
+                        }
+                        KcButton(
+                            stringResource(R.string.trash_empty_now),
+                            onClick = { pending = Pending.Empty(trash.entries) },
+                            enabled = !busy,
+                            style = KcButtonStyle.OutlinedDestructive,
+                            modifier = Modifier.fillMaxWidth().testTag("emptyNow"),
+                        )
                     }
                 }
             }

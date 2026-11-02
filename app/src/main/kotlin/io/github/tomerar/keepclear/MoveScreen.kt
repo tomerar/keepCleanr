@@ -720,11 +720,32 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 )
             }
             when {
-                view.canFree -> KcButton(
-                    stringResource(R.string.move_free_button, totalText(Total(r.confirmed, r.confirmedBytes))),
-                    onClick = onFree,
-                    modifier = Modifier.fillMaxWidth().testTag("freeOriginals"),
-                )
+                // Design QA item 4: the size in the button („לפנות 31.0GB מהטלפון”), the count as a line under it.
+                view.canFree -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val locale = LocalConfiguration.current.locales[0]
+                    KcButton(
+                        stringResource(
+                            R.string.move_free_button,
+                            Bidi.isolate(
+                                io.github.tomerar.keepclear.core.common.ByteSize.format(r.confirmedBytes, locale),
+                            ),
+                        ),
+                        onClick = onFree,
+                        modifier = Modifier.fillMaxWidth().testTag("freeOriginals"),
+                    )
+                    Text(
+                        Bidi.isolate(
+                            pluralStringResource(
+                                R.plurals.file_count,
+                                r.confirmed,
+                                java.text.NumberFormat.getIntegerInstance(locale).format(r.confirmed),
+                            ),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp).testTag("freeOriginalsCount"),
+                    )
+                }
 
                 // D3: a guest network drive: copies only, said plainly.
                 view.copyOnly -> Text(
