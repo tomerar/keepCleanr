@@ -7,3 +7,14 @@ plugins {
 android {
     namespace = "io.github.tomerar.keepclear.core.designsystem"
 }
+
+dependencies {
+    // The one byte formatter (decimal units, ByteSize).
+    implementation(project(":core:common"))
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}

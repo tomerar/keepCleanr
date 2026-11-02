@@ -106,9 +106,9 @@ If a token ever fails, it is changed minimally, the change and its numbers are w
 
 Fonts are bundled (`core/designsystem/src/main/res/font`, SIL OFL 1.1, THIRD_PARTY.md); no downloadable fonts (they need Play services).
 
-- **Rubik** (variable `wght`, Latin + Hebrew): headings, the hero number, every size and count. Numbers use `fontFeatureSettings = "tnum"` so digits don't jump while counting.
-- **Heebo** (variable `wght`, Hebrew + Latin): body and UI text.
-- Weights instanced from the variable files with `FontVariation.weight`: Rubik 400/500/600, Heebo 400/500.
+- **Rubik** (Latin + Hebrew): headings, the hero number, every size and count. Numbers use `fontFeatureSettings = "tnum"` so digits don't jump while counting.
+- **Heebo** (Hebrew + Latin): body and UI text.
+- Only the weights used are bundled, as **static instances** of the official variable fonts (fontTools `varLib.instancer`): Rubik 400/500/600, Heebo 400/500 (about 750 KB). With the variable files, the `wght` axis was not applied in the screenshot renderer (every weight drew as Regular), and whether it is applied to resource fonts differs between Android versions; static files draw the same weight everywhere.
 
 | Style | Font | Size / line | Weight | Use |
 |---|---|---|---|---|
