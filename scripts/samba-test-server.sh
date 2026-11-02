@@ -30,6 +30,9 @@ $SUDO tee "$CONF" >/dev/null <<CONF
   ncalrpc dir = $DIR/run/ncalrpc
   binddns dir = $DIR/private
   log file = $DIR/log.%m
+  # Enough detail to tell why an SMB test failed (CI uploads these logs on failure), bounded in size.
+  log level = 3
+  max log size = 20000
   map to guest = never
   disable netbios = yes
   interfaces = lo

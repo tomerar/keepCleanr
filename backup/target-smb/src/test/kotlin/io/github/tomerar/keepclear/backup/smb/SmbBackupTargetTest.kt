@@ -44,6 +44,28 @@ class SmbBackupTargetTest {
         }
     }
 
+    /**
+     * Issue #36: once on CI (PR #33) a folder was still listed right after delete() returned (not reproduced locally in 52
+     * runs and 2,000 stress iterations). If it happens again, this message says what was left, whether a stat still
+     * sees it, and whether it disappears on its own, so the cause can be told apart (delete still pending on the
+     * server vs. a stale listing vs. something else in the folder). Never retried into a pass.
+     */
+    private suspend fun assertGone(dir: String, name: String) {
+        val left = target.list(dir).map { it.name }
+        if (left.isEmpty()) return
+        val stat = runCatching { target.stat("$dir/$name") }
+        var waitedMs = 0
+        while (waitedMs < 2_000 && runCatching { target.list(dir).isNotEmpty() }.getOrDefault(true)) {
+            Thread.sleep(50)
+            waitedMs += 50
+        }
+        val after = runCatching { target.list(dir).map { it.name } }
+        throw AssertionError(
+            "still listed right after delete(): $left; stat of '$name' = $stat; after ${waitedMs}ms the listing is " +
+                "$after (see the uploaded Samba logs)",
+        )
+    }
+
     @Test
     fun `a copy reads back byte-exact over the network`(): Unit = runBlocking {
         val bytes = ByteArray(3_000_000) { (it * 31).toByte() }
@@ -82,7 +104,7 @@ class SmbBackupTargetTest {
         expect<StorageException.NotEmpty> { target.delete("$run/d") }
         target.delete("$run/d/f")
         target.delete("$run/d")
-        assertTrue(target.list(run).isEmpty())
+        assertGone(run, "d")
         expect<StorageException.NotFound> { target.delete("$run/d") }
     }
 
