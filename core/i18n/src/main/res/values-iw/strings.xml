@@ -49,7 +49,6 @@
     <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">להציג</string>
-    <string name="areas_title">איפה המקום שלכם</string>
     <string name="area_camera">מצלמה</string>
     <string name="area_whatsapp">וואטסאפ</string>
     <string name="area_junk">קבצים מיותרים</string>
@@ -70,7 +69,6 @@
     <string name="trash_chip">סל המחזור · %1$s</string>
     <string name="trash_summary">%1$s · המקום יתפנה כשהפריטים יפוגו, או לרוקן עכשיו.</string>
     <string name="trash_empty_state">סל המחזור ריק.</string>
-    <string name="trash_frees_on">יתפנה ב-%1$s</string>
     <string name="trash_changed">השתנה מאז שנמחק</string>
     <string name="trash_restore_changed">לשחזר לתיקייה נפרדת</string>
     <string name="trash_restore_changed_title">לשחזר קובץ שהשתנה?</string>
@@ -100,7 +98,6 @@
     <string name="clean_selected">נבחרו: %1$s</string>
     <string name="clean_button">לנקות %1$s</string>
     <string name="clean_confirm_title">לנקות %1$s?</string>
-    <string name="clean_confirm_body">%1$s. הם יחכו 30 יום בסל המחזור של KeepClear, וכל דבר אפשר לשחזר.</string>
     <string name="clean_confirm_yes">להעביר לסל המחזור</string>
     <string name="clean_done">בוצע. %1$s הועברו לסל המחזור.</string>
     <string name="clean_done_space">המקום יחזור לטלפון ב-%1$s. צריך אותו עכשיו?</string>
@@ -466,7 +463,6 @@
     <string name="restore_title">שחזור מגיבוי</string>
     <string name="restore_pick_body">יש לבחור את הכונן או את התיקייה שבהם נמצא הגיבוי (התיקייה בשם KeepClear, או הכונן עצמו).</string>
     <string name="restore_pick_folder">בחירת כונן או תיקייה</string>
-    <string name="restore_from_network">הגיבוי בכונן רשת</string>
     <string name="restore_needs_all_files">כדי להחזיר קבצים למקומם, KeepClear צריכה גישה לכל הקבצים (זמינה בגרסה מ-F-Droid או מ-GitHub). עדיין אפשר להעתיק אותם מהכונן בעזרת אפליקציית הקבצים.</string>
     <string name="restore_no_backup">לא נמצא שם גיבוי של KeepClear.</string>
     <string name="restore_which_phone">הגיבוי של איזה טלפון?</string>
@@ -631,4 +627,46 @@
     <string name="backup_place_network">מחשב בבית: %1$s</string>
     <string name="backup_place_nextcloud">Nextcloud: %1$s</string>
     <string name="backup_places_setup">להגדיר מקום לגיבוי</string>
+    <string name="confirm_fact_how_many">כמה</string>
+    <string name="confirm_fact_how_much">כמה מקום</string>
+    <string name="confirm_fact_where">לאן</string>
+    <string name="confirm_where_trash">לסל המחזור של KeepClear, ל-30 יום</string>
+    <string name="confirm_where_trim">אנדרואיד מוחק אותם, והאפליקציות מורידות אותם שוב כשצריך</string>
+    <string name="confirm_where_gone">יימחקו מהטלפון לצמיתות</string>
+    <string name="confirm_permanent_note">אי אפשר לבטל את זה.</string>
+    <string name="clean_confirm_note">במשך 30 יום אפשר להחזיר הכול מסל המחזור.</string>
+    <string name="area_value">%1$s %2$s</string>
+    <string name="home_busy">KeepClear עובד על זה…</string>
+    <string name="confirm_where_back">בחזרה למקום שבו היו</string>
+    <string name="trash_confirm_release_all_body">עם עותק שנבדק בכונן שלכם: %1$s, והם יימחקו מהטלפון לצמיתות. בלי עותק שנבדק: %2$s, והם נשארים בסל המחזור.</string>
+    <plurals name="trash_days_left">
+        <item quantity="one">עוד יום אחד</item>
+        <item quantity="two">עוד יומיים</item>
+        <item quantity="other">עוד %s ימים</item>
+    </plurals>
+    <string name="receipt_stamp">נבדק קובץ-קובץ</string>
+    <string name="move_network_saved_option">המחשב בבית (%1$s)</string>
+    <string name="restore_loading">KeepClear קורא את הגיבוי…</string>
+    <string name="restore_stop">לעצור</string>
+    <string name="restore_group_label">%1$s · %2$s</string>
+    <string name="restore_group_camera">תמונות מהמצלמה</string>
+    <string name="restore_group_whatsapp">וואטסאפ</string>
+    <string name="restore_group_telegram">טלגרם</string>
+    <string name="restore_group_pictures">תמונות</string>
+    <string name="restore_group_other">קבצים אחרים</string>
+    <string name="settings_network_body">מחשב בבית עם תיקייה משותפת, באותה רשת Wi-Fi. אחרי ההגדרה הוא יופיע כמקום לגבות אליו.</string>
+    <string name="settings_network_button">להגדיר מחשב בבית</string>
+    <string name="settings_network_checking">KeepClear מתחבר…</string>
+    <string name="settings_network_saved">מוכן: KeepClear יכול לגבות אל %1$s.</string>
+    <string name="reminder_notif_explain">התזכורת היא התראה. אנדרואיד ישאל אם KeepClear יכול להציג התראות. בלי זה התזכורת תישאר כבויה.</string>
+    <string name="swipe_exit_body">שום דבר לא נמחק. יציאה עכשיו תשכח את הבחירות שנעשו עד כאן.</string>
+    <string name="swipe_exit_yes">לצאת</string>
+    <string name="swipe_exit_no">להמשיך</string>
+    <string name="apps_loading">KeepClear קורא את רשימת האפליקציות…</string>
+    <string name="apps_others">שאר האפליקציות, לפי גודל</string>
+    <plurals name="swipe_exit_title">
+        <item quantity="one">לצאת? החלטה אחת תאבד</item>
+        <item quantity="two">לצאת? %s החלטות יאבדו</item>
+        <item quantity="other">לצאת? %s החלטות יאבדו</item>
+    </plurals>
 </resources>

@@ -50,7 +50,6 @@
     <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">Show</string>
-    <string name="areas_title">Where your space is</string>
     <string name="area_camera">Camera</string>
     <string name="area_whatsapp">WhatsApp</string>
     <string name="area_junk">Junk</string>
@@ -71,7 +70,6 @@
     <string name="trash_chip">Trash · %1$s</string>
     <string name="trash_summary">%1$s · space returns as items expire, or empty now.</string>
     <string name="trash_empty_state">The trash is empty.</string>
-    <string name="trash_frees_on">Freed on %1$s</string>
     <string name="trash_restore">Restore</string>
     <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
     <string name="trash_changed">Changed since it was deleted</string>
@@ -100,7 +98,6 @@
     <string name="clean_selected">Selected: %1$s</string>
     <string name="clean_button">Clean %1$s</string>
     <string name="clean_confirm_title">Clean %1$s?</string>
-    <string name="clean_confirm_body">%1$s. They\'ll wait in KeepClear\'s trash for 30 days, so you can restore anything.</string>
     <string name="clean_confirm_yes">Move to trash</string>
     <string name="clean_done">Done. %1$s moved to the trash.</string>
     <string name="clean_done_space">The space comes back to the phone on %1$s. Need it now?</string>
@@ -441,7 +438,6 @@
     <string name="restore_title">Restore from a backup</string>
     <string name="restore_pick_body">Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself).</string>
     <string name="restore_pick_folder">Choose drive or folder</string>
-    <string name="restore_from_network">It\'s on a network drive</string>
     <string name="restore_needs_all_files">To put files back where they were, KeepClear needs All files access (available in the KeepClear build from F-Droid or GitHub). You can still copy them from the drive with the Files app.</string>
     <string name="restore_no_backup">No KeepClear backup was found there.</string>
     <string name="restore_which_phone">Which phone\'s backup?</string>
@@ -594,4 +590,44 @@
     <string name="backup_place_network">Computer at home: %1$s</string>
     <string name="backup_place_nextcloud">Nextcloud: %1$s</string>
     <string name="backup_places_setup">Set up a backup place</string>
+    <string name="confirm_fact_how_many">How many</string>
+    <string name="confirm_fact_how_much">How much space</string>
+    <string name="confirm_fact_where">Where it goes</string>
+    <string name="confirm_where_trash">To KeepClear\'s trash, for 30 days</string>
+    <string name="confirm_where_trim">Android deletes them; apps download them again when needed</string>
+    <string name="confirm_where_gone">Deleted permanently from the phone</string>
+    <string name="confirm_permanent_note">This can\'t be undone.</string>
+    <string name="clean_confirm_note">For 30 days you can put everything back from the trash.</string>
+    <string name="area_value">%1$s %2$s</string>
+    <string name="home_busy">Working on it…</string>
+    <string name="confirm_where_back">Back where they were</string>
+    <string name="trash_confirm_release_all_body">With a checked copy on your drive: %1$s, they will be deleted from the phone for good. Without a checked copy: %2$s, they stay in the trash.</string>
+    <plurals name="trash_days_left">
+        <item quantity="one">1 day left</item>
+        <item quantity="other">%s days left</item>
+    </plurals>
+    <string name="receipt_stamp">Checked file by file</string>
+    <string name="move_network_saved_option">Computer at home (%1$s)</string>
+    <string name="restore_loading">Reading the backup…</string>
+    <string name="restore_stop">Stop</string>
+    <string name="restore_group_label">%1$s · %2$s</string>
+    <string name="restore_group_camera">Camera photos</string>
+    <string name="restore_group_whatsapp">WhatsApp</string>
+    <string name="restore_group_telegram">Telegram</string>
+    <string name="restore_group_pictures">Pictures</string>
+    <string name="restore_group_other">Other files</string>
+    <string name="settings_network_body">A computer at home with a shared folder, on the same Wi-Fi. Once it\'s set up, it appears as a place to back up to.</string>
+    <string name="settings_network_button">Set up a computer at home</string>
+    <string name="settings_network_checking">KeepClear is connecting…</string>
+    <string name="settings_network_saved">Ready: KeepClear can back up to %1$s.</string>
+    <string name="reminder_notif_explain">The reminder is a notification. Android will ask whether KeepClear may show notifications; without that, the reminder stays off.</string>
+    <string name="swipe_exit_body">Nothing was deleted. Leaving now forgets the choices made so far.</string>
+    <string name="swipe_exit_yes">Leave</string>
+    <string name="swipe_exit_no">Keep going</string>
+    <string name="apps_loading">Reading the list of apps…</string>
+    <string name="apps_others">Other apps by size</string>
+    <plurals name="swipe_exit_title">
+        <item quantity="one">Leave? 1 decision will be lost</item>
+        <item quantity="other">Leave? %s decisions will be lost</item>
+    </plurals>
 </resources>

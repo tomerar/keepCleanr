@@ -4,9 +4,9 @@ package io.github.tomerar.keepclear
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.tomerar.keepclear.core.designsystem.KcShapes
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonDefaults
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.safety.Confirmation
 import kotlinx.coroutines.delay
@@ -32,6 +36,9 @@ import kotlinx.coroutines.delay
 fun userConfirmed(
     shownPaths: Collection<String>,
 ): Confirmation = Confirmation.of(shownPaths, System.currentTimeMillis())
+
+/** F2: whether a confirm button is styled as permanent (error red); tests read it. */
+val PermanentAction = SemanticsPropertyKey<Boolean>("PermanentAction")
 
 /** SEC-7 / E-SEC-10: a touch delivered while another app's window covers ours. */
 object ObscuredTouch {
@@ -52,12 +59,13 @@ fun SafeConfirmButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     delayMillis: Long = 500,
-    colors: ButtonColors? = null,
     /**
-     * True for actions that can't be undone (empty the trash, free now): error colours. False for actions that go
-     * to the 30-day trash: normal primary colours, so "recoverable" never looks alarming (review PR C).
+     * True only for actions that can't be undone (empty the trash, release now): error red. False for everything
+     * else (to the 30-day trash, trimming Android's caches, restoring a changed file, test mode off): ink, so a
+     * recoverable action never looks alarming (review PR C). F2: no default; every call site says which it is.
      */
-    permanent: Boolean = true,
+    permanent: Boolean,
+    colors: ButtonColors? = null,
 ) {
     var enabled by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(false) }
@@ -76,24 +84,18 @@ fun SafeConfirmButton(
                 if (obscured) blocked = true else onClick()
             },
             enabled = enabled,
-            colors = colors ?: if (permanent) {
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                )
-            } else {
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
-            },
-            modifier = modifier.pointerInteropFilter { event ->
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    lastDownObscured[0] = ObscuredTouch.isObscured(event.flags)
-                }
-                false // observe only; the button still gets the touch and decides in onClick
-            },
-        ) { Text(text) }
+            colors = colors ?: KcButtonDefaults.filledColors(permanent),
+            shape = KcShapes.pill,
+            contentPadding = KcButtonDefaults.ContentPadding,
+            modifier = modifier.heightIn(min = KcButtonDefaults.MinHeight)
+                .semantics { this[PermanentAction] = permanent }
+                .pointerInteropFilter { event ->
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        lastDownObscured[0] = ObscuredTouch.isObscured(event.flags)
+                    }
+                    false // observe only; the button still gets the touch and decides in onClick
+                },
+        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
         if (blocked) {
             Text(
                 stringResource(R.string.obscured_touch_hint),

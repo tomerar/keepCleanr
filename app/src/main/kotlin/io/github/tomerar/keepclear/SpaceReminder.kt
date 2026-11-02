@@ -120,15 +120,25 @@ object SpaceReminder {
             PendingIntent.FLAG_IMMUTABLE,
         )
         val locale = context.resources.configuration.locales[0]
-        nm.notify(
-            ID,
-            NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(android.R.drawable.stat_notify_more)
-                .setContentTitle(context.getString(R.string.reminder_title))
-                .setContentText(text(context, freeBytes, junkBytes, locale))
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build(),
-        )
+        nm.notify(ID, build(context, freeBytes, junkBytes, locale, open))
+    }
+
+    /** F2: KeepClear's own icon, and the whole sentence readable when expanded (BigTextStyle). */
+    fun build(
+        context: Context,
+        freeBytes: Long,
+        junkBytes: Long,
+        locale: Locale,
+        open: PendingIntent?,
+    ): android.app.Notification {
+        val body = text(context, freeBytes, junkBytes, locale)
+        return NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(io.github.tomerar.keepclear.R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.reminder_title))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
     }
 }

@@ -8,15 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,12 +22,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.classify.AppInfo
 import io.github.tomerar.keepclear.engine.classify.AppsReport
@@ -55,6 +58,8 @@ fun AppsScreen(
     onBack: (() -> Unit)? = null,
     /** F1b: the tab's other parts (one app at a time, apps' own folders, the cloned-apps note). */
     links: AppsTabLinks? = null,
+    /** F2: the list is still being read; [apps] == null then doesn't mean "no usage access". */
+    loading: Boolean = false,
 ) {
     val locale = LocalConfiguration.current.locales[0]
 
@@ -67,18 +72,32 @@ fun AppsScreen(
         ) {
             if (onBack == null) item { SectionHeading(stringResource(R.string.apps_title)) }
             links?.let { l -> item { AppsLinks(l) } }
+            if (apps == null && loading) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().testTag("appsLoading"),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(stringResource(R.string.apps_loading), style = MaterialTheme.typography.bodyMedium)
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                    }
+                }
+                return@LazyColumn
+            }
             if (apps == null) {
                 item {
-                    Card(Modifier.fillMaxWidth().testTag("usageAccess")) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    KcCard(Modifier.testTag("usageAccess")) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 stringResource(R.string.apps_access_title),
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             Text(stringResource(R.string.apps_access_body), style = MaterialTheme.typography.bodyMedium)
-                            Button(onClick = actions.onAllowUsageAccess, modifier = Modifier.testTag("allowUsage")) {
-                                Text(stringResource(R.string.apps_access_button))
-                            }
+                            KcButton(
+                                stringResource(R.string.apps_access_button),
+                                onClick = actions.onAllowUsageAccess,
+                                modifier = Modifier.testTag("allowUsage"),
+                            )
                         }
                     }
                 }
@@ -94,7 +113,7 @@ fun AppsScreen(
             val unused = AppsReport.unused(apps, now)
             if (unused.isNotEmpty()) {
                 item {
-                    Text(stringResource(R.string.apps_unused_title), style = MaterialTheme.typography.titleMedium)
+                    SectionHeading(stringResource(R.string.apps_unused_title))
                     Text(
                         stringResource(
                             R.string.total_value,
@@ -107,8 +126,15 @@ fun AppsScreen(
                 }
                 items(unused, key = { "unused_${it.pkg}" }) { app -> AppRow(app, now, actions, uninstall = true) }
             }
-            item { Text(stringResource(R.string.apps_all), style = MaterialTheme.typography.titleMedium) }
-            items(AppsReport.bySize(apps), key = { it.pkg }) { app -> AppRow(app, now, actions, uninstall = false) }
+            // F2: an app is listed once: the unused ones above, every other app here.
+            val unusedPkgs = unused.mapTo(HashSet()) { it.pkg }
+            val others = AppsReport.bySize(apps).filter { it.pkg !in unusedPkgs }
+            if (others.isNotEmpty()) {
+                item {
+                    SectionHeading(stringResource(if (unused.isEmpty()) R.string.apps_all else R.string.apps_others))
+                }
+                items(others, key = { it.pkg }) { app -> AppRow(app, now, actions, uninstall = false) }
+            }
         }
     }
 }
@@ -126,13 +152,19 @@ class AppsTabLinks(
 @Composable
 private fun AppsLinks(links: AppsTabLinks) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        TextButton(onClick = links.onOneByOne, modifier = Modifier.testTag("appsOneByOne")) {
-            Text(stringResource(R.string.one_by_one_button))
-        }
+        KcButton(
+            stringResource(R.string.one_by_one_button),
+            onClick = links.onOneByOne,
+            style = KcButtonStyle.Tonal,
+            modifier = Modifier.testTag("appsOneByOne"),
+        )
         links.onAppContent?.let { open ->
-            TextButton(onClick = open, modifier = Modifier.testTag("appsAppContent")) {
-                Text(stringResource(R.string.app_content_title))
-            }
+            KcButton(
+                stringResource(R.string.app_content_title),
+                onClick = open,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("appsAppContent"),
+            )
         }
         if (links.clonedHidden) {
             Text(
@@ -178,22 +210,62 @@ private fun AppRowContent(
         Modifier.fillMaxWidth().testTag(if (uninstall) "unused_${app.pkg}" else "app_${app.pkg}"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        // F2: the app's own icon (decorative: its name is next to it).
+        AppIcon(app.pkg)
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(Bidi.isolate(app.label), style = MaterialTheme.typography.titleSmall)
             Text(Bidi.isolate(ByteSize.format(app.totalBytes, locale)), style = MaterialTheme.typography.bodyMedium)
             Text(lastUsedText(app, now), style = MaterialTheme.typography.bodySmall)
         }
         if (uninstall) {
-            OutlinedButton(onClick = {
-                // SAFETY-9: removing an app deletes its data; trial mode never hands that to Android.
-                if (actions.testModeOn) onBlocked() else actions.onUninstall(app.pkg)
-            }, modifier = Modifier.testTag("uninstall_${app.pkg}")) {
-                Text(stringResource(R.string.apps_uninstall))
-            }
+            KcButton(
+                stringResource(R.string.apps_uninstall),
+                onClick = {
+                    // SAFETY-9: removing an app deletes its data; trial mode never hands that to Android.
+                    if (actions.testModeOn) onBlocked() else actions.onUninstall(app.pkg)
+                },
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.testTag("uninstall_${app.pkg}"),
+            )
         } else {
-            TextButton(onClick = { actions.onOpenAppInfo(app.pkg) }, modifier = Modifier.testTag("info_${app.pkg}")) {
-                Text(stringResource(R.string.app_info))
-            }
+            KcButton(
+                stringResource(R.string.app_info),
+                onClick = { actions.onOpenAppInfo(app.pkg) },
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("info_${app.pkg}"),
+            )
+        }
+    }
+}
+
+/** F2: loads app icons off the main thread; null in tests and previews (no icon is drawn then). */
+class AppIconLoader(private val pm: android.content.pm.PackageManager) {
+    private val cache = android.util.LruCache<String, androidx.compose.ui.graphics.ImageBitmap>(64)
+
+    suspend fun load(pkg: String, sizePx: Int): androidx.compose.ui.graphics.ImageBitmap? {
+        cache.get(pkg)?.let { return it }
+        val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                pm.getApplicationIcon(pkg).toBitmap(sizePx, sizePx).asImageBitmap()
+            }.getOrNull()
+        }
+        bitmap?.let { cache.put(pkg, it) }
+        return bitmap
+    }
+}
+
+val LocalAppIcons = androidx.compose.runtime.staticCompositionLocalOf<AppIconLoader?> { null }
+
+@Composable
+internal fun AppIcon(pkg: String, sizeDp: Int = 40) {
+    val loader = LocalAppIcons.current
+    val px = with(androidx.compose.ui.platform.LocalDensity.current) { sizeDp.dp.roundToPx() }
+    val icon by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, pkg, loader) {
+        value = loader?.load(pkg, px)
+    }
+    androidx.compose.foundation.layout.Box(Modifier.size(sizeDp.dp)) {
+        icon?.let {
+            androidx.compose.foundation.Image(it, contentDescription = null, modifier = Modifier.size(sizeDp.dp))
         }
     }
 }

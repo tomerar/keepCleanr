@@ -9,12 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +21,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.classify.Total
 
@@ -35,6 +35,8 @@ class AppActions(
     val labelOf: (String) -> String = { it },
     val onOpenApp: (String) -> Unit = {},
     val onOpenAppInfo: (String) -> Unit = {},
+    /** F2: "Turn on usage access", so the list can show each app's temporary files. */
+    val onAllowUsageAccess: () -> Unit = {},
 )
 
 /** Per-app hint for where to clear its own downloads (SAFE-9); generic for unknown apps. */
@@ -76,20 +78,34 @@ fun AppContentScreen(apps: List<Pair<String, Total>>, actions: AppActions, onBac
                 Text(stringResource(R.string.app_content_body), style = MaterialTheme.typography.bodyMedium)
             }
             items(apps, key = { it.first }) { (pkg, total) ->
-                Card(Modifier.fillMaxWidth().testTag("app_$pkg")) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(Bidi.isolate(actions.labelOf(pkg)), style = MaterialTheme.typography.titleMedium)
-                        Text(totalText(total))
+                KcCard(Modifier.testTag("app_$pkg")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AppIcon(pkg)
+                            Text(
+                                Bidi.isolate(actions.labelOf(pkg)),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(start = 12.dp),
+                            )
+                        }
+                        Text(
+                            totalText(total),
+                            style = io.github.tomerar.keepclear.core.designsystem.KeepClearTheme.type.number,
+                        )
                         Text(stringResource(appHint(pkg)), style = MaterialTheme.typography.bodySmall)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
+                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            KcButton(
+                                stringResource(R.string.app_open),
                                 onClick = { actions.onOpenApp(pkg) },
+                                style = KcButtonStyle.Tonal,
                                 modifier = Modifier.testTag("openApp_$pkg"),
-                            ) { Text(stringResource(R.string.app_open)) }
-                            TextButton(
+                            )
+                            KcButton(
+                                stringResource(R.string.app_info),
                                 onClick = { actions.onOpenAppInfo(pkg) },
+                                style = KcButtonStyle.Text,
                                 modifier = Modifier.testTag("appInfo_$pkg"),
-                            ) { Text(stringResource(R.string.app_info)) }
+                            )
                         }
                     }
                 }
@@ -114,7 +130,14 @@ fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions:
             item {
                 Text(stringResource(R.string.one_by_one_body), style = MaterialTheme.typography.bodyMedium)
                 if (apps.none { it.cacheBytes != null }) {
+                    // F2: usage access exists now (M13); say what it adds and offer it, no "later version".
                     Text(stringResource(R.string.one_by_one_sizes_later), style = MaterialTheme.typography.bodySmall)
+                    KcButton(
+                        stringResource(R.string.apps_access_button),
+                        onClick = actions.onAllowUsageAccess,
+                        style = KcButtonStyle.Tonal,
+                        modifier = Modifier.testTag("oneByOneUsageAccess"),
+                    )
                 }
             }
             items(apps, key = { it.pkg }) { app ->
@@ -122,7 +145,8 @@ fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions:
                     modifier = Modifier.fillMaxWidth().testTag("oneApp_${app.pkg}"),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    AppIcon(app.pkg)
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(Bidi.isolate(app.label), style = MaterialTheme.typography.titleSmall)
                         app.cacheBytes?.let { bytes ->
                             Text(
@@ -146,10 +170,12 @@ fun OneAppAtATimeScreen(apps: List<AppEntry>, freed: Map<String, Long>, actions:
                             )
                         }
                     }
-                    TextButton(
+                    KcButton(
+                        stringResource(R.string.app_info),
                         onClick = { actions.onOpenAppInfo(app.pkg) },
+                        style = KcButtonStyle.Text,
                         modifier = Modifier.testTag("openInfo_${app.pkg}"),
-                    ) { Text(stringResource(R.string.app_info)) }
+                    )
                 }
             }
         }

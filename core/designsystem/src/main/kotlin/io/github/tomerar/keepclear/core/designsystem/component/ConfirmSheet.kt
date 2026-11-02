@@ -63,6 +63,8 @@ fun ConfirmSheet(
     facts: List<ConfirmFact> = emptyList(),
     note: String? = null,
     permanent: Boolean = false,
+    /** Modifier of the dismiss button (e.g. a test tag). */
+    dismissModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     SheetFrame(onDismiss = onDismiss, modifier = modifier) {
@@ -108,7 +110,7 @@ fun ConfirmSheet(
         }
         Spacer(Modifier.height(KcSpacing.l))
         Box(Modifier.fillMaxWidth()) { confirmButton() }
-        KcButton(dismissText, onDismiss, Modifier.fillMaxWidth(), style = KcButtonStyle.Text)
+        KcButton(dismissText, onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
 }
 

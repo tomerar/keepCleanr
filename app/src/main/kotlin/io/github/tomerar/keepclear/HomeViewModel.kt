@@ -90,6 +90,8 @@ data class HomeUiState(
     val perAppFreed: Map<String, Long> = emptyMap(),
     /** M13: apps with sizes and last use; null without usage access (ONB-7). */
     val appsInfo: List<io.github.tomerar.keepclear.engine.classify.AppInfo>? = null,
+    /** F2: false until the first load of [appsInfo] has finished, so "loading" is never shown as "no access". */
+    val appsLoaded: Boolean = false,
     /**
      * E4: what the user selected in each group (by [GroupKey]), kept here and not in the screen's saved state: a
      * 10,000-path set in saved state crashes Android (TransactionTooLarge). A group's selection ends when its
@@ -246,7 +248,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setApps(apps: List<AppEntry>) = _state.update { it.copy(apps = apps) }
 
     fun setAppsInfo(apps: List<io.github.tomerar.keepclear.engine.classify.AppInfo>?) =
-        _state.update { it.copy(appsInfo = apps) }
+        _state.update { it.copy(appsInfo = apps, appsLoaded = true) }
 
     /** Called on every resume: permissions and free space can change outside the app. */
     fun refresh() {

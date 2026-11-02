@@ -30,7 +30,8 @@ import org.robolectric.annotation.Config
 
 /** M8: REVIEW selection, select-by-month, editable confirmation (REV-2/3, SAFETY-10). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+// F2: a phone-sized window (the 4-column grid and its header need a phone's height, like the screenshots).
+@Config(sdk = [36], qualifiers = "w360dp-h800dp")
 class ReviewActionsTest {
     @get:Rule
     val compose = createComposeRule()

@@ -139,3 +139,20 @@ class TrashPurgeWorker(context: Context, params: WorkerParameters) : CoroutineWo
         }
     }
 }
+
+/**
+ * F2 / TRASH-7: the Trash screen's uninstall note shows on the first visit with something in the trash, not on every
+ * visit (Settings keeps it). KeepClear's own small settings file (C60).
+ */
+object TrashNotes {
+    private const val PREFS = "trash_notes"
+    private const val KEY = "uninstallNoteSeen"
+
+    fun uninstallNoteSeen(context: android.content.Context): Boolean = MainThreadPolicy.settings {
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).getBoolean(KEY, false)
+    }
+
+    fun setUninstallNoteSeen(context: android.content.Context) = MainThreadPolicy.settings {
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit { putBoolean(KEY, true) }
+    }
+}

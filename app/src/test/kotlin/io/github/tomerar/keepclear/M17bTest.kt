@@ -62,7 +62,9 @@ class M17bTest {
     @Test
     fun `the default path never offers Nextcloud`() {
         openGuide(MoveActions())
-        compose.onNodeWithTag("useNetwork").assertExists()
+        // F2 (C76): nothing that isn't set up under Advanced: neither a computer at home nor a Nextcloud.
+        compose.onNodeWithTag("guideContinue").assertExists()
+        compose.onNodeWithTag("useNetwork").assertDoesNotExist()
         compose.onNodeWithTag("useNextcloud").assertDoesNotExist()
     }
 

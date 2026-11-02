@@ -3,21 +3,16 @@ package io.github.tomerar.keepclear
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,23 +20,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.DaysLeftChip
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.safety.Confirmation
+import io.github.tomerar.keepclear.engine.classify.Total
 import io.github.tomerar.keepclear.engine.trash.TrashEntry
-import kotlinx.coroutines.delay
 import java.text.NumberFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /** What the Trash screen shows (TRASH-1…5). [restoreTo] holds non-original destinations (SEC-1). */
 data class TrashUi(
@@ -107,22 +107,21 @@ private fun TrashRow(
     busy: Boolean,
     onRestore: (List<TrashEntry>, Confirmation) -> Unit,
     onPending: (Pending) -> Unit,
+    now: Long,
 ) {
-    val date = Instant.ofEpochMilli(entry.expiresAt).atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
     Column(
         modifier = Modifier.fillMaxWidth().testTag("entry_${entry.id}"),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(Bidi.fileName(entry.originalPath.substringAfterLast('/')), style = MaterialTheme.typography.titleSmall)
-        Text(
-            stringResource(
-                R.string.total_value,
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
                 Bidi.isolate(ByteSize.format(entry.size, locale)),
-                stringResource(R.string.trash_frees_on, Bidi.isolate(date)),
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+                style = KeepClearTheme.type.number,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            DaysLeft(entry.expiresAt, now, Modifier.testTag("daysLeft_${entry.id}"))
+        }
         trash.restoreTo[entry.id]?.let {
             Text(
                 stringResource(R.string.trash_restore_to, Bidi.isolateLtr(it)),
@@ -147,26 +146,31 @@ private fun TrashRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (changed) {
                 // Never put a changed file back in place of anything: separate folder, after a confirm.
-                TextButton(onClick = {
-                    onPending(Pending.RestoreChanged(entry))
-                }, enabled = !busy, modifier = Modifier.testTag("restoreChanged_${entry.id}")) {
-                    Text(stringResource(R.string.trash_restore_changed))
-                }
+                KcButton(
+                    stringResource(R.string.trash_restore_changed),
+                    onClick = { onPending(Pending.RestoreChanged(entry)) },
+                    enabled = !busy,
+                    style = KcButtonStyle.Text,
+                    modifier = Modifier.testTag("restoreChanged_${entry.id}"),
+                )
             } else {
-                TextButton(onClick = {
-                    onRestore(listOf(entry), trashConfirmed(listOf(entry)))
-                }, enabled = !busy, modifier = Modifier.testTag("restore_${entry.id}")) {
-                    Text(stringResource(R.string.trash_restore))
-                }
+                KcButton(
+                    stringResource(R.string.trash_restore),
+                    onClick = { onRestore(listOf(entry), trashConfirmed(listOf(entry))) },
+                    enabled = !busy,
+                    style = KcButtonStyle.Text,
+                    modifier = Modifier.testTag("restore_${entry.id}"),
+                )
             }
             if (entry.verifiedCopy != null && entry.id in trash.releasable) {
-                // Permanent: never a green primary button (review PR C).
-                OutlinedButton(
+                // Permanent: red, never ink (design rules); a second confirmation follows.
+                KcButton(
+                    stringResource(R.string.trash_release_now),
                     onClick = { onPending(Pending.Release(entry)) },
                     enabled = !busy,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    style = KcButtonStyle.Destructive,
                     modifier = Modifier.testTag("release_${entry.id}"),
-                ) { Text(stringResource(R.string.trash_release_now)) }
+                )
             }
         }
     }
@@ -188,12 +192,13 @@ fun TrashScreen(
     ) -> Unit = { _, _, _ -> },
     /** D6: "Release now/all"; the backup copies are re-checked first. Defaults to a plain purge. */
     onRelease: (List<TrashEntry>, Confirmation) -> Unit = onPurge,
+    /** F2 / TRASH-7: the uninstall note shows on the first visit only (Settings always has it). */
+    showUninstallNote: Boolean = true,
+    onUninstallNoteShown: () -> Unit = {},
+    now: Long = remember { System.currentTimeMillis() },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
-
-    fun date(millis: Long) = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
 
     @Composable
     fun count(n: Int) = pluralStringResource(R.plurals.file_count, n, NumberFormat.getIntegerInstance(locale).format(n))
@@ -224,48 +229,48 @@ fun TrashScreen(
                         Bidi.isolate(count(trash.entries.size)),
                     )
                     Text(stringResource(R.string.trash_summary, total), style = MaterialTheme.typography.bodyLarge)
-                    // TRASH-7: always visible while the trash isn't empty (an uninstall can't be intercepted).
-                    Text(
-                        stringResource(
-                            R.string.trash_uninstall_note,
-                            Bidi.isolate(ByteSize.format(trash.bytes, locale)),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.testTag("uninstallNote"),
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
+                    // TRASH-7 (F2): an uninstall can't be intercepted, so the note shows on the first visit; Settings
+                    // keeps it for later. No hidden folder name on the default path.
+                    if (showUninstallNote) {
+                        LaunchedEffect(Unit) { onUninstallNoteShown() }
+                        Text(
+                            stringResource(
+                                R.string.trash_uninstall_note,
+                                Bidi.isolate(ByteSize.format(trash.bytes, locale)),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp).testTag("uninstallNote"),
+                        )
+                    }
+                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        KcButton(
+                            stringResource(R.string.trash_restore_all),
                             onClick = { pending = Pending.RestoreAll(trash.entries) },
                             enabled = !busy,
-                            modifier = Modifier.testTag("restoreAll"),
-                        ) { Text(stringResource(R.string.trash_restore_all)) }
+                            style = KcButtonStyle.Tonal,
+                            modifier = Modifier.fillMaxWidth().testTag("restoreAll"),
+                        )
                         val releasable = trash.entries.filter { it.verifiedCopy != null && it.id in trash.releasable }
                         if (releasable.isNotEmpty()) {
-                            // Review PR C: free everything that has a checked copy, as one action.
-                            OutlinedButton(
+                            // Review PR C: free everything that has a checked copy, as one action (permanent: red).
+                            KcButton(
+                                stringResource(
+                                    R.string.trash_release_all,
+                                    Bidi.isolate(ByteSize.format(releasable.sumOf { it.size }, locale)),
+                                ),
                                 onClick = { pending = Pending.ReleaseAll(releasable) },
                                 enabled = !busy,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error,
-                                ),
-                                modifier = Modifier.testTag("releaseAll"),
-                            ) {
-                                Text(
-                                    stringResource(
-                                        R.string.trash_release_all,
-                                        Bidi.isolate(ByteSize.format(releasable.sumOf { it.size }, locale)),
-                                    ),
-                                )
-                            }
+                                style = KcButtonStyle.Destructive,
+                                modifier = Modifier.fillMaxWidth().testTag("releaseAll"),
+                            )
                         }
-                        OutlinedButton(
+                        KcButton(
+                            stringResource(R.string.trash_empty_now),
                             onClick = { pending = Pending.Empty(trash.entries) },
                             enabled = !busy,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error,
-                            ),
-                            modifier = Modifier.testTag("emptyNow"),
-                        ) { Text(stringResource(R.string.trash_empty_now)) }
+                            style = KcButtonStyle.Destructive,
+                            modifier = Modifier.fillMaxWidth().testTag("emptyNow"),
+                        )
                     }
                 }
             }
@@ -274,53 +279,56 @@ fun TrashScreen(
             groups.forEach { (group, entries) ->
                 val open = (entries.size <= GROUP_OPEN_MAX) != (group in toggled)
                 item(key = "group_$group") {
-                    Card(modifier = Modifier.fillMaxWidth().testTag("trashGroup_$group")) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(stringResource(group.title), style = MaterialTheme.typography.titleMedium)
+                    KcCard(modifier = Modifier.testTag("trashGroup_$group")) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                stringResource(group.title),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.semantics { heading() },
+                            )
                             Text(
                                 stringResource(
                                     R.string.total_value,
                                     Bidi.isolate(ByteSize.format(entries.sumOf { it.size }, locale)),
                                     Bidi.isolate(count(entries.size)),
                                 ),
+                                style = KeepClearTheme.type.number,
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // F2: the group's soonest permanent deletion, so nothing expires unseen.
+                            DaysLeft(entries.minOf { it.expiresAt }, now, Modifier.testTag("groupDaysLeft_$group"))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val restorable = entries.filter { it.id !in trash.changed }
                                 if (restorable.isNotEmpty()) {
-                                    TextButton(
+                                    KcButton(
+                                        stringResource(R.string.trash_restore_group),
                                         onClick = { onRestore(restorable, trashConfirmed(restorable)) },
                                         enabled = !busy,
+                                        style = KcButtonStyle.Tonal,
                                         modifier = Modifier.testTag("restoreGroup_$group"),
-                                    ) { Text(stringResource(R.string.trash_restore_group)) }
-                                }
-                                TextButton(
-                                    onClick = { toggled = if (group in toggled) toggled - group else toggled + group },
-                                    modifier = Modifier.testTag("toggleGroup_$group"),
-                                ) {
-                                    Text(
-                                        stringResource(
-                                            if (open) R.string.trash_hide_files else R.string.trash_show_files,
-                                        ),
                                     )
                                 }
+                                KcButton(
+                                    stringResource(if (open) R.string.trash_hide_files else R.string.trash_show_files),
+                                    onClick = { toggled = if (group in toggled) toggled - group else toggled + group },
+                                    style = KcButtonStyle.Text,
+                                    modifier = Modifier.testTag("toggleGroup_$group"),
+                                )
                             }
                         }
                     }
                 }
                 if (open) {
                     items(entries, key = { it.id }) { entry ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                TrashRow(entry, trash, locale, busy, onRestore, onPending = { pending = it })
-                            }
+                        KcCard {
+                            TrashRow(entry, trash, locale, busy, onRestore, onPending = { pending = it }, now = now)
                         }
                     }
                 }
             }
             if (trash.android.isNotEmpty()) {
                 item(key = "android") {
-                    Card(modifier = Modifier.fillMaxWidth().testTag("androidTrash")) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    KcCard(modifier = Modifier.testTag("androidTrash")) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 stringResource(R.string.trash_group_android),
                                 style = MaterialTheme.typography.titleMedium,
@@ -336,8 +344,9 @@ fun TrashScreen(
                                 stringResource(R.string.trash_android_note),
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                KcButton(
+                                    stringResource(R.string.trash_restore_group),
                                     onClick = {
                                         onAndroidTrash(
                                             trash.android,
@@ -350,16 +359,16 @@ fun TrashScreen(
                                         )
                                     },
                                     enabled = !busy,
+                                    style = KcButtonStyle.Tonal,
                                     modifier = Modifier.testTag("androidRestore"),
-                                ) { Text(stringResource(R.string.trash_restore_group)) }
-                                OutlinedButton(
+                                )
+                                KcButton(
+                                    stringResource(R.string.trash_android_empty),
                                     onClick = { pending = Pending.AndroidEmpty(trash.android) },
                                     enabled = !busy,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error,
-                                    ),
+                                    style = KcButtonStyle.Destructive,
                                     modifier = Modifier.testTag("androidEmpty"),
-                                ) { Text(stringResource(R.string.trash_android_empty)) }
+                                )
                             }
                         }
                     }
@@ -368,164 +377,131 @@ fun TrashScreen(
         }
     }
 
+    val close = { pending = null }
     when (val p = pending) {
         is Pending.Empty -> {
-            val bytes = Bidi.isolate(ByteSize.format(p.entries.sumOf { it.size }, locale))
             val withCopy = p.entries.count { it.verifiedCopy != null && it.id in trash.releasable }
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = { Text(stringResource(R.string.trash_confirm_empty_title, bytes)) },
-                text = {
-                    // Review PR C: what has a checked copy elsewhere vs. what will be gone for good.
-                    Text(
-                        if (withCopy > 0) {
-                            stringResource(
-                                R.string.trash_confirm_empty_body_split,
-                                Bidi.isolate(count(withCopy)),
-                                Bidi.isolate(count(p.entries.size - withCopy)),
-                            )
-                        } else {
-                            stringResource(R.string.trash_confirm_empty_body, Bidi.isolate(count(p.entries.size)))
-                        },
-                        modifier = Modifier.testTag("emptyBody"),
+            PermanentSheet(
+                title = stringResource(
+                    R.string.trash_confirm_empty_title,
+                    Bidi.isolate(ByteSize.format(p.entries.sumOf { it.size }, locale)),
+                ),
+                total = Total(p.entries.size, p.entries.sumOf { it.size }),
+                // Review PR C: what has a checked copy elsewhere vs. what will be gone for good.
+                body = if (withCopy > 0) {
+                    stringResource(
+                        R.string.trash_confirm_empty_body_split,
+                        Bidi.isolate(count(withCopy)),
+                        Bidi.isolate(count(p.entries.size - withCopy)),
                     )
+                } else {
+                    stringResource(R.string.trash_confirm_empty_body, Bidi.isolate(count(p.entries.size)))
                 },
-                confirmButton = {
-                    SafeConfirmButton(
-                        stringResource(R.string.trash_confirm_delete),
-                        onClick = {
-                            pending = null
-                            onPurge(p.entries, trashConfirmed(p.entries))
-                        },
-                        modifier = Modifier.testTag("confirmPurge"),
-                    )
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
-                },
-            )
+                bodyTag = "emptyBody",
+                confirm = stringResource(R.string.trash_confirm_delete),
+                confirmTag = "confirmPurge",
+                onDismiss = close,
+            ) {
+                pending = null
+                onPurge(p.entries, trashConfirmed(p.entries))
+            }
         }
 
         is Pending.Release -> {
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = {
-                    Text(stringResource(R.string.trash_confirm_release_title, ByteSize.format(p.entry.size, locale)))
-                },
-                text = {
-                    Text(
-                        stringResource(
-                            R.string.trash_confirm_release_body,
-                            Bidi.isolate(p.entry.verifiedCopy.orEmpty()),
-                        ),
-                    )
-                },
-                confirmButton = {
-                    SafeConfirmButton(
-                        stringResource(R.string.trash_confirm_release_yes),
-                        onClick = {
-                            pending = null
-                            onRelease(listOf(p.entry), trashConfirmed(listOf(p.entry)))
-                        },
-                        modifier = Modifier.testTag("confirmPurge"),
-                    )
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
-                },
-            )
+            PermanentSheet(
+                title = stringResource(
+                    R.string.trash_confirm_release_title,
+                    Bidi.isolate(ByteSize.format(p.entry.size, locale)),
+                ),
+                total = Total(1, p.entry.size),
+                body = stringResource(
+                    R.string.trash_confirm_release_body,
+                    Bidi.isolate(p.entry.verifiedCopy.orEmpty()),
+                ),
+                bodyTag = "releaseBody",
+                confirm = stringResource(R.string.trash_confirm_release_yes),
+                confirmTag = "confirmPurge",
+                onDismiss = close,
+            ) {
+                pending = null
+                onRelease(listOf(p.entry), trashConfirmed(listOf(p.entry)))
+            }
         }
 
         is Pending.AndroidEmpty -> {
             // Second confirmation (TRASH-4); Android then shows its own dialog too.
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = {
-                    Text(
-                        stringResource(
-                            R.string.trash_confirm_empty_title,
-                            Bidi.isolate(
-                                ByteSize.format(
-                                    p.items.sumOf {
-                                        it.size
-                                    },
-                                    locale,
-                                ),
-                            ),
-                        ),
-                    )
-                },
-                text = { Text(stringResource(R.string.trash_confirm_empty_body, Bidi.isolate(count(p.items.size)))) },
-                confirmButton = {
-                    SafeConfirmButton(
-                        stringResource(R.string.trash_confirm_delete),
-                        onClick = {
-                            pending = null
-                            onAndroidTrash(p.items, false, userConfirmed(p.items.map { it.path }))
-                        },
-                        modifier = Modifier.testTag("confirmAndroidEmpty"),
-                    )
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
-                },
-            )
+            PermanentSheet(
+                title = stringResource(
+                    R.string.trash_confirm_empty_title,
+                    Bidi.isolate(ByteSize.format(p.items.sumOf { it.size }, locale)),
+                ),
+                total = Total(p.items.size, p.items.sumOf { it.size }),
+                body = stringResource(R.string.trash_confirm_empty_body, Bidi.isolate(count(p.items.size))),
+                bodyTag = "androidEmptyBody",
+                confirm = stringResource(R.string.trash_confirm_delete),
+                confirmTag = "confirmAndroidEmpty",
+                onDismiss = close,
+            ) {
+                pending = null
+                onAndroidTrash(p.items, false, userConfirmed(p.items.map { it.path }))
+            }
         }
 
         is Pending.RestoreAll -> {
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = { Text(stringResource(R.string.trash_restore_all_title, Bidi.isolate(count(p.entries.size)))) },
-                text = { Text(stringResource(R.string.trash_restore_all_body)) },
+            ConfirmSheet(
+                title = stringResource(R.string.trash_restore_all_title, Bidi.isolate(count(p.entries.size))),
+                dismissText = stringResource(R.string.trash_cancel),
+                onDismiss = close,
+                facts = confirmFacts(
+                    Total(p.entries.size, p.entries.sumOf { it.size }),
+                    stringResource(R.string.confirm_where_back),
+                ),
+                note = stringResource(R.string.trash_restore_all_body),
                 confirmButton = {
-                    Button(onClick = {
-                        pending = null
-                        onRestore(p.entries, trashConfirmed(p.entries))
-                    }, modifier = Modifier.testTag("confirmRestoreAll")) {
-                        Text(stringResource(R.string.trash_restore_all))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
+                    KcButton(
+                        stringResource(R.string.trash_restore_all),
+                        onClick = {
+                            pending = null
+                            onRestore(p.entries, trashConfirmed(p.entries))
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("confirmRestoreAll"),
+                    )
                 },
             )
         }
 
         is Pending.ReleaseAll -> {
-            val bytes = Bidi.isolate(ByteSize.format(p.entries.sumOf { it.size }, locale))
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = { Text(stringResource(R.string.trash_confirm_release_title, bytes)) },
-                text = {
-                    Text(
-                        stringResource(
-                            R.string.trash_confirm_empty_body_split,
-                            Bidi.isolate(count(p.entries.size)),
-                            Bidi.isolate(count(0)),
-                        ),
-                    )
-                },
-                confirmButton = {
-                    SafeConfirmButton(
-                        stringResource(R.string.trash_confirm_release_yes),
-                        onClick = {
-                            pending = null
-                            onRelease(p.entries, trashConfirmed(p.entries))
-                        },
-                        modifier = Modifier.testTag("confirmReleaseAll"),
-                    )
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
-                },
-            )
+            // F2 (verified bug): the second count is the trash's items WITHOUT a checked copy, which stay in the trash;
+            // it used to be a hard-coded 0.
+            val withoutCopy = trash.entries.size - p.entries.size
+            PermanentSheet(
+                title = stringResource(
+                    R.string.trash_confirm_release_title,
+                    Bidi.isolate(ByteSize.format(p.entries.sumOf { it.size }, locale)),
+                ),
+                total = Total(p.entries.size, p.entries.sumOf { it.size }),
+                body = stringResource(
+                    R.string.trash_confirm_release_all_body,
+                    Bidi.isolate(count(p.entries.size)),
+                    Bidi.isolate(count(withoutCopy)),
+                ),
+                bodyTag = "releaseAllBody",
+                confirm = stringResource(R.string.trash_confirm_release_yes),
+                confirmTag = "confirmReleaseAll",
+                onDismiss = close,
+            ) {
+                pending = null
+                onRelease(p.entries, trashConfirmed(p.entries))
+            }
         }
 
         is Pending.RestoreChanged -> {
-            AlertDialog(
-                onDismissRequest = { pending = null },
-                title = { Text(stringResource(R.string.trash_restore_changed_title)) },
-                text = { Text(stringResource(R.string.trash_restore_changed_body)) },
+            // Not permanent: the changed file goes to a separate folder and nothing is overwritten (brief F2).
+            ConfirmSheet(
+                title = stringResource(R.string.trash_restore_changed_title),
+                dismissText = stringResource(R.string.trash_cancel),
+                onDismiss = close,
+                note = stringResource(R.string.trash_restore_changed_body),
                 confirmButton = {
                     SafeConfirmButton(
                         stringResource(R.string.trash_restore_changed),
@@ -533,11 +509,9 @@ fun TrashScreen(
                             pending = null
                             onRestoreChanged(p.entry, trashConfirmed(listOf(p.entry)))
                         },
-                        modifier = Modifier.testTag("confirmRestoreChanged"),
+                        modifier = Modifier.fillMaxWidth().testTag("confirmRestoreChanged"),
+                        permanent = false,
                     )
-                },
-                dismissButton = {
-                    TextButton(onClick = { pending = null }) { Text(stringResource(R.string.trash_cancel)) }
                 },
             )
         }
@@ -545,6 +519,57 @@ fun TrashScreen(
         null -> {
             // No confirmation open.
         }
+    }
+}
+
+/** F2: "N days left" until a trashed item is deleted for good (DaysLeftChip, never red). */
+@Composable
+private fun DaysLeft(expiresAt: Long, now: Long, modifier: Modifier = Modifier) {
+    val days = TrashDays.left(expiresAt, now)
+    val locale = LocalConfiguration.current.locales[0]
+    DaysLeftChip(
+        pluralStringResource(R.plurals.trash_days_left, days, NumberFormat.getIntegerInstance(locale).format(days)),
+        days,
+        modifier,
+    )
+}
+
+/** Whole days until [expiresAt], rounded up (an item expiring in 2 hours still has "1 day"); never negative. */
+object TrashDays {
+    private const val DAY = 86_400_000L
+
+    fun left(expiresAt: Long, now: Long): Int = ((expiresAt - now + DAY - 1) / DAY).coerceAtLeast(0).toInt()
+}
+
+/** A permanent action's ConfirmSheet (SAFETY-2 "second confirmation"): red, says it can't be undone. */
+@Composable
+private fun PermanentSheet(
+    title: String,
+    total: Total,
+    body: String,
+    bodyTag: String,
+    confirm: String,
+    confirmTag: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    ConfirmSheet(
+        title = title,
+        dismissText = stringResource(R.string.trash_cancel),
+        onDismiss = onDismiss,
+        facts = confirmFacts(total, stringResource(R.string.confirm_where_gone)),
+        note = stringResource(R.string.confirm_permanent_note),
+        permanent = true,
+        confirmButton = {
+            SafeConfirmButton(
+                confirm,
+                onClick = onConfirm,
+                modifier = Modifier.fillMaxWidth().testTag(confirmTag),
+                permanent = true,
+            )
+        },
+    ) {
+        Text(body, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(bodyTag))
     }
 }
 
@@ -557,29 +582,25 @@ fun LastCopyDialog(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val n = NumberFormat.getIntegerInstance(locale).format(ops.size)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.last_copy_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(pluralStringResource(R.plurals.last_copy_body, ops.size, n))
-                ops.take(5).forEach { Text(Bidi.isolate(it.displayPath.substringAfterLast('/'))) }
-            }
-        },
+    // They go to the 30-day trash like everything else: careful, but not permanent (ink).
+    ConfirmSheet(
+        title = stringResource(R.string.last_copy_title),
+        dismissText = stringResource(R.string.last_copy_keep),
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("lastCopyDialog"),
+        dismissModifier = Modifier.testTag("keepLastCopy"),
+        note = pluralStringResource(R.plurals.last_copy_body, ops.size, n),
         confirmButton = {
             SafeConfirmButton(
                 stringResource(R.string.last_copy_confirm),
                 onClick = { onConfirm(userConfirmed(ops.map { it.displayPath })) },
-                modifier = Modifier.testTag("confirmLastCopy"),
+                modifier = Modifier.fillMaxWidth().testTag("confirmLastCopy"),
+                permanent = false,
             )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("keepLastCopy")) {
-                Text(stringResource(R.string.last_copy_keep))
-            }
-        },
-        modifier = Modifier.testTag("lastCopyDialog"),
-    )
+    ) {
+        ops.take(5).forEach { Text(Bidi.fileName(it.displayPath.substringAfterLast('/'))) }
+    }
 }
 
 /** The Trash shows items by their original path, so that is what the user confirms (review PR B). */

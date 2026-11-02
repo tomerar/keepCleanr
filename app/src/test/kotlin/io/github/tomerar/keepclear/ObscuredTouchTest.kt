@@ -59,12 +59,12 @@ class ObscuredTouchTest {
         compose.waitForIdle()
     }
 
-    private fun show() {
+    private fun show(permanent: Boolean = true) {
         compose.setContent {
             KeepClearTheme {
                 SafeConfirmButton("Delete", onClick = {
                     clicks++
-                }, modifier = androidx.compose.ui.Modifier.testTag("confirm"))
+                }, modifier = androidx.compose.ui.Modifier.testTag("confirm"), permanent = permanent)
             }
         }
         compose.mainClock.advanceTimeBy(600)
@@ -79,6 +79,16 @@ class ObscuredTouchTest {
         assertEquals(1, compose.onAllNodesWithTag("obscuredHint").fetchSemanticsNodes().size)
         tap(MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)
         assertEquals(0, clicks)
+    }
+
+    @Test
+    fun `a recoverable confirm (ink, not red) is just as strict (F2)`() {
+        show(permanent = false)
+        tap(MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        assertEquals(0, clicks)
+        assertEquals(1, compose.onAllNodesWithTag("obscuredHint").fetchSemanticsNodes().size)
+        tap(0)
+        assertEquals(1, clicks)
     }
 
     @Test
