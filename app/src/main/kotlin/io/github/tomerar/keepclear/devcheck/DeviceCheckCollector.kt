@@ -22,6 +22,8 @@ import io.github.tomerar.keepclear.backup.saf.DriveFormat
 import io.github.tomerar.keepclear.classifyRun
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.scan.Scanner
+import io.github.tomerar.keepclear.backupAwareScanner
+import io.github.tomerar.keepclear.backupScanExclusions
 import io.github.tomerar.keepclear.homeClassifier
 import kotlinx.coroutines.CancellationException
 
@@ -158,12 +160,13 @@ class DeviceCheckCollector(private val app: KeepClearApplication) {
 
     private suspend fun scan(allFiles: Boolean): ScanFacts? {
         val granted = app.grantedFolders.keys.sorted()
-        val roots = ScanRoots.of(allFiles, app.volumeRoots(), cloneRoots(allFiles), granted)
+        val excluded = backupScanExclusions(app)
+        val roots = ScanRoots.of(allFiles, app.volumeRoots(), cloneRoots(allFiles), granted, excluded)
         if (MediaAccess.current(app) == MediaAccess.NONE && roots.isEmpty()) return null
         val primary = app.getSystemService(StorageManager::class.java).primaryStorageVolume.directory?.absolutePath
         val classifier = homeClassifier(app)
         return ScanCheck.run(
-            scanner = Scanner(app.localGateway, app.mediaSource),
+            scanner = backupAwareScanner(app, excluded),
             roots = roots,
             primaryRoot = primary,
             classify = { items -> classifyRun(app.localGateway, classifier, items, System.currentTimeMillis()).first },

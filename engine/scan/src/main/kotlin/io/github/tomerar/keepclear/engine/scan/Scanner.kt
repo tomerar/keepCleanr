@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.engine.scan
 
+import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.StorageException
 import io.github.tomerar.keepclear.core.storage.StorageGateway
@@ -19,13 +20,27 @@ import kotlinx.coroutines.flow.toList
  * - `Android/data` and `Android/obb` are skipped unless [readRestrictedAppDirs] (Shizuku, v1).
  * - MediaStore rows enrich walked files (favourite, trashed, media id); in MediaStore-only mode
  *   (no file roots) rows become items themselves.
+ * - D5: backups are never scanned. Paths in [excluded] (KeepClear's backup folders and the drives they are on)
+ *   are skipped, walked or from MediaStore, and so is any folder that holds a file named [skipFoldersWith]
+ *   (the marker KeepClear writes into every backup place), with everything inside it.
  */
 class Scanner(
     private val gateway: StorageGateway,
     private val mediaSource: MediaSource? = null,
     private val batchSize: Int = 500,
     private val readRestrictedAppDirs: Boolean = false,
+    excluded: Collection<String> = emptyList(),
+    private val skipFoldersWith: String? = null,
 ) {
+    private val excludedRoots = excluded.mapNotNull { CanonicalPath.of(it) }.distinct()
+
+    /** True when [path] is an excluded folder or inside one (canonical, so case and dots can't sneak past). */
+    fun isExcluded(path: String): Boolean {
+        if (excludedRoots.isEmpty()) return false
+        val canonical = CanonicalPath.of(path) ?: return false
+        return excludedRoots.any { canonical == it || canonical.startsWith("$it/") }
+    }
+
     fun scan(roots: List<KPath.Local>, sinceGeneration: Long? = null): Flow<ScanEvent> = flow {
         val media = mediaSource?.query(sinceGeneration).orEmpty()
         val mediaByPath = media.associateBy { it.path }
@@ -49,6 +64,7 @@ class Scanner(
         }
 
         for (root in roots) {
+            if (isExcluded(root.absolute)) continue
             val stack = ArrayDeque<KPath.Local>().apply { add(root) }
             var lost = false
             while (stack.isNotEmpty() && !lost) {
@@ -80,6 +96,8 @@ class Scanner(
                     emit(ScanEvent.Unreadable(dir.absolute, e.javaClass.simpleName))
                     continue
                 }
+                // D5: a backup place (it holds KeepClear's marker): nothing in it is the phone's to clean.
+                if (skipFoldersWith != null && children.any { it.isFile && it.name == skipFoldersWith }) continue
                 for (child in children) {
                     val childPath = child.path as? KPath.Local ?: continue
                     when {
@@ -88,7 +106,7 @@ class Scanner(
                         }
 
                         child.isDirectory -> {
-                            stack += childPath
+                            if (!isExcluded(childPath.absolute)) stack += childPath
                         }
 
                         else -> {
@@ -119,6 +137,7 @@ class Scanner(
         for (row in media) {
             currentCoroutineContext().ensureActive()
             if (row.path in walkedPaths) continue
+            if (isExcluded(row.path)) continue // D5: a backup drive's photos are indexed by MediaStore too
             if (roots.any { row.path.startsWith(it.absolute + "/") }) continue // walked root, file gone
             batch += ScanItem(
                 ref = KPath.Media(row.volume, row.id),

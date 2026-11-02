@@ -21,16 +21,25 @@ data class GroupSummary(
 /**
  * What Home and the Review/Move/Clean lists show (SCAN-2, REV-1). Totals never include PROTECTED
  * items in any action total. Groups are sorted by bytes, largest first; buckets newest first.
+ * D5: [phoneTotals] count only the phone's own storage ([PhoneStorage]); Home shows those next to the phone's
+ * free space, while the lists still show everything that was scanned (an SD card too).
  */
-data class ClassificationSummary(val totals: Map<Category, Total>, val groups: List<GroupSummary>) {
+data class ClassificationSummary(
+    val totals: Map<Category, Total>,
+    val groups: List<GroupSummary>,
+    val phoneTotals: Map<Category, Total> = totals,
+) {
     fun total(category: Category): Total = totals[category] ?: Total()
+
+    /** D5: like [total], counting only items on the phone's own storage (Home). */
+    fun phoneTotal(category: Category): Total = phoneTotals[category] ?: Total()
 
     fun groups(category: Category): List<GroupSummary> = groups.filter { it.category == category }
 
     fun group(ruleId: String, category: Category): GroupSummary? =
         groups.firstOrNull { it.ruleId == ruleId && it.category == category }
 
-    /** Bytes per broad area for "Where your space is" (camera, WhatsApp, junk, other). */
+    /** Bytes per broad area for "Where your space is" (camera, WhatsApp, junk, other), on the phone only (D5). */
     fun areas(): Map<Area, Long> {
         val result = linkedMapOf(Area.CAMERA to 0L, Area.WHATSAPP to 0L, Area.JUNK to 0L, Area.OTHER to 0L)
         for (group in groups) {
@@ -41,7 +50,8 @@ data class ClassificationSummary(val totals: Map<Category, Total>, val groups: L
                 group.ruleId == Rules.PROTECTED_RULE_ID -> Area.WHATSAPP
                 else -> Area.OTHER
             }
-            result[area] = result.getValue(area) + group.total.bytes
+            val bytes = group.items.filter { PhoneStorage.contains(it.item.path) }.sumOf { it.item.size }
+            result[area] = result.getValue(area) + bytes
         }
         return result
     }
@@ -51,6 +61,8 @@ data class ClassificationSummary(val totals: Map<Category, Total>, val groups: L
     companion object {
         fun of(items: Collection<ClassifiedItem>): ClassificationSummary {
             val totals = items.groupBy { it.category }.mapValues { (_, list) -> list.fold(Total()) { t, i -> t + i } }
+            val phoneTotals = items.filter { PhoneStorage.contains(it.item.path) }.groupBy { it.category }
+                .mapValues { (_, list) -> list.fold(Total()) { t, i -> t + i } }
             val groups = items.groupBy { it.ruleId to it.category }.map { (key, list) ->
                 val buckets = list.groupBy { it.group.bucket }
                     .toList()
@@ -58,7 +70,17 @@ data class ClassificationSummary(val totals: Map<Category, Total>, val groups: L
                     .map { (bucket, bucketItems) -> bucket to bucketItems.sortedByDescending { it.item.mtimeMillis } }
                 GroupSummary(key.first, key.second, list.fold(Total()) { t, i -> t + i }, buckets)
             }.sortedByDescending { it.total.bytes }
-            return ClassificationSummary(totals, groups)
+            return ClassificationSummary(totals, groups, phoneTotals)
         }
+    }
+}
+
+/** D5: the phone's own shared storage, for every user (`/storage/emulated/<n>/…`), never a card or USB drive. */
+object PhoneStorage {
+    fun contains(path: String): Boolean {
+        val segments = io.github.tomerar.keepclear.core.safety.CanonicalPath.of(path)?.split('/')
+            ?.filter { it.isNotEmpty() } ?: return false
+        return segments.size >= 4 && segments[0] == "storage" && segments[1] == "emulated" &&
+            segments[2].all { it.isDigit() }
     }
 }

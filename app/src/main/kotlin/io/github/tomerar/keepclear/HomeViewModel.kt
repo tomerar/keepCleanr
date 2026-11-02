@@ -158,7 +158,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanJob: Job? = null
 
     /** CLS-7: the user's kept and always-junk choices apply to every classification. */
-    private fun classifier(): Classifier = homeClassifier(app)
+    private suspend fun classifier(): Classifier = homeClassifier(app)
 
     /** The last scan's items, so a choice can be applied without scanning again. */
     private var lastItems: List<ScanItem> = emptyList()
@@ -244,10 +244,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         val s = _state.value
         // M12b: without All files access, granted folders (WhatsApp's) are walked at their real paths.
-        val roots = ScanRoots.of(s.allFiles == true, app.volumeRoots(), s.cloned.readable, s.grantedFolders)
-        val scanner = Scanner(app.localGateway, app.mediaSource)
         val persist = s.spaceMode.persistScanResults
         scanJob = viewModelScope.launch {
+            // D5: never the backup drives or KeepClear's backup folders.
+            val excluded = backupScanExclusions(app)
+            val roots =
+                ScanRoots.of(s.allFiles == true, app.volumeRoots(), s.cloned.readable, s.grantedFolders, excluded)
+            val scanner = backupAwareScanner(app, excluded)
             _state.update { it.copy(scan = ScanState.Running(0, 0)) }
             // LOW-3/LOW-4: a database write failure (e.g. disk full) never crashes the scan; it continues in
             // memory and the result is shown as incomplete.
@@ -313,7 +316,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (!classifyRuns.isLatest(run)) return
         evidence = ev
         // SET-3: the reminder can say how much is ready to clean without scanning in the background.
-        runCatching { app.reminderPrefs.lastJunkBytes = summary.total(Category.SAFE).bytes }
+        runCatching { app.reminderPrefs.lastJunkBytes = summary.phoneTotal(Category.SAFE).bytes }
         // M12: what is in Android's own trash right now (MediaStore IS_TRASHED), for the Trash screen.
         val androidTrash = items.filter { it.isTrashed && it.ref is KPath.Media }
         _state.update { it.copy(summary = summary, trash = it.trash.copy(android = androidTrash)) }
@@ -735,17 +738,48 @@ object ScanRoots {
      * With All files access: every mounted volume plus readable cloned-app storage (MSG-3, same rules). Without it
      * (M12b): granted folders (WhatsApp's) at their real paths; MediaStore adds the rest.
      */
-    fun of(allFiles: Boolean, volumes: List<String>, clonedReadable: List<String>, granted: List<String>) =
-        if (allFiles) {
-            (volumes + clonedReadable).distinct().map { KPath.Local(it) }
-        } else {
-            granted.map { KPath.Local(it) }
-        }
+    fun of(
+        allFiles: Boolean,
+        volumes: List<String>,
+        clonedReadable: List<String>,
+        granted: List<String>,
+        /** D5: backup drives and folders ([BackupRoots.scanExclusions]); a volume among them is not walked. */
+        excluded: List<String> = emptyList(),
+    ): List<KPath.Local> {
+        val roots = if (allFiles) (volumes + clonedReadable).distinct() else granted
+        val out = excluded.map { it.lowercase(java.util.Locale.ROOT) }
+        return roots.filterNot { root ->
+            val r = root.lowercase(java.util.Locale.ROOT)
+            out.any { r == it || r.startsWith("$it/") }
+        }.map { KPath.Local(it) }
+    }
 }
 
-/** CLS-7: Home's classifier, with the user's kept and always-junk choices (shared with the device check). */
-fun homeClassifier(app: KeepClearApplication): Classifier = app.userChoices.state.value.let {
-    Classifier(protectedPaths = app.protectedPaths, keptByUser = it.kept, junkFolders = it.junk)
+/** D5: every known backup folder and the drive it is on; read from the MOVE jobs (off the main thread). */
+suspend fun backupScanExclusions(app: KeepClearApplication): List<String> =
+    BackupRoots.scanExclusions(BackupRoots.of(withContext(Dispatchers.IO) { app.moveController.store.jobs() }))
+
+/** D5: a scanner that skips [excluded] and any folder holding a backup place's marker file. */
+fun backupAwareScanner(app: KeepClearApplication, excluded: List<String>) = Scanner(
+    app.localGateway,
+    app.mediaSource,
+    excluded = excluded,
+    skipFoldersWith = io.github.tomerar.keepclear.backup.saf.SafTargets.MARKER,
+)
+
+/**
+ * CLS-7: Home's classifier, with the user's kept and always-junk choices (shared with the device check). D5: it
+ * protects the same backup folders as the executor ([KeepClearApplication.executor]), so a backup copy is never
+ * offered for anything even if a scan reached it.
+ */
+suspend fun homeClassifier(app: KeepClearApplication): Classifier {
+    val jobs = withContext(Dispatchers.IO) { app.moveController.store.jobs() }
+    val choices = app.userChoices.state.value
+    return Classifier(
+        protectedPaths = BackupRoots.protectedPaths(jobs, app.packageName),
+        keptByUser = choices.kept,
+        junkFolders = choices.junk,
+    )
 }
 
 /** Home's classification of one scan run: second-pass facts (twins, extracted archives; M7), then the rules. */
