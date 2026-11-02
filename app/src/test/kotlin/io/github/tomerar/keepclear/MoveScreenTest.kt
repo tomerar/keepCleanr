@@ -179,6 +179,15 @@ class MoveScreenTest {
     }
 
     @Test
+    fun `Check backup says how many files it could not prove fresh this time (D4)`() {
+        val view = JobView(job, receipt(confirmed = 0), canReadBack = true)
+        val result = io.github.tomerar.keepclear.engine.move.CheckResult(ok = 3, damaged = 0, missing = 0, unproven = 2)
+        show(MoveUiState(jobs = listOf(view), check = BackupCheck.Done("j1", result)))
+        compose.onNodeWithTag("checkOk").assertExists()
+        compose.onNodeWithTag("checkUnproven").assertExists()
+    }
+
+    @Test
     fun `pending files hide the free button`() {
         val view = JobView(job, receipt(pending = 2), canReadBack = true)
         assertEquals(false, view.canFree)

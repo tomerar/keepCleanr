@@ -71,7 +71,24 @@ class Rig(
         return id
     }
 
-    fun engine() = MoveEngine(fake, target, store, clock = { now })
+    /** D4: the app's volume events for this rig's drive. */
+    val attach = AttachTracker("process-1")
+    var boot = "boot-1"
+
+    /** D4: the drive was unplugged and plugged back in, and the app saw both events. */
+    fun reattach() {
+        attach.onState("USB-1", mounted = false)
+        attach.onState("USB-1", mounted = true)
+    }
+
+    fun engine() = MoveEngine(
+        fake,
+        target,
+        store,
+        clock = { now },
+        bootId = { boot },
+        attachGeneration = { attach.generation("USB-1") },
+    )
 
     fun sourceSnapshot() = items.associate { it.path to fake.readAllBytes(it.path).toList() }
 }

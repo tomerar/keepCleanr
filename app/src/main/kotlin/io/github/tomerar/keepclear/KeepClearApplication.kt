@@ -263,8 +263,13 @@ class KeepClearApplication : Application() {
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }
 
+    /** D4: drives' unmount → mount events in this process (the proof "Check backup" needs). */
+    val volumeEvents = VolumeEvents(epoch = sessionId)
+
     override fun onCreate() {
         super.onCreate()
+        // D4: watch from the start, so an unplug during "Check backup" is never missed. Never fatal.
+        runCatching { volumeEvents.register(this) }
         // Before any trash work, also in a process WorkManager starts for the daily purge (PR #23 review).
         runCatching { refreshGrantedFolders() }
         TrashPurgeWorker.schedule(this)

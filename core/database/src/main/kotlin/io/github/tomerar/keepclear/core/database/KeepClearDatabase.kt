@@ -13,7 +13,8 @@ import androidx.room.RoomDatabase
  * 3 = M10 (move_job, move_file, auto-migration 2→3); 4 = review PR A (move_job.verifyBootId,
  * move_file.confirmedAt, trash_entry.deletedAtUptime; nullable columns, auto-migration 3→4); 5 = trash_entry.witnessPaths
  * (owner decision 1.3, auto-migration 4→5); 6 = move_file.verifiedBy (M17b, how a copy was verified; nullable,
- * auto-migration 5→6).
+ * auto-migration 5→6); 7 = move_file.verifyBootId and move_file.verifyAttach (D4, where each file's first check
+ * ran; nullable, auto-migration 6→7).
  */
 @Database(
     entities = [
@@ -24,7 +25,7 @@ import androidx.room.RoomDatabase
         MoveJobEntity::class,
         MoveFileEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -32,6 +33,7 @@ import androidx.room.RoomDatabase
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7),
     ],
 )
 abstract class KeepClearDatabase : RoomDatabase() {

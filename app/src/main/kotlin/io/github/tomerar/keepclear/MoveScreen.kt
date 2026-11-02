@@ -629,6 +629,12 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
                     if (bad > 0) {
                         Text(countSentence(R.plurals.move_check_bad, bad), modifier = Modifier.testTag("checkBad"))
                     }
+                    if (check.result.unproven > 0) {
+                        Text(
+                            countSentence(R.plurals.move_check_unproven, check.result.unproven),
+                            modifier = Modifier.testTag("checkUnproven"),
+                        )
+                    }
                 }
 
                 is BackupCheck.TimedOut -> {

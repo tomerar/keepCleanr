@@ -44,8 +44,11 @@ enum class PauseReason {
 }
 
 /**
- * H1: proof that a re-read can't come from the phone's page cache. [REATTACHED]: the app watched the drive
- * disappear and come back (unmount drops the cache). [REBOOTED]: the phone restarted since the first check.
+ * H1: proof that a re-read can't come from the phone's page cache. [REATTACHED]: the drive was unmounted and
+ * mounted again. [REBOOTED]: the phone restarted since the first check. D4: for a drive on the phone the engine
+ * never takes the caller's word for either: it checks per file that the file's first check happened in an
+ * earlier boot ([MoveFile.verifyBootId]) or before an unmount → mount the app saw for that very volume
+ * ([MoveFile.verifyAttach], [AttachGeneration]). Files without such proof are left unconfirmed.
  */
 enum class FreshRead {
     REATTACHED,
@@ -74,7 +77,63 @@ data class CheckResult(
     val missing: Int,
     /** The drive went away or access was lost mid-check; files not reached keep their state. */
     val interrupted: Boolean = false,
+    /**
+     * D4: files not read, because nothing proves a read now would come from the drive rather than the phone's
+     * memory (checked in this boot, and no unmount → mount of the drive seen since). They stay unconfirmed.
+     */
+    val unproven: Int = 0,
 )
+
+/**
+ * D4: how often the app has seen one volume come back (an unmount, then a mount of the same volume UUID) since
+ * this process started ([epoch], random per process). Unmounting drops the volume's page cache, so a read after
+ * such an event comes from the drive itself. Recorded per file when its copy is first verified.
+ */
+data class AttachGeneration(val epoch: String, val count: Long) {
+    fun encode(): String = "$count@$epoch"
+
+    /**
+     * True when the volume was unmounted and mounted again after [earlier] was taken: later in the same process,
+     * or at least once in this process when [earlier] is from an earlier process (which ended before this one
+     * started, so every event seen now came after it).
+     */
+    fun reattachedSince(earlier: AttachGeneration): Boolean =
+        if (earlier.epoch == epoch) count > earlier.count else count >= 1
+
+    companion object {
+        /** Null for anything that isn't a well-formed stamp (an old row, a damaged value). */
+        fun decode(value: String?): AttachGeneration? {
+            val count = value?.substringBefore('@', "")?.toLongOrNull() ?: return null
+            val epoch = value.substringAfter('@', "")
+            if (epoch.isEmpty() || count < 0) return null
+            return AttachGeneration(epoch, count)
+        }
+    }
+}
+
+/**
+ * D4: watches one process's volume events (the app feeds it from StorageManager's volume callback) and counts,
+ * per volume UUID, how often a volume came back after being away. Pure state; thread-safe.
+ */
+class AttachTracker(private val epoch: String) {
+    private val away = HashSet<String>()
+    private val counts = HashMap<String, Long>()
+
+    /** A volume changed state: [mounted] = readable now; anything else (unmounted, ejecting, removed, checking…). */
+    @Synchronized
+    fun onState(volumeUuid: String, mounted: Boolean) {
+        val key = volumeUuid.lowercase(java.util.Locale.ROOT)
+        if (!mounted) {
+            away += key
+        } else if (away.remove(key)) {
+            counts[key] = (counts[key] ?: 0) + 1
+        }
+    }
+
+    @Synchronized
+    fun generation(volumeUuid: String): AttachGeneration =
+        AttachGeneration(epoch, counts[volumeUuid.lowercase(java.util.Locale.ROOT)] ?: 0)
+}
 
 data class MoveJob(
     val id: String,
@@ -127,6 +186,13 @@ data class MoveFile(
     val confirmedAt: Long? = null,
     /** M17b: how the copy was verified; null until it is (and for files verified before this was recorded). */
     val verifiedBy: VerifyMethod? = null,
+    /**
+     * D4: the boot in which this copy's first check ran. The second check may rely on a reboot only when it runs
+     * in another boot. Null for files verified before this was recorded (the job's [MoveJob.verifyBootId] is used).
+     */
+    val verifyBootId: String? = null,
+    /** D4: [AttachGeneration.encode] of the drive's volume when this copy was first checked; null if unknown. */
+    val verifyAttach: String? = null,
 ) {
     val tempRel: String get() = relTarget.substringBeforeLast('/') + "/.kc-tmp-$jobId-$index"
 }

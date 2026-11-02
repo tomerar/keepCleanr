@@ -190,6 +190,10 @@
         <item quantity="one">%1$s file is damaged or missing on the drive. It stays on the phone and will be copied again.</item>
         <item quantity="other">%1$s files are damaged or missing on the drive. They stay on the phone and will be copied again.</item>
     </plurals>
+    <plurals name="move_check_unproven">
+        <item quantity="one">%1$s file wasn\'t checked this time: the phone may still remember it from the copy. Unplug the drive, plug it back in and check again.</item>
+        <item quantity="other">%1$s files weren\'t checked this time: the phone may still remember them from the copy. Unplug the drive, plug it back in and check again.</item>
+    </plurals>
     <string name="move_check_timeout">The drive didn\'t come back. Nothing was changed. Try again when it\'s plugged in.</string>
     <string name="move_check_why">Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that.</string>
     <string name="move_check_close">Close</string>

@@ -148,6 +148,7 @@ class MoveEngineTest {
     fun `originals plan only has verified, unchanged files whose copy is present (MOVE-10)`(): Unit = runBlocking {
         val rig = Rig(files = 3)
         rig.engine().run(rig.newJob())
+        rig.reattach()
         rig.engine().confirm("job1", FreshRead.REATTACHED).ok shouldBe 3
         rig.fake.modify(rig.items[0].path, FakeStorageGateway.Content.Bytes(ByteArray(3)), mtime = 9)
         rig.fake.delete(KPath.Local("$USB/${rig.store.files.values.single { it.index == 1 }.relTarget}"))
@@ -183,6 +184,7 @@ class MoveEngineTest {
             rig.fake.fail(Op.OPEN_READ, matches = { it.toString().startsWith(USB) && ++reads > 1 }) {
                 StorageException.Disconnected(it)
             }
+            rig.reattach()
             val result = rig.engine().confirm("job1", FreshRead.REATTACHED)
             result.interrupted shouldBe true
             result.ok shouldBe 1
@@ -205,6 +207,7 @@ class MoveEngineTest {
             val original2 = rig.fake.readAllBytes(copy(2))
             val flipped = original2.copyOf().also { it[it.size / 2] = (it[it.size / 2].toInt() xor 1).toByte() }
             rig.fake.modify(copy(2), FakeStorageGateway.Content.Bytes(flipped), mtime = 7)
+            rig.reattach()
             val result = rig.engine().confirm("job1", FreshRead.REATTACHED)
             result.ok shouldBe 1
             result.missing shouldBe 1

@@ -56,6 +56,10 @@ data class MoveFileEntity(
     @ColumnInfo(defaultValue = "NULL") val confirmedAt: Long? = null,
     /** M17b: [io.github.tomerar.keepclear.engine.move.VerifyMethod] by name; null for older rows. */
     @ColumnInfo(defaultValue = "NULL") val verifiedBy: String? = null,
+    /** D4: boot of this file's first check; null for older rows (the job's boot id is used then). */
+    @ColumnInfo(defaultValue = "NULL") val verifyBootId: String? = null,
+    /** D4: the drive's attach generation at this file's first check; null for older rows (nothing proven). */
+    @ColumnInfo(defaultValue = "NULL") val verifyAttach: String? = null,
 )
 
 @Dao
@@ -152,6 +156,8 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
             reusedExisting = reusedExisting,
             confirmedAt = confirmedAt,
             verifiedBy = verifiedBy?.name,
+            verifyBootId = verifyBootId,
+            verifyAttach = verifyAttach,
         )
 
         fun MoveFileEntity.toFile(): MoveFile {
@@ -183,6 +189,9 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
                 } else {
                     null
                 },
+                // D4: where the first check ran; only meaningful for a file that is still VERIFIED.
+                verifyBootId = if (known == MoveFileState.VERIFIED) verifyBootId else null,
+                verifyAttach = if (known == MoveFileState.VERIFIED) verifyAttach else null,
             )
         }
 

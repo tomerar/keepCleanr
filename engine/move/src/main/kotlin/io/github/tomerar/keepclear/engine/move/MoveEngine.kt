@@ -36,6 +36,11 @@ class MoveEngine(
     private val cancelReason: () -> PauseReason = { PauseReason.PAUSED_BY_USER },
     /** Identifies this boot; the page cache doesn't survive a reboot (H1, [FreshRead.REBOOTED]). */
     private val bootId: () -> String = { "unknown-boot" },
+    /**
+     * D4: the target volume's [AttachGeneration] right now, from the app's volume events; null when unknown (no
+     * volume, a network target, events not watched). Recorded per file at the first check, compared at the second.
+     */
+    private val attachGeneration: () -> AttachGeneration? = { null },
 ) {
     suspend fun run(jobId: String): MoveJob {
         var job = store.job(jobId) ?: error("unknown job $jobId")
@@ -200,6 +205,9 @@ class MoveEngine(
                     failReason = null,
                     confirmedAt = if (byServer == true) clock() else null,
                     verifiedBy = if (byServer == true) VerifyMethod.SERVER_DIGEST else VerifyMethod.READ_BACK,
+                    // D4: when and on which mount of the drive this first check ran.
+                    verifyBootId = bootId(),
+                    verifyAttach = attachGeneration()?.encode(),
                 ),
             )
         }
@@ -407,33 +415,37 @@ class MoveEngine(
 
     /**
      * Second pass ("Check backup", MOVE-15; H1): re-reads every verified copy with a read that can't be served
-     * from the page cache, as attested by [evidence]. Matching copies become freeable; missing or damaged ones go
-     * back to "copy again" (never freed). [FreshRead.REBOOTED] is checked here against [bootId].
+     * from the page cache. Matching copies become freeable; missing or damaged ones go back to "copy again" (never
+     * freed). D4: for a drive on the phone the proof is checked here **per file**, never taken from [evidence]: the
+     * file's first check ran in another boot than now ([bootId]), or before an unmount → mount of this volume
+     * ([attachGeneration]). A file without proof is not read and stays unconfirmed ([CheckResult.unproven]).
      */
     suspend fun confirm(jobId: String, evidence: FreshRead): CheckResult {
         val job = store.job(jobId) ?: error("unknown job $jobId")
-        if (evidence == FreshRead.REBOOTED) {
-            check(job.verifyBootId == null || job.verifyBootId != bootId()) {
-                "same boot as the first check: the drive must be unplugged and plugged back in"
-            }
-        }
         if (evidence == FreshRead.NEW_SESSION) {
             // A drive on the phone may answer from the phone's own cache; only a network drive's reads are fresh.
             check(target.caps.readsFromServer) { "a new connection proves a fresh read only for a network drive" }
         }
+        val boot = bootId()
+        val attach = attachGeneration()
         var ok = 0
         var damaged = 0
         var missing = 0
+        var unproven = 0
         for (f in store.files(jobId).filter { it.state == MoveFileState.VERIFIED }) {
             currentCoroutineContext().ensureActive()
+            if (evidence != FreshRead.NEW_SESSION && !freshReadProven(f, job, boot, attach)) {
+                if (f.confirmedAt == null) unproven++
+                continue
+            }
             // Unplugged or access lost mid-check: stop, keep what was confirmed, touch nothing else.
             val read = try {
                 val stat = target.stat(f.relTarget)
                 stat to (if (stat?.size == f.sourceSize) readBackHash(f.relTarget) else null)
             } catch (e: Pause) {
-                return CheckResult(ok, damaged, missing, interrupted = true)
+                return CheckResult(ok, damaged, missing, interrupted = true, unproven = unproven)
             } catch (e: StorageException) {
-                if (pauseFor(e) != null) return CheckResult(ok, damaged, missing, interrupted = true)
+                if (pauseFor(e) != null) return CheckResult(ok, damaged, missing, interrupted = true, unproven = unproven)
                 throw e
             }
             val (stat, hash) = read
@@ -452,6 +464,8 @@ class MoveEngine(
                             confirmedAt = null,
                             verifiedAt = null,
                             verifiedBy = null,
+                            verifyBootId = null,
+                            verifyAttach = null,
                             attempts = 0,
                         ),
                     )
@@ -459,7 +473,33 @@ class MoveEngine(
             }
         }
         if (damaged + missing > 0) store.putJob(job.copy(state = JobState.READY))
-        return CheckResult(ok, damaged, missing)
+        return CheckResult(ok, damaged, missing, unproven = unproven)
+    }
+
+    /**
+     * D4: how many verified, not yet confirmed files have no proof right now that a read would come from the drive
+     * (0 = "Check backup" can read at once; otherwise the drive has to be unplugged and plugged back in first).
+     * Reads only the job store, never the target.
+     */
+    suspend fun unprovenNow(jobId: String): Int {
+        val job = store.job(jobId) ?: return 0
+        val boot = bootId()
+        val attach = attachGeneration()
+        return store.files(jobId).count {
+            it.state == MoveFileState.VERIFIED && it.confirmedAt == null && !freshReadProven(it, job, boot, attach)
+        }
+    }
+
+    /**
+     * D4: a read of [f] now can't come from the page cache: its first check ran in an earlier boot, or before the
+     * app saw this volume unmounted and mounted again. Files verified before the per-file record existed fall back
+     * to the job's boot (C54); without any record nothing is proven.
+     */
+    private fun freshReadProven(f: MoveFile, job: MoveJob, boot: String, attach: AttachGeneration?): Boolean {
+        val verifiedIn = f.verifyBootId ?: job.verifyBootId.takeIf { f.verifyAttach == null }
+        if (verifiedIn != null && verifiedIn != boot) return true
+        val then = AttachGeneration.decode(f.verifyAttach) ?: return false
+        return attach != null && attach.reattachedSince(then)
     }
 
     private companion object {
