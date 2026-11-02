@@ -11,20 +11,20 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-590 Hebrew strings; 136 new since the last review (78 new, 58 changed).
+604 Hebrew strings; 162 new since the last review (96 new, 66 changed).
 
 ## Contents
 
 - [Intro and permissions](#intro-and-permissions) (39, 6 new since last review)
 - [Top app bar and tabs](#top-app-bar-and-tabs) (5, 3 new since last review)
-- [Home](#home) (38, 8 new since last review)
-- [Clean now](#clean-now) (24, 7 new since last review)
+- [Home](#home) (39, 14 new since last review)
+- [Clean now](#clean-now) (35, 18 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (32, 4 new since last review)
 - [Swipe review](#swipe-review) (17, 9 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (184, 55 new since last review)
-- [Trash](#trash) (46, 8 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (184, 57 new since last review)
+- [Trash](#trash) (47, 14 new since last review)
 - [Apps](#apps) (31, 4 new since last review)
-- [Settings](#settings) (39, 12 new since last review)
+- [Settings](#settings) (40, 13 new since last review)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25, 10 new since last review)
 - [Notifications](#notifications) (4, 1 new since last review)
 - [Device check (test builds)](#device-check-test-builds) (9, 1 new since last review)
@@ -89,16 +89,12 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 
 | Key | English | עברית | Also | Status |
 |---|---|---|---|---|
-| `area_camera` | Camera | מצלמה |  | reviewed |
-| `area_junk` | Junk | קבצים מיותרים |  | reviewed |
-| `area_other` | Other | אחר |  | reviewed |
 | `area_value` | %1$s %2$s | %1$s %2$s |  | **new** (new since last review) |
-| `area_whatsapp` | WhatsApp | וואטסאפ |  | reviewed |
 | `cloned_hidden_body` | KeepClear can't see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app. | ל-KeepClear אין גישה לקבצים של אפליקציות משוכפלות (אפליקציות מקבילות או אפליקציות כפולות). אפשר לנקות אותם בתוך כל אפליקציה משוכפלת. | Apps | reviewed |
 | `cloned_hidden_button` | Open phone settings | לפתוח את הגדרות הטלפון |  | reviewed |
 | `cloned_hidden_title` | Cloned apps | אפליקציות משוכפלות |  | reviewed |
-| `debug_toggle_rtl` | Flip layout direction (debug) | להפוך את כיוון המסך (דיבאג) |  | reviewed |
-| `file_count` | [one] %s file / [other] %s files | [one] קובץ אחד / [two] %s קבצים / [other] %s קבצים | Clean now, Review (categories, groups, item preview), Trash | reviewed |
+| `debug_toggle_rtl` | Debug: flip layout direction | דיבאג: להפוך את כיוון המסך |  | **changed** (new since last review) |
+| `file_count` | [one] %s file / [other] %s files | [one] קובץ אחד / [two] %s קבצים / [other] %s קבצים | Clean now, Review (categories, groups, item preview), Move to backup and restore, Trash | reviewed |
 | `home_busy` | Working on it… | KeepClear עובד על זה… |  | **new** (new since last review) |
 | `home_card_counting` | Counting… | סופרים… | Move to backup and restore | reviewed |
 | `home_card_needs_access` | Needs access | צריך גישה |  | reviewed |
@@ -122,6 +118,11 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `scan_incomplete` | Scan stopped because access was removed. These numbers are incomplete. | הסריקה נעצרה כי הגישה הוסרה. המספרים האלה חלקיים. |  | reviewed |
 | `scan_status_done` | Scanned %1$s · %2$s | נסרקו %1$s · %2$s |  | reviewed |
 | `scan_status_running` | Counting files… %1$s so far | סופרים קבצים… %1$s עד עכשיו |  | reviewed |
+| `strip_legend_free` | Free | פנוי |  | **new** (new since last review) |
+| `strip_legend_move` | Back up | לגבות |  | **new** (new since last review) |
+| `strip_legend_other` | Other | אחר |  | **new** (new since last review) |
+| `strip_legend_review` | Choose | לבחור |  | **new** (new since last review) |
+| `strip_legend_safe` | Clean | לנקות |  | **new** (new since last review) |
 | `trim_body` | Android deletes temporary files that apps download again by themselves. | אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן. | Clean now | reviewed |
 | `trim_button` | Clear temporary files | לנקות קבצים זמניים | Clean now | reviewed |
 | `trim_result` | Android freed %1$s. | אנדרואיד פינה %1$s. | Clean now | reviewed |
@@ -136,24 +137,35 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `android_trash_declined` | Nothing changed: the request was declined in Android's window. | שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד. |  | reviewed |
 | `android_trash_done` | %1$s moved to Android's trash. Android deletes them after 30 days; until then you can put them back from KeepClear's trash. | %1$s הועברו לסל המחזור של אנדרואיד. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר להחזיר אותם מסל המחזור של KeepClear. |  | reviewed |
 | `clean_button` | Clean %1$s | לנקות %1$s |  | reviewed |
+| `clean_confirm_for_good_bins` | Files from other apps' bins will be deleted for good: they were already deleted once, so they can't be put back. | קבצים מסלי מחזור של אפליקציות אחרות יימחקו לצמיתות: הם כבר נמחקו פעם אחת, אי אפשר יהיה להחזיר אותם. |  | **new** (new since last review) |
+| `clean_confirm_for_good_rebuilds` | Thumbnails, temporary files and old statuses will be deleted for good: they rebuild themselves. | תמונות ממוזערות, קבצים זמניים וסטטוסים ישנים יימחקו לצמיתות: הם נבנים מחדש לבד. |  | **new** (new since last review) |
 | `clean_confirm_note` | For 30 days you can put everything back from the trash. | במשך 30 יום אפשר להחזיר הכול מסל המחזור. |  | **new** (new since last review) |
+| `clean_confirm_note_rest` | Everything else can be put back from the trash for 30 days. | את כל השאר אפשר להחזיר מסל המחזור במשך 30 יום. |  | **new** (new since last review) |
 | `clean_confirm_title` | Clean %1$s? | לנקות %1$s? |  | reviewed |
-| `clean_confirm_yes` | Move to trash | להעביר לסל המחזור | Review (categories, groups, item preview) | reviewed |
+| `clean_confirm_yes` | Move to trash | להעביר לסל המחזור |  | reviewed |
+| `clean_confirm_yes_now` | Clean now | לנקות עכשיו |  | **new** (new since last review) |
+| `clean_deleted_for_good` | %1$s deleted for good. | %1$s נמחקו לצמיתות. |  | **new** (new since last review) |
 | `clean_done` | Done. %1$s moved to the trash. | בוצע. %1$s הועברו לסל המחזור. |  | reviewed |
 | `clean_done_space` | The space comes back to the phone on %1$s. Need it now? | המקום יחזור לטלפון ב-%1$s. צריך אותו עכשיו? | Move to backup and restore | reviewed |
 | `clean_empty_now` | Empty now | לרוקן עכשיו | Move to backup and restore | reviewed |
+| `clean_in_trash` | %1$s in the trash, freed on %2$s | %1$s בסל, יתפנו ב-%2$s |  | **new** (new since last review) |
 | `clean_selected` | Selected: %1$s | נבחרו: %1$s |  | reviewed |
 | `clean_skipped` | [one] %1$s file changed since the scan, so we left it alone. / [other] %1$s files changed since the scan, so we left them alone. | [one] קובץ אחד השתנה מאז הסריקה, ולכן לא נגענו בו. / [two] שני קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. / [other] %1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. |  | reviewed |
 | `clean_skipped_protected` | [one] %1$s file is protected (chats, a backup, or something you kept), so we left it alone. / [other] %1$s files are protected (chats, a backup, or something you kept), so we left them alone. | [one] קובץ אחד מוגן (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בו. / [two] שני קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. / [other] %1$s קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. |  | **new** (new since last review) |
 | `clean_title` | Clean now | לנקות עכשיו |  | reviewed |
 | `clean_undo` | Put it all back | להחזיר הכול |  | reviewed |
+| `confirm_fact_for_good` | Deleted for good now | יימחקו לצמיתות עכשיו |  | **new** (new since last review) |
 | `confirm_fact_how_many` | How many | כמה |  | **new** (new since last review) |
 | `confirm_fact_how_much` | How much space | כמה מקום |  | **new** (new since last review) |
+| `confirm_fact_to_trash` | To KeepClear's trash, for 30 days | לסל המחזור של KeepClear, ל-30 יום |  | **new** (new since last review) |
 | `confirm_fact_where` | Where it goes | לאן |  | **new** (new since last review) |
-| `confirm_where_trash` | To KeepClear's trash, for 30 days | לסל המחזור של KeepClear, ל-30 יום | Review (categories, groups, item preview), Move to backup and restore | **new** (new since last review) |
+| `confirm_part_value` | %1$s · %2$s | %1$s · %2$s |  | **new** (new since last review) |
+| `confirm_where_for_good` | Deleted for good, now | יימחקו לצמיתות, עכשיו |  | **new** (new since last review) |
+| `confirm_where_trash` | To KeepClear's trash, for 30 days | לסל המחזור של KeepClear, ל-30 יום | Move to backup and restore | **new** (new since last review) |
 | `confirm_where_trim` | Android deletes them; apps download them again when needed | אנדרואיד מוחק אותם, והאפליקציות מורידות אותם שוב כשצריך |  | **new** (new since last review) |
 | `obscured_touch_hint` | Something is covering the screen, so the tap was ignored. Close other apps' bubbles or overlays and try again. | משהו מכסה את המסך, ולכן הלחיצה לא נקלטה. אפשר לסגור בועות או חלונות של אפליקציות אחרות ולנסות שוב. |  | reviewed |
 | `result_freed` | Freed %1$s · now %2$s free (was %3$s) | פונו %1$s · עכשיו פנויים %2$s (היו %3$s) |  | reviewed |
+| `result_freed_now` | Freed %1$s · now %2$s free | פונו %1$s · עכשיו פנויים %2$s |  | **new** (new since last review) |
 | `trim_confirm_body` | Android will delete temporary files that apps download again by themselves, so the trash isn't needed. | אנדרואיד ימחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן, ולכן אין צורך בסל המחזור. |  | reviewed |
 | `trim_external_button` | Clear apps' external temporary files | לנקות קבצים זמניים חיצוניים של אפליקציות |  | reviewed |
 
@@ -249,7 +261,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_check_why` | Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that. | למה: מיד אחרי ההעתקה הטלפון עשוי לענות מהזיכרון שלו ולא מהכונן. ניתוק וחיבור מחדש מנקים את זה. |  | reviewed |
 | `move_continue` | Continue | להמשיך |  | reviewed |
 | `move_favourites_note` | Favourites are never included. | מועדפים אף פעם לא נכללים. |  | reviewed |
-| `move_free_button` | Free up the space now (%1$s) | לפנות את המקום עכשיו (%1$s) |  | reviewed |
+| `move_free_button` | Free up %1$s from the phone | לפנות %1$s מהטלפון |  | **changed** (new since last review) |
 | `move_free_confirm_body` | %1$s will move to KeepClear's trash. Each one is checked against its copy on the drive first. You can restore them for 30 days. | %1$s יעברו לסל המחזור של KeepClear. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום. |  | reviewed |
 | `move_free_confirm_title` | Free space on the phone? | לפנות מקום בטלפון? |  | reviewed |
 | `move_free_confirm_yes` | Move to the trash | להעביר לסל המחזור |  | reviewed |
@@ -282,12 +294,12 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_network_not_accepted` | KeepClear can't use these details. Check the address and the folder name. | KeepClear לא יכול להשתמש בפרטים האלה. כדאי לבדוק את הכתובת ואת שם התיקייה. |  | **new** (new since last review) |
 | `move_network_option` | Back up to a computer at home (over Wi-Fi) | לגבות למחשב בבית (דרך ה-Wi-Fi) | Settings | **changed** (new since last review) |
 | `move_network_password` | Password | סיסמה |  | reviewed |
-| `move_network_saved_option` | Use the computer at home (%1$s) | להשתמש במחשב בבית (%1$s) |  | **new** (new since last review) |
+| `move_network_saved_option` | Use the computer at home: %1$s | להשתמש במחשב בבית: %1$s |  | **new** (new since last review) |
 | `move_network_share` | Shared folder name | שם התיקייה המשותפת |  | reviewed |
 | `move_network_this_phone` | That's this phone's own address. Type the address of the computer at home. | זו הכתובת של הטלפון הזה. צריך להקליד את הכתובת של המחשב בבית. |  | **new** (new since last review) |
 | `move_network_title` | Network drive | כונן רשת |  | reviewed |
 | `move_network_user` | User name (leave empty for guest) | שם משתמש (ריק לגישת אורח) |  | reviewed |
-| `move_nextcloud_option` | Use your Nextcloud (%1$s) | להשתמש ב-Nextcloud (%1$s) |  | reviewed |
+| `move_nextcloud_option` | Use your Nextcloud: %1$s | להשתמש ב-Nextcloud: %1$s |  | **changed** (new since last review) |
 | `move_notif_allow` | Allow notifications | לאשר התראות |  | reviewed |
 | `move_notif_body` | So you can see backup progress and get told when it's done or needs you. | כדי לראות את התקדמות הגיבוי ולקבל הודעה כשהוא מסתיים או צריך אתכם. |  | reviewed |
 | `move_notif_skip` | Not now | לא עכשיו |  | reviewed |
@@ -367,7 +379,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `restore_done` | [one] %1$s file restored and checked / [other] %1$s files restored and checked | [one] קובץ אחד שוחזר ונבדק / [two] %1$s קבצים שוחזרו ונבדקו / [other] %1$s קבצים שוחזרו ונבדקו |  | **changed** (new since last review) |
 | `restore_failed` | [one] %1$s could not be restored / [other] %1$s could not be restored | [one] %1$s לא שוחזר / [two] %1$s לא שוחזרו / [other] %1$s לא שוחזרו |  | reviewed |
 | `restore_fit` | Choose only what fits | לבחור רק מה שנכנס |  | **new** (new since last review) |
-| `restore_from_nextcloud` | Use your Nextcloud (%1$s) | להשתמש ב-Nextcloud (%1$s) |  | **changed** (new since last review) |
+| `restore_from_nextcloud` | Use your Nextcloud: %1$s | להשתמש ב-Nextcloud: %1$s |  | **changed** (new since last review) |
 | `restore_group_camera` | Camera photos | תמונות מהמצלמה |  | **new** (new since last review) |
 | `restore_group_label` | %1$s · %2$s | %1$s · %2$s |  | **new** (new since last review) |
 | `restore_group_other` | Other files | קבצים אחרים |  | **new** (new since last review) |
@@ -430,17 +442,18 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `trash_confirm_release_title` | Free %1$s now? | לפנות עכשיו %1$s? |  | reviewed |
 | `trash_confirm_release_yes` | Free now | לפנות עכשיו |  | reviewed |
 | `trash_days_left` | [one] 1 day left / [other] %s days left | [one] עוד יום אחד / [two] עוד יומיים / [other] עוד %s ימים |  | **new** (new since last review) |
-| `trash_empty_now` | Empty trash now | לרוקן את סל המחזור |  | reviewed |
+| `trash_empty_now` | Empty the trash | לרוקן את הסל |  | **changed** (new since last review) |
 | `trash_empty_state` | The trash is empty. | סל המחזור ריק. |  | reviewed |
+| `trash_from_gallery_bin` | From the gallery's bin | מסל הגלריה |  | **new** (new since last review) |
 | `trash_group_android` | In Android's trash (photos and videos) | בסל המחזור של אנדרואיד (תמונות וסרטונים) |  | reviewed |
 | `trash_group_clean` | Cleaned junk | קבצים מיותרים שנוקו |  | reviewed |
 | `trash_group_move` | Backed up and freed | גובו ופונו מהטלפון |  | reviewed |
 | `trash_group_other` | Other | אחר |  | reviewed |
 | `trash_group_review` | Chosen by you | קבצים שבחרתם למחוק |  | reviewed |
-| `trash_hide_files` | Hide files | להסתיר את הקבצים |  | reviewed |
-| `trash_release_all` | Free everything that has a checked copy (%1$s) | לפנות את כל מה שיש לו עותק שנבדק (%1$s) |  | reviewed |
+| `trash_hide_files` | Hide the list | להסתיר את הרשימה |  | **changed** (new since last review) |
+| `trash_release_all` | Free what has a checked copy | לפנות עותקים שנבדקו |  | **changed** (new since last review) |
 | `trash_release_held_back` | [one] %1$s file stayed in the trash: KeepClear couldn't confirm just now that its backup copy is intact. Connect the backup place and try again. / [other] %1$s files stayed in the trash: KeepClear couldn't confirm just now that their backup copies are intact. Connect the backup place and try again. | [one] קובץ אחד נשאר בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותק שלו בגיבוי שלם. אפשר לחבר את מקום הגיבוי ולנסות שוב. / [two] שני קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב. / [other] %1$s קבצים נשארו בסל המחזור: KeepClear לא הצליח לוודא עכשיו שהעותקים שלהם בגיבוי שלמים. אפשר לחבר את מקום הגיבוי ולנסות שוב. |  | **new** (new since last review) |
-| `trash_release_now` | Free now (a checked copy exists) | לפנות עכשיו (יש עותק שנבדק) |  | reviewed |
+| `trash_release_now` | Free now | לפנות עכשיו |  | **changed** (new since last review) |
 | `trash_restore` | Restore | לשחזר |  | reviewed |
 | `trash_restore_all` | Restore all | לשחזר הכול |  | reviewed |
 | `trash_restore_all_body` | They go back where they were. This uses no extra space: the files are already on the phone. | הם יחזרו למקום שבו היו. זה לא דורש מקום נוסף: הקבצים כבר בטלפון. |  | reviewed |
@@ -450,8 +463,8 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `trash_restore_changed_title` | Restore a changed file? | לשחזר קובץ שהשתנה? |  | reviewed |
 | `trash_restore_group` | Restore this group | לשחזר את הקבוצה |  | reviewed |
 | `trash_restore_to` | Will be restored to %1$s | ישוחזר אל %1$s |  | reviewed |
-| `trash_show_files` | Show files | להציג את הקבצים |  | reviewed |
-| `trash_summary` | %1$s · each item is deleted for good 30 days after it came here, and its space comes back then. You can also empty now. | %1$s · כל פריט יימחק לצמיתות 30 יום אחרי שהגיע לכאן, ואז המקום שלו יתפנה. אפשר גם לרוקן עכשיו. |  | **changed** (new since last review) |
+| `trash_show_files` | Show the list | להציג את הרשימה |  | **changed** (new since last review) |
+| `trash_summary` | %1$s · deleted for good after 30 days | %1$s · נמחקים לצמיתות אחרי 30 יום |  | **changed** (new since last review) |
 | `trash_title` | Trash | סל המחזור |  | reviewed |
 | `trash_uninstall_note` | If you uninstall KeepClear, what is in the trash (%1$s) stays on the phone and takes space. Empty or restore it first. | אם מסירים את KeepClear, מה שבסל (%1$s) נשאר בטלפון ותופס מקום. כדאי לרוקן או לשחזר קודם. | Settings | **changed** (new since last review) |
 | `trash_verified_copy` | Checked copy on %1$s | עותק שנבדק נמצא ב-%1$s |  | reviewed |
@@ -534,6 +547,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `test_mode_off_title2` | Really turn off trial mode? | לכבות את מצב הניסיון? |  | reviewed |
 | `test_mode_title` | Trial mode | מצב ניסיון |  | reviewed |
 | `test_mode_uninstall_blocked` | Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android's Settings › Apps. | מצב ניסיון: שום אפליקציה לא מוסרת. כדי להסיר את האפליקציה הזאת, אפשר לכבות את מצב הניסיון בהגדרות › מתקדם, או להשתמש בהגדרות › אפליקציות של אנדרואיד. | Apps | reviewed |
+| `test_mode_would_delete_for_good` | Of these, %1$s would have been deleted for good. | מתוכם %1$s היו נמחקים לצמיתות. | Clean now | **new** (new since last review) |
 | `test_mode_would_free` | Would have freed %1$s (trial mode). Nothing was deleted or moved. | היה מתפנה %1$s (מצב ניסיון). שום דבר לא נמחק ולא הועבר. | Clean now, Move to backup and restore | reviewed |
 
 ## Nextcloud set-up (Settings › Advanced)
