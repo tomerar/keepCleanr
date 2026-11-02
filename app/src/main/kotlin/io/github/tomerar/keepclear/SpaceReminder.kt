@@ -39,8 +39,8 @@ object ReminderPolicy {
 /** What the reminder needs, kept on the phone: the switch, when it last showed, and the last scan's junk total. */
 class ReminderPrefs(private val prefs: SharedPreferences) {
     var enabled: Boolean
-        get() = prefs.getBoolean(ENABLED, false)
-        set(value) = prefs.edit(commit = true) { putBoolean(ENABLED, value) }
+        get() = MainThreadPolicy.settings { prefs.getBoolean(ENABLED, false) }
+        set(value) = MainThreadPolicy.settings { prefs.edit(commit = true) { putBoolean(ENABLED, value) } }
 
     var lastShownAt: Long
         get() = prefs.getLong(LAST, 0)

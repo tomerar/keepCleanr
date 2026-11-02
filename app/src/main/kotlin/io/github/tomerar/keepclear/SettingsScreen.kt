@@ -380,11 +380,13 @@ object Onboarding {
     private const val PREFS = "onboarding"
     private const val KEY = "introSeen"
 
-    fun seen(context: android.content.Context): Boolean =
+    fun seen(context: android.content.Context): Boolean = MainThreadPolicy.settings {
         context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).getBoolean(KEY, false)
+    }
 
-    fun setSeen(context: android.content.Context, value: Boolean) =
+    fun setSeen(context: android.content.Context, value: Boolean) = MainThreadPolicy.settings {
         context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit(commit = true) {
             putBoolean(KEY, value)
         }
+    }
 }
