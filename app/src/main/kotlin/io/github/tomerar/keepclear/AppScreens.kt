@@ -171,7 +171,7 @@ private fun BackupTab(
         summary = state.summary,
         // E7: only this screen reads the MOVE state, so progress doesn't recompose the others.
         state = moveFlow?.let { flow -> flow.collectAsStateWithLifecycle().value } ?: moveValue,
-        now = System.currentTimeMillis(),
+        now = LocalClock.current(),
         notificationsOff = notificationsOff,
         // Every action is forwarded (a field-by-field copy once dropped "Check backup").
         actions = moveActions.withOpenGroup {
@@ -334,7 +334,7 @@ private fun CurrentScreen(
         Screen.Apps -> {
             AppsScreen(
                 state.appsInfo,
-                System.currentTimeMillis(),
+                LocalClock.current(),
                 appsActions,
                 loading = !state.appsLoaded,
                 onBack = onBack.takeIf { state.screens.size > 1 },

@@ -355,11 +355,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
         }
     }
     items(groups, key = { it.ruleId }) { group ->
-        val groupTotal = remember(summary, group.ruleId, age) {
-            moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
-        }
+        // F3: the count, the pictures and the "+N" all describe the same files: those of the chosen age.
+        val chosen = remember(summary, group.ruleId, age) { moveSelection(summary, setOf(group.ruleId), age, now) }
+        val groupTotal = remember(chosen) { chosen.fold(Total()) { t, i -> t + i } }
         val checked = group.ruleId in selected
-        val thumbs = rememberThumbPainters(group.items)
+        val thumbs = rememberThumbPainters(chosen)
         KcCard {
             // F2 (a11y): checkbox and label are one toggleable target (TalkBack: one checkbox with its name).
             Row(
@@ -376,7 +376,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
                     Text(totalText(groupTotal), style = KeepClearTheme.type.number)
                 }
             }
-            if (thumbs.isNotEmpty()) ThumbStrip(thumbs, Modifier.padding(top = 8.dp), total = group.total.files)
+            if (thumbs.isNotEmpty()) ThumbStrip(thumbs, Modifier.padding(top = 8.dp), total = groupTotal.files)
             KcButton(
                 stringResource(R.string.move_view),
                 onClick = { actions.onOpenGroup(group.ruleId) },
@@ -499,11 +499,15 @@ private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit) {
     }
 }
 
+/** The clock for times and dates worked out on screen; the screenshot tests pin it so the images never drift (F3). */
+val LocalClock = androidx.compose.runtime.staticCompositionLocalOf<() -> Long> { { System.currentTimeMillis() } }
+
 /** When something trashed now is purged (TRASH-2), for "the space comes back on …". */
 @Composable
 fun trashDate(): String {
     val locale = LocalConfiguration.current.locales[0]
-    val date = java.time.LocalDate.now().plusDays(30)
+    val date = java.time.Instant.ofEpochMilli(LocalClock.current()).atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate().plusDays(30)
     val format = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
     return Bidi.isolate(date.format(format.withLocale(locale)))
 }
