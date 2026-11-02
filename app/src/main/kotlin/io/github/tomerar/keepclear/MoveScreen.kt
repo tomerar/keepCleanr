@@ -139,9 +139,12 @@ fun MoveScreen(
     var guide by remember { mutableStateOf(false) }
     var network by remember { mutableStateOf(false) }
     var confirmStop by remember { mutableStateOf(false) }
-    val items = moveSelection(summary, selected, age, now)
-    val total = items.fold(Total()) { t, i -> t + i }
+    // E13: worked out when the choice changes, not on every recomposition (thousands of files).
+    val items = remember(summary, selected, age) { moveSelection(summary, selected, age, now) }
+    val total = remember(items) { items.fold(Total()) { t, i -> t + i } }
     val busy = state.running != null
+    // E3: a free, check or restore runs in the background; nothing else starts meanwhile.
+    val taskRunning = state.task != null
 
     Scaffold { padding ->
         LazyColumn(
@@ -154,6 +157,7 @@ fun MoveScreen(
                 item { Text(stringResource(R.string.move_notif_warning), modifier = Modifier.testTag("notifWarning")) }
             }
             state.problem?.let { problem -> item { ProblemCard(problem) } }
+            state.task?.let { task -> item { TaskProgressText(task) } }
             state.freeResult?.let { r -> item { FreeResultCard(r, actions.onOpenTrash) } }
             state.check?.let { check ->
                 val label = state.jobs.firstOrNull { it.job.id == check.jobId }?.job?.targetLabel.orEmpty()
@@ -164,7 +168,7 @@ fun MoveScreen(
                     JobCard(
                         latest,
                         running = state.running == latest.job.id,
-                        canResume = !busy,
+                        canResume = !busy && !taskRunning,
                         actions = actions,
                         onFree = { confirmFree = latest },
                         onStop = { confirmStop = true },
@@ -186,7 +190,9 @@ fun MoveScreen(
                 Text(stringResource(R.string.move_favourites_note), style = MaterialTheme.typography.bodySmall)
             }
             items(groups, key = { it.ruleId }) { group ->
-                val groupTotal = moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
+                val groupTotal = remember(summary, group.ruleId, age) {
+                    moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Checkbox(
                         checked = group.ruleId in selected,
@@ -212,7 +218,7 @@ fun MoveScreen(
                 )
                 Button(
                     onClick = { guide = true },
-                    enabled = items.isNotEmpty() && !busy && !state.busy,
+                    enabled = items.isNotEmpty() && !busy && !state.busy && !taskRunning,
                     modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
                 ) { Text(stringResource(R.string.move_pick_target)) }
             }
@@ -221,7 +227,7 @@ fun MoveScreen(
             item {
                 androidx.compose.material3.OutlinedButton(
                     onClick = actions.restore.onStart,
-                    enabled = !state.busy,
+                    enabled = !state.busy && !taskRunning,
                     modifier = Modifier.fillMaxWidth().testTag("restoreStart"),
                 ) { Text(stringResource(R.string.restore_start)) }
             }
@@ -232,7 +238,7 @@ fun MoveScreen(
                     JobCard(
                         view,
                         running = state.running == view.job.id,
-                        canResume = !busy,
+                        canResume = !busy && !taskRunning,
                         actions = actions,
                         onFree = { confirmFree = view },
                         onStop = { confirmStop = true },
@@ -948,4 +954,22 @@ internal fun NetworkDriveDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
     )
+}
+
+/** E3: what runs in the background right now, and how far it got. */
+@Composable
+internal fun TaskProgressText(task: TaskProgress) {
+    val title = stringResource(
+        when (task.kind) {
+            TaskKind.FREE -> R.string.task_notification_free
+            TaskKind.CHECK -> R.string.task_notification_check
+            TaskKind.RESTORE -> R.string.task_notification_restore
+        },
+    )
+    val line = if (task.total > 0) {
+        "$title " + pluralStringResource(R.plurals.task_progress, task.total, task.done, task.total)
+    } else {
+        title
+    }
+    Text(line, modifier = Modifier.testTag("taskProgress"))
 }

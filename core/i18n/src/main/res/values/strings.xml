@@ -259,6 +259,14 @@
     <string name="move_notification_progress">Checked: %1$d of %2$d</string>
     <string name="move_notification_paused">The backup is paused. Open KeepClear to continue.</string>
     <string name="move_notification_updated">Backup paused by an app update. Tap to continue.</string>
+    <!-- E3: free / check / restore keep running after leaving the app (foreground notification). -->
+    <string name="task_notification_free">Freeing up space…</string>
+    <string name="task_notification_check">Checking your backup…</string>
+    <string name="task_notification_restore">Restoring files…</string>
+    <plurals name="task_progress">
+        <item quantity="one">%1$d of %2$d file</item>
+        <item quantity="other">%1$d of %2$d files</item>
+    </plurals>
     <string name="move_receipt_text">KeepClear backup summary\nDrive: %1$s\nFolder: %2$s\nFiles copied and checked: %3$d (%4$s)\nFiles skipped or not copied: %5$d\nThe copy is not encrypted.</string>
     <string name="test_mode_banner">Trial mode – no file will be deleted or moved</string>
     <string name="test_mode_would_free">Would have freed %1$s (trial mode). Nothing was deleted or moved.</string>
