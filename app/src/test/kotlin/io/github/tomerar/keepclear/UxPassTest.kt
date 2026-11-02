@@ -2,6 +2,7 @@
 package io.github.tomerar.keepclear
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -235,6 +236,14 @@ class UxPassTest {
         compose.onNodeWithTag("stop").performClick()
         assertEquals(0, stopped)
         compose.onNodeWithTag("keepGoing").assertExists()
+        // PR #48 review: one Stop button in the sheet, under Keep going (not stacked on it), and it stops.
+        val stopLabel = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getString(R.string.move_stop_confirm_yes)
+        // The screen's own Stop (tag "stop") stays behind the sheet; the sheet itself has exactly one.
+        compose.onAllNodes(androidx.compose.ui.test.hasText(stopLabel) and !hasTestTag("stop")).assertCountEquals(1)
+        val keep = compose.onNodeWithTag("keepGoing").fetchSemanticsNode().boundsInRoot
+        val stop = compose.onNodeWithTag("confirmStop").fetchSemanticsNode().boundsInRoot
+        assertTrue("Stop sits under Keep going", stop.top >= keep.bottom)
         compose.onNodeWithTag("confirmStop").performClick()
         assertEquals(1, stopped)
     }

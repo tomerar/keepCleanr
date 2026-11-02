@@ -173,6 +173,8 @@ fun GroupScreen(
     onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
     /** E4: the selection and one-by-one decisions, held by the ViewModel; null keeps them here (tests). */
     selection: GroupSelection? = null,
+    /** PR #48 review: the result's "Empty now" opens the Trash, where emptying is confirmed separately. */
+    onOpenTrash: () -> Unit = {},
 ) {
     val text = RuleText.of(group.ruleId)
     // SAFE-9: other apps' own folders are never selectable for deletion here.
@@ -222,7 +224,12 @@ fun GroupScreen(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     result?.let { r ->
-                        CleanResultBanner(r, onUndo, onOpenTrash = {}, modifier = Modifier.testTag("deleteResult"))
+                        CleanResultBanner(
+                            r,
+                            onUndo,
+                            onOpenTrash = onOpenTrash,
+                            modifier = Modifier.testTag("deleteResult"),
+                        )
                     }
                     Text(totalText(group.total), style = KeepClearTheme.type.number)
                     // F2: "Why is this here?" opens a sheet; no wall of text above the pictures.

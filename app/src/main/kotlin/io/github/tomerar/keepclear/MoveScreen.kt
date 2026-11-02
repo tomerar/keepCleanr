@@ -285,22 +285,19 @@ fun MoveScreen(
         ConfirmSheet(
             title = stringResource(R.string.move_stop_confirm_title),
             dismissText = stringResource(R.string.move_stop_confirm_yes),
+            // Back or a tap outside keeps going; only the Stop button stops (PR #48 review: one Stop, and it stops).
             onDismiss = { confirmStop = false },
+            dismissAction = {
+                confirmStop = false
+                actions.onStop()
+            },
+            dismissModifier = Modifier.testTag("confirmStop"),
             note = stringResource(R.string.move_stop_confirm_body),
             confirmButton = {
                 KcButton(
                     stringResource(R.string.move_keep_going),
                     onClick = { confirmStop = false },
                     modifier = Modifier.fillMaxWidth().testTag("keepGoing"),
-                )
-                KcButton(
-                    stringResource(R.string.move_stop_confirm_yes),
-                    onClick = {
-                        confirmStop = false
-                        actions.onStop()
-                    },
-                    style = KcButtonStyle.Text,
-                    modifier = Modifier.fillMaxWidth().testTag("confirmStop"),
                 )
             },
         )

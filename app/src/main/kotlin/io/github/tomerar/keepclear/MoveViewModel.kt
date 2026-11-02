@@ -262,10 +262,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     /** MOVE-2: the user picked a folder or drive; check it and run the pre-flight for [pendingItems]. */
     fun onTreePicked(uri: Uri) {
         if (_state.value.restore == RestoreStep.Pick) {
-            restoreLoading()
+            val load = restoreLoading()
             viewModelScope.launch {
                 val label = withContext(Dispatchers.IO) { treeLabel(uri) }
-                restoreFrom(withContext(Dispatchers.IO) { OpenedTarget.of(app.openTarget(uri, label)) })
+                restoreFrom(load, withContext(Dispatchers.IO) { OpenedTarget.of(app.openTarget(uri, label)) })
             }
             return
         }
@@ -290,11 +290,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation) {
         if (_state.value.restore == RestoreStep.Pick) {
-            restoreLoading()
+            val load = restoreLoading()
             viewModelScope.launch {
                 val check = withContext(Dispatchers.IO) { app.openNetworkDrive(location, location.host) }
                 if (check is OpenedTarget.Ok) withContext(Dispatchers.IO) { app.networkDrives.save(location) }
-                restoreFrom(check)
+                restoreFrom(load, check)
             }
             return
         }
@@ -323,7 +323,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             fail(TargetProblem.SELECTION_LOST)
             return
         }
-        if (restoring) restoreLoading()
+        val load = if (restoring) restoreLoading() else RestoreLoads.NONE
         viewModelScope.launch {
             if (!restoring) _state.update { it.copy(busy = true, picked = null, problem = null) }
             val account = withContext(Dispatchers.IO) { runCatching { app.nextcloud.load() }.getOrNull() }
@@ -335,7 +335,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             val label = account.server.host
             val check = withContext(Dispatchers.IO) { app.openNextcloud(account, label) }
             if (restoring) {
-                restoreFrom(check, nextcloud = true)
+                restoreFrom(load, check, nextcloud = true)
             } else {
                 opened(check, label, NextcloudStore.ref(account), items)
             }
@@ -531,27 +531,36 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         restoreTarget = null
         restoreEngine = null
         restoreEntries = emptyList()
+        restoreLoads.end()
         controller.results.update { it.copy(restore = null) }
         _state.update { it.copy(restore = null) }
     }
 
-    /** F2: the backup is being opened or read; the dialog shows progress and Cancel. */
-    private fun restoreLoading() = _state.update { it.copy(restore = RestoreStep.Loading) }
+    /** PR #48 review: each load belongs to the restore flow that started it; a late one never shows in a newer flow. */
+    private val restoreLoads = RestoreLoads()
 
-    /** F2: true while the flow still waits for what is loading (Cancel closes it; a late result is dropped). */
-    private val restoreWaiting: Boolean get() = _state.value.restore == RestoreStep.Loading
+    /** F2: the backup is being opened or read; the dialog shows progress and Cancel. Returns this load's token. */
+    private fun restoreLoading(): Int {
+        _state.update { it.copy(restore = RestoreStep.Loading) }
+        return restoreLoads.begin()
+    }
 
-    /** Shows [step] only if the flow still waits for it. */
-    private fun restoreLoaded(step: RestoreStep) =
-        _state.update { if (it.restore == RestoreStep.Loading) it.copy(restore = step) else it }
+    /** F2: true while the flow still waits for [load] (Cancel closes it; a late or older result is dropped). */
+    private fun restoreWaiting(load: Int): Boolean =
+        restoreLoads.isCurrent(load) && _state.value.restore == RestoreStep.Loading
 
-    private suspend fun restoreFrom(check: OpenedTarget, nextcloud: Boolean = false) {
-        if (check is OpenedTarget.Ok && !restoreWaiting) {
+    /** Shows [step] only if the flow still waits for [load]. */
+    private fun restoreLoaded(load: Int, step: RestoreStep) {
+        if (restoreWaiting(load)) _state.update { it.copy(restore = step) }
+    }
+
+    private suspend fun restoreFrom(load: Int, check: OpenedTarget, nextcloud: Boolean = false) {
+        if (check is OpenedTarget.Ok && !restoreWaiting(load)) {
             // Cancelled while it opened: close the connection again, show nothing.
             withContext(Dispatchers.IO) { check.target.useTarget { } }
             return
         }
-        if (!restoreWaiting) return
+        if (!restoreWaiting(load)) return
         if (check !is OpenedTarget.Ok) {
             closeRestore()
             fail(
@@ -578,10 +587,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         restoreEngine = engine
         restoreTarget = check.target
         val roots = withContext(Dispatchers.IO) { engine.backups() }
+        if (!restoreWaiting(load)) return
         when (roots.size) {
-            0 -> restoreLoaded(RestoreStep.NoBackup)
+            0 -> restoreLoaded(load, RestoreStep.NoBackup)
             1 -> chooseBackup(roots.single())
-            else -> restoreLoaded(RestoreStep.Backups(roots))
+            else -> restoreLoaded(load, RestoreStep.Backups(roots))
         }
     }
 
@@ -593,20 +603,20 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
     fun chooseBackup(rootRel: String) {
         val engine = restoreEngine ?: return
-        restoreLoading()
+        val load = restoreLoading()
         viewModelScope.launch {
             val (entries, groups, space) = withContext(Dispatchers.IO) {
                 val entries = engine.catalog(rootRel).orEmpty()
                 // D2: where each file would go, shown per month before anything is chosen.
                 Triple(entries, restoreGroups(engine.plan(entries)), phoneSpace.measure())
             }
-            if (!restoreWaiting) return@launch
+            if (!restoreWaiting(load)) return@launch
             restoreEntries = entries
             if (entries.isEmpty()) {
-                restoreLoaded(RestoreStep.NoBackup)
+                restoreLoaded(load, RestoreStep.NoBackup)
                 return@launch
             }
-            restoreLoaded(RestoreStep.Catalog(rootRel, groups, space))
+            restoreLoaded(load, RestoreStep.Catalog(rootRel, groups, space))
         }
     }
 
@@ -910,5 +920,25 @@ object MoveSources {
         "telegram_saved" -> "Telegram"
         "pictures_media" -> "Pictures"
         else -> "Other"
+    }
+}
+
+/**
+ * PR #48 review: tokens for the restore flow's loads. A new load or closing the flow makes every older token stale,
+ * so an opening or catalog read that finishes late is dropped instead of showing in a newer flow. Main thread only.
+ */
+internal class RestoreLoads {
+    private var current = 0
+
+    fun begin(): Int = ++current
+
+    fun end() {
+        current++
+    }
+
+    fun isCurrent(load: Int): Boolean = load != NONE && load == current
+
+    companion object {
+        const val NONE = 0
     }
 }

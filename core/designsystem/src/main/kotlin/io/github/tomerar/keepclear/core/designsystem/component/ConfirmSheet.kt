@@ -65,6 +65,11 @@ fun ConfirmSheet(
     permanent: Boolean = false,
     /** Modifier of the dismiss button (e.g. a test tag). */
     dismissModifier: Modifier = Modifier,
+    /**
+     * What the text button under [confirmButton] does; [onDismiss] when null. Back and a tap outside always call
+     * [onDismiss] (PR #48 review: a sheet whose main button is "Keep going" puts its real action here).
+     */
+    dismissAction: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     SheetFrame(onDismiss = onDismiss, modifier = modifier) {
@@ -109,8 +114,9 @@ fun ConfirmSheet(
             content()
         }
         Spacer(Modifier.height(KcSpacing.l))
-        Box(Modifier.fillMaxWidth()) { confirmButton() }
-        KcButton(dismissText, onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
+        // A column, so a slot with more than one button never stacks them on top of each other (PR #48 review).
+        Column(Modifier.fillMaxWidth()) { confirmButton() }
+        KcButton(dismissText, dismissAction ?: onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
 }
 

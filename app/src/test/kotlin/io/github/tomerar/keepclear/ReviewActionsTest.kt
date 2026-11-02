@@ -77,6 +77,31 @@ class ReviewActionsTest {
     }
 
     @Test
+    fun `Empty now in a group's result opens the trash`() {
+        // PR #48 review: the action used to have an empty callback.
+        var opened = 0
+        compose.setContent {
+            val group = summary().group("screenshots", Category.REVIEW)!!
+            KeepClearTheme {
+                GroupScreen(
+                    group,
+                    onOpenItem = {},
+                    onBack = {},
+                    result = CleanResult(
+                        io.github.tomerar.keepclear.engine.classify.Total(1, 1000),
+                        skipped = 0,
+                        failed = 0,
+                        trashedPaths = listOf("/a"),
+                    ),
+                    onOpenTrash = { opened++ },
+                )
+            }
+        }
+        compose.onNodeWithTag("emptyNowLink", useUnmergedTree = true).performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
     fun `select a month, remove one in the confirmation, delete the rest`() {
         show()
         compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("selectMonth_2023-03"))

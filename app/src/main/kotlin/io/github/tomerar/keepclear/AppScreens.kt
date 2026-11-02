@@ -307,6 +307,7 @@ private fun CurrentScreen(
                     onDelete = safeActions.onClean,
                     result = result,
                     onUndo = safeActions.onUndo,
+                    onOpenTrash = safeActions.onOpenTrash,
                     selection = selectionActions?.let { a ->
                         GroupSelection(
                             selected = state.selections[key].orEmpty(),
