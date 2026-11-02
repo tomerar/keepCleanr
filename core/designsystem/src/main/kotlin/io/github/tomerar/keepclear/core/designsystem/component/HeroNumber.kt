@@ -21,9 +21,11 @@ import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.ByteSize
@@ -34,6 +36,8 @@ import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 
 /** Test tag of the big number itself. */
 const val HERO_NUMBER_TAG = "kcHeroNumber"
+
+const val HERO_LABEL_TAG = "kcHeroLabel"
 
 /** The one byte formatter (decimal, core:common [ByteSize]) for the current locale. */
 @Composable
@@ -107,10 +111,17 @@ private fun NumberAndLabel(number: String, finalNumber: String, label: String, m
                 maxLines = 1,
                 softWrap = false,
                 onTextLayout = { if (it.didOverflowWidth && scale > 0.5f) scale *= 0.9f },
-                // TalkBack reads the final value, never a number in the middle of counting.
-                modifier = Modifier.testTag(HERO_NUMBER_TAG).semantics { contentDescription = finalNumber },
+                // TalkBack reads the final value and its label ("24.7 GB free"), never a number in the middle of
+                // counting. A description wins over the merged text, so the label is part of it (PR #46 review).
+                modifier = Modifier.testTag(HERO_NUMBER_TAG).semantics { contentDescription = "$finalNumber $label" },
             )
-            Text(label, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                label,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                // Already in the number's description: not read twice.
+                modifier = Modifier.clearAndSetSemantics { testTag = HERO_LABEL_TAG },
+            )
         },
     ) { measurables, constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)

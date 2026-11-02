@@ -43,6 +43,7 @@ import io.github.tomerar.keepclear.core.designsystem.component.CONFIRM_SHEET_BOD
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmFact
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
 import io.github.tomerar.keepclear.core.designsystem.component.DaysLeftChip
+import io.github.tomerar.keepclear.core.designsystem.component.HERO_LABEL_TAG
 import io.github.tomerar.keepclear.core.designsystem.component.HERO_NUMBER_TAG
 import io.github.tomerar.keepclear.core.designsystem.component.HeroNumber
 import io.github.tomerar.keepclear.core.designsystem.component.InfoChip
@@ -109,8 +110,9 @@ class ComponentsTest {
         compose.mainClock.advanceTimeBy(100)
         // In the middle of counting: the screen shows an intermediate number, TalkBack the final one.
         assertNotEquals("24.7GB", numberText())
-        compose.onNodeWithTag(HERO_NUMBER_TAG, useUnmergedTree = true)
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("24.7GB")))
+        // PR #46 review: the heading TalkBack focuses says the final value and what it is, once.
+        compose.onNode(isHeading())
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("24.7GB free")))
         compose.mainClock.advanceTimeBy(5_000)
         assertEquals("24.7GB", numberText())
     }
@@ -151,7 +153,7 @@ class ComponentsTest {
         assertFalse("number overflows its width", layout.didOverflowWidth)
         assertFalse("number is clipped", layout.hasVisualOverflow)
         assertEquals(1, layout.lineCount)
-        compose.onNodeWithText("פנויים").assertIsDisplayed()
+        compose.onNodeWithTag(HERO_LABEL_TAG, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
