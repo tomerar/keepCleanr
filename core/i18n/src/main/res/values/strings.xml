@@ -30,7 +30,7 @@
     <string name="allfiles_card_title">See all your files</string>
     <string name="allfiles_card_body">Optional. Lets KeepClear find WhatsApp media, old-phone folders and recycle bins.</string>
     <string name="allfiles_card_button">Allow all files</string>
-    <string name="partial_banner">KeepClear sees only the photos you picked. Allow all to get real numbers.</string>
+    <string name="partial_banner">KeepClear sees only the photos you picked. Allow all to get full numbers.</string>
     <string name="partial_change">Change</string>
     <string name="media_only_note">Seeing photos, videos and audio only.</string>
     <string name="scan_incomplete">Scan stopped because access was removed. These numbers are incomplete.</string>
@@ -68,7 +68,7 @@
     <string name="risk_UNKNOWN">Look first</string>
     <string name="trash_title">Trash</string>
     <string name="trash_chip">Trash · %1$s</string>
-    <string name="trash_summary">%1$s · space returns as items expire, or empty now.</string>
+    <string name="trash_summary">%1$s · each item is deleted for good 30 days after it came here, and its space comes back then. You can also empty now.</string>
     <string name="trash_empty_state">The trash is empty.</string>
     <string name="trash_restore">Restore</string>
     <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
@@ -131,7 +131,7 @@
     <string name="move_favourites_note">Favourites are never included.</string>
     <string name="move_view">Show</string>
     <string name="move_selected">Selected: %1$s</string>
-    <string name="move_pick_target">Choose a USB drive or memory card</string>
+    <string name="move_pick_target">Choose where to back up</string>
     <string name="move_target_title">Copy to %1$s</string>
     <string name="move_target_cloud">This is a cloud folder. KeepClear can copy to it but can\'t check the copy, so the originals stay on the phone.</string>
     <string name="move_target_unknown">KeepClear can\'t check copies in this place, so it copies only and the originals stay on the phone.</string>
@@ -209,8 +209,8 @@
         <item quantity="other">%1$s files are larger than 4 GB and stay on the phone.</item>
     </plurals>
     <plurals name="move_receipt_failed_hash">
-        <item quantity="one">%1$s file didn\'t match after copying, three times. It stays on the phone.</item>
-        <item quantity="other">%1$s files didn\'t match after copying, three times. They stay on the phone.</item>
+        <item quantity="one">%1$s file wasn\'t copied correctly, even after three tries. The original stays on the phone.</item>
+        <item quantity="other">%1$s files weren\'t copied correctly, even after three tries. The originals stay on the phone.</item>
     </plurals>
     <plurals name="move_receipt_failed_target">
         <item quantity="one">%1$s file couldn\'t be written to the drive.</item>
@@ -232,7 +232,7 @@
         <item quantity="one">%1$s file got a different name on the drive (kept in the backup\'s list).</item>
         <item quantity="other">%1$s files got a different name on the drive (kept in the backup\'s list).</item>
     </plurals>
-    <string name="move_receipt_how_back">Your files are on %1$s in %2$s. To bring them back, open them with any file manager or computer. In-app restore is coming.</string>
+    <string name="move_receipt_how_back">Your files are on %1$s, in the folder %2$s. To bring them back to the phone: \"Restore from a backup\" on the Backup tab.</string>
     <string name="move_receipt_unencrypted">The copy on the drive is not encrypted. Anyone with the drive can open it.</string>
     <string name="move_free_button">Free up the space now (%1$s)</string>
     <string name="move_free_unavailable">The originals stay on the phone: this place can\'t be checked.</string>
@@ -273,7 +273,7 @@
     <string name="test_mode_off_confirm">Turn off trial mode</string>
     <string name="settings_title">Settings</string>
     <string name="settings_advanced">Advanced</string>
-    <string name="debug_device_check_button">Device check</string>
+    <string name="debug_device_check_button">Check this device</string>
     <string name="debug_device_check_button_body">Test builds only. Runs read-only checks and makes a report to copy or share. Nothing is changed.</string>
     <string name="debug_device_check_title">Device check</string>
     <string name="debug_device_check_body">Read-only: nothing is deleted, moved or changed. The report has counts and sizes only, no file names or folders.</string>
@@ -336,7 +336,7 @@
     <string name="move_preflight_ok">Ready</string>
     <string name="move_preflight_blocks">Can\'t start</string>
     <string name="move_preflight_note">Note</string>
-    <string name="details">Details</string>
+    <string name="details">See details</string>
     <string name="details_check_pc">Developer check on a computer: sha256sum -c SHA256SUMS in the backup folder. Each file\'s SHA-256 is in keepclear-manifest.jsonl.</string>
     <string name="move_free_done">%1$s moved to the trash.</string>
     <plurals name="move_free_skipped">
@@ -351,10 +351,10 @@
     <string name="settings_language_system">Phone\'s language</string>
     <string name="settings_about">About KeepClear</string>
     <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking. It connects to the network only to reach a backup place you set up, at the address you typed. Version %1$s.</string>
-    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_privacy">Read the privacy policy</string>
     <string name="settings_replay_intro">Show the introduction again</string>
     <string name="settings_get_back_title">How to get files back</string>
-    <string name="settings_get_back_body">Cleaned or deleted: open the trash on Home and tap Restore, within 30 days. Backed up: the files are on your drive in the KeepClear folder; open them with any file manager.</string>
+    <string name="settings_get_back_body">Cleaned: in the trash, for 30 days. Backed up: on the Backup tab › \"Restore from a backup\".</string>
     <plurals name="duration_minutes">
         <item quantity="one">%1$s minute</item>
         <item quantity="other">%1$s minutes</item>
@@ -382,8 +382,8 @@
     <string name="one_by_one_body">Tap an app, then tap \"Storage\" and \"Clear cache\" on Android\'s screen. Come back here to see how much was freed. KeepClear never taps anything for you.</string>
     <string name="one_by_one_freed">Freed %1$s</string>
     <string name="one_by_one_nothing">Nothing changed</string>
-    <string name="one_by_one_sizes_later">Sizes per app need usage access; that comes in a later version.</string>
-    <string name="trash_uninstall_note">Files in KeepClear\'s trash are kept in a hidden folder, .KeepClearTrash, on this phone. If you uninstall KeepClear, they stay there and keep taking space (now %1$s). Restore or empty the trash first.</string>
+    <string name="one_by_one_sizes_later">To see how much space each app takes, you can turn on usage access.</string>
+    <string name="trash_uninstall_note">If you uninstall KeepClear, what is in the trash (%1$s) stays on the phone and takes space. Empty or restore it first.</string>
     <string name="settings_uninstall_title">Before you uninstall</string>
     <string name="android_trash_done">%1$s moved to Android\'s trash. Android deletes them after 30 days; until then you can put them back from KeepClear\'s trash.</string>
     <string name="android_trash_declined">Nothing changed: the request was declined in Android\'s window.</string>
@@ -412,18 +412,18 @@
     </plurals>
     <string name="test_mode_uninstall_blocked">Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android\'s Settings › Apps.</string>
     <string name="whatsapp_card_title">Photos and files from WhatsApp</string>
-    <string name="whatsapp_card_body">Photos you sent, voice notes and documents from WhatsApp are not in the gallery. Let KeepClear see WhatsApp\'s folder to include them.</string>
+    <string name="whatsapp_card_body">Photos you sent, voice messages and documents from WhatsApp.</string>
     <string name="whatsapp_card_button">Choose WhatsApp\'s folder</string>
     <string name="explainer_whatsapp_title">Show KeepClear WhatsApp\'s folder</string>
     <string name="explainer_whatsapp_why">To find photos you sent, voice notes and documents that WhatsApp keeps out of the gallery.</string>
-    <string name="explainer_whatsapp_never">KeepClear never touches chat backups or the message database; they stay protected. Nothing leaves the phone.</string>
-    <string name="explainer_whatsapp_steps">1. Android opens the folder named WhatsApp. 2. Tap \"Use this folder\", then \"Allow\".</string>
+    <string name="explainer_whatsapp_never">KeepClear doesn\'t touch WhatsApp\'s chats and backups.</string>
+    <string name="explainer_whatsapp_steps">An Android screen opens. Tap \"Use this folder\".</string>
     <string name="explainer_label_steps">How</string>
-    <string name="whatsapp_wrong_folder">That wasn\'t WhatsApp\'s folder, so nothing was added. Choose the folder named WhatsApp (Android › media › com.whatsapp › WhatsApp).</string>
+    <string name="whatsapp_wrong_folder">That isn\'t the right folder. Choose: Android › media › com.whatsapp › WhatsApp</string>
     <string name="whatsapp_try_again">Try again</string>
-    <string name="move_network_option">Use a network drive instead (a computer or NAS at home)</string>
+    <string name="move_network_option">Back up to a computer at home (over Wi-Fi)</string>
     <string name="move_network_title">Network drive</string>
-    <string name="move_network_intro">A computer or NAS at home that shares a folder. KeepClear connects only to the address you type here, reads every copy back over the network to check it, and frees space only when you tap it.</string>
+    <string name="move_network_intro">A computer at home with a shared folder. KeepClear connects only to the address typed here.</string>
     <string name="move_network_host">Address (for example 192.168.1.20 or my-pc)</string>
     <string name="move_network_share">Shared folder name</string>
     <string name="move_network_user">User name (leave empty for guest)</string>
@@ -437,8 +437,8 @@
     <string name="restore_start">Restore from a backup</string>
     <string name="restore_title">Restore from a backup</string>
     <string name="restore_pick_body">Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself).</string>
-    <string name="restore_pick_folder">Choose drive or folder</string>
-    <string name="restore_needs_all_files">To put files back where they were, KeepClear needs All files access (available in the KeepClear build from F-Droid or GitHub). You can still copy them from the drive with the Files app.</string>
+    <string name="restore_pick_folder">Choose a drive or folder</string>
+    <string name="restore_needs_all_files">To put every file back where it was, KeepClear needs All files access.</string>
     <string name="restore_no_backup">No KeepClear backup was found there.</string>
     <string name="restore_which_phone">Which phone\'s backup?</string>
     <string name="restore_choose">What to bring back</string>
@@ -446,7 +446,7 @@
     <string name="restore_run">Restore</string>
     <string name="restore_running">Restoring…</string>
     <string name="restore_interrupted">The drive was disconnected. What was restored stays; restore again to finish.</string>
-    <string name="restore_ok">OK</string>
+    <string name="restore_ok">Close</string>
     <plurals name="restore_progress">
         <item quantity="one">%1$s file restored</item>
         <item quantity="other">%1$s files restored</item>
@@ -471,12 +471,12 @@
         <item quantity="one">%1$s could not be restored</item>
         <item quantity="other">%1$s could not be restored</item>
     </plurals>
-    <string name="choice_keep">This is important to me – never touch it</string>
-    <string name="choice_always_junk">Always treat this folder as junk</string>
-    <string name="choice_always_junk_body">Files in %1$s will be offered as junk in Clean now from the next scan. Recent files still need a look, and everything still goes to the trash for 30 days first. You can undo this in Settings › Kept by you.</string>
-    <string name="choice_always_junk_confirm">Treat as junk</string>
-    <string name="choice_kept_label">Never touched</string>
-    <string name="choice_junk_label">Always junk</string>
+    <string name="choice_keep">Don\'t suggest this again</string>
+    <string name="choice_always_junk">Always suggest cleaning this folder</string>
+    <string name="choice_always_junk_body">From the next scan, files from %1$s appear in \"Clean now\". You can undo this in Settings.</string>
+    <string name="choice_always_junk_confirm">Always suggest it</string>
+    <string name="choice_kept_label">Not suggested again</string>
+    <string name="choice_junk_label">Always suggested</string>
     <string name="choice_remove">Remove</string>
     <string name="swipe_start">Go through them one by one</string>
     <string name="swipe_progress">%1$s of %2$s</string>
@@ -502,7 +502,7 @@
     <string name="reminder_channel">Space reminders</string>
     <string name="reminder_title">Space is getting low</string>
     <string name="reminder_text">%1$s free. Open KeepClear to see what can go.</string>
-    <string name="reminder_text_junk">%1$s free. The last check found %2$s of junk ready to clean.</string>
+    <string name="reminder_text_junk">%1$s left free. You can free %2$s of files you don\'t need.</string>
     <string name="cloned_label">Cloned app</string>
     <string name="cloned_hidden_title">Cloned apps</string>
     <string name="cloned_hidden_body">KeepClear can\'t see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app.</string>
@@ -520,7 +520,7 @@
     <string name="nextcloud_working">Connecting to your Nextcloud…</string>
     <string name="nextcloud_browser">Sign in on the page that opened in the browser and allow access, then come back here. KeepClear waits up to 20 minutes.</string>
     <string name="nextcloud_open_again">Open the sign-in page again</string>
-    <string name="nextcloud_done">Your Nextcloud %1$s is ready. To back up to it, open Move to backup, choose what to move, tap \"Choose a USB drive or memory card\" and then \"Use your Nextcloud\".</string>
+    <string name="nextcloud_done">Your Nextcloud %1$s is ready. To back up to it: on the Backup tab, choose what to move, tap \"Choose where to back up\" and then \"Use your Nextcloud\".</string>
     <string name="nextcloud_bad_address">Type the address you open your Nextcloud with, for example https://cloud.example.com, without a name, password or anything after a question mark.</string>
     <string name="nextcloud_needs_https">Use an address that starts with https://. KeepClear never sends a password unencrypted.</string>
     <string name="nextcloud_problem_unreachable">Nothing answered at this address. Check the address and the internet connection, and try again.</string>
@@ -536,7 +536,7 @@
     <string name="move_nextcloud_option">Use your Nextcloud (%1$s)</string>
     <string name="move_problem_nextcloud_sign_in">Your Nextcloud no longer accepts KeepClear\'s sign-in. Sign in again in Settings › Advanced.</string>
     <string name="move_problem_nextcloud_unreachable">Your Nextcloud didn\'t answer. Check the internet connection and try again.</string>
-    <string name="restore_from_nextcloud">It\'s on your Nextcloud (%1$s)</string>
+    <string name="restore_from_nextcloud">Use your Nextcloud (%1$s)</string>
     <string name="restore_to_original">Back to where they were</string>
     <string name="restore_to_folder">To the restore folder (Pictures › KeepClear Restored)</string>
     <string name="restore_to_mixed">%1$s back to where they were, %2$s to the restore folder</string>
@@ -607,7 +607,7 @@
         <item quantity="other">%s days left</item>
     </plurals>
     <string name="receipt_stamp">Checked file by file</string>
-    <string name="move_network_saved_option">Computer at home (%1$s)</string>
+    <string name="move_network_saved_option">Use the computer at home (%1$s)</string>
     <string name="restore_loading">Reading the backup…</string>
     <string name="restore_stop">Stop</string>
     <string name="restore_group_label">%1$s · %2$s</string>
@@ -630,4 +630,5 @@
         <item quantity="one">Leave? 1 decision will be lost</item>
         <item quantity="other">Leave? %s decisions will be lost</item>
     </plurals>
+    <string name="apps_open_app_content">See files inside apps\' own folders</string>
 </resources>

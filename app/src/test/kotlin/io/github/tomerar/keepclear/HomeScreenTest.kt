@@ -57,7 +57,7 @@ class HomeScreenTest {
     fun `partial media access is labelled (ONB-4)`() {
         show(HomeUiState(mediaAccess = MediaAccess.PARTIAL, scan = ScanState.Done(40, 1_000_000, true)))
         compose.onNodeWithText(
-            "KeepClear sees only the photos you picked. Allow all to get real numbers.",
+            "KeepClear sees only the photos you picked. Allow all to get full numbers.",
         ).assertIsDisplayed()
     }
 

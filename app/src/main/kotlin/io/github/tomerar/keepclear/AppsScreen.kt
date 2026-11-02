@@ -160,7 +160,7 @@ private fun AppsLinks(links: AppsTabLinks) {
         )
         links.onAppContent?.let { open ->
             KcButton(
-                stringResource(R.string.app_content_title),
+                stringResource(R.string.apps_open_app_content),
                 onClick = open,
                 style = KcButtonStyle.Text,
                 modifier = Modifier.testTag("appsAppContent"),

@@ -10,6 +10,12 @@ import javax.xml.parsers.DocumentBuilderFactory
  * (`details_`, `advanced_`, `debug_`) may use them. Hebrew strings spell Android as "אנדרואיד".
  */
 object CopyLint {
+    /**
+     * "Android" as the system's name must be Hebrew; the folder literally named Android in a path the user must find
+     * in Android's picker ("Android › media › com.whatsapp", F2) stays as it is shown on screen.
+     */
+    private val osName = Regex("""Android(?!\s*›)""")
+
     private val jargon = listOf(
         Regex("""SHA-?256""", RegexOption.IGNORE_CASE),
         Regex("""sha256sum"""),
@@ -36,7 +42,7 @@ object CopyLint {
             jargon.firstOrNull {
                 it.containsMatchIn(text)
             }?.let { problems += "$location: $key uses \"${it.pattern}\"" }
-            if (hebrew && "Android" in text) problems += "$location: $key: write אנדרואיד in Hebrew"
+            if (hebrew && osName.containsMatchIn(text)) problems += "$location: $key: write אנדרואיד in Hebrew"
         }
         return problems
     }
