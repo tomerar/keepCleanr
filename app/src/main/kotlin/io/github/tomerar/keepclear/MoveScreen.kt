@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.backup.saf.TargetKind
 import io.github.tomerar.keepclear.core.common.Bidi
@@ -125,14 +127,19 @@ fun moveSelection(
  */
 @Composable
 fun MoveScreen(
-    summary: ClassificationSummary,
+    summary: ClassificationSummary?,
     state: MoveUiState,
     now: Long,
     notificationsOff: Boolean,
     actions: MoveActions,
-    onBack: () -> Unit,
+    /** null on the Backup tab (its root: no back arrow). */
+    onBack: (() -> Unit)?,
+    /** F1b: before a scan, why there is nothing to move yet ("Counting…", "Needs access"); restore still works. */
+    pending: String? = null,
+    /** F1b: the backup places set up under Settings › Advanced. */
+    places: BackupPlaces? = null,
 ) {
-    val groups = summary.groups(Category.MOVE)
+    val groups = summary?.groups(Category.MOVE).orEmpty()
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
     var age by rememberSaveable { mutableStateOf(MoveAge.OLDER_12) }
     var confirmFree by remember { mutableStateOf<JobView?>(null) }
@@ -140,19 +147,21 @@ fun MoveScreen(
     var network by remember { mutableStateOf(false) }
     var confirmStop by remember { mutableStateOf(false) }
     // E13: worked out when the choice changes, not on every recomposition (thousands of files).
-    val items = remember(summary, selected, age) { moveSelection(summary, selected, age, now) }
+    val items = remember(summary, selected, age) {
+        summary?.let { moveSelection(it, selected, age, now) }.orEmpty()
+    }
     val total = remember(items) { items.fold(Total()) { t, i -> t + i } }
     val busy = state.running != null
     // E3: a free, check or restore runs in the background; nothing else starts meanwhile.
     val taskRunning = state.task != null
 
-    Scaffold { padding ->
+    Scaffold(topBar = { if (onBack != null) SubScreenTopBar(stringResource(R.string.move_title), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("moveScreen"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { BackRow(stringResource(R.string.move_title), onBack) }
+            if (onBack == null) item { SectionHeading(stringResource(R.string.move_title)) }
             if (notificationsOff && busy) {
                 item { Text(stringResource(R.string.move_notif_warning), modifier = Modifier.testTag("notifWarning")) }
             }
@@ -175,55 +184,33 @@ fun MoveScreen(
                     )
                 }
             }
-            item {
-                Text(stringResource(R.string.move_what), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MoveAge.entries.forEach { a ->
-                        FilterChip(
-                            selected = age == a,
-                            onClick = { age = a },
-                            label = { Text(stringResource(ageLabel(a))) },
-                            modifier = Modifier.testTag("age_${a.name}"),
-                        )
-                    }
-                }
-                Text(stringResource(R.string.move_favourites_note), style = MaterialTheme.typography.bodySmall)
-            }
-            items(groups, key = { it.ruleId }) { group ->
-                val groupTotal = remember(summary, group.ruleId, age) {
-                    moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Checkbox(
-                        checked = group.ruleId in selected,
-                        onCheckedChange = { on ->
-                            selected = if (on) selected + group.ruleId else selected - group.ruleId
-                        },
-                        modifier = Modifier.testTag("source_${group.ruleId}"),
+            if (summary == null) {
+                item {
+                    Text(
+                        pending ?: stringResource(R.string.home_card_counting),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.testTag("movePending"),
                     )
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(RuleText.of(group.ruleId).group))
-                        Text(totalText(groupTotal), style = MaterialTheme.typography.bodySmall)
-                    }
-                    TextButton(onClick = { actions.onOpenGroup(group.ruleId) }) {
-                        Text(stringResource(R.string.move_view))
+                }
+            } else {
+                moveSources(summary, groups, selected, { selected = it }, age, { age = it }, now, actions)
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.move_selected, totalText(total)),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.testTag("moveSelected"),
+                        )
+                        Button(
+                            onClick = { guide = true },
+                            enabled = items.isNotEmpty() && !busy && !state.busy && !taskRunning,
+                            modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
+                        ) { Text(stringResource(R.string.move_pick_target)) }
                     }
                 }
+                item { PhotosNote(actions.onOpenGooglePhotos) }
             }
-            item {
-                Text(
-                    stringResource(R.string.move_selected, totalText(total)),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.testTag("moveSelected"),
-                )
-                Button(
-                    onClick = { guide = true },
-                    enabled = items.isNotEmpty() && !busy && !state.busy && !taskRunning,
-                    modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
-                ) { Text(stringResource(R.string.move_pick_target)) }
-            }
-            item { PhotosNote(actions.onOpenGooglePhotos) }
-            // MOVE-17: bring files back from a backup (a drive, folder or network drive).
+            // MOVE-17: bring files back from a backup (a drive, folder or network drive), also before any scan.
             item {
                 androidx.compose.material3.OutlinedButton(
                     onClick = actions.restore.onStart,
@@ -231,8 +218,9 @@ fun MoveScreen(
                     modifier = Modifier.fillMaxWidth().testTag("restoreStart"),
                 ) { Text(stringResource(R.string.restore_start)) }
             }
+            places?.let { p -> item { BackupPlacesSection(p) } }
             if (state.jobs.size > 1) {
-                item { Text(stringResource(R.string.move_history), style = MaterialTheme.typography.titleMedium) }
+                item { SectionHeading(stringResource(R.string.move_history)) }
                 items(state.jobs.drop(1), key = { it.job.id }) { view ->
                     // Unfinished older jobs keep their Continue button.
                     JobCard(
@@ -327,6 +315,97 @@ fun MoveScreen(
                 TextButton(onClick = { confirmFree = null }) { Text(stringResource(R.string.move_cancel)) }
             },
         )
+    }
+}
+
+/** MOVE-1: the age chips and the MOVE groups to choose from (nothing pre-selected, SAFETY-10). */
+private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
+    summary: ClassificationSummary,
+    groups: List<io.github.tomerar.keepclear.engine.classify.GroupSummary>,
+    selected: Set<String>,
+    onSelected: (Set<String>) -> Unit,
+    age: MoveAge,
+    onAge: (MoveAge) -> Unit,
+    now: Long,
+    actions: MoveActions,
+) {
+    item {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.move_what), style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MoveAge.entries.forEach { a ->
+                    FilterChip(
+                        selected = age == a,
+                        onClick = { onAge(a) },
+                        label = { Text(stringResource(ageLabel(a))) },
+                        modifier = Modifier.testTag("age_${a.name}"),
+                    )
+                }
+            }
+            Text(stringResource(R.string.move_favourites_note), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    items(groups, key = { it.ruleId }) { group ->
+        val groupTotal = remember(summary, group.ruleId, age) {
+            moveSelection(summary, setOf(group.ruleId), age, now).fold(Total()) { t, i -> t + i }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Checkbox(
+                checked = group.ruleId in selected,
+                onCheckedChange = { on -> onSelected(if (on) selected + group.ruleId else selected - group.ruleId) },
+                modifier = Modifier.testTag("source_${group.ruleId}"),
+            )
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(RuleText.of(group.ruleId).group))
+                Text(totalText(groupTotal), style = MaterialTheme.typography.bodySmall)
+            }
+            TextButton(onClick = { actions.onOpenGroup(group.ruleId) }) {
+                Text(stringResource(R.string.move_view))
+            }
+        }
+    }
+}
+
+/** A section title on a tab (heading semantics, F1b). */
+@Composable
+internal fun SectionHeading(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = modifier.semantics { heading() },
+    )
+}
+
+/** F1b: where KeepClear can back up to, set up under Settings › Advanced. */
+class BackupPlaces(
+    val networkHost: String? = null,
+    val nextcloudHost: String? = null,
+    val onSetUp: () -> Unit = {},
+)
+
+/** F1b: the backup places on the Backup tab: a drive is chosen when a backup starts; the others are set up. */
+@Composable
+private fun BackupPlacesSection(places: BackupPlaces) {
+    Column(Modifier.fillMaxWidth().testTag("backupPlaces"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionHeading(stringResource(R.string.backup_places_title))
+        Text(stringResource(R.string.backup_places_drive), style = MaterialTheme.typography.bodyMedium)
+        places.networkHost?.let { host ->
+            Text(
+                stringResource(R.string.backup_place_network, Bidi.isolate(host)),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("placeNetwork"),
+            )
+        }
+        places.nextcloudHost?.let { host ->
+            Text(
+                stringResource(R.string.backup_place_nextcloud, Bidi.isolate(host)),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("placeNextcloud"),
+            )
+        }
+        TextButton(onClick = places.onSetUp, modifier = Modifier.testTag("setUpPlaces")) {
+            Text(stringResource(R.string.backup_places_setup))
+        }
     }
 }
 

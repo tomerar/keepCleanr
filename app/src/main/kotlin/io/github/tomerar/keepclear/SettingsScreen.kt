@@ -63,7 +63,6 @@ class SettingsActions(
     val version: String = "",
     /** TRASH-7: bytes in KeepClear's trash now; the uninstall note shows while it isn't empty. */
     val trashBytes: Long = 0,
-    val onOpenTrash: () -> Unit = {},
     /** M15: the network drive's address, the only place KeepClear connects to; null when none is set up. */
     val networkHost: String? = null,
     val onForgetNetworkDrive: () -> Unit = {},
@@ -101,14 +100,13 @@ fun SettingsScreen(
 ) {
     // 0 = no dialog, 1 = first confirmation, 2 = second confirmation.
     var step by rememberSaveable { mutableIntStateOf(0) }
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.settings_title), onBack) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
                 .testTag("settings"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            BackRow(stringResource(R.string.settings_title), onBack)
-            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
+            SectionHeading(stringResource(R.string.settings_language))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("languages")) {
                 listOf(null to stringResource(R.string.settings_language_system), "iw" to "עברית", "en" to "English")
                     .forEach { (tag, label) ->
@@ -145,9 +143,6 @@ fun SettingsScreen(
                             ),
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        TextButton(onClick = actions.onOpenTrash, modifier = Modifier.testTag("settingsOpenTrash")) {
-                            Text(stringResource(R.string.settings_open_trash))
-                        }
                     }
                 }
             }
@@ -195,6 +190,35 @@ fun SettingsScreen(
                     TextButton(onClick = actions.onOpenPrivacy, modifier = Modifier.testTag("privacy")) {
                         Text(stringResource(R.string.settings_privacy))
                     }
+                    Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            SectionHeading(stringResource(R.string.settings_advanced))
+            val testModeLabel = stringResource(R.string.test_mode_title)
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(testModeLabel, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.test_mode_body), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(
+                        checked = testModeOn,
+                        onCheckedChange = { on -> if (on) onTestModeOn() else step = 1 },
+                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
+                        modifier = Modifier.testTag("testModeSwitch").semantics { contentDescription = testModeLabel },
+                    )
+                }
+            }
+            // F1b: the backup places (Advanced only; the default path never shows them). M15/M17b: the only
+            // addresses KeepClear may connect to are shown here, with a way to forget them (PRIVACY.md "Network").
+            Card(Modifier.fillMaxWidth().testTag("backupPlacesSettings")) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.backup_places_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.nextcloud_title), style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.nextcloud_settings_body), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = actions.onOpenNextcloud, modifier = Modifier.testTag("openNextcloud")) {
+                        Text(stringResource(R.string.nextcloud_settings_button))
+                    }
                     actions.networkHost?.let { host ->
                         Text(
                             stringResource(
@@ -240,32 +264,6 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.testTag("nextcloudForgot"),
                         )
-                    }
-                }
-            }
-            Text(stringResource(R.string.settings_advanced), style = MaterialTheme.typography.titleMedium)
-            val testModeLabel = stringResource(R.string.test_mode_title)
-            Card(Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(testModeLabel, style = MaterialTheme.typography.titleSmall)
-                        Text(stringResource(R.string.test_mode_body), style = MaterialTheme.typography.bodySmall)
-                    }
-                    Switch(
-                        checked = testModeOn,
-                        onCheckedChange = { on -> if (on) onTestModeOn() else step = 1 },
-                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
-                        modifier = Modifier.testTag("testModeSwitch").semantics { contentDescription = testModeLabel },
-                    )
-                }
-            }
-            // M17b: Nextcloud as a backup place is Advanced only; the default path never shows it.
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.nextcloud_title), style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.nextcloud_settings_body), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = actions.onOpenNextcloud, modifier = Modifier.testTag("openNextcloud")) {
-                        Text(stringResource(R.string.nextcloud_settings_button))
                     }
                 }
             }

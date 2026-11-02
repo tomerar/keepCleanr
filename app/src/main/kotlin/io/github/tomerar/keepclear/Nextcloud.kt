@@ -309,13 +309,12 @@ fun NextcloudScreen(ui: NextcloudUi, onBack: () -> Unit) {
     var appPassword by remember { mutableStateOf("") }
     val addressProblem = NextcloudServer.problem(address).takeIf { address.isNotBlank() }
     val addressOk = address.isNotBlank() && addressProblem == null
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.nextcloud_title), onBack) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
                 .testTag("nextcloud"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            BackRow(stringResource(R.string.nextcloud_title), onBack)
             Text(stringResource(R.string.nextcloud_intro), style = MaterialTheme.typography.bodyMedium)
             if (ui.testAccountNotice) TestAccountNotice()
             ui.connectedHost?.let { host ->

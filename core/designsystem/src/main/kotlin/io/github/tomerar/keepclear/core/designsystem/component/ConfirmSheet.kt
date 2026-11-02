@@ -65,6 +65,64 @@ fun ConfirmSheet(
     permanent: Boolean = false,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
+    SheetFrame(onDismiss = onDismiss, modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .testTag(CONFIRM_SHEET_BODY_TAG)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(KcSpacing.m),
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() },
+            )
+            facts.forEach { fact ->
+                Column(Modifier.semantics(mergeDescendants = true) { }) {
+                    Text(
+                        fact.label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        fact.value,
+                        style = KeepClearTheme.type.number,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            if (note != null) {
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (permanent) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+            content()
+        }
+        Spacer(Modifier.height(KcSpacing.l))
+        Box(Modifier.fillMaxWidth()) { confirmButton() }
+        KcButton(dismissText, onDismiss, Modifier.fillMaxWidth(), style = KcButtonStyle.Text)
+    }
+}
+
+/**
+ * A sheet anchored to the bottom (design-system.md §7): Material's ModalBottomSheet is still experimental in
+ * material3 1.4 (C70), so this is a dialog whose window sits at the bottom, with a handle, at most 90% of the
+ * window high. [content] lays out the sheet's body and buttons.
+ */
+@Composable
+internal fun SheetFrame(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val window = LocalWindowInfo.current.containerSize
     val maxHeight = with(LocalDensity.current) { (window.height * 0.9f).toDp() }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -85,50 +143,47 @@ fun ConfirmSheet(
                             .background(MaterialTheme.colorScheme.outlineVariant, KcShapes.pill),
                     )
                 }
-                Column(
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .testTag(CONFIRM_SHEET_BODY_TAG)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(KcSpacing.m),
-                ) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    facts.forEach { fact ->
-                        Column(Modifier.semantics(mergeDescendants = true) { }) {
-                            Text(
-                                fact.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                fact.value,
-                                style = KeepClearTheme.type.number,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-                    if (note != null) {
-                        Text(
-                            note,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (permanent) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                    content()
-                }
-                Spacer(Modifier.height(KcSpacing.l))
-                Box(Modifier.fillMaxWidth()) { confirmButton() }
-                KcButton(dismissText, onDismiss, Modifier.fillMaxWidth(), style = KcButtonStyle.Text)
+                content()
             }
         }
+    }
+}
+
+/** Test tag of an [InfoSheet]'s scrolling part. */
+const val INFO_SHEET_BODY_TAG = "kcInfoSheetBody"
+
+/**
+ * An explainer (design-system.md §7, F1b): opens as a bottom sheet from what was tapped (an InfoChip, a card's
+ * button), never at the top of a screen. A heading [title], the scrolling [content], then an optional
+ * [primaryButton] and the [dismissText] button.
+ */
+@Composable
+fun InfoSheet(
+    title: String,
+    dismissText: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    primaryButton: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    SheetFrame(onDismiss = onDismiss, modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .testTag(INFO_SHEET_BODY_TAG)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(KcSpacing.m),
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() },
+            )
+            content()
+        }
+        Spacer(Modifier.height(KcSpacing.l))
+        if (primaryButton != null) Box(Modifier.fillMaxWidth()) { primaryButton() }
+        KcButton(dismissText, onDismiss, Modifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
 }

@@ -93,6 +93,7 @@ fun SafeScreen(
     val locale = LocalConfiguration.current.locales[0]
 
     Scaffold(
+        topBar = { SubScreenTopBar(stringResource(R.string.clean_title), onBack) },
         bottomBar = {
             Button(
                 onClick = { confirmClean = true },
@@ -106,52 +107,7 @@ fun SafeScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack, modifier = Modifier.testTag("back")) {
-                        Text(stringResource(R.string.back))
-                    }
-                    Text(stringResource(R.string.clean_title), style = MaterialTheme.typography.titleLarge)
-                }
-            }
-            result?.let { r ->
-                item {
-                    Card(modifier = Modifier.fillMaxWidth().testTag("cleanResult")) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (r.simulated) {
-                                Text(
-                                    stringResource(R.string.test_mode_would_free, totalText(r.done)),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.testTag("simulatedResult"),
-                                )
-                            } else if (r.androidTrash || r.declined) {
-                                AndroidTrashResult(r)
-                            } else {
-                                Text(
-                                    stringResource(R.string.clean_done, totalText(r.done)),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                Text(
-                                    stringResource(R.string.clean_done_space, trashDate()),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
-                            if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
-                            if (r.protectedSkipped > 0) {
-                                Text(
-                                    countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped),
-                                    Modifier.testTag("protectedSkipped"),
-                                )
-                            }
-                            if (!r.simulated && !r.androidTrash && !r.declined) {
-                                UndoRow(onUndo = {
-                                    onUndo(r, userConfirmed(r.trashedPaths))
-                                }, onOpenTrash = onOpenTrash)
-                            }
-                        }
-                    }
-                }
-            }
+            result?.let { r -> item { CleanResultCard(r, onUndo, onOpenTrash) } }
             item {
                 Text(
                     stringResource(R.string.clean_selected, totalText(selectedTotal)),
@@ -224,25 +180,7 @@ fun SafeScreen(
     }
 
     if (confirmClean) {
-        AlertDialog(
-            onDismissRequest = { confirmClean = false },
-            title = { Text(stringResource(R.string.clean_confirm_title, totalText(selectedTotal))) },
-            text = { Text(stringResource(R.string.clean_confirm_body, totalText(selectedTotal))) },
-            confirmButton = {
-                SafeConfirmButton(
-                    stringResource(R.string.clean_confirm_yes),
-                    onClick = {
-                        confirmClean = false
-                        onClean(selectedItems, userConfirmed(selectedItems.map { it.item.path }))
-                    },
-                    modifier = Modifier.testTag("confirmClean"),
-                    permanent = false,
-                )
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmClean = false }) { Text(stringResource(R.string.trash_cancel)) }
-            },
-        )
+        CleanConfirmDialog(selectedItems, onClean = onClean, onDismiss = { confirmClean = false })
     }
     if (confirmTrim) {
         AlertDialog(
@@ -263,6 +201,77 @@ fun SafeScreen(
                 TextButton(onClick = { confirmTrim = false }) { Text(stringResource(R.string.trash_cancel)) }
             },
         )
+    }
+}
+
+/**
+ * SAFE-1: the one confirmation before SAFE items go to the trash (30 days), naming exactly [items]. Used by "Clean
+ * now" and by the Free-up-space tab's main button (F1b); the confirm is the tapjacking-safe [SafeConfirmButton].
+ */
+@Composable
+fun CleanConfirmDialog(
+    items: List<ClassifiedItem>,
+    onClean: (List<ClassifiedItem>, Confirmation) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val total = items.fold(Total()) { t, i -> t + i }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.clean_confirm_title, totalText(total))) },
+        text = { Text(stringResource(R.string.clean_confirm_body, totalText(total))) },
+        confirmButton = {
+            SafeConfirmButton(
+                stringResource(R.string.clean_confirm_yes),
+                onClick = {
+                    onDismiss()
+                    onClean(items, userConfirmed(items.map { it.item.path }))
+                },
+                modifier = Modifier.testTag("confirmClean"),
+                permanent = false,
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.trash_cancel)) }
+        },
+    )
+}
+
+/** SAFE-1, E-DEL-15: what a cleanup did, with Undo and the way to the trash. */
+@Composable
+fun CleanResultCard(r: CleanResult, onUndo: (CleanResult, Confirmation) -> Unit, onOpenTrash: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().testTag("cleanResult")) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (r.simulated) {
+                Text(
+                    stringResource(R.string.test_mode_would_free, totalText(r.done)),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.testTag("simulatedResult"),
+                )
+            } else if (r.androidTrash || r.declined) {
+                AndroidTrashResult(r)
+            } else {
+                Text(
+                    stringResource(R.string.clean_done, totalText(r.done)),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.clean_done_space, trashDate()),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (r.skipped > 0) Text(countSentence(R.plurals.clean_skipped, r.skipped))
+            if (r.protectedSkipped > 0) {
+                Text(
+                    countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped),
+                    Modifier.testTag("protectedSkipped"),
+                )
+            }
+            if (!r.simulated && !r.androidTrash && !r.declined) {
+                UndoRow(onUndo = {
+                    onUndo(r, userConfirmed(r.trashedPaths))
+                }, onOpenTrash = onOpenTrash)
+            }
+        }
     }
 }
 

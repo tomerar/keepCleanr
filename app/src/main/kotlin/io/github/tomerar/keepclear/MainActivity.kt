@@ -190,10 +190,6 @@ class MainActivity : ComponentActivity() {
                             onOpenPrivacy = ::openPrivacy,
                             version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
                             trashBytes = state.trash.bytes,
-                            onOpenTrash = {
-                                vm.loadTrash()
-                                vm.open(Screen.Trash)
-                            },
                             showDeviceCheck = DeviceCheckGate.visible(),
                             onOpenDeviceCheck = {
                                 deviceCheckVm.runIfEmpty()
@@ -257,6 +253,19 @@ class MainActivity : ComponentActivity() {
                         onPurge = vm::purge,
                         // E7: the MOVE screen reads this itself; progress doesn't recompose every screen.
                         moveFlow = moveVm.state,
+                        // F1b: the tabs, the Trash chip (the trash's one entry point besides results) and Settings.
+                        tabs = TabsUi(
+                            onSelectTab = { tab ->
+                                // M13: the Apps tab loads sizes and last use each time it is shown.
+                                if (tab == Tab.APPS) loadApps(vm)
+                                vm.selectTab(tab)
+                            },
+                            onOpenTrash = {
+                                vm.loadTrash()
+                                vm.open(Screen.Trash)
+                            },
+                            onOpenSettings = { vm.open(Screen.Settings) },
+                        ),
                         selectionActions = SelectionActions(onSelect = vm::select, onSwipe = vm::swipe),
                         notificationsOff = notificationsOff,
                         moveActions = MoveActions(
@@ -351,10 +360,11 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onScanAgain = vm::scan,
                                     onCancelScan = vm::cancelScan,
-                                    onOpenSettings = { vm.open(Screen.Settings) },
                                     onTrim = vm::trimCaches,
                                     onOneByOne = { openOneByOne(vm) },
-                                    onOpenApps = { openApps(vm) },
+                                    onOpenBackup = { vm.selectTab(Tab.BACKUP) },
+                                    onClean = vm::clean,
+                                    onUndo = vm::undo,
                                     onPickWhatsApp = {
                                         val initial = android.provider.DocumentsContract.buildDocumentUri(
                                             GrantedFolders.EXTERNAL_STORAGE,
@@ -388,12 +398,6 @@ class MainActivity : ComponentActivity() {
     /** MOVE-16: hand over to Google Photos' own "Free up space"; KeepClear can't see its cloud state. */
     private fun openGooglePhotos() {
         packageManager.getLaunchIntentForPackage("com.google.android.apps.photos")?.let(::startActivity)
-    }
-
-    /** M13: open Apps; sizes need usage access (asked on that screen, ONB-7). */
-    private fun openApps(vm: HomeViewModel) {
-        loadApps(vm)
-        vm.open(Screen.Apps)
     }
 
     private fun loadApps(vm: HomeViewModel) {

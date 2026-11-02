@@ -2,18 +2,22 @@
 package io.github.tomerar.keepclear
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,22 +28,41 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
+import io.github.tomerar.keepclear.core.designsystem.KcIcons
+import io.github.tomerar.keepclear.core.designsystem.KcLane
+import io.github.tomerar.keepclear.core.designsystem.component.HeroNumber
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.KcButton
+import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
+import io.github.tomerar.keepclear.core.designsystem.component.KcCard
+import io.github.tomerar.keepclear.core.designsystem.component.LaneCard
+import io.github.tomerar.keepclear.core.designsystem.component.StorageStrip
+import io.github.tomerar.keepclear.core.designsystem.component.StorageUsage
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.core.safety.Confirmation
 import io.github.tomerar.keepclear.core.storage.media.MediaAccess
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
+import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
+import io.github.tomerar.keepclear.engine.classify.PhoneStorage
+import io.github.tomerar.keepclear.engine.classify.Total
 import io.github.tomerar.keepclear.engine.scan.SpaceMode
 import java.text.NumberFormat
 
@@ -48,25 +71,30 @@ enum class Explainer { MEDIA, ALL_FILES, WHATSAPP }
 
 class HomeActions(
     val onOpenTrash: () -> Unit = {},
-    val onOpenCategory: (io.github.tomerar.keepclear.core.model.Category) -> Unit = {},
+    val onOpenCategory: (Category) -> Unit = {},
     val onRequestMedia: () -> Unit = {},
     val onRequestAllFiles: () -> Unit = {},
     val onScanAgain: () -> Unit = {},
     val onCancelScan: () -> Unit = {},
-    val onOpenSettings: () -> Unit = {},
     val onTrim: () -> Unit = {},
     /** SAFE-10: the guided per-app list. */
     val onOneByOne: () -> Unit = {},
-    /** M13: apps and their space. */
-    val onOpenApps: () -> Unit = {},
     /** M12b, ONB-6: open the system folder picker at WhatsApp's folder. */
     val onPickWhatsApp: () -> Unit = {},
     val onDismissWrongFolder: () -> Unit = {},
+    /** F1b: the MOVE card jumps to the Backup tab. */
+    val onOpenBackup: () -> Unit = {},
+    /** F1b: the main button cleans the SAFE items on the phone, after the usual confirmation (SAFE-1). */
+    val onClean: (List<ClassifiedItem>, Confirmation) -> Unit = { _, _ -> },
+    val onUndo: (CleanResult, Confirmation) -> Unit = { _, _ -> },
 )
 
 /**
- * Home (M3): storage line, permission cards with plain-language explainers, scan progress and
- * summary, low-space banners. Category cards stay "coming soon" until M5.
+ * The "Free up space" tab (F1b, design-system.md §12): the free space with the storage strip and the one main
+ * button (SAFE, straight to its confirmation; "See details" opens Clean now), the REVIEW card, the MOVE card (to the
+ * Backup tab), apps' temporary files, ONE collapsed "See more files" card with the permission steps, and the
+ * dismissible notices at the bottom. Explainers open as sheets from what was tapped (ONB-2). The top app bar
+ * (wordmark, Trash chip, Settings) and the tabs are [MainTabs].
  */
 @Composable
 fun HomeScreen(
@@ -93,66 +121,72 @@ fun HomeScreen(
                 modifier = Modifier
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("homeScreen"),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(
-                        stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.headlineLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (state.trash.entries.isNotEmpty()) {
-                        AssistChip(
-                            onClick = actions.onOpenTrash,
-                            label = { Text(stringResource(R.string.trash_chip, size(state.trash.bytes))) },
-                            modifier = Modifier.testTag("trashChip"),
-                        )
-                    }
-                }
-                Text(
-                    stringResource(R.string.home_tagline),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.testTag("tagline"),
-                )
-                if (state.totalBytes > 0) {
-                    Text(
-                        stringResource(
-                            R.string.home_storage_line,
-                            size(state.totalBytes - state.freeBytes),
-                            size(state.freeBytes),
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.testTag("storage"),
-                    )
-                    LinearProgressIndicator(
-                        progress = { (state.totalBytes - state.freeBytes).toFloat() / state.totalBytes },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                val summary = state.summary
                 state.measured?.takeIf { it.origin == Screen.Home }?.let { MeasuredBanner(it) }
                 when (state.spaceMode) {
                     SpaceMode.LIGHT -> Banner(stringResource(R.string.low_space_light))
                     SpaceMode.MINIMAL -> Banner(stringResource(R.string.low_space_minimal))
                     SpaceMode.NORMAL -> Unit
                 }
-
-                if (explainer != null) {
-                    ExplainerCard(
-                        explainer = explainer!!,
-                        onContinue = {
-                            val which = explainer
-                            explainer = null
-                            when (which) {
-                                Explainer.MEDIA -> actions.onRequestMedia()
-                                Explainer.ALL_FILES -> actions.onRequestAllFiles()
-                                Explainer.WHATSAPP -> actions.onPickWhatsApp()
-                                null -> Unit
-                            }
+                val pending = if (state.mediaAccess == MediaAccess.NONE) {
+                    R.string.home_card_needs_access
+                } else {
+                    R.string.home_card_counting
+                }
+                // The main button cleans what the hero counts: SAFE on the phone's own storage (D5, C74).
+                val safeItems = remember(summary) {
+                    summary?.groups(Category.SAFE)?.flatMap { it.items }
+                        ?.filter { PhoneStorage.contains(it.item.path) }.orEmpty()
+                }
+                var confirmClean by rememberSaveable { mutableStateOf(false) }
+                val safeAction: @Composable () -> Unit = {
+                    SafeAction(summary, safeItems, pending, enabled = !state.busy, actions) { confirmClean = true }
+                }
+                if (state.totalBytes > 0) {
+                    HeroNumber(
+                        bytes = state.freeBytes,
+                        label = stringResource(R.string.home_free_label),
+                        sentence = summary?.let {
+                            stringResource(
+                                R.string.home_hero_safe,
+                                Bidi.isolate(size(it.phoneTotal(Category.SAFE).bytes)),
+                            )
                         },
-                        onDismiss = { explainer = null },
+                        strip = {
+                            StorageStrip(
+                                usage = StorageUsage(
+                                    total = state.totalBytes,
+                                    free = state.freeBytes,
+                                    safe = summary?.phoneTotal(Category.SAFE)?.bytes ?: 0,
+                                    review = summary?.phoneTotal(Category.REVIEW)?.bytes ?: 0,
+                                    move = summary?.phoneTotal(Category.MOVE)?.bytes ?: 0,
+                                ),
+                                description = stringResource(
+                                    R.string.home_storage_line,
+                                    size(state.totalBytes - state.freeBytes),
+                                    size(state.freeBytes),
+                                ),
+                                modifier = Modifier.testTag("storage"),
+                            )
+                        },
+                        action = safeAction,
+                        modifier = Modifier.testTag("hero"),
                     )
-                } else if (state.mediaAccess == MediaAccess.NONE) {
+                } else {
+                    KcCard(Modifier.testTag("safeCard")) { safeAction() }
+                }
+                state.cleanResult?.takeIf { it.origin == Screen.Home }?.let { r ->
+                    CleanResultCard(r, actions.onUndo, actions.onOpenTrash)
+                }
+                if (confirmClean && safeItems.isNotEmpty()) {
+                    CleanConfirmDialog(safeItems, onClean = actions.onClean, onDismiss = { confirmClean = false })
+                }
+
+                if (state.mediaAccess == MediaAccess.NONE) {
                     ActionCard(
                         title = stringResource(R.string.access_card_title),
                         body = stringResource(R.string.access_card_body),
@@ -168,46 +202,7 @@ fun HomeScreen(
                     }
                     ScanLine(state, actions, ::size)
                 }
-
-                // Review PR C: one primary action. Before a scan the cards say what is happening, never "soon".
-                val summary = state.summary
-                val pending = if (state.mediaAccess == MediaAccess.NONE) {
-                    R.string.home_card_needs_access
-                } else {
-                    R.string.home_card_counting
-                }
-                if (summary == null) {
-                    CategoryCard(R.string.home_card_safe_title, R.string.home_card_safe_body, pending, Category.SAFE)
-                    CategoryCard(
-                        R.string.home_card_review_title,
-                        R.string.home_card_review_body,
-                        pending,
-                        Category.REVIEW,
-                    )
-                    CategoryCard(R.string.home_card_move_title, R.string.home_card_move_body, pending, Category.MOVE)
-                } else {
-                    SafeCard(summary, enabled = !state.busy, onOpen = { actions.onOpenCategory(Category.SAFE) })
-                    TotalCard(Category.REVIEW, summary, R.string.home_total_review_body, actions.onOpenCategory)
-                    TotalCard(Category.MOVE, summary, R.string.home_total_move_body, actions.onOpenCategory)
-                }
-                // ONB-3 / SAFE-5: always available, even with no permission at all.
-                TrimCard(
-                    result = state.trimResult.takeIf { state.screens.last() == Screen.Home },
-                    enabled = !state.busy,
-                    onTrim = actions.onTrim,
-                    onOneByOne = actions.onOneByOne,
-                )
-                if (state.mediaAccess != MediaAccess.NONE && state.allFiles == false && explainer == null) {
-                    ActionCard(
-                        title = stringResource(R.string.allfiles_card_title),
-                        body = stringResource(R.string.allfiles_card_body),
-                        button = stringResource(R.string.allfiles_card_button),
-                        tag = "allowAllFiles",
-                        onClick = { explainer = Explainer.ALL_FILES },
-                        primary = false,
-                    )
-                }
-                // M12b, ONB-6 (play): WhatsApp's folder through the system picker, explained first.
+                // M12b, ONB-6: the folder picked wasn't WhatsApp's (feedback on what was just tapped).
                 if (state.wrongFolder) {
                     Banner(
                         stringResource(R.string.whatsapp_wrong_folder),
@@ -216,19 +211,26 @@ fun HomeScreen(
                         actions.onDismissWrongFolder()
                         actions.onPickWhatsApp()
                     }
-                } else if (state.allFiles == null && state.grantedFolders.isEmpty() && explainer == null) {
-                    ActionCard(
-                        title = stringResource(R.string.whatsapp_card_title),
-                        body = stringResource(R.string.whatsapp_card_body),
-                        button = stringResource(R.string.whatsapp_card_button),
-                        tag = "pickWhatsApp",
-                        onClick = { explainer = Explainer.WHATSAPP },
-                        primary = false,
-                    )
                 }
-                if (state.cloned.hidden) {
+
+                LaneTotal(Category.REVIEW, summary, pending, R.string.home_total_review_body) {
+                    actions.onOpenCategory(Category.REVIEW)
+                }
+                LaneTotal(Category.MOVE, summary, pending, R.string.home_total_move_body, actions.onOpenBackup)
+                // ONB-3 / SAFE-5: always available, even with no permission at all.
+                TrimCard(
+                    result = state.trimResult.takeIf { state.screens.last() == Screen.Home },
+                    enabled = !state.busy,
+                    onTrim = actions.onTrim,
+                    onOneByOne = actions.onOneByOne,
+                )
+                MoreFilesCard(state, onExplain = { explainer = it })
+                if (summary != null) Areas(summary)
+                // Notices at the bottom; closing one hides it for this visit (C75).
+                var clonedDismissed by rememberSaveable { mutableStateOf(false) }
+                if (state.cloned.hidden && !clonedDismissed) {
                     val context = androidx.compose.ui.platform.LocalContext.current
-                    ActionCard(
+                    Notice(
                         title = stringResource(R.string.cloned_hidden_title),
                         body = stringResource(R.string.cloned_hidden_body),
                         button = stringResource(R.string.cloned_hidden_button),
@@ -238,22 +240,233 @@ fun HomeScreen(
                                 context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS))
                             }
                         },
-                        primary = false,
+                        onDismiss = { clonedDismissed = true },
                     )
-                }
-                if (summary != null) Areas(summary)
-                TextButton(onClick = actions.onOpenApps, modifier = Modifier.testTag("openApps")) {
-                    Text(stringResource(R.string.apps_open))
-                }
-                Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = actions.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
-                    Text(stringResource(R.string.settings_title))
                 }
                 if (showDebugTools) {
                     TextButton(onClick = { forceFlip = !forceFlip }) { Text(stringResource(R.string.debug_toggle_rtl)) }
                 }
+                Spacer(Modifier.heightIn(min = 8.dp))
             }
         }
+        explainer?.let { which ->
+            ExplainerSheet(
+                explainer = which,
+                onContinue = {
+                    explainer = null
+                    when (which) {
+                        Explainer.MEDIA -> actions.onRequestMedia()
+                        Explainer.ALL_FILES -> actions.onRequestAllFiles()
+                        Explainer.WHATSAPP -> actions.onPickWhatsApp()
+                    }
+                },
+                onDismiss = { explainer = null },
+            )
+        }
+    }
+}
+
+/** SAFE: the one main button (straight to the confirmation) and "See details", or why there is none yet. */
+@Composable
+private fun SafeAction(
+    summary: ClassificationSummary?,
+    items: List<ClassifiedItem>,
+    pending: Int,
+    enabled: Boolean,
+    actions: HomeActions,
+    onClean: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        when {
+            summary == null -> {
+                Text(
+                    stringResource(pending),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.testTag("pending_SAFE"),
+                )
+            }
+
+            items.isNotEmpty() -> {
+                val total = remember(items) { items.fold(Total()) { t, i -> t + i } }
+                KcButton(
+                    stringResource(
+                        R.string.home_clean_button,
+                        Bidi.isolate(ByteSize.format(total.bytes, LocalConfiguration.current.locales[0])),
+                    ),
+                    onClick = onClean,
+                    enabled = enabled,
+                    icon = KcIcons.Safe,
+                    modifier = Modifier.fillMaxWidth().testTag("open_SAFE"),
+                )
+            }
+
+            else -> {
+                Text(stringResource(R.string.home_clean_nothing), modifier = Modifier.testTag("nothingToClean"))
+            }
+        }
+        if (summary != null && summary.total(Category.SAFE).files > 0) {
+            KcButton(
+                stringResource(R.string.home_see_details),
+                onClick = { actions.onOpenCategory(Category.SAFE) },
+                style = KcButtonStyle.Text,
+                modifier = Modifier.fillMaxWidth().testTag("seeDetails"),
+            )
+        }
+    }
+}
+
+/**
+ * SCAN-2: a lane's total on the phone (D5), opening its list ([onOpen]); before a scan it says why it's empty
+ * ("Counting…", "Needs access"), never "soon". Never counts PROTECTED.
+ */
+@Composable
+private fun LaneTotal(
+    category: Category,
+    summary: ClassificationSummary?,
+    pending: Int,
+    body: Int,
+    onOpen: () -> Unit,
+) {
+    val lane = if (category == Category.MOVE) KcLane.MOVE else KcLane.REVIEW
+    val locale = LocalConfiguration.current.locales[0]
+    Box(Modifier.testTag(if (summary == null) "pending_$category" else "total_$category")) {
+        if (summary == null) {
+            LaneCard(lane = lane, title = categoryTitle(category), supporting = stringResource(pending))
+        } else {
+            val total = summary.phoneTotal(category)
+            val count = NumberFormat.getIntegerInstance(locale).format(total.files)
+            LaneCard(
+                lane = lane,
+                title = categoryTitle(category),
+                count = Bidi.isolate(pluralStringResource(R.plurals.file_count, total.files, count)),
+                size = Bidi.isolate(ByteSize.format(total.bytes, locale)),
+                supporting = stringResource(body),
+                onClick = onOpen,
+                modifier = Modifier.testTag("open_$category"),
+            )
+        }
+    }
+}
+
+/** F1b: the permission steps beyond photos (All files access, WhatsApp's folder), in one collapsed card. */
+@Composable
+private fun MoreFilesCard(state: HomeUiState, onExplain: (Explainer) -> Unit) {
+    val allFiles = state.mediaAccess != MediaAccess.NONE && state.allFiles == false
+    // M12b, ONB-6 (play): WhatsApp's folder through the system picker, explained first.
+    val whatsApp = !state.wrongFolder && state.allFiles == null && state.grantedFolders.isEmpty()
+    if (!allFiles && !whatsApp) return
+    var open by rememberSaveable { mutableStateOf(false) }
+    KcCard(Modifier.testTag("moreFiles")) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(value = open, role = Role.Button, onValueChange = { open = it })
+                .testTag("moreFilesToggle"),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.home_more_files),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            Icon(KcIcons.ExpandMore, contentDescription = null, modifier = Modifier.rotate(if (open) 180f else 0f))
+        }
+        if (open) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
+                if (allFiles) {
+                    ActionCard(
+                        title = stringResource(R.string.allfiles_card_title),
+                        body = stringResource(R.string.allfiles_card_body),
+                        button = stringResource(R.string.allfiles_card_button),
+                        tag = "allowAllFiles",
+                        onClick = { onExplain(Explainer.ALL_FILES) },
+                        primary = false,
+                    )
+                }
+                if (whatsApp) {
+                    ActionCard(
+                        title = stringResource(R.string.whatsapp_card_title),
+                        body = stringResource(R.string.whatsapp_card_body),
+                        button = stringResource(R.string.whatsapp_card_button),
+                        tag = "pickWhatsApp",
+                        onClick = { onExplain(Explainer.WHATSAPP) },
+                        primary = false,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A notice at the bottom of the tab, with a close button. */
+@Composable
+private fun Notice(
+    title: String,
+    body: String,
+    button: String,
+    tag: String,
+    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    KcCard(Modifier.testTag("notice_$tag")) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onDismiss, modifier = Modifier.testTag("dismiss_$tag")) {
+                Icon(KcIcons.Close, contentDescription = stringResource(R.string.home_notice_dismiss))
+            }
+        }
+        Text(body, style = MaterialTheme.typography.bodyMedium)
+        OutlinedButton(onClick = onClick, modifier = Modifier.padding(top = 8.dp).testTag(tag)) { Text(button) }
+    }
+}
+
+/** ONB-2: why a permission is needed, what KeepClear never does, and what happens without it; then Android asks. */
+@Composable
+private fun ExplainerSheet(explainer: Explainer, onContinue: () -> Unit, onDismiss: () -> Unit) {
+    val (title, why, never, without) = when (explainer) {
+        Explainer.MEDIA -> listOf(
+            R.string.explainer_media_title,
+            R.string.explainer_media_why,
+            R.string.explainer_media_never,
+            R.string.explainer_media_without,
+        )
+
+        Explainer.ALL_FILES -> listOf(
+            R.string.explainer_allfiles_title,
+            R.string.explainer_allfiles_why,
+            R.string.explainer_allfiles_never,
+            R.string.explainer_allfiles_without,
+        )
+
+        Explainer.WHATSAPP -> listOf(
+            R.string.explainer_whatsapp_title,
+            R.string.explainer_whatsapp_why,
+            R.string.explainer_whatsapp_never,
+            R.string.explainer_whatsapp_steps,
+        )
+    }
+    val lastLabel = if (explainer == Explainer.WHATSAPP) {
+        R.string.explainer_label_steps
+    } else {
+        R.string.explainer_label_without
+    }
+    InfoSheet(
+        title = stringResource(title),
+        dismissText = stringResource(R.string.explainer_not_now),
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("explainer"),
+        primaryButton = {
+            KcButton(
+                stringResource(R.string.explainer_continue),
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth().testTag("explainerContinue"),
+            )
+        },
+    ) {
+        Labeled(R.string.explainer_label_why, why)
+        Labeled(R.string.explainer_label_never, never)
+        Labeled(lastLabel, without)
     }
 }
 
@@ -324,36 +537,6 @@ fun MeasuredBanner(m: Measured) {
     }
 }
 
-/** SAFE on Home: the one filled button (review PR C). */
-@Composable
-private fun SafeCard(summary: ClassificationSummary, enabled: Boolean, onOpen: () -> Unit) {
-    // D5: Home counts only the phone's own storage, next to its free space.
-    val total = summary.phoneTotal(Category.SAFE)
-    Card(modifier = Modifier.fillMaxWidth().testTag("total_SAFE")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(categoryTitle(Category.SAFE), style = MaterialTheme.typography.titleMedium)
-            Text(totalText(total), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.home_total_safe_body), style = MaterialTheme.typography.bodyMedium)
-            if (summary.total(Category.SAFE).files > 0) {
-                Button(
-                    onClick = onOpen,
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth().testTag("open_SAFE"),
-                ) {
-                    Text(
-                        stringResource(
-                            R.string.home_clean_button,
-                            Bidi.isolate(ByteSize.format(total.bytes, LocalConfiguration.current.locales[0])),
-                        ),
-                    )
-                }
-            } else {
-                Text(stringResource(R.string.home_clean_nothing), modifier = Modifier.testTag("nothingToClean"))
-            }
-        }
-    }
-}
-
 /** ONB-3 / SAFE-5: "Clear apps' temporary files", on Home always. */
 @Composable
 private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneByOne: () -> Unit) {
@@ -405,56 +588,6 @@ private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneB
 }
 
 @Composable
-private fun ExplainerCard(explainer: Explainer, onContinue: () -> Unit, onDismiss: () -> Unit) {
-    val (title, why, never, without) = when (explainer) {
-        Explainer.MEDIA -> listOf(
-            R.string.explainer_media_title,
-            R.string.explainer_media_why,
-            R.string.explainer_media_never,
-            R.string.explainer_media_without,
-        )
-
-        Explainer.ALL_FILES -> listOf(
-            R.string.explainer_allfiles_title,
-            R.string.explainer_allfiles_why,
-            R.string.explainer_allfiles_never,
-            R.string.explainer_allfiles_without,
-        )
-
-        Explainer.WHATSAPP -> listOf(
-            R.string.explainer_whatsapp_title,
-            R.string.explainer_whatsapp_why,
-            R.string.explainer_whatsapp_never,
-            R.string.explainer_whatsapp_steps,
-        )
-    }
-    val lastLabel = if (explainer ==
-        Explainer.WHATSAPP
-    ) {
-        R.string.explainer_label_steps
-    } else {
-        R.string.explainer_label_without
-    }
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("explainer"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
-            Labeled(R.string.explainer_label_why, why)
-            Labeled(R.string.explainer_label_never, never)
-            Labeled(lastLabel, without)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onContinue, modifier = Modifier.testTag("explainerContinue")) {
-                    Text(stringResource(R.string.explainer_continue))
-                }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.explainer_not_now)) }
-            }
-        }
-    }
-}
-
-@Composable
 private fun Labeled(label: Int, text: Int) {
     Column {
         Text(stringResource(label), style = MaterialTheme.typography.labelLarge)
@@ -499,21 +632,6 @@ private fun Banner(text: String, action: String? = null, onAction: () -> Unit = 
     }
 }
 
-/** SCAN-2: the three action totals, each opening its read-only list. Never counts PROTECTED. */
-@Composable
-private fun TotalCard(category: Category, summary: ClassificationSummary, body: Int, onOpen: (Category) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().testTag("total_$category")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(categoryTitle(category), style = MaterialTheme.typography.titleMedium)
-            Text(totalText(summary.phoneTotal(category)), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = { onOpen(category) }, modifier = Modifier.testTag("open_$category")) {
-                Text(stringResource(R.string.action_look))
-            }
-        }
-    }
-}
-
 @Composable
 private fun Areas(summary: ClassificationSummary) {
     val locale = LocalConfiguration.current.locales[0]
@@ -529,23 +647,6 @@ private fun Areas(summary: ClassificationSummary) {
             Text(
                 "${stringResource(labels.getValue(area))}: ${ByteSize.format(bytes, locale)}",
                 style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-    }
-}
-
-/** Before a scan: what the card will hold, and why it's empty now ("Counting…" or "Needs access"). */
-@Composable
-private fun CategoryCard(title: Int, body: Int, status: Int, category: Category) {
-    Card(modifier = Modifier.fillMaxWidth().testTag("pending_$category")) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)
-            Text(
-                stringResource(status),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.testTag("pendingStatus_$category"),
             )
         }
     }

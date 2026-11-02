@@ -69,7 +69,7 @@ class UxPassTest {
     @Test
     fun `before a scan without access the cards say needs access, never coming soon`() {
         home(HomeUiState(mediaAccess = MediaAccess.NONE))
-        compose.onNodeWithTag("pendingStatus_SAFE").assertExists()
+        compose.onNodeWithTag("pending_SAFE").assertExists()
         assertEquals(3, compose.onAllNodesWithText(text(R.string.home_card_needs_access)).fetchSemanticsNodes().size)
     }
 
@@ -81,15 +81,48 @@ class UxPassTest {
 
     // 2. One primary action
     @Test
-    fun `the SAFE card has the one filled Clean button and opens Clean now`() {
+    fun `the SAFE card has the one filled Clean button and see details opens Clean now`() {
         var opened: Category? = null
         home(
             HomeUiState(mediaAccess = MediaAccess.FULL, summary = summary(), scan = ScanState.Done(3, 3000, true)),
             HomeActions(onOpenCategory = { opened = it }),
         )
-        compose.onNodeWithTag("open_SAFE").performScrollTo().performClick()
+        compose.onNodeWithTag("seeDetails").performScrollTo().performClick()
         assertEquals(Category.SAFE, opened)
         compose.onNodeWithTag("scanLine").assertExists()
+    }
+
+    // F1b: the main button opens the usual confirmation directly; nothing happens until it is confirmed.
+    @Test
+    fun `the main button goes straight to the SAFE confirmation and cleans only after it`() {
+        var opened: Category? = null
+        var cleaned: List<String>? = null
+        home(
+            HomeUiState(
+                totalBytes = 100_000_000_000,
+                freeBytes = 10_000_000_000,
+                mediaAccess = MediaAccess.FULL,
+                summary = summary(),
+                scan = ScanState.Done(3, 3000, true),
+            ),
+            HomeActions(onOpenCategory = { opened = it }, onClean = {
+                items,
+                _,
+                ->
+                cleaned = items.map { it.item.path }
+            }),
+        )
+        compose.onNodeWithTag("open_SAFE").performScrollTo().performClick()
+        assertEquals(null, opened)
+        assertEquals(null, cleaned)
+        // SEC-7: the confirm button is the delayed, tapjacking-safe one.
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmClean").fetchSemanticsNodes()
+                .any { SemanticsProperties.Disabled !in it.config }
+        }
+        compose.onNodeWithTag("confirmClean").performClick()
+        val safe = summary().groups(Category.SAFE).flatMap { it.items }.map { it.item.path }
+        assertEquals(safe.sorted(), cleaned?.sorted())
     }
 
     // 3. ONB-3: temporary files card always, even with no permission

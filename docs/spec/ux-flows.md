@@ -33,6 +33,19 @@ Notation: `[Button]`, `(chip)`, `›` = navigates to. Copy shown en / he. Hebrew
 - **Settings:** language, how to get files back, About + privacy policy (PRIV-5), show the intro again. The intro (ONB-1) has 3 screens.
 - **Bidi:** file names keep "2023.png" together in Hebrew; sizes are isolated so lines that start with a number still read right-to-left. Bottom bars pad for the navigation bar.
 
+### F1b (2026-11-02): navigation and information architecture (UI-4)
+
+Replaces the single Home feed. Decisions C72–C78 in [progress.md](../progress.md); design in [design-system.md §12](../design/design-system.md).
+
+- **Three tabs**, a bottom bar on phones and a NavigationRail at the start side from 600 dp: **"לפנות מקום" / Free up space**, **"גיבוי" / Backup**, **"אפליקציות" / Apps**. Each tab keeps its own stack and its place (scroll, choices); tapping the shown tab again goes back to its root. The tabs show only on a tab's root; sub-screens are full screen (C72).
+- **Top app bar on every tab:** small wordmark "KeepClear" (a heading), the **Trash chip** (bin + size, whenever KeepClear's or Android's trash isn't empty; TalkBack: "Trash · 3.1 GB") and the Settings gear. The chip is the trash's only entry point, besides the links in results ("Empty now", the free-up result) (C73).
+- **Sub-screens:** a pinned top app bar with the auto-mirrored back arrow and the title (a heading); no "לחזור" text link. Back pops the tab's stack; at the root of Backup or Apps, Back goes to Free up space; there Android closes the app.
+- **Free up space:** the free space (hero) with the storage strip, then the SAFE main button `[לנקות 7.9GB]`, which opens the usual confirmation directly (phone storage only, C74), and `לראות פירוט` (Clean now). Then the REVIEW card, the MOVE card (jumps to Backup), "Clear apps' temporary files", ONE collapsed **"לראות עוד קבצים"** card with the permission steps (All files access, WhatsApp's folder), "where your space is", and dismissible notices (cloned apps, C75) at the bottom.
+- **Backup:** move memories (sources, age), **"לשחזר מגיבוי" works without a scan** (before a scan the sources say "סופרים…" / "צריך גישה"), the backup places (a drive is chosen when a backup starts; the computer at home and the Nextcloud set up in Settings › Advanced, C76), and the history of backups.
+- **Apps:** clear one app at a time, apps' own folders (when the scan found any), the cloned-apps note, then the apps by size and the unused ones.
+- **Settings:** language, how to get files back, the uninstall note while the trash isn't empty, kept by you, the reminder, the intro again, About + privacy. **מתקדם:** test mode, backup places (Nextcloud set-up; the saved addresses with "Forget"), device check (test builds).
+- **Explainers** (why a permission is needed) open as a bottom sheet from the button that was tapped (C77), never at the top of the tab.
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)
@@ -102,7 +115,7 @@ Returning from system settings re-checks state on `onResume` and shows a ✓ toa
 ```
 - In RTL the whole layout mirrors; numbers inside text are isolated.
 - While scanning: cards fill progressively with a subtle "Still counting…" line; `[Cancel]`.
-- Trash chip top-end shows trash size; tap › Trash.
+- Trash chip top-end shows trash size; tap › Trash. (F1b: the chip, wordmark and Settings are in the top app bar of every tab; the layout above is now the "Free up space" tab, see "F1b" in §0.)
 
 Hebrew card titles: **לנקות עכשיו** / **לבדוק** / **להעביר לגיבוי**. Buttons: `[לנקות 7.9GB]`, `[לבדוק ›]`, `[להתחיל ›]`.
 

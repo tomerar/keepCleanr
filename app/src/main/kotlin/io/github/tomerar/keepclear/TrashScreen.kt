@@ -201,19 +201,13 @@ fun TrashScreen(
     val groups = trash.entries.groupBy { trashGroupOf(it) }.toSortedMap()
     // Groups the user opened or closed (small groups start open, large ones closed).
     var toggled by rememberSaveable { mutableStateOf(setOf<TrashGroup>()) }
-    Scaffold { padding ->
+    Scaffold(topBar = { SubScreenTopBar(stringResource(R.string.trash_title), onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("trash"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Row {
-                    TextButton(onClick = onBack, modifier = Modifier.testTag("back")) {
-                        Text(stringResource(R.string.back))
-                    }
-                    Text(stringResource(R.string.trash_title), style = MaterialTheme.typography.titleLarge)
-                }
                 measured?.let { MeasuredBanner(it) }
                 if (trash.releaseHeldBack > 0) {
                     Text(

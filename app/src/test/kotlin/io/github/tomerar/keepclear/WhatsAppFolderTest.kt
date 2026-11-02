@@ -37,9 +37,11 @@ class WhatsAppFolderTest {
     fun `the picker opens only after the explainer`() {
         var picked = 0
         show(play, onPick = { picked++ })
+        // F1b: the step sits in the collapsed "See more files" card.
+        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
         compose.onNodeWithTag("pickWhatsApp").performScrollTo().performClick()
         assertEquals(0, picked)
-        compose.onNodeWithTag("explainerContinue").performScrollTo().performClick()
+        compose.onNodeWithTag("explainerContinue").performClick()
         assertEquals(1, picked)
     }
 

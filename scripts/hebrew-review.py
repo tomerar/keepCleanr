@@ -18,6 +18,7 @@ CODE_DIRS = [ROOT / "app/src", ROOT / "core", ROOT / "engine", ROOT / "backup"]
 # Source file → screen (in the order screens appear in the app). Unknown files fall back to "Other".
 SCREENS = [
     ("Intro and permissions", ["IntroScreen", "MainActivity", "MediaAccess", "Onboarding"]),
+    ("Top app bar and tabs", ["Navigation"]),
     ("Home", ["HomeScreen", "HomeViewModel", "UiText"]),
     ("Clean now", ["SafeScreen", "SafeConfirm"]),
     ("Review (categories, groups, item preview)", ["ReviewScreens", "RuleText", "UserChoices"]),
@@ -36,7 +37,8 @@ SCREENS = [
 # Key prefixes win over the source file (some files hold several screens, e.g. the intro lives in SettingsScreen.kt).
 PREFIXES = [
     ("Intro and permissions", ["intro_", "explainer_", "allfiles_", "access_", "whatsapp_", "media_"]),
-    ("Move to backup and restore", ["move_", "restore_"]),
+    ("Top app bar and tabs", ["tab_"]),
+    ("Move to backup and restore", ["move_", "restore_", "backup_place"]),
     ("Trash", ["trash_"]),
     ("Apps", ["apps_", "app_"]),
     ("Swipe review", ["swipe_"]),

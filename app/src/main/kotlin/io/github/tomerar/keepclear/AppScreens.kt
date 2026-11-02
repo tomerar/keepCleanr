@@ -23,7 +23,11 @@ import io.github.tomerar.keepclear.devcheck.DeviceCheckUi
 /** Test mode (SAFETY-9) for [AppScreens]: the banner on every screen and the Settings switch. */
 class TestModeUi(val on: Boolean = false, val turnOn: () -> Unit = {}, val turnOff: () -> Unit = {})
 
-/** Every screen, with the always-visible test-mode banner on top while test mode is on. */
+/**
+ * Every screen, with the always-visible test-mode banner on top while test mode is on. F1b: a tab's root shows in the
+ * main frame (top app bar with the Trash chip and Settings, and the tabs, [MainTabs]); a sub-screen has its own top
+ * app bar with a back arrow.
+ */
 @Composable
 fun AppScreens(
     state: HomeUiState,
@@ -53,13 +57,27 @@ fun AppScreens(
     selectionActions: SelectionActions? = null,
     /** E7: the MOVE state as a flow, read only by the MOVE screen (not by every screen on each copied file). */
     moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>? = null,
+    /** F1b: the tabs, the Trash chip and the Settings gear. */
+    tabs: TabsUi = TabsUi(),
 ) {
-    Column {
-        if (testMode.on) TestModeBanner()
-        // The banner already pads for the status bar; the screens below must not pad for it again.
-        Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
-            ReadableWidth {
-                ScreenContent(
+    // F1b: system Back pops the shown tab's stack, then goes to the first tab; there it closes the app.
+    BackHandler(enabled = Nav.handlesBack(state), onBack = onBack)
+    // E4: each screen in every tab's stack keeps its own saved UI state (scroll position, open sections, choices)
+    // while another screen or tab is shown, and loses it when it is popped. The holder sits above the frame, so a
+    // screen keeps its state whether it shows inside the tabs' frame or not.
+    val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val keys = state.allScreenKeys().toSet()
+    val seen = androidx.compose.runtime.remember { mutableSetOf<String>() }
+    androidx.compose.runtime.SideEffect {
+        (seen - keys).forEach { holder.removeState(it) }
+        seen.retainAll(keys)
+        seen += keys
+    }
+    val current = state.screens.last()
+    val content: @Composable () -> Unit = {
+        ReadableWidth {
+            holder.SaveableStateProvider(screenKey(state.tab, state.screens.lastIndex, current)) {
+                CurrentScreen(
                     state,
                     onOpen,
                     onBack,
@@ -80,6 +98,17 @@ fun AppScreens(
                     selectionActions,
                     moveFlow,
                 )
+            }
+        }
+    }
+    Column {
+        if (testMode.on) TestModeBanner()
+        // The banner already pads for the status bar; the screens below must not pad for it again.
+        Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
+            if (state.screens.size == 1 && Tab.rootOf(current) != null) {
+                MainTabs(state.tab, state.trash, tabs, content)
+            } else {
+                content()
             }
         }
     }
@@ -105,73 +134,58 @@ fun ReadableWidth(content: @Composable () -> Unit) {
 /** UI-2: wider than this, content is centered (Material's "medium" width class ends at 840dp). */
 val MAX_CONTENT_WIDTH = 840.dp
 
-/** Shows the top of the navigation stack; system back pops it. */
-@Composable
-private fun ScreenContent(
-    state: HomeUiState,
-    onOpen: (Screen) -> Unit,
-    onBack: () -> Unit,
-    home: @Composable () -> Unit,
-    onRestore: (
-        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
-        io.github.tomerar.keepclear.core.safety.Confirmation,
-    ) -> Unit,
-    onPurge: (
-        List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
-        io.github.tomerar.keepclear.core.safety.Confirmation,
-    ) -> Unit,
-    safeActions: SafeActions,
-    move: MoveUiState,
-    moveActions: MoveActions,
-    notificationsOff: Boolean,
-    testMode: TestModeUi,
-    settingsActions: SettingsActions,
-    appActions: AppActions,
-    appsActions: AppsActions,
-    previewActions: PreviewActions,
-    deviceCheck: DeviceCheckUi,
-    nextcloud: NextcloudUi,
-    selectionActions: SelectionActions?,
-    moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
-) {
-    BackHandler(enabled = state.screens.size > 1, onBack = onBack)
-    // E4: each screen in the stack keeps its own saved UI state (scroll position, open sections) while another
-    // screen is on top, and loses it when it is popped.
-    val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-    val keys = state.screens.mapIndexed { i, s -> screenKey(i, s) }
-    val seen = androidx.compose.runtime.remember { mutableSetOf<String>() }
-    androidx.compose.runtime.SideEffect {
-        (seen - keys.toSet()).forEach { holder.removeState(it) }
-        seen.retainAll(keys.toSet())
-        seen += keys
-    }
-    holder.SaveableStateProvider(keys.last()) {
-        CurrentScreen(
-            state,
-            onOpen,
-            onBack,
-            home,
-            onRestore,
-            onPurge,
-            safeActions,
-            move,
-            moveActions,
-            notificationsOff,
-            testMode,
-            settingsActions,
-            appActions,
-            appsActions,
-            previewActions,
-            deviceCheck,
-            nextcloud,
-            selectionActions,
-            moveFlow,
-        )
-    }
-}
+/**
+ * E4: the saved-state key of the screen at [index] in [tab]'s stack (the same screen twice gets two keys; the same
+ * screen in two tabs too).
+ */
+internal fun screenKey(tab: Tab, index: Int, screen: Screen): String = "${tab.name}:$index:$screen"
 
-/** E4: the saved-state key of the screen at [index] in the stack (the same screen twice gets two keys). */
-internal fun screenKey(index: Int, screen: Screen): String = "$index:$screen"
+/** F1b: the Backup tab (MOVE-1…18): the MOVE screen, also without a scan, with the backup places. */
+@Composable
+private fun BackupTab(
+    state: HomeUiState,
+    moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
+    moveValue: MoveUiState,
+    notificationsOff: Boolean,
+    moveActions: MoveActions,
+    settingsActions: SettingsActions,
+    onOpen: (Screen) -> Unit,
+    onBack: (() -> Unit)?,
+) {
+    val pending = when {
+        state.summary != null -> {
+            null
+        }
+
+        state.mediaAccess == io.github.tomerar.keepclear.core.storage.media.MediaAccess.NONE -> {
+            androidx.compose.ui.res.stringResource(
+                io.github.tomerar.keepclear.core.i18n.R.string.home_card_needs_access,
+            )
+        }
+
+        else -> {
+            androidx.compose.ui.res.stringResource(io.github.tomerar.keepclear.core.i18n.R.string.home_card_counting)
+        }
+    }
+    MoveScreen(
+        summary = state.summary,
+        // E7: only this screen reads the MOVE state, so progress doesn't recompose the others.
+        state = moveFlow?.let { flow -> flow.collectAsStateWithLifecycle().value } ?: moveValue,
+        now = System.currentTimeMillis(),
+        notificationsOff = notificationsOff,
+        // Every action is forwarded (a field-by-field copy once dropped "Check backup").
+        actions = moveActions.withOpenGroup {
+            onOpen(Screen.Group(it, io.github.tomerar.keepclear.core.model.Category.MOVE))
+        },
+        onBack = onBack,
+        pending = pending,
+        places = BackupPlaces(
+            networkHost = settingsActions.networkHost,
+            nextcloudHost = settingsActions.nextcloudHost,
+            onSetUp = { onOpen(Screen.Settings) },
+        ),
+    )
+}
 
 /** E4: the ViewModel's group selections, for [GroupScreen]. */
 class SelectionActions(
@@ -216,8 +230,24 @@ private fun CurrentScreen(
             home()
         }
 
+        Screen.Backup -> {
+            BackupTab(state, moveFlow, moveValue, notificationsOff, moveActions, settingsActions, onOpen, onBack = null)
+        }
+
         is Screen.CategoryList -> {
             when {
+                // F1b: the MOVE lane is the Backup tab; [Nav.open] goes there, this only keeps an old stack working.
+                screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> BackupTab(
+                    state,
+                    moveFlow,
+                    moveValue,
+                    notificationsOff,
+                    moveActions,
+                    settingsActions,
+                    onOpen,
+                    onBack = onBack,
+                )
+
                 summary == null -> home()
 
                 screen.category == io.github.tomerar.keepclear.core.model.Category.SAFE -> SafeScreen(
@@ -234,19 +264,6 @@ private fun CurrentScreen(
                     onBack = onBack,
                     busy = state.busy,
                     onOneByOne = safeActions.onOneByOne,
-                )
-
-                screen.category == io.github.tomerar.keepclear.core.model.Category.MOVE -> MoveScreen(
-                    summary = summary,
-                    // E7: only this screen reads the MOVE state, so progress doesn't recompose the others.
-                    state = moveFlow?.let { flow ->
-                        flow.collectAsStateWithLifecycle().value
-                    } ?: moveValue,
-                    now = System.currentTimeMillis(),
-                    notificationsOff = notificationsOff,
-                    // Every action is forwarded (a field-by-field copy once dropped "Check backup").
-                    actions = moveActions.withOpenGroup { onOpen(Screen.Group(it, screen.category)) },
-                    onBack = onBack,
                 )
 
                 else -> CategoryListScreen(
@@ -314,7 +331,21 @@ private fun CurrentScreen(
         }
 
         Screen.Apps -> {
-            AppsScreen(state.appsInfo, System.currentTimeMillis(), appsActions, onBack)
+            AppsScreen(
+                state.appsInfo,
+                System.currentTimeMillis(),
+                appsActions,
+                onBack = onBack.takeIf { state.screens.size > 1 },
+                links = AppsTabLinks(
+                    onOneByOne = safeActions.onOneByOne,
+                    // SAFE-9: other apps' own folders, when the scan found any.
+                    onAppContent = summary?.groups(io.github.tomerar.keepclear.core.model.Category.REVIEW)
+                        ?.any { it.ruleId == io.github.tomerar.keepclear.engine.classify.AppContent.RULE_ID }
+                        ?.takeIf { it }
+                        ?.let { { onOpen(Screen.AppContent) } },
+                    clonedHidden = state.cloned.hidden,
+                ),
+            )
         }
 
         Screen.DeviceCheck -> {

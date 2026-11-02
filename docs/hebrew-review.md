@@ -7,18 +7,19 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-553 Hebrew strings.
+559 Hebrew strings.
 
 ## Contents
 
 - [Intro and permissions](#intro-and-permissions) (39)
-- [Home](#home) (44)
+- [Top app bar and tabs](#top-app-bar-and-tabs) (4)
+- [Home](#home) (39)
 - [Clean now](#clean-now) (17)
-- [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
+- [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (32)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (170)
+- [Move to backup and restore](#move-to-backup-and-restore) (175)
 - [Trash](#trash) (42)
-- [Apps](#apps) (29)
+- [Apps](#apps) (28)
 - [Settings](#settings) (35)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25)
 - [Notifications](#notifications) (4)
@@ -70,40 +71,44 @@ string; "also" lists other screens.
 | `whatsapp_try_again` | Try again | לנסות שוב | Home |
 | `whatsapp_wrong_folder` | That wasn't WhatsApp's folder, so nothing was added. Choose the folder named WhatsApp (Android › media › com.whatsapp › WhatsApp). | זו לא הייתה התיקייה של וואטסאפ, ולכן לא נוסף כלום. צריך לבחור את התיקייה בשם WhatsApp. | Home |
 
+## Top app bar and tabs
+
+| Key | English | עברית | Also |
+|---|---|---|---|
+| `back` | Back | לחזור |  |
+| `tab_apps` | Apps | אפליקציות |  |
+| `tab_backup` | Backup | גיבוי |  |
+| `tab_free` | Free up space | לפנות מקום |  |
+
 ## Home
 
 | Key | English | עברית | Also |
 |---|---|---|---|
-| `action_look` | Show | להציג | Clean now |
 | `area_camera` | Camera | מצלמה |  |
 | `area_junk` | Junk | קבצים מיותרים |  |
 | `area_other` | Other | אחר |  |
 | `area_whatsapp` | WhatsApp | וואטסאפ |  |
 | `areas_title` | Where your space is | איפה המקום שלכם |  |
-| `cloned_hidden_body` | KeepClear can't see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app. | ל-KeepClear אין גישה לקבצים של אפליקציות משוכפלות (אפליקציות מקבילות או אפליקציות כפולות). אפשר לנקות אותם בתוך כל אפליקציה משוכפלת. |  |
+| `cloned_hidden_body` | KeepClear can't see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app. | ל-KeepClear אין גישה לקבצים של אפליקציות משוכפלות (אפליקציות מקבילות או אפליקציות כפולות). אפשר לנקות אותם בתוך כל אפליקציה משוכפלת. | Apps |
 | `cloned_hidden_button` | Open phone settings | לפתוח את הגדרות הטלפון |  |
 | `cloned_hidden_title` | Cloned apps | אפליקציות משוכפלות |  |
 | `debug_toggle_rtl` | Flip layout direction (debug) | להפוך את כיוון המסך (דיבאג) |  |
 | `file_count` | [one] %s file / [other] %s files | [one] קובץ אחד / [two] %s קבצים / [other] %s קבצים | Review (categories, groups, item preview), Trash |
-| `home_card_counting` | Counting… | סופרים… |  |
-| `home_card_move_body` | Your memories go to your own drive and are checked before anything is deleted. | הזיכרונות עוברים לכונן שלכם ונבדקים לפני שמשהו נמחק. |  |
-| `home_card_move_title` | Move to backup | להעביר לגיבוי | Review (categories, groups, item preview) |
-| `home_card_needs_access` | Needs access | צריך גישה |  |
-| `home_card_review_body` | Things that might matter, explained in plain words. You decide. | דברים שאולי חשובים, עם הסבר פשוט. ההחלטה שלכם. |  |
-| `home_card_review_title` | Choose what to keep | לבחור מה להשאיר | Review (categories, groups, item preview) |
-| `home_card_safe_body` | Junk you won't miss, cleaned in one tap. Everything waits 30 days in the trash. | קבצים מיותרים שלא יחסרו לכם, בלחיצה אחת. הכול מחכה 30 יום בסל המחזור. |  |
-| `home_card_safe_title` | Clean now | לנקות עכשיו | Review (categories, groups, item preview) |
+| `home_card_counting` | Counting… | סופרים… | Move to backup and restore, Settings |
+| `home_card_needs_access` | Needs access | צריך גישה | Settings |
 | `home_clean_button` | Clean %1$s | לנקות %1$s |  |
 | `home_clean_nothing` | Nothing to clean right now | אין מה לנקות כרגע |  |
-| `home_privacy` | No ads. No tracking. Connects only to a backup place you set up. | בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר. |  |
+| `home_free_label` | free | פנויים |  |
+| `home_hero_safe` | %1$s can be freed safely | אפשר לפנות בבטחה %1$s |  |
+| `home_more_files` | See more files | לראות עוד קבצים |  |
+| `home_notice_dismiss` | Close | לסגור |  |
+| `home_see_details` | See details | לראות פירוט |  |
 | `home_storage_line` | %1$s used · %2$s free | %1$s בשימוש · %2$s פנויים |  |
-| `home_tagline` | Keep what matters. Clear the rest. | שומרים את מה שחשוב. מפנים את השאר. |  |
 | `home_total_move_body` | Photos and videos to back up, check, then free. | תמונות וסרטונים לגבות, לבדוק ואז לפנות. |  |
 | `home_total_review_body` | Screenshots, big videos, old-phone folders. You decide. | צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. ההחלטה שלכם. |  |
-| `home_total_safe_body` | Junk you won't miss. Everything waits 30 days in the trash. | קבצים מיותרים שלא יחסרו לכם. הכול מחכה 30 יום בסל המחזור. |  |
 | `low_space_light` | Your phone is almost full. KeepClear is using as little space as possible. | הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום. |  |
 | `low_space_minimal` | Less than 100 MB left. To avoid filling the phone, KeepClear isn't saving any data until there's room. Start by clearing apps' temporary files. | נשארו פחות מ-100MB. כדי לא למלא את הטלפון, KeepClear לא שומר נתונים עד שיתפנה מקום. כדאי להתחיל מניקוי קבצים זמניים. |  |
-| `one_by_one_button` | Clear one app at a time | לנקות אפליקציה אחת בכל פעם | Clean now |
+| `one_by_one_button` | Clear one app at a time | לנקות אפליקציה אחת בכל פעם | Clean now, Apps |
 | `partial_banner` | KeepClear sees only the photos you picked. Allow all to get real numbers. | KeepClear רואה רק את התמונות שבחרתם. כדי לקבל מספרים אמיתיים, אפשר לתת גישה לכולן. |  |
 | `partial_change` | Change | לשנות |  |
 | `result_freed` | Freed %1$s · now %2$s free (was %3$s) | פונו %1$s · עכשיו פנויים %2$s (היו %3$s) |  |
@@ -123,9 +128,9 @@ string; "also" lists other screens.
 
 | Key | English | עברית | Also |
 |---|---|---|---|
+| `action_look` | Show | להציג |  |
 | `android_trash_declined` | Nothing changed: the request was declined in Android's window. | שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד. |  |
 | `android_trash_done` | %1$s moved to Android's trash. Android deletes them after 30 days; until then you can put them back from KeepClear's trash. | %1$s הועברו לסל המחזור של אנדרואיד. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר להחזיר אותם מסל המחזור של KeepClear. |  |
-| `back` | Back | לחזור | Review (categories, groups, item preview), Trash |
 | `clean_button` | Clean %1$s | לנקות %1$s |  |
 | `clean_confirm_body` | %1$s. They'll wait in KeepClear's trash for 30 days, so you can restore anything. | %1$s. הם יחכו 30 יום בסל המחזור של KeepClear, וכל דבר אפשר לשחזר. |  |
 | `clean_confirm_title` | Clean %1$s? | לנקות %1$s? |  |
@@ -151,6 +156,9 @@ string; "also" lists other screens.
 | `choice_always_junk_confirm` | Treat as junk | להתייחס כזבל |  |
 | `choice_keep` | This is important to me – never touch it | זה חשוב לי – לא לגעת בזה אף פעם |  |
 | `cloned_label` | Cloned app | אפליקציה משוכפלת |  |
+| `home_card_move_title` | Move to backup | להעביר לגיבוי |  |
+| `home_card_review_title` | Choose what to keep | לבחור מה להשאיר |  |
+| `home_card_safe_title` | Clean now | לנקות עכשיו |  |
 | `keep_signal_note` | A favourite or recently changed, so it needs your review. | מועדף או שהשתנה לאחרונה, ולכן צריך את ההחלטה שלכם. |  |
 | `label_if_deleted` | What happens if it's deleted? | מה יקרה אם זה יימחק? |  |
 | `label_why` | Why is this here? | למה זה כאן? |  |
@@ -197,6 +205,11 @@ string; "also" lists other screens.
 
 | Key | English | עברית | Also |
 |---|---|---|---|
+| `backup_place_network` | Computer at home: %1$s | מחשב בבית: %1$s |  |
+| `backup_place_nextcloud` | Nextcloud: %1$s | Nextcloud: %1$s |  |
+| `backup_places_drive` | A USB drive or memory card: you choose it when you start a backup. | כונן USB או כרטיס זיכרון: בוחרים אותו כשמתחילים לגבות. |  |
+| `backup_places_setup` | Set up a backup place | להגדיר מקום לגיבוי |  |
+| `backup_places_title` | Backup places | מקומות לגיבוי | Settings |
 | `details` | Details | פרטים |  |
 | `details_check_pc` | Developer check on a computer: sha256sum -c SHA256SUMS in the backup folder. Each file's SHA-256 is in keepclear-manifest.jsonl. | בדיקה למפתחים במחשב: sha256sum -c SHA256SUMS בתיקיית הגיבוי. ה-SHA-256 של כל קובץ נמצא ב-keepclear-manifest.jsonl. |  |
 | `details_nextcloud_check` | Your Nextcloud computed the SHA-256 of each stored copy (X-Hash-SHA256 over WebDAV) and it matched the original's, so nothing had to be downloaded. Copies it didn't report were read back over the network instead. Before space is freed, every copy is read back and checked once more. | ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת. |  |
@@ -380,7 +393,7 @@ string; "also" lists other screens.
 | `trash_android_note` | Android deletes these by itself 30 days after they were deleted. Android asks you to confirm each restore or delete. | אנדרואיד מוחק אותם בעצמו 30 יום אחרי שנמחקו. אנדרואיד מבקש אישור לכל שחזור או מחיקה. |  |
 | `trash_cancel` | Cancel | לבטל | Home, Clean now, Review (categories, groups, item preview) |
 | `trash_changed` | Changed since it was deleted | השתנה מאז שנמחק |  |
-| `trash_chip` | Trash · %1$s | סל המחזור · %1$s | Home |
+| `trash_chip` | Trash · %1$s | סל המחזור · %1$s | Top app bar and tabs |
 | `trash_confirm_delete` | Delete permanently | למחוק לצמיתות |  |
 | `trash_confirm_empty_body` | %1$s. This can't be undone. Items with a checked copy on a drive are still safe there; the rest has no other copy. | %1$s. אי אפשר לבטל את זה. פריטים שיש להם עותק שנבדק בכונן עדיין שמורים שם; לשאר אין עותק נוסף. |  |
 | `trash_confirm_empty_body_split` | %1$s have a checked copy on your drive. %2$s have no other copy and will be gone for good. | ל-%1$s יש עותק שנבדק בכונן שלכם. ל-%2$s אין עותק נוסף, והם יימחקו לצמיתות. |  |
@@ -436,7 +449,6 @@ string; "also" lists other screens.
 | `apps_cache` | Temporary files: %1$s | קבצים זמניים: %1$s |  |
 | `apps_last_used` | [one] Last opened about %1$s month ago / [other] Last opened about %1$s months ago | [one] נפתחה לאחרונה לפני בערך חודש / [two] נפתחה לאחרונה לפני בערך חודשיים / [other] נפתחה לאחרונה לפני בערך %1$s חודשים |  |
 | `apps_never_used` | No record of use | אין תיעוד של שימוש |  |
-| `apps_open` | Apps and their space | אפליקציות והמקום שלהן | Home |
 | `apps_title` | Apps | אפליקציות |  |
 | `apps_total` | Apps take %1$s. | אפליקציות תופסות %1$s. |  |
 | `apps_uninstall` | Uninstall | להסיר |  |
@@ -456,6 +468,7 @@ string; "also" lists other screens.
 | `choice_junk_label` | Always junk | תמיד זבל |  |
 | `choice_kept_label` | Never touched | לא נוגעים |  |
 | `choice_remove` | Remove | הסרה |  |
+| `home_privacy` | No ads. No tracking. Connects only to a backup place you set up. | בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר. |  |
 | `reminder_setting` | Remind me when space is low | להזכיר לי כשהמקום מתמלא |  |
 | `reminder_setting_body` | At most once a week, when less than 10% (or 2 GB) is free. It only reminds; nothing is deleted in the background. | לכל היותר פעם בשבוע, כשנשאר פחות מ-10% (או 2 GB) פנוי. רק תזכורת; שום דבר לא נמחק ברקע. |  |
 | `settings_about` | About KeepClear | על KeepClear |  |
@@ -471,10 +484,9 @@ string; "also" lists other screens.
 | `settings_nextcloud_forgot_not_revoked` | KeepClear forgot your Nextcloud on this phone, but couldn't reach it to sign the phone out, so its app password may still work there. To be sure, remove it in your Nextcloud: Settings › Security. | KeepClear שכח את ה-Nextcloud שלכם בטלפון הזה, אבל לא הצליח להגיע אליו כדי להוציא את הטלפון מהחשבון, ולכן סיסמת האפליקציה עשויה עדיין לעבוד שם. כדי להיות בטוחים, אפשר למחוק אותה ב-Nextcloud שלכם: הגדרות › אבטחה. |  |
 | `settings_nextcloud_forgot_revoked` | KeepClear forgot your Nextcloud and signed this phone out of it. | KeepClear שכח את ה-Nextcloud שלכם והוציא את הטלפון הזה מהחשבון. |  |
 | `settings_nextcloud_only` | Network: only to %1$s (your Nextcloud) | רשת: רק אל %1$s (ה-Nextcloud) |  |
-| `settings_open_trash` | Open the trash | לפתוח את סל המחזור |  |
 | `settings_privacy` | Privacy policy | מדיניות פרטיות |  |
 | `settings_replay_intro` | Show the introduction again | להציג שוב את ההיכרות |  |
-| `settings_title` | Settings | הגדרות | Home |
+| `settings_title` | Settings | הגדרות | Top app bar and tabs |
 | `settings_uninstall_title` | Before you uninstall | לפני שמסירים את האפליקציה |  |
 | `test_mode_banner` | Trial mode – no file will be deleted or moved | מצב ניסיון – שום קובץ לא יימחק או יועבר |  |
 | `test_mode_body` | While trial mode is on, KeepClear only shows what it would do. No file is deleted, moved to the trash, restored or cleared. | כשמצב ניסיון פועל, ‏KeepClear רק מראה מה היה עושה. שום קובץ לא נמחק, לא עובר לסל המחזור, לא משוחזר ולא מנוקה. |  |
