@@ -161,6 +161,28 @@ class NextcloudLoginTest {
     }
 
     @Test
+    fun `a server under an encoded path signs in, and only safely decoded Login Flow routes count (PR 40 review)`() {
+        val flow = "a".repeat(32)
+        NextcloudLoginFlow.isPollPath("/my%20cloud/login/v2/poll") shouldBe true
+        NextcloudLoginFlow.isPollPath("/%D7%A2%D7%A0%D7%9F/index.php/login/v2/poll") shouldBe true
+        NextcloudLoginFlow.isLoginPath("/my%20cloud/login/v2/flow/$flow") shouldBe true
+        NextcloudLoginFlow.isPollPath("/login/v2/poll") shouldBe true
+        // Unsafe or malformed paths still never count.
+        listOf(
+            "/a/../login/v2/poll",
+            "/a%2Fb/login/v2/poll",
+            "/%2e%2e/login/v2/poll",
+            "/a%zz/login/v2/poll",
+            "/a%ff/login/v2/poll",
+            "/login/v2/poll/x",
+            "login/v2/poll",
+        ).forEach { NextcloudLoginFlow.isPollPath(it) shouldBe false }
+        NextcloudLoginFlow.isLoginPath("/login/v2/flow/short") shouldBe false
+        NextcloudLoginFlow.isLoginPath("/login/v2/flow/$flow/x") shouldBe false
+        NextcloudLoginFlow.isLoginPath("/login/v2/flow/${"a".repeat(31)}%21") shouldBe false
+    }
+
+    @Test
     fun `malformed or hostile answers are not Nextcloud`() {
         listOf(
             200 to "not json",

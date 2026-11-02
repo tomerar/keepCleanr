@@ -264,8 +264,8 @@ class NextcloudLoginFlow(
             throw NextcloudException(NextcloudProblem.OTHER_ADDRESS)
         }
         val pollPath = endpoint.rawPath.orEmpty()
-        if (endpoint.rawQuery != null || endpoint.rawFragment != null || !POLL_PATH.matches(pollPath)) notNextcloud()
-        if (login.rawQuery != null || login.rawFragment != null || !LOGIN_PATH.matches(login.rawPath.orEmpty())) {
+        if (endpoint.rawQuery != null || endpoint.rawFragment != null || !isPollPath(pollPath)) notNextcloud()
+        if (login.rawQuery != null || login.rawFragment != null || !isLoginPath(login.rawPath.orEmpty())) {
             notNextcloud()
         }
         return Started(login.toASCIIString(), pollPath, token)
@@ -340,10 +340,23 @@ class NextcloudLoginFlow(
 
     private fun notNextcloud(): Nothing = throw NextcloudException(NextcloudProblem.NOT_NEXTCLOUD)
 
-    private companion object {
+    internal companion object {
         val TOKEN = Regex("^[A-Za-z0-9]{32,256}$")
-        val POLL_PATH = Regex("^(/[A-Za-z0-9._~-]+)*/login/v2/poll$")
-        val LOGIN_PATH = Regex("^(/[A-Za-z0-9._~-]+)*/login/v2/flow/[A-Za-z0-9]{32,256}$")
+        val FLOW_TOKEN = Regex("^[A-Za-z0-9]{32,256}$")
+
+        /**
+         * The path is decoded with the same strict rules as a typed address ([DavPath.split]: valid escapes, valid
+         * UTF-8, no `..`, no encoded `/`), so a server under e.g. `/my%20cloud` signs in (PR #40 review); only the
+         * Login Flow v2 route at its end is fixed.
+         */
+        fun isPollPath(rawPath: String): Boolean =
+            DavPath.split(rawPath)?.takeLast(3) == listOf("login", "v2", "poll")
+
+        fun isLoginPath(rawPath: String): Boolean {
+            val segments = DavPath.split(rawPath) ?: return false
+            return segments.size >= 4 && segments.subList(segments.size - 4, segments.size - 1) ==
+                listOf("login", "v2", "flow") && FLOW_TOKEN.matches(segments.last())
+        }
     }
 }
 
