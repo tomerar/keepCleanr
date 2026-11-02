@@ -102,6 +102,33 @@ class TrashScreenTest {
     }
 
     @Test
+    fun `release now goes through the release check, not a plain purge, and says what it kept (D6)`() {
+        var released: List<TrashEntry>? = null
+        val a = entry("a", verified = "SanDisk")
+        compose.setContent {
+            KeepClearTheme {
+                TrashScreen(
+                    TrashUi(listOf(a), releasable = setOf("a"), releaseHeldBack = 2),
+                    onRestore = { _, _ -> },
+                    onPurge = { e, _ -> purged = e },
+                    onBack = {},
+                    onRelease = { e, _ -> released = e },
+                )
+            }
+        }
+        compose.onNodeWithTag("releaseHeldBack").assertIsDisplayed()
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("release_a"))
+        compose.onNodeWithTag("release_a").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmPurge").fetchSemanticsNodes()
+                .any { androidx.compose.ui.semantics.SemanticsProperties.Disabled !in it.config }
+        }
+        compose.onNodeWithTag("confirmPurge").performClick()
+        assertEquals(listOf(a), released)
+        assertEquals(null, purged)
+    }
+
+    @Test
     fun `non-original restore destinations are shown before restoring (SEC-1)`() {
         show(
             TrashUi(

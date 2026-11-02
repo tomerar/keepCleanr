@@ -358,7 +358,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         // Owner decision 1.2: a size check here (cheap); the content check runs when restoring.
         val changed = entries.filter { manager.isChanged(it) }.map { it.id }.toSet() + changedFound
         _state.update {
-            it.copy(trash = TrashUi(entries, destinations, releasable.toSet(), changed, android = it.trash.android))
+            it.copy(
+                trash = TrashUi(
+                    entries,
+                    destinations,
+                    releasable.toSet(),
+                    changed,
+                    android = it.trash.android,
+                    releaseHeldBack = it.trash.releaseHeldBack,
+                ),
+            )
         }
     }
 
@@ -425,6 +434,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun dismissLastCopies() = _state.update { it.copy(lastCopy = null) }
 
     fun purge(entries: List<TrashEntry>, confirmation: Confirmation) = runTrashPlan(entries, OpKind.PURGE, confirmation)
+
+    /**
+     * D6: "Release now/all". Right before the permanent delete, every backup copy is re-checked on its backup place
+     * (size and SHA-256 read back now, C52). Only originals whose copy is intact are purged; the others stay in the
+     * trash and the Trash says how many.
+     */
+    fun release(entries: List<TrashEntry>, confirmation: Confirmation) {
+        if (entries.isEmpty() || _state.value.busy) return
+        _state.update { it.copy(busy = true, trash = it.trash.copy(releaseHeldBack = 0)) }
+        viewModelScope.launch {
+            val intact = try {
+                withContext(Dispatchers.IO) { intactCopies(entries.filter { it.verifiedCopy != null }) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("KeepClear-Trash", "release check failed: ${e.javaClass.simpleName}")
+                emptySet()
+            }
+            val (go, keep) = entries.partition { it.verifiedCopy != null && it.originalPath in intact }
+            _state.update { it.copy(busy = false, trash = it.trash.copy(releaseHeldBack = keep.size)) }
+            if (go.isNotEmpty()) runTrashPlan(go, OpKind.PURGE, confirmation)
+        }
+    }
+
+    private suspend fun intactCopies(entries: List<TrashEntry>): Set<String> {
+        if (entries.isEmpty()) return emptySet()
+        val store = app.moveController.store
+        val check = io.github.tomerar.keepclear.engine.move.ReleaseCheck(store, store.jobs()) { job ->
+            val ref = job.targetRef ?: return@ReleaseCheck null
+            (app.openTargetRef(ref, job.targetLabel) as? OpenedTarget.Ok)?.target
+        }
+        return check.intact(entries.map { it.originalPath })
+    }
 
     private fun runTrashPlan(entries: List<TrashEntry>, kind: OpKind, confirmation: Confirmation) {
         if (entries.isEmpty()) {

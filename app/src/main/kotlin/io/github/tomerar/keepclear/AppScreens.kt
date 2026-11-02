@@ -251,6 +251,7 @@ private fun ScreenContent(
                 measured = state.measured?.takeIf { it.origin == Screen.Trash },
                 busy = state.busy,
                 onAndroidTrash = safeActions.onAndroidTrash,
+                onRelease = safeActions.onRelease ?: onPurge,
             )
         }
 
@@ -287,4 +288,14 @@ class SafeActions(
         io.github.tomerar.keepclear.core.safety.Confirmation,
     ) -> Unit = { _, _, _ -> },
     val onDismissLastCopy: () -> Unit = {},
+    /**
+     * D6: "Release now/all": the backup copies are re-checked (size and SHA-256) right before the permanent delete;
+     * null = plain purge (tests).
+     */
+    val onRelease: (
+        (
+            List<io.github.tomerar.keepclear.engine.trash.TrashEntry>,
+            io.github.tomerar.keepclear.core.safety.Confirmation,
+        ) -> Unit
+    )? = null,
 )

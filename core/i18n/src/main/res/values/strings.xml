@@ -88,6 +88,10 @@
     <string name="last_copy_keep">Keep it</string>
     <string name="trash_restore_all">Restore all</string>
     <string name="trash_empty_now">Empty trash now</string>
+    <plurals name="trash_release_held_back">
+        <item quantity="one">%1$s file stayed in the trash: KeepClear couldn\'t confirm just now that its backup copy is intact. Connect the backup place and try again.</item>
+        <item quantity="other">%1$s files stayed in the trash: KeepClear couldn\'t confirm just now that their backup copies are intact. Connect the backup place and try again.</item>
+    </plurals>
     <string name="trash_release_now">Free now (a checked copy exists)</string>
     <string name="trash_verified_copy">Checked copy on %1$s</string>
     <string name="trash_restore_to">Will be restored to %1$s</string>
