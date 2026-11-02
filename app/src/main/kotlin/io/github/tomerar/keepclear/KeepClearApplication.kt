@@ -159,16 +159,52 @@ class KeepClearApplication : Application() {
     suspend fun openNetworkDrive(location: io.github.tomerar.keepclear.backup.smb.SmbLocation, label: String) =
         OpenedTarget.of(io.github.tomerar.keepclear.backup.smb.SmbTargets.open(location, label))
 
+    /** Seals stored passwords; tests on Robolectric (which has no Android key store) put a stand-in here first. */
+    internal var secretBox: (alias: String) -> SecretBox = ::KeystoreSecretBox
+
+    /** M17b (Advanced): the user's Nextcloud (app password sealed with its own key-store key). */
+    val nextcloud by lazy {
+        NextcloudStore(getSharedPreferences("nextcloud", MODE_PRIVATE), secretBox("keepclear-nextcloud"))
+    }
+
     /**
-     * Reopens a job's target from its stored reference: a picked tree URI, or the saved network drive. A network
-     * reference opens only if it still matches the saved drive; the marker then has to match too (E-MOVE-2).
+     * "Forget your Nextcloud" (C27, like C9): removes the account and its sealed app password, and pauses a backup
+     * that is running to it right now, so nothing more is sent there.
      */
-    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = if (OpenedTarget.isNetwork(ref)) {
-        val location = networkDrives.load()
-            ?.takeIf { io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(it) == ref }
-        if (location == null) OpenedTarget.Unavailable else openNetworkDrive(location, label)
-    } else {
-        OpenedTarget.of(openTarget(ref.toUri(), label))
+    suspend fun forgetNextcloud() {
+        nextcloud.clear()
+        val running = moveController.running.value?.let { moveController.store.job(it) }
+        if (OpenedTarget.usesNextcloud(running)) {
+            moveController.pause(io.github.tomerar.keepclear.engine.move.PauseReason.TARGET_DISCONNECTED)
+        }
+    }
+
+    /** Opens the Nextcloud backup place of [account] (M17b). Network I/O; call off the main thread. */
+    suspend fun openNextcloud(account: io.github.tomerar.keepclear.backup.webdav.NextcloudAccount, label: String) =
+        OpenedTarget.of(
+            io.github.tomerar.keepclear.backup.webdav.WebDavTargets.open(NextcloudStore.location(account), label),
+        )
+
+    /**
+     * Reopens a job's target from its stored reference: a picked tree URI, the saved network drive or the saved
+     * Nextcloud. A network reference opens only if it still matches the saved place; the marker then has to match
+     * too (E-MOVE-2).
+     */
+    suspend fun openTargetRef(ref: String, label: String): OpenedTarget = when {
+        OpenedTarget.isNextcloud(ref) -> {
+            val account = nextcloud.load()?.takeIf { NextcloudStore.ref(it) == ref }
+            if (account == null) OpenedTarget.Unavailable else openNextcloud(account, label)
+        }
+
+        OpenedTarget.isSmb(ref) -> {
+            val location = networkDrives.load()
+                ?.takeIf { io.github.tomerar.keepclear.backup.smb.SmbTargets.ref(it) == ref }
+            if (location == null) OpenedTarget.Unavailable else openNetworkDrive(location, label)
+        }
+
+        else -> {
+            OpenedTarget.of(openTarget(ref.toUri(), label))
+        }
     }
 
     /** Opens a picked backup folder (MOVE-2). Blocking I/O. */

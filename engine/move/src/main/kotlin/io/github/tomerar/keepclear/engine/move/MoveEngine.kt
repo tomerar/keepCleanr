@@ -199,6 +199,7 @@ class MoveEngine(
                     verifiedAt = clock(),
                     failReason = null,
                     confirmedAt = if (byServer == true) clock() else null,
+                    verifiedBy = if (byServer == true) VerifyMethod.SERVER_DIGEST else VerifyMethod.READ_BACK,
                 ),
             )
         }
@@ -445,7 +446,15 @@ class MoveEngine(
                 else -> {
                     if (stat == null) missing++ else damaged++
                     // Never delete a copy here: it may be the user's only one if the original is already gone.
-                    put(f.copy(state = MoveFileState.PENDING, confirmedAt = null, verifiedAt = null, attempts = 0))
+                    put(
+                        f.copy(
+                            state = MoveFileState.PENDING,
+                            confirmedAt = null,
+                            verifiedAt = null,
+                            verifiedBy = null,
+                            attempts = 0,
+                        ),
+                    )
                 }
             }
         }

@@ -12,6 +12,7 @@ import io.github.tomerar.keepclear.engine.move.MoveFile
 import io.github.tomerar.keepclear.engine.move.MoveFileState
 import io.github.tomerar.keepclear.engine.move.MoveJob
 import io.github.tomerar.keepclear.engine.move.PauseReason
+import io.github.tomerar.keepclear.engine.move.VerifyMethod
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -81,6 +82,11 @@ class RoomMoveJobStoreTest {
         store.files("j1") shouldBe listOf(file, failed)
         store.putFile(file.copy(attempts = 2))
         store.files("j1").first().attempts shouldBe 2
+        // M17b: the verification method round-trips; an unknown stored value is "not recorded", never guessed.
+        store.putFile(file.copy(verifiedBy = VerifyMethod.SERVER_DIGEST))
+        store.files("j1").first().verifiedBy shouldBe VerifyMethod.SERVER_DIGEST
+        db.openHelper.writableDatabase.execSQL("UPDATE move_file SET verifiedBy = 'FROM_THE_FUTURE'")
+        store.files("j1").first().verifiedBy shouldBe null
     }
 
     @Test

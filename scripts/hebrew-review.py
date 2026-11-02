@@ -27,6 +27,7 @@ SCREENS = [
     ("Trash", ["TrashScreen", "TrashSupport"]),
     ("Apps", ["AppsScreen", "AppsScreens", "AppsSource"]),
     ("Settings", ["SettingsScreen", "TestMode", "AppScreens"]),
+    ("Nextcloud set-up (Settings › Advanced)", ["Nextcloud"]),
     ("Notifications", ["SpaceReminder", "Notification"]),
     ("Device check (test builds)", ["DeviceCheck"]),
 ]
@@ -41,6 +42,7 @@ PREFIXES = [
     ("Swipe review", ["swipe_"]),
     ("Notifications", ["reminder_text", "reminder_title", "reminder_channel"]),
     ("Settings", ["settings_", "reminder_setting", "test_mode", "choice_kept", "choice_junk_list"]),
+    ("Nextcloud set-up (Settings › Advanced)", ["nextcloud_"]),
     ("Device check (test builds)", ["debug_device_check"]),
 ]
 

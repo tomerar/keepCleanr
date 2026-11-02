@@ -141,6 +141,9 @@ class ServerDigestTest {
         rig.engine().run(id).state shouldBe JobState.DONE
         rig.dataReads shouldBe 0
         rig.store.files(id).all { it.state == MoveFileState.VERIFIED && it.confirmedAt != null } shouldBe true
+        // M17b: the method is recorded per file, and the receipt counts what the server checked.
+        rig.store.files(id).all { it.verifiedBy == VerifyMethod.SERVER_DIGEST } shouldBe true
+        rig.engine().receipt(id).checkedByServer shouldBe 4
         // Free time still re-reads and re-hashes every copy.
         rig.engine().originalsPlan(id).size shouldBe 4
         rig.dataReads shouldBe 4
@@ -167,6 +170,8 @@ class ServerDigestTest {
         rig.engine().run(id).state shouldBe JobState.DONE
         rig.dataReads shouldBe 4
         rig.store.files(id).all { it.state == MoveFileState.VERIFIED && it.confirmedAt == null } shouldBe true
+        rig.store.files(id).all { it.verifiedBy == VerifyMethod.READ_BACK } shouldBe true
+        rig.engine().receipt(id).checkedByServer shouldBe 0
         rig.engine().originalsPlan(id).shouldBeEmpty()
     }
 

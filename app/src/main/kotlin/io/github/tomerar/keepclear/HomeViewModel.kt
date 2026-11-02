@@ -146,6 +146,9 @@ sealed interface Screen {
 
     /** Test builds only: Settings › Advanced › Device check (read-only). */
     data object DeviceCheck : Screen
+
+    /** M17b: Settings › Advanced › Back up to Nextcloud. */
+    data object Nextcloud : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {

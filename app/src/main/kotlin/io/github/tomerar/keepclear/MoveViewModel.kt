@@ -61,6 +61,15 @@ enum class TargetProblem {
 
     /** M15: nothing answered at the network drive's address (computer off or asleep, other Wi-Fi, typo). */
     UNREACHABLE,
+
+    /** M17b: the Nextcloud's certificate isn't trusted or is for another name. */
+    CERTIFICATE,
+
+    /** M17b: the Nextcloud refused the app password, or it can't be opened any more: sign in again (Advanced). */
+    NEXTCLOUD_SIGN_IN,
+
+    /** M17b: the Nextcloud didn't answer. */
+    NEXTCLOUD_UNREACHABLE,
 }
 
 data class JobView(
@@ -250,6 +259,35 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * M17b: back up to (or restore from) the Nextcloud set up under Settings › Advanced. Its app password stays
+     * sealed until here; if it can't be opened any more, the user is asked to sign in again.
+     */
+    fun onNextcloud() {
+        val restoring = _state.value.restore == RestoreStep.Pick
+        val items = pendingItems
+        if (!restoring && items.isEmpty()) {
+            fail(TargetProblem.SELECTION_LOST)
+            return
+        }
+        viewModelScope.launch {
+            if (!restoring) _state.update { it.copy(busy = true, picked = null, problem = null) }
+            val account = withContext(Dispatchers.IO) { runCatching { app.nextcloud.load() }.getOrNull() }
+            if (account == null) {
+                if (restoring) closeRestore()
+                fail(TargetProblem.NEXTCLOUD_SIGN_IN)
+                return@launch
+            }
+            val label = account.server.host
+            val check = withContext(Dispatchers.IO) { app.openNextcloud(account, label) }
+            if (restoring) {
+                restoreFrom(check, nextcloud = true)
+            } else {
+                opened(check, label, NextcloudStore.ref(account), items)
+            }
+        }
+    }
+
     /** The saved network drive, to fill the form again (the password stays sealed until it is used). */
     fun savedNetworkDrive() = runCatching { app.networkDrives.load() }.getOrNull()
 
@@ -286,11 +324,21 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             OpenedTarget.Refused -> {
-                fail(TargetProblem.REFUSED)
+                fail(if (OpenedTarget.isNextcloud(ref)) TargetProblem.NEXTCLOUD_SIGN_IN else TargetProblem.REFUSED)
+            }
+
+            OpenedTarget.CertificateRejected -> {
+                fail(TargetProblem.CERTIFICATE)
             }
 
             OpenedTarget.Unavailable -> {
-                fail(if (OpenedTarget.isNetwork(ref)) TargetProblem.UNREACHABLE else TargetProblem.UNAVAILABLE)
+                fail(
+                    when {
+                        OpenedTarget.isNextcloud(ref) -> TargetProblem.NEXTCLOUD_UNREACHABLE
+                        OpenedTarget.isSmb(ref) -> TargetProblem.UNREACHABLE
+                        else -> TargetProblem.UNAVAILABLE
+                    },
+                )
             }
         }
     }
@@ -380,14 +428,15 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(restore = null) }
     }
 
-    private suspend fun restoreFrom(check: OpenedTarget) {
+    private suspend fun restoreFrom(check: OpenedTarget, nextcloud: Boolean = false) {
         if (check !is OpenedTarget.Ok) {
             closeRestore()
             fail(
                 when (check) {
-                    OpenedTarget.Refused -> TargetProblem.REFUSED
+                    OpenedTarget.Refused -> if (nextcloud) TargetProblem.NEXTCLOUD_SIGN_IN else TargetProblem.REFUSED
                     OpenedTarget.DamagedMarker -> TargetProblem.DAMAGED_MARKER
-                    else -> TargetProblem.UNAVAILABLE
+                    OpenedTarget.CertificateRejected -> TargetProblem.CERTIFICATE
+                    else -> if (nextcloud) TargetProblem.NEXTCLOUD_UNREACHABLE else TargetProblem.UNAVAILABLE
                 },
             )
             return

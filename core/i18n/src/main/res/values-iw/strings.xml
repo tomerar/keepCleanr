@@ -528,4 +528,45 @@
     <string name="cloned_hidden_title">אפליקציות משוכפלות</string>
     <string name="cloned_hidden_body">ל-KeepClear אין גישה לקבצים של אפליקציות משוכפלות (אפליקציות מקבילות או אפליקציות כפולות). אפשר לנקות אותם בתוך כל אפליקציה משוכפלת.</string>
     <string name="cloned_hidden_button">לפתוח את הגדרות הטלפון</string>
+    <string name="nextcloud_title">גיבוי ל-Nextcloud</string>
+    <string name="nextcloud_intro">אפשר להשתמש ב-Nextcloud פרטי כמקום לגיבוי. KeepClear מתחברת רק לכתובת שמוקלדת כאן, ה-Nextcloud בודק כל עותק שהוא שומר, ומקום מתפנה רק אחרי הקשה.</string>
+    <string name="nextcloud_connected">מחובר עכשיו: %1$s. כניסה מחדש מחליפה אותו.</string>
+    <string name="nextcloud_address">הכתובת של ה-Nextcloud (למשל cloud.example.com)</string>
+    <string name="nextcloud_sign_in">כניסה דרך הדפדפן</string>
+    <string name="nextcloud_manual">להשתמש בסיסמת אפליקציה במקום</string>
+    <string name="nextcloud_manual_help">אפשר ליצור סיסמת אפליקציה ב-Nextcloud: הגדרות › אבטחה › יצירת סיסמת אפליקציה חדשה. אין להקליד כאן את סיסמת החשבון.</string>
+    <string name="nextcloud_user">שם משתמש</string>
+    <string name="nextcloud_app_password">סיסמת אפליקציה</string>
+    <string name="nextcloud_connect">התחברות</string>
+    <string name="nextcloud_working">מתחברים ל-Nextcloud…</string>
+    <string name="nextcloud_browser">יש להיכנס בדף שנפתח בדפדפן, לאשר גישה ולחזור לכאן. KeepClear ממתינה עד 20 דקות.</string>
+    <string name="nextcloud_open_again">לפתוח שוב את דף הכניסה</string>
+    <string name="nextcloud_done">ה-Nextcloud %1$s מוכן. כדי לגבות אליו: לפתוח את \"העברה לגיבוי\", לבחור מה להעביר, להקיש על \"לבחור דיסק און קי או כרטיס זיכרון\" ואז על \"להשתמש ב-Nextcloud\".</string>
+    <string name="nextcloud_bad_address">יש להקליד את הכתובת שבה ה-Nextcloud נפתח, למשל https://cloud.example.com, בלי שם, בלי סיסמה ובלי שום דבר אחרי סימן שאלה.</string>
+    <string name="nextcloud_needs_https">יש להשתמש בכתובת שמתחילה ב-https://. ‏KeepClear אף פעם לא שולחת סיסמה בלי הצפנה.</string>
+    <string name="nextcloud_problem_unreachable">אף שרת לא ענה בכתובת הזו. כדאי לבדוק את הכתובת ואת החיבור לאינטרנט ולנסות שוב.</string>
+    <string name="nextcloud_problem_certificate">אישור האבטחה של השרת הזה אינו מהימן, ולכן KeepClear לא התחברה. כדאי לבדוק את הכתובת, או לשאול את מי שמנהל את השרת.</string>
+    <string name="nextcloud_problem_not_nextcloud">הכתובת הזו לא עונה כמו Nextcloud. יש להשתמש בכתובת שבה הוא נפתח בדפדפן.</string>
+    <string name="nextcloud_problem_other_address">השרת ניסה להפנות את KeepClear לכתובת אחרת, ולכן KeepClear עצרה. יש להשתמש בכתובת של ה-Nextcloud עצמו.</string>
+    <string name="nextcloud_problem_refused">ה-Nextcloud דחה את שם המשתמש או את סיסמת האפליקציה. כדאי לבדוק אותם ולנסות שוב.</string>
+    <string name="nextcloud_problem_expired">הכניסה לא הושלמה בזמן. אפשר לנסות שוב.</string>
+    <string name="nextcloud_settings_body">למי שיש Nextcloud משלו. נכנסים פעם אחת, ואז אפשר לבחור בו בהעברת קבצים לגיבוי. ה-Nextcloud בודק כל עותק שהוא שומר.</string>
+    <string name="nextcloud_settings_button">הגדרת Nextcloud</string>
+    <string name="settings_nextcloud_only">רשת: רק אל %1$s (ה-Nextcloud)</string>
+    <string name="settings_nextcloud_forget">לשכוח את ה-Nextcloud</string>
+    <string name="move_nextcloud_option">להשתמש ב-Nextcloud (%1$s)</string>
+    <string name="move_problem_nextcloud_sign_in">ה-Nextcloud כבר לא מקבל את הכניסה של KeepClear. יש להיכנס שוב בהגדרות › מתקדם.</string>
+    <string name="move_problem_nextcloud_unreachable">ה-Nextcloud לא ענה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב.</string>
+    <string name="restore_from_nextcloud">הגיבוי ב-Nextcloud (%1$s)</string>
+    <plurals name="move_receipt_verified_nextcloud">
+        <item quantity="one">קובץ אחד (%2$s) הועתק. ה-Nextcloud בדק אותו: מה שנשמר זהה למקור.</item>
+        <item quantity="two">שני קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
+        <item quantity="other">%1$s קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
+    </plurals>
+    <plurals name="move_receipt_nextcloud">
+        <item quantity="one">אחד מהם נבדק על ידי ה-Nextcloud.</item>
+        <item quantity="two">שניים מהם נבדקו על ידי ה-Nextcloud.</item>
+        <item quantity="other">%1$s מהם נבדקו על ידי ה-Nextcloud.</item>
+    </plurals>
+    <string name="details_nextcloud_check">ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת.</string>
 </resources>

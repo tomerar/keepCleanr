@@ -62,6 +62,9 @@ class MoveActions(
     ) -> Unit = { _, _ -> },
     /** M15: the saved network drive, to fill the form again. */
     val savedNetworkDrive: () -> io.github.tomerar.keepclear.backup.smb.SmbLocation? = { null },
+    /** M17b: the Nextcloud set up under Settings › Advanced (its host), or null: then it isn't offered at all. */
+    val nextcloudHost: String? = null,
+    val onNextcloud: (List<ClassifiedItem>) -> Unit = {},
     val onStart: () -> Unit = {},
     val onCancelPick: () -> Unit = {},
     val onPause: () -> Unit = {},
@@ -85,6 +88,8 @@ class MoveActions(
         onPickTarget = onPickTarget,
         onNetworkDrive = onNetworkDrive,
         savedNetworkDrive = savedNetworkDrive,
+        nextcloudHost = nextcloudHost,
+        onNextcloud = onNextcloud,
         onStart = onStart,
         onCancelPick = onCancelPick,
         onPause = onPause,
@@ -251,6 +256,11 @@ fun MoveScreen(
                 guide = false
                 network = true
             },
+            nextcloudHost = actions.nextcloudHost,
+            onNextcloud = {
+                guide = false
+                actions.onNextcloud(items)
+            },
             onDismiss = { guide = false },
         )
     }
@@ -345,6 +355,9 @@ private fun ProblemCard(problem: TargetProblem) {
                     TargetProblem.SELECTION_LOST -> R.string.move_problem_selection_lost
                     TargetProblem.REFUSED -> R.string.move_problem_refused
                     TargetProblem.UNREACHABLE -> R.string.move_problem_unreachable
+                    TargetProblem.CERTIFICATE -> R.string.nextcloud_problem_certificate
+                    TargetProblem.NEXTCLOUD_SIGN_IN -> R.string.move_problem_nextcloud_sign_in
+                    TargetProblem.NEXTCLOUD_UNREACHABLE -> R.string.move_problem_nextcloud_unreachable
                 },
             ),
             modifier = Modifier.padding(12.dp),
@@ -500,8 +513,15 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 stringResource(R.string.move_receipt_title, Bidi.isolate(r.targetLabel)),
                 style = MaterialTheme.typography.titleMedium,
             )
+            // M17b: the server itself checked these copies (ADR 0011); plain words here, how under Details.
+            val byNextcloud = OpenedTarget.isNextcloud(view.job.targetRef) && r.checkedByServer > 0
+            val allByNextcloud = byNextcloud && r.checkedByServer == r.verified
             Text(
-                countSentence(R.plurals.move_receipt_verified, r.verified, sizeText(r.verifiedBytes)),
+                countSentence(
+                    if (allByNextcloud) R.plurals.move_receipt_verified_nextcloud else R.plurals.move_receipt_verified,
+                    r.verified,
+                    sizeText(r.verifiedBytes),
+                ),
                 modifier = Modifier.testTag("receiptVerified"),
             )
             r.failed.forEach { (reason, count) ->
@@ -511,6 +531,12 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 Text(
                     countSentence(R.plurals.move_receipt_unverified, r.unverified),
                     modifier = Modifier.testTag("receiptUnverified"),
+                )
+            }
+            if (byNextcloud && !allByNextcloud) {
+                Text(
+                    countSentence(R.plurals.move_receipt_nextcloud, r.checkedByServer),
+                    modifier = Modifier.testTag("receiptNextcloud"),
                 )
             }
             if (r.changed > 0) Text(countSentence(R.plurals.move_receipt_changed, r.changed))
@@ -524,6 +550,13 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
             var details by remember { mutableStateOf(false) }
             TextButton(onClick = { details = !details }, modifier = Modifier.testTag("receiptDetails")) {
                 Text(stringResource(R.string.details))
+            }
+            if (details && byNextcloud) {
+                Text(
+                    stringResource(R.string.details_nextcloud_check),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("detailsNextcloud"),
+                )
             }
             if (details) {
                 Text(
@@ -648,6 +681,8 @@ private fun PickGuideDialog(
     onContinue: () -> Unit,
     onNetwork: () -> Unit,
     onDismiss: () -> Unit,
+    nextcloudHost: String? = null,
+    onNextcloud: () -> Unit = {},
 ) {
     var noDrive by remember { mutableStateOf(false) }
     AlertDialog(
@@ -671,6 +706,12 @@ private fun PickGuideDialog(
                 // M15: a computer or NAS at home instead of a drive.
                 TextButton(onClick = onNetwork, modifier = Modifier.testTag("useNetwork")) {
                     Text(stringResource(R.string.move_network_option))
+                }
+                // M17b: only once the user set up a Nextcloud under Settings › Advanced.
+                nextcloudHost?.let { host ->
+                    TextButton(onClick = onNextcloud, modifier = Modifier.testTag("useNextcloud")) {
+                        Text(stringResource(R.string.move_nextcloud_option, Bidi.isolate(host)))
+                    }
                 }
             }
         },
