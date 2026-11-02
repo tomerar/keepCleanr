@@ -179,15 +179,25 @@ object Rules {
 
     /**
      * CLS-7 "Always treat as junk": files inside [folders] are SAFE. It never overrides PROTECTED (the classifier
-     * asks `core:safety` first) and, like every SAFE rule, recent files still need review (B1).
+     * asks `core:safety` first) and, like every SAFE rule, recent files still need review (B1). Folders that may
+     * not be junk ([JunkFolders.canBeJunk], D6) are ignored even when stored by an older version, and the
+     * [Classifier] never lets this rule override MOVE, "might be a memory" or chats ([userJunkMayOverride]).
      */
     fun userJunk(folders: Collection<String>): Rule? {
-        val roots = folders.mapNotNull { CanonicalPath.of(it) }
+        val roots = folders.filter(JunkFolders::canBeJunk).mapNotNull { CanonicalPath.of(it) }
         if (roots.isEmpty()) return null
         return Rule(USER_JUNK, Category.SAFE, RiskChip.UNKNOWN) { input ->
             roots.any { input.canonical.startsWith("$it/") }
         }
     }
+
+    /**
+     * D6: "Always treat as junk" may replace only a rule that offers nothing worth keeping. Never a memory to back
+     * up (MOVE), never "might be a memory", never chats.
+     */
+    fun userJunkMayOverride(builtIn: Rule): Boolean = builtIn.category != Category.MOVE &&
+        builtIn.risk != RiskChip.MIGHT_BE_MEMORY &&
+        builtIn.risk != RiskChip.YOUR_CHATS
 
     /** PROTECTED explanation keys (`why_protected`, ...). */
     const val PROTECTED_RULE_ID = "protected"
@@ -202,6 +212,35 @@ object Rules {
             else -> segments
         }
         return canonical to rel
+    }
+}
+
+/**
+ * CLS-7, D6: which folders may be marked "Always treat as junk". Enforced here, in the engine, so the UI, an older
+ * stored choice or a future screen can't widen it (C12, C51).
+ */
+object JunkFolders {
+    /** Top-level folders that hold memories, other apps' data or KeepClear's own folders. */
+    private val neverTop = setOf("dcim", "pictures", "movies", "music", "documents", "android", "keepclear")
+
+    /** Folders that are never junk at any depth: chats and media of messengers, KeepClear's trash and restores. */
+    private val neverAnywhere =
+        setOf("whatsapp", "whatsapp business", "telegram", ".keepcleartrash", "keepclear restored")
+
+    /**
+     * True for a folder at least two levels below a volume root (`/storage/emulated/<any user>/…` or
+     * `/storage/<volume>/…`), outside memory, app and messenger folders.
+     */
+    fun canBeJunk(folder: String): Boolean {
+        val canonical = CanonicalPath.of(folder) ?: return false
+        if (!canonical.startsWith("/storage/")) return false
+        val segments = canonical.split('/').filter { it.isNotEmpty() }
+        val rel = when {
+            segments.size >= 3 && segments[0] == "storage" && segments[1] == "emulated" -> segments.drop(3)
+            segments.size >= 2 && segments[0] == "storage" && segments[1] != "emulated" -> segments.drop(2)
+            else -> return false
+        }
+        return rel.size >= 2 && rel.first() !in neverTop && rel.none { it in neverAnywhere }
     }
 }
 

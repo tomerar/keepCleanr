@@ -50,4 +50,66 @@ class UserChoicesTest {
             )
         c.classify(item("Download/Memes/best.jpg"), now = now).category shouldBe Category.PROTECTED
     }
+
+    @Test
+    fun `always-junk never overrides MOVE, might-be-a-memory or chats (D6)`() {
+        val c = Classifier(junkFolders = listOf("$root/Download/Old"))
+        // A memory to back up stays MOVE, even inside an "always junk" folder.
+        val waReceived = item("Download/Old/WhatsApp/Media/WhatsApp Images/IMG-1.jpg")
+        c.classify(waReceived, now = now).category shouldBe Category.MOVE
+        c.classify(waReceived, now = now).ruleId shouldBe "wa_received"
+        // "Might be a memory" stays REVIEW: call recordings, AI images, big videos.
+        c.classify(item("Download/Old/Call recordings/a.m4a"), now = now).ruleId shouldBe "call_recordings"
+        c.classify(item("Download/Old/ChatGPT Image 1.png"), now = now).ruleId shouldBe "ai_images"
+        val bigVideo = ScanItem(KPath.Local("$root/Download/Old/v.mp4"), "$root/Download/Old/v.mp4", 200_000_000, old)
+        c.classify(bigVideo, now = now).category shouldBe Category.REVIEW
+        // Chats stay PROTECTED.
+        c.classify(item("Download/Old/WhatsApp/Databases/msgstore.db.crypt14"), now = now).category shouldBe
+            Category.PROTECTED
+        // Everything else in the folder is junk as asked.
+        c.classify(item("Download/Old/notes.txt"), now = now).ruleId shouldBe Rules.USER_JUNK
+    }
+
+    @Test
+    fun `messenger folders are never junk under any user, even when stored by an older version (D6)`() {
+        val stored = listOf(
+            "$root/Telegram/Telegram Images",
+            "/storage/emulated/999/WhatsApp/Media",
+            "$root/WhatsApp Business/Media",
+        )
+        val c = Classifier(junkFolders = stored)
+        c.classify(item("Telegram/Telegram Images/a.jpg"), now = now).ruleId shouldBe "telegram_legacy"
+        val clone = "/storage/emulated/999/WhatsApp/Media/WhatsApp Documents/a.pdf"
+        c.classify(ScanItem(KPath.Local(clone), clone, 1000, old), now = now).category shouldBe Category.REVIEW
+        c.classify(item("WhatsApp Business/Media/x/a.pdf"), now = now).category shouldBe Category.REVIEW
+    }
+
+    @Test
+    fun `which folders may be always-junk (C12, D6)`() {
+        listOf(
+            "$root/Download/Memes",
+            "/storage/emulated/999/Download/Memes",
+            "/storage/1234-ABCD/Old/Junk",
+        ).forEach { JunkFolders.canBeJunk(it) shouldBe true }
+        listOf(
+            "$root/Download",
+            "$root/DCIM/Camera",
+            "$root/Pictures/Screenshots",
+            "$root/Android/media/com.whatsapp",
+            "$root/WhatsApp/Media",
+            "/storage/emulated/999/WhatsApp/Media",
+            "$root/WhatsApp Business/Media",
+            "/storage/emulated/10/WhatsApp Business/Media",
+            "$root/Telegram/Telegram Images",
+            "/storage/emulated/999/Telegram/Telegram Video",
+            "$root/Download/Telegram",
+            "$root/Download/Old/WhatsApp",
+            "$root/KeepClear/Restored-changed",
+            "$root/Download/KeepClear Restored",
+            "$root/.KeepClearTrash/x",
+            "/storage/emulated",
+            "/data/data/x/y",
+            "relative/path",
+        ).forEach { JunkFolders.canBeJunk(it) shouldBe false }
+    }
 }

@@ -38,10 +38,14 @@ class UserChoicesTest {
     )
 
     @Test
-    fun `always-junk is only for folders two levels deep, outside memories and app data (C12)`() {
-        listOf("$root/Download/Memes", "$root/Telegram/Telegram Images", "/storage/1234-ABCD/Old/Junk")
+    fun `always-junk is only for folders two levels deep, outside memories, app data and chats (C12, D6)`() {
+        listOf("$root/Download/Memes", "/storage/1234-ABCD/Old/Junk")
             .forEach { assertTrue(it, UserChoices.canBeJunk(it)) }
         listOf(
+            // D6: messenger folders under any user id.
+            "$root/Telegram/Telegram Images",
+            "/storage/emulated/999/WhatsApp/Media",
+            "$root/WhatsApp Business/Media",
             "$root/Download",
             "$root/DCIM/Camera",
             "$root/Pictures/Screenshots",

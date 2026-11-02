@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.core.storage.KPath
+import io.github.tomerar.keepclear.engine.classify.JunkFolders
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -58,27 +59,13 @@ class UserChoices(private val prefs: SharedPreferences) {
         private const val JUNK = "junk"
         private const val MAX = 1_000
 
-        /** Folders that hold memories or other apps' data: never "always junk" (decided conservatively, C12). */
-        private val neverJunk = setOf("dcim", "pictures", "movies", "music", "documents", "android")
-
         private fun isValid(path: String) = runCatching { KPath.Local(path) }.isSuccess &&
             CanonicalPath.of(path)?.startsWith("/storage/") == true
 
-        /** Relative to the volume: `/storage/emulated/0/Download/Memes` → [download, memes]. */
-        private fun relative(path: String): List<String>? {
-            val segments = CanonicalPath.of(path)?.split('/')?.filter { it.isNotEmpty() } ?: return null
-            return when {
-                segments.size >= 3 && segments[0] == "storage" && segments[1] == "emulated" -> segments.drop(3)
-                segments.size >= 2 && segments[0] == "storage" -> segments.drop(2)
-                else -> null
-            }
-        }
-
-        /** "Always junk" only for a folder at least two levels deep and outside memory/app folders. */
-        fun canBeJunk(folder: String): Boolean {
-            if (!isValid(folder)) return false
-            val rel = relative(folder) ?: return false
-            return rel.size >= 2 && rel.first() !in neverJunk && rel.none { it == ".keepcleartrash" }
-        }
+        /**
+         * "Always junk" only for a folder at least two levels deep and outside memory, app and messenger folders
+         * (C12, C51). The engine owns the rule, so the classifier ignores anything this would refuse.
+         */
+        fun canBeJunk(folder: String): Boolean = isValid(folder) && JunkFolders.canBeJunk(folder)
     }
 }

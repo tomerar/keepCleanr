@@ -35,7 +35,10 @@ class Classifier(
         // The user's own choices come after the built-in PROTECTED list and before every other rule.
         if (isKept(canonical)) return keptItem(item)
         val input = RuleInput(item, canonical, rel, facts, now)
-        val rule = (userRules + rules).firstOrNull { it.matches(input) } ?: Rules.unknown
+        val builtIn = rules.firstOrNull { it.matches(input) } ?: Rules.unknown
+        // D6: "always junk" never overrides MOVE, "might be a memory" or chats.
+        val rule = userRules.firstOrNull { it.matches(input) }?.takeIf { Rules.userJunkMayOverride(builtIn) }
+            ?: builtIn
         val recent = (now - item.mtimeMillis) in 0 until recentMillis
         // B1: thumbnails, temp files, old statuses and OS junk regenerate, so their age says nothing about
         // value. Everything else SAFE (archives, duplicates, other apps' bins, LOST.DIR) still needs review
