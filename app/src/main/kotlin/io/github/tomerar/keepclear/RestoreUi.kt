@@ -61,6 +61,9 @@ class RestoreActions(
     val onPickFolder: () -> Unit = {},
     val onNetworkDrive: (SmbLocation) -> Unit = {},
     val savedNetworkDrive: () -> SmbLocation? = { null },
+    /** M17b: the Nextcloud set up under Settings › Advanced (its host), or null. */
+    val nextcloudHost: String? = null,
+    val onNextcloud: () -> Unit = {},
     val onChooseBackup: (String) -> Unit = {},
     val onRestore: (Set<String>) -> Unit = {},
     val onClose: () -> Unit = {},
@@ -85,6 +88,16 @@ fun RestoreDialogs(step: RestoreStep?, actions: RestoreActions) {
                         Text(stringResource(R.string.restore_pick_body))
                         TextButton(onClick = { network = true }, modifier = Modifier.testTag("restoreNetwork")) {
                             Text(stringResource(R.string.restore_from_network))
+                        }
+                        actions.nextcloudHost?.let { host ->
+                            TextButton(onClick = actions.onNextcloud, modifier = Modifier.testTag("restoreNextcloud")) {
+                                Text(
+                                    stringResource(
+                                        R.string.restore_from_nextcloud,
+                                        io.github.tomerar.keepclear.core.common.Bidi.isolate(host),
+                                    ),
+                                )
+                            }
                         }
                     }
                 },

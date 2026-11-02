@@ -64,6 +64,10 @@ class MainActivity : ComponentActivity() {
                 // Test builds only: Settings › Advanced › Device check (read-only).
                 val deviceCheckVm: DeviceCheckViewModel = viewModel()
                 val deviceCheckState by deviceCheckVm.state.collectAsStateWithLifecycle()
+                // M17b: Settings › Advanced › Back up to Nextcloud.
+                val nextcloudVm: NextcloudViewModel = viewModel()
+                val nextcloudState by nextcloudVm.state.collectAsStateWithLifecycle()
+                val nextcloudHost by app.nextcloud.hostState.collectAsStateWithLifecycle()
                 val move by moveVm.state.collectAsStateWithLifecycle()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
@@ -167,6 +171,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onForgetNetworkDrive = { lifecycleScope.launch { app.forgetNetworkDrive() } },
+                            nextcloudHost = nextcloudHost,
+                            onForgetNextcloud = { lifecycleScope.launch { app.forgetNextcloud() } },
+                            onOpenNextcloud = {
+                                nextcloudVm.begin()
+                                vm.open(Screen.Nextcloud)
+                            },
                             currentLanguage = currentLanguage(),
                             onLanguage = ::setLanguage,
                             onReplayIntro = { showIntro = true },
@@ -222,7 +232,19 @@ class MainActivity : ComponentActivity() {
                         ),
                         state = state,
                         onOpen = vm::open,
-                        onBack = vm::back,
+                        onBack = {
+                            // Leaving the Nextcloud set-up stops a sign-in that is still waiting (nothing is saved).
+                            if (state.screens.lastOrNull() == Screen.Nextcloud) nextcloudVm.cancel()
+                            vm.back()
+                        },
+                        nextcloud = NextcloudUi(
+                            state = nextcloudState,
+                            connectedHost = nextcloudHost,
+                            onSignIn = nextcloudVm::signIn,
+                            onManual = nextcloudVm::manual,
+                            onOpenLogin = ::openLoginPage,
+                            onCancel = nextcloudVm::cancel,
+                        ),
                         onRestore = vm::restore,
                         onPurge = vm::purge,
                         move = move,
@@ -237,11 +259,18 @@ class MainActivity : ComponentActivity() {
                                 moveVm.onNetworkDrive(location)
                             },
                             savedNetworkDrive = moveVm::savedNetworkDrive,
+                            nextcloudHost = nextcloudHost,
+                            onNextcloud = { items ->
+                                moveVm.pendingItems = items
+                                moveVm.onNextcloud()
+                            },
                             restore = RestoreActions(
                                 onStart = moveVm::beginRestore,
                                 onPickFolder = { treeLauncher.launch(null) },
                                 onNetworkDrive = moveVm::onNetworkDrive,
                                 savedNetworkDrive = moveVm::savedNetworkDrive,
+                                nextcloudHost = nextcloudHost,
+                                onNextcloud = moveVm::onNextcloud,
                                 onChooseBackup = moveVm::chooseBackup,
                                 onRestore = moveVm::runRestore,
                                 onClose = moveVm::closeRestore,
@@ -411,6 +440,18 @@ class MainActivity : ComponentActivity() {
         } else {
             null
         }
+
+    /**
+     * M17b: the Nextcloud sign-in page in the browser. The engine already checked it is on the server the user
+     * typed (https, or this phone itself); only http(s) links are ever opened.
+     */
+    private fun openLoginPage(url: String) {
+        val uri = url.toUri()
+        if (uri.scheme != "https" && uri.scheme != "http") return
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE))
+        }
+    }
 
     /** PRIV-5: the privacy policy, opened in the browser (KeepClear itself has no internet access). */
     private fun openPrivacy() {

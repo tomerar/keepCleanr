@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-490 Hebrew strings.
+523 Hebrew strings.
 
 ## Contents
 
@@ -16,10 +16,11 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (16)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (139)
+- [Move to backup and restore](#move-to-backup-and-restore) (146)
 - [Trash](#trash) (41)
 - [Apps](#apps) (29)
-- [Settings](#settings) (31)
+- [Settings](#settings) (33)
+- [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (24)
 - [Notifications](#notifications) (4)
 - [Device check (test builds)](#device-check-test-builds) (9)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96)
@@ -196,12 +197,13 @@ string; "also" lists other screens.
 |---|---|---|---|
 | `details` | Details | פרטים |  |
 | `details_check_pc` | Developer check on a computer: sha256sum -c SHA256SUMS in the backup folder. Each file's SHA-256 is in keepclear-manifest.jsonl. | בדיקה למפתחים במחשב: sha256sum -c SHA256SUMS בתיקיית הגיבוי. ה-SHA-256 של כל קובץ נמצא ב-keepclear-manifest.jsonl. |  |
+| `details_nextcloud_check` | Your Nextcloud computed the SHA-256 of each stored copy (X-Hash-SHA256 over WebDAV) and it matched the original's, so nothing had to be downloaded. Copies it didn't report were read back over the network instead. Before space is freed, every copy is read back and checked once more. | ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת. |  |
 | `duration_hours` | [one] %1$s hour / [other] %1$s hours | [one] שעה אחת / [two] שעתיים / [other] %1$s שעות |  |
 | `duration_minutes` | [one] %1$s minute / [other] %1$s minutes | [one] דקה אחת / [two] שתי דקות / [other] %1$s דקות |  |
 | `move_age_12` | More than a year old | מלפני יותר משנה |  |
 | `move_age_6` | More than 6 months old | מלפני יותר מחצי שנה |  |
 | `move_age_all` | Everything | הכול |  |
-| `move_cancel` | Cancel | לבטל | Review (categories, groups, item preview), Settings |
+| `move_cancel` | Cancel | לבטל | Review (categories, groups, item preview), Settings, Nextcloud set-up (Settings › Advanced) |
 | `move_channel` | Backup | גיבוי |  |
 | `move_check_bad` | [one] %1$s file is damaged or missing on the drive. It stays on the phone and will be copied again. / [other] %1$s files are damaged or missing on the drive. They stay on the phone and will be copied again. | [one] קובץ אחד פגום או חסר בכונן. הוא יישאר בטלפון ויועתק שוב. / [two] שני קבצים פגומים או חסרים בכונן. הם יישארו בטלפון ויועתקו שוב. / [other] %1$s קבצים פגומים או חסרים בכונן. הם יישארו בטלפון ויועתקו שוב. |  |
 | `move_check_button` | Check backup | לבדוק את הגיבוי |  |
@@ -247,6 +249,7 @@ string; "also" lists other screens.
 | `move_network_share` | Shared folder name | שם התיקייה המשותפת |  |
 | `move_network_title` | Network drive | כונן רשת |  |
 | `move_network_user` | User name (leave empty for guest) | שם משתמש (ריק לגישת אורח) |  |
+| `move_nextcloud_option` | Use your Nextcloud (%1$s) | להשתמש ב-Nextcloud (%1$s) |  |
 | `move_notif_allow` | Allow notifications | לאשר התראות | Intro and permissions |
 | `move_notif_body` | So you can see backup progress and get told when it's done or needs you. | כדי לראות את התקדמות הגיבוי ולקבל הודעה כשהוא מסתיים או צריך אתכם. | Intro and permissions |
 | `move_notif_skip` | Not now | לא עכשיו | Intro and permissions |
@@ -277,7 +280,9 @@ string; "also" lists other screens.
 | `move_preflight_blocks` | Can't start | אי אפשר להתחיל |  |
 | `move_preflight_note` | Note | לשים לב |  |
 | `move_preflight_ok` | Ready | מוכן |  |
-| `move_problem_marker` | This folder has a backup KeepClear doesn't recognise. Pick another folder. | בתיקייה הזו יש גיבוי ש-KeepClear לא מזהה. כדאי לבחור תיקייה אחרת. |  |
+| `move_problem_marker` | This folder has a backup KeepClear doesn't recognise. Pick another folder. | בתיקייה הזו יש גיבוי ש-KeepClear לא מזהה. כדאי לבחור תיקייה אחרת. | Nextcloud set-up (Settings › Advanced) |
+| `move_problem_nextcloud_sign_in` | Your Nextcloud no longer accepts KeepClear's sign-in. Sign in again in Settings › Advanced. | ה-Nextcloud כבר לא מקבל את הכניסה של KeepClear. יש להיכנס שוב בהגדרות › מתקדם. |  |
+| `move_problem_nextcloud_unreachable` | Your Nextcloud didn't answer. Check the internet connection and try again. | ה-Nextcloud לא ענה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב. |  |
 | `move_problem_phone` | This folder is on the phone itself. Choose a USB drive or memory card. | התיקייה הזו נמצאת בטלפון עצמו. צריך לבחור דיסק און קי או כרטיס זיכרון. |  |
 | `move_problem_refused` | The network drive refused the user name or password. Check them and try again. | כונן הרשת דחה את שם המשתמש או את הסיסמה. כדאי לבדוק אותם ולנסות שוב. |  |
 | `move_problem_selection_lost` | KeepClear was closed while you were choosing the drive, so the selection was lost. Select what to move again. | ‏KeepClear נסגר בזמן בחירת הכונן, ולכן הבחירה אבדה. צריך לבחור שוב מה להעביר. |  |
@@ -292,12 +297,14 @@ string; "also" lists other screens.
 | `move_receipt_failed_unreadable` | [one] %1$s file couldn't be read on the phone and was skipped. / [other] %1$s files couldn't be read on the phone and were skipped. | [one] קובץ אחד לא נקרא בטלפון ודולג. / [two] שני קבצים לא נקראו בטלפון ודולגו. / [other] %1$s קבצים לא נקראו בטלפון ודולגו. |  |
 | `move_receipt_how_back` | Your files are on %1$s in %2$s. To bring them back, open them with any file manager or computer. In-app restore is coming. | הקבצים נמצאים ב-%1$s בתיקייה %2$s. כדי להחזיר אותם, אפשר לפתוח אותם בכל מנהל קבצים או במחשב. שחזור מתוך האפליקציה יגיע בהמשך. |  |
 | `move_receipt_names` | [one] %1$s file got a different name on the drive (kept in the backup's list). / [other] %1$s files got a different name on the drive (kept in the backup's list). | [one] קובץ אחד קיבל שם אחר בכונן (שמור ברשימת הגיבוי). / [two] שני קבצים קיבלו שם אחר בכונן (שמור ברשימת הגיבוי). / [other] %1$s קבצים קיבלו שם אחר בכונן (שמור ברשימת הגיבוי). |  |
+| `move_receipt_nextcloud` | [one] %1$s of them was checked by your Nextcloud. / [other] %1$s of them were checked by your Nextcloud. | [one] אחד מהם נבדק על ידי ה-Nextcloud. / [two] שניים מהם נבדקו על ידי ה-Nextcloud. / [other] %1$s מהם נבדקו על ידי ה-Nextcloud. |  |
 | `move_receipt_pending` | [one] %1$s file isn't copied yet. / [other] %1$s files aren't copied yet. | [one] קובץ אחד עוד לא הועתק. / [two] שני קבצים עוד לא הועתקו. / [other] %1$s קבצים עוד לא הועתקו. |  |
 | `move_receipt_text` | KeepClear backup summary ⏎ Drive: %1$s ⏎ Folder: %2$s ⏎ Files copied and checked: %3$d (%4$s) ⏎ Files skipped or not copied: %5$d ⏎ The copy is not encrypted. | סיכום הגיבוי של KeepClear ⏎ כונן: %1$s ⏎ תיקייה: %2$s ⏎ קבצים שהועתקו ונבדקו: %3$d (%4$s) ⏎ קבצים שדולגו או לא הועתקו: %5$d ⏎ העותק לא מוצפן. | Intro and permissions |
 | `move_receipt_title` | Your backup on %1$s is ready ✓ | הגיבוי ב-%1$s מוכן ✓ |  |
 | `move_receipt_unencrypted` | The copy on the drive is not encrypted. Anyone with the drive can open it. | העותק בכונן לא מוצפן. כל מי שמחזיק בכונן יכול לפתוח אותו. |  |
 | `move_receipt_unverified` | [one] %1$s file was copied but can't be checked here, so it stays on the phone too. / [other] %1$s files were copied but can't be checked here, so they stay on the phone too. | [one] קובץ אחד הועתק, אבל אי אפשר לבדוק אותו במקום הזה, ולכן הוא נשאר גם בטלפון. / [two] שני קבצים הועתקו, אבל אי אפשר לבדוק אותם במקום הזה, ולכן הם נשארים גם בטלפון. / [other] %1$s קבצים הועתקו, אבל אי אפשר לבדוק אותם במקום הזה, ולכן הם נשארים גם בטלפון. |  |
 | `move_receipt_verified` | [one] %1$s file (%2$s) copied. We checked it: it was read again from the drive and matches the original. / [other] %1$s files (%2$s) copied. We checked each file: it was read again from the drive and matches the original. | [one] קובץ אחד (%2$s) הועתק. בדקנו אותו: הוא נקרא שוב מהכונן וזהה למקור. / [two] שני קבצים (%2$s) הועתקו. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור. / [other] %1$s קבצים (%2$s) הועתקו. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור. |  |
+| `move_receipt_verified_nextcloud` | [one] %1$s file (%2$s) copied. Your Nextcloud checked it: what it stored matches the original. / [other] %1$s files (%2$s) copied. Your Nextcloud checked each file: what it stored matches the original. | [one] קובץ אחד (%2$s) הועתק. ה-Nextcloud בדק אותו: מה שנשמר זהה למקור. / [two] שני קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור. / [other] %1$s קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור. |  |
 | `move_running` | Copying to %1$s: %2$s of %3$s checked | מעתיקים אל %1$s: נבדקו %2$s מתוך %3$s |  |
 | `move_selected` | Selected: %1$s | נבחרו: %1$s |  |
 | `move_share` | Share the backup summary | לשתף את סיכום הגיבוי |  |
@@ -319,10 +326,11 @@ string; "also" lists other screens.
 | `restore_done` | [one] %1$s file restored and checked / [other] %1$s files restored and checked | [one] קובץ %1$s שוחזר ונבדק / [two] %1$s קבצים שוחזרו ונבדקו / [other] %1$s קבצים שוחזרו ונבדקו |  |
 | `restore_failed` | [one] %1$s could not be restored / [other] %1$s could not be restored | [one] %1$s לא שוחזר / [two] %1$s לא שוחזרו / [other] %1$s לא שוחזרו |  |
 | `restore_from_network` | It's on a network drive | הגיבוי בכונן רשת |  |
+| `restore_from_nextcloud` | It's on your Nextcloud (%1$s) | הגיבוי ב-Nextcloud (%1$s) |  |
 | `restore_interrupted` | The drive was disconnected. What was restored stays; restore again to finish. | הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים. |  |
 | `restore_needs_all_files` | To put files back where they were, KeepClear needs All files access (available in the KeepClear build from F-Droid or GitHub). You can still copy them from the drive with the Files app. | כדי להחזיר קבצים למקומם, KeepClear צריכה גישה לכל הקבצים (זמינה בגרסה מ-F-Droid או מ-GitHub). עדיין אפשר להעתיק אותם מהכונן בעזרת אפליקציית הקבצים. |  |
 | `restore_no_backup` | No KeepClear backup was found there. | לא נמצא שם גיבוי של KeepClear. |  |
-| `restore_ok` | OK | אישור |  |
+| `restore_ok` | OK | אישור | Nextcloud set-up (Settings › Advanced) |
 | `restore_pick_body` | Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself). | יש לבחור את הכונן או את התיקייה שבהם נמצא הגיבוי (התיקייה בשם KeepClear, או הכונן עצמו). |  |
 | `restore_pick_folder` | Choose drive or folder | בחירת כונן או תיקייה |  |
 | `restore_progress` | [one] %1$s file restored / [other] %1$s files restored | [one] קובץ %1$s שוחזר / [two] %1$s קבצים שוחזרו / [other] %1$s קבצים שוחזרו |  |
@@ -432,6 +440,8 @@ string; "also" lists other screens.
 | `settings_language_system` | Phone's language | שפת הטלפון |  |
 | `settings_network_forget` | Forget the network drive | לשכוח את כונן הרשת |  |
 | `settings_network_only` | Network: only to %1$s (your network drive) | רשת: רק אל %1$s (כונן הרשת) |  |
+| `settings_nextcloud_forget` | Forget your Nextcloud | לשכוח את ה-Nextcloud |  |
+| `settings_nextcloud_only` | Network: only to %1$s (your Nextcloud) | רשת: רק אל %1$s (ה-Nextcloud) |  |
 | `settings_open_trash` | Open the trash | לפתוח את סל המחזור |  |
 | `settings_privacy` | Privacy policy | מדיניות פרטיות |  |
 | `settings_replay_intro` | Show the introduction again | להציג שוב את ההיכרות |  |
@@ -449,6 +459,35 @@ string; "also" lists other screens.
 | `test_mode_title` | Trial mode | מצב ניסיון |  |
 | `test_mode_uninstall_blocked` | Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android's Settings › Apps. | מצב ניסיון: שום אפליקציה לא מוסרת. כדי להסיר את האפליקציה הזאת, אפשר לכבות את מצב הניסיון בהגדרות › מתקדם, או להשתמש בהגדרות › אפליקציות של אנדרואיד. | Apps |
 | `test_mode_would_free` | Would have freed %1$s (trial mode). Nothing was deleted or moved. | היה מתפנה %1$s (מצב ניסיון). שום דבר לא נמחק ולא הועבר. | Clean now, Review (categories, groups, item preview), Move to backup and restore |
+
+## Nextcloud set-up (Settings › Advanced)
+
+| Key | English | עברית | Also |
+|---|---|---|---|
+| `nextcloud_address` | Your Nextcloud's address (for example cloud.example.com) | הכתובת של ה-Nextcloud (למשל cloud.example.com) |  |
+| `nextcloud_app_password` | App password | סיסמת אפליקציה |  |
+| `nextcloud_bad_address` | Type the address you open your Nextcloud with, for example https://cloud.example.com, without a name, password or anything after a question mark. | יש להקליד את הכתובת שבה ה-Nextcloud נפתח, למשל https://cloud.example.com, בלי שם, בלי סיסמה ובלי שום דבר אחרי סימן שאלה. |  |
+| `nextcloud_browser` | Sign in on the page that opened in the browser and allow access, then come back here. KeepClear waits up to 20 minutes. | יש להיכנס בדף שנפתח בדפדפן, לאשר גישה ולחזור לכאן. KeepClear ממתינה עד 20 דקות. |  |
+| `nextcloud_connect` | Connect | התחברות |  |
+| `nextcloud_connected` | Connected now: %1$s. Signing in again replaces it. | מחובר עכשיו: %1$s. כניסה מחדש מחליפה אותו. |  |
+| `nextcloud_done` | Your Nextcloud %1$s is ready. To back up to it, open Move to backup, choose what to move, tap "Choose a USB drive or memory card" and then "Use your Nextcloud". | ה-Nextcloud %1$s מוכן. כדי לגבות אליו: לפתוח את "העברה לגיבוי", לבחור מה להעביר, להקיש על "לבחור דיסק און קי או כרטיס זיכרון" ואז על "להשתמש ב-Nextcloud". |  |
+| `nextcloud_intro` | Use your own Nextcloud as a backup place. KeepClear connects only to the address you type here, your Nextcloud checks every copy it stores, and space is freed only when you tap it. | אפשר להשתמש ב-Nextcloud פרטי כמקום לגיבוי. KeepClear מתחברת רק לכתובת שמוקלדת כאן, ה-Nextcloud בודק כל עותק שהוא שומר, ומקום מתפנה רק אחרי הקשה. |  |
+| `nextcloud_manual` | Use an app password instead | להשתמש בסיסמת אפליקציה במקום |  |
+| `nextcloud_manual_help` | Make an app password in your Nextcloud: Settings › Security › Create new app password. Never type your account password here. | אפשר ליצור סיסמת אפליקציה ב-Nextcloud: הגדרות › אבטחה › יצירת סיסמת אפליקציה חדשה. אין להקליד כאן את סיסמת החשבון. |  |
+| `nextcloud_needs_https` | Use an address that starts with https://. KeepClear never sends a password unencrypted. | יש להשתמש בכתובת שמתחילה ב-https://. ‏KeepClear אף פעם לא שולחת סיסמה בלי הצפנה. |  |
+| `nextcloud_open_again` | Open the sign-in page again | לפתוח שוב את דף הכניסה |  |
+| `nextcloud_problem_certificate` | This server's certificate isn't trusted, so KeepClear didn't connect. Check the address, or ask whoever runs the server. | אישור האבטחה של השרת הזה אינו מהימן, ולכן KeepClear לא התחברה. כדאי לבדוק את הכתובת, או לשאול את מי שמנהל את השרת. | Move to backup and restore |
+| `nextcloud_problem_expired` | The sign-in wasn't finished in time. Try again. | הכניסה לא הושלמה בזמן. אפשר לנסות שוב. |  |
+| `nextcloud_problem_not_nextcloud` | This address doesn't answer like a Nextcloud. Use the address you open it with in a browser. | הכתובת הזו לא עונה כמו Nextcloud. יש להשתמש בכתובת שבה הוא נפתח בדפדפן. |  |
+| `nextcloud_problem_other_address` | The server tried to send KeepClear to another address, so KeepClear stopped. Use your Nextcloud's own address. | השרת ניסה להפנות את KeepClear לכתובת אחרת, ולכן KeepClear עצרה. יש להשתמש בכתובת של ה-Nextcloud עצמו. |  |
+| `nextcloud_problem_refused` | Your Nextcloud refused the user name or app password. Check them and try again. | ה-Nextcloud דחה את שם המשתמש או את סיסמת האפליקציה. כדאי לבדוק אותם ולנסות שוב. |  |
+| `nextcloud_problem_unreachable` | Nothing answered at this address. Check the address and the internet connection, and try again. | אף שרת לא ענה בכתובת הזו. כדאי לבדוק את הכתובת ואת החיבור לאינטרנט ולנסות שוב. |  |
+| `nextcloud_settings_body` | For people who have their own Nextcloud. Sign in once; then it can be chosen when you move files to a backup. Your Nextcloud checks every copy it stores. | למי שיש Nextcloud משלו. נכנסים פעם אחת, ואז אפשר לבחור בו בהעברת קבצים לגיבוי. ה-Nextcloud בודק כל עותק שהוא שומר. | Settings |
+| `nextcloud_settings_button` | Set up Nextcloud | הגדרת Nextcloud | Settings |
+| `nextcloud_sign_in` | Sign in with the browser | כניסה דרך הדפדפן |  |
+| `nextcloud_title` | Back up to Nextcloud | גיבוי ל-Nextcloud | Settings |
+| `nextcloud_user` | User name | שם משתמש |  |
+| `nextcloud_working` | Connecting to your Nextcloud… | מתחברים ל-Nextcloud… |  |
 
 ## Notifications
 

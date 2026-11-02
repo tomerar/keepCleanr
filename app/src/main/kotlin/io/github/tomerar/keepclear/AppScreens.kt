@@ -47,6 +47,7 @@ fun AppScreens(
     appsActions: AppsActions = AppsActions(),
     previewActions: PreviewActions = PreviewActions(),
     deviceCheck: DeviceCheckUi = DeviceCheckUi(),
+    nextcloud: NextcloudUi = NextcloudUi(),
 ) {
     Column {
         if (testMode.on) TestModeBanner()
@@ -70,6 +71,7 @@ fun AppScreens(
                     appsActions,
                     previewActions,
                     deviceCheck,
+                    nextcloud,
                 )
             }
         }
@@ -121,6 +123,7 @@ private fun ScreenContent(
     appsActions: AppsActions,
     previewActions: PreviewActions,
     deviceCheck: DeviceCheckUi,
+    nextcloud: NextcloudUi,
 ) {
     BackHandler(enabled = state.screens.size > 1, onBack = onBack)
     val summary = state.summary
@@ -228,6 +231,10 @@ private fun ScreenContent(
             } else {
                 home()
             }
+        }
+
+        Screen.Nextcloud -> {
+            NextcloudScreen(nextcloud, onBack)
         }
 
         Screen.Settings -> {

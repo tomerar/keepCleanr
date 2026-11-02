@@ -37,7 +37,7 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -53,7 +53,7 @@ class MigrationTest {
                     "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("m12", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m12", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -74,7 +74,7 @@ class MigrationTest {
                     "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
             )
         }
-        helper.runMigrationsAndValidate("m23", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m23", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -105,7 +105,7 @@ class MigrationTest {
                     "NULL, 0, NULL, 5, 0, 0)",
             )
         }
-        helper.runMigrationsAndValidate("m34", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m34", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT deletedAtUptime FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
@@ -133,11 +133,36 @@ class MigrationTest {
                     "1, NULL, 5)",
             )
         }
-        helper.runMigrationsAndValidate("m45", 5, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m45", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT witnessPaths, deletedAtUptime FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
                 c.getLong(1) shouldBe 5
+            }
+        }
+    }
+
+    @Test
+    fun `5 to 6 adds the verification method as null and keeps every move row (M17b)`() {
+        helper.createDatabase("m56", 5).use { db ->
+            db.execSQL(
+                "INSERT INTO move_job (id, targetId, targetLabel, rootRel, createdAt, state, pauseReason, targetRef, " +
+                    "verifyBootId) VALUES ('j', 't', 'USB', 'KeepClear/P', 1, 'DONE', NULL, NULL, 'b')",
+            )
+            db.execSQL(
+                "INSERT INTO move_file (jobId, fileIndex, source, sourcePath, sourceSize, sourceMtime, " +
+                    "sourceIdentity, relTarget, state, sourceSha256, attempts, failReason, verifiedAt, nameChanged, " +
+                    "reusedExisting, confirmedAt) VALUES ('j', 0, 'local:/a', '/a', 1, 1, NULL, 'KeepClear/P/a', " +
+                    "'VERIFIED', NULL, 0, NULL, 5, 0, 0, 7)",
+            )
+        }
+        helper.runMigrationsAndValidate("m56", 6, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            // An older copy keeps its state and confirmation; how it was verified is simply not known.
+            db.query("SELECT verifiedBy, confirmedAt, state FROM move_file").use { c ->
+                c.moveToFirst()
+                c.isNull(0) shouldBe true
+                c.getLong(1) shouldBe 7
+                c.getString(2) shouldBe "VERIFIED"
             }
         }
     }

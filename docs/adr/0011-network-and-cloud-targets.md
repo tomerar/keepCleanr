@@ -89,6 +89,15 @@ Building `backup:target-webdav` showed two points where the decision above needs
   `scripts/nextcloud-test-server.sh` and the CI step; findings in design.md §6.1 (one difference from the fake:
   423 Locked while a name is being uploaded).
 
+### Note (2026-11-02, M17b Nextcloud in the app; local, not yet PR)
+- Nextcloud is reachable only from Settings › Advanced; once set up it is offered in Move's "Choose where" and in
+  Restore. Dropbox stays out of the app (W8).
+- Sign-in is Login Flow v2 as decided (or an app password typed by hand); only the app password is kept, sealed with
+  the Android key store. Every address the server hands back (sign-in page, poll endpoint, server) must be on the
+  scheme, host and port the user typed: this is the host rule above applied to the sign-in.
+- "The method is recorded per file" is now done: `move_file.verifiedBy` (`READ_BACK` / `SERVER_DIGEST`, Room 5→6).
+  The receipt says in plain words that the Nextcloud checked the copies; the hash and header names are under Details.
+
 ## Consequences
 - Phone-only users get a verified MOVE target. Drive, Dropbox and Nextcloud verify without doubling traffic; SMB, OneDrive and generic WebDAV
   pay a read-back.

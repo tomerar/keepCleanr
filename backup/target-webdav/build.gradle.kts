@@ -22,6 +22,8 @@ dependencies {
     api(project(":backup:target-api"))
     implementation(project(":backup:net"))
     implementation(libs.kotlinx.coroutines.core)
+    // M17b: Login Flow v2 and the OCS user endpoint answer JSON (tree parser only, no compiler plugin).
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(testFixtures(project(":backup:target-api")))
     testImplementation(testFixtures(project(":core:storage-api")))
     testImplementation(project(":engine:move"))

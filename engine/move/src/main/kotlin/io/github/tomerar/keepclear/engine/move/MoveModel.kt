@@ -55,6 +55,18 @@ enum class FreshRead {
     NEW_SESSION,
 }
 
+/**
+ * M17b, ADR 0011 ("the method is recorded per file"): how a copy was proven equal to its original. Stored by
+ * name; append only (MIG-2).
+ */
+enum class VerifyMethod {
+    /** KeepClear read the copy back and hashed it (drives, network drives, any WebDAV server). */
+    READ_BACK,
+
+    /** The server hashed what it stored (Nextcloud `X-Hash-SHA256`, Dropbox `content_hash`) and it matched. */
+    SERVER_DIGEST,
+}
+
 /** Result of the second pass ("Check backup", MOVE-15). */
 data class CheckResult(
     val ok: Int,
@@ -113,6 +125,8 @@ data class MoveFile(
      * freed. Cleared whenever the file is copied or verified again.
      */
     val confirmedAt: Long? = null,
+    /** M17b: how the copy was verified; null until it is (and for files verified before this was recorded). */
+    val verifiedBy: VerifyMethod? = null,
 ) {
     val tempRel: String get() = relTarget.substringBeforeLast('/') + "/.kc-tmp-$jobId-$index"
 }
@@ -144,6 +158,8 @@ data class Receipt(
     /** Verified twice, the second time uncached (H1); only these may be freed. */
     val confirmed: Int = 0,
     val confirmedBytes: Long = 0,
+    /** M17b: verified files the server itself checked ([VerifyMethod.SERVER_DIGEST]); shown as "checked by …". */
+    val checkedByServer: Int = 0,
     val total: Int = verified + failed.values.sum() + changed + pending + unverified,
 ) {
     val complete: Boolean get() = pending == 0
@@ -174,6 +190,7 @@ data class Receipt(
                 unverified = files.count { it.state == MoveFileState.COPIED_UNVERIFIED },
                 confirmed = verified.count { it.confirmedAt != null },
                 confirmedBytes = verified.filter { it.confirmedAt != null }.sumOf { it.sourceSize },
+                checkedByServer = verified.count { it.verifiedBy == VerifyMethod.SERVER_DIGEST },
                 total = files.size,
             )
         }

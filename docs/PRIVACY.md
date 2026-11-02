@@ -5,7 +5,7 @@ Published at: https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md (a
 
 ## Short version
 
-KeepClear works only on your phone. It does not collect, send, sell or share any data. It has no ads, no analytics, no crash reporting and no account. It connects to the network only if you set up a network drive for backups (a shared folder on your computer or NAS), and then only to the address you typed.
+KeepClear works only on your phone. It does not collect, send, sell or share any data. It has no ads, no analytics, no crash reporting and no account. It connects to the network only if you set up a backup place on the network (a shared folder on your computer or NAS, or your own Nextcloud under Settings › Advanced), and then only to the address you typed.
 
 ## What KeepClear accesses, and why
 
@@ -17,7 +17,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | Usage access (`PACKAGE_USAGE_STATS`) | To show how much space each app uses and when it was last opened. | No |
 | List of apps (`QUERY_ALL_PACKAGES` in `foss`; launcher apps only in `play`) | To match folders and caches to the apps that own them. | No |
 | Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps. Android asks you to confirm; KeepClear never removes an app by itself. | No |
-| Network (`INTERNET`) | Only to back up to a network drive you set up, at the address you typed. | Only the files you back up, to that address |
+| Network (`INTERNET`) | Only to back up to a network drive or a Nextcloud you set up, at the address you typed. | Only the files you back up, to that address (for Nextcloud also the sign-in, to that server) |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`) | To keep a backup running while the screen is off. | No |
 | Background jobs (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, added by Android's WorkManager) | To empty trash items once their 30 days are over, also after a restart. | No |
@@ -40,6 +40,8 @@ When you move files to a drive or computer you choose, KeepClear copies them the
 ## Network
 
 KeepClear has the Android `INTERNET` permission only for backups to a network drive (SMB: a shared folder on your computer or NAS, ADR 0011). It connects only to the address you typed, only while a backup, a check of a backup, or freeing space after a backup runs, and it sends only the files you chose to back up. The password is stored on the phone, encrypted with a key kept in Android's secure key store; it is never logged or sent anywhere else. Nothing else in KeepClear can use the network (checked automatically in every build). Settings shows the address in use.
+
+**Nextcloud (Settings › Advanced).** If you connect your own Nextcloud, KeepClear talks only to the server address you typed, over HTTPS (plain http is refused except to the phone itself), and never through a proxy or to another address the server names: the sign-in page, the sign-in check and every backup request must be on that same server, or KeepClear stops. You sign in on your Nextcloud's own page in the browser (Nextcloud "Login Flow v2"), or type an app password you made there; KeepClear never asks for or stores your account password. It keeps only the app password Nextcloud issues, encrypted with a separate key in Android's secure key store, plus the server address, your user name and user id. Your Nextcloud learns what any Nextcloud app shows it: that a client named "KeepClear" signed in, from which network address, and the files you back up. Revoke the app password in Nextcloud (Settings › Security) at any time; "Forget your Nextcloud" in KeepClear's Settings removes it from the phone and stops a backup that is running to it. A server whose certificate isn't trusted is refused. Settings shows the address in use.
 
 ## Children
 

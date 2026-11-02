@@ -25,6 +25,11 @@ android {
         }
     }
     buildFeatures.resValues = true
+    // M17b: the app's Nextcloud tests also run against the real server of W4 when one is given (CI always).
+    testOptions.unitTests.all { test ->
+        listOf("KEEPCLEAR_NEXTCLOUD_URL", "KEEPCLEAR_NEXTCLOUD_USER", "KEEPCLEAR_NEXTCLOUD_PASSWORD", "CI")
+            .forEach { name -> System.getenv(name)?.let { test.environment(name, it) } }
+    }
     buildTypes {
         debug {
             // Review PR B (M3): the public test key must never be able to update a real install, so test builds
@@ -50,6 +55,8 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":backup:target-saf"))
     implementation(project(":backup:target-smb"))
+    // M17b: Nextcloud under Settings › Advanced (OkHttp stays inside backup:net, W3).
+    implementation(project(":backup:target-webdav"))
     implementation(project(":engine:move"))
     implementation(project(":engine:restore"))
     implementation(project(":engine:scan"))

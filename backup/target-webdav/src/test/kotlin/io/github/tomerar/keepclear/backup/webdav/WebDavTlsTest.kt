@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.backup.webdav
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.runBlocking
@@ -91,6 +92,28 @@ class WebDavTlsTest {
         FakeDavServer(tls = serverContext(ks)).use { server ->
             WebDavTargets.open(server.location("KeepClear"), "Cloud", 5, trusting(ks))
                 .shouldBeInstanceOf<WebDavCheck.Ok>()
+        }
+    }
+
+    @Test
+    fun `M17b - signing in to a Nextcloud with an untrusted or wrong-name certificate says so`() {
+        val self = keystore("self2", "ip:127.0.0.1")
+        FakeDavServer(tls = serverContext(self)).use { server ->
+            val e = shouldThrow<NextcloudException> {
+                NextcloudLoginFlow(NextcloudServer.parse(server.url()), timeoutSeconds = 5).use { it.start() }
+            }
+            e.problem shouldBe NextcloudProblem.CERTIFICATE
+            shouldThrow<NextcloudException> {
+                NextcloudAccount.verify(NextcloudServer.parse(server.url()), "u", "app-password", 5)
+            }.problem shouldBe NextcloudProblem.CERTIFICATE
+            server.requests.size shouldBe 0
+        }
+        val other = keystore("other2", "dns:other.example")
+        FakeDavServer(tls = serverContext(other)).use { server ->
+            shouldThrow<NextcloudException> {
+                NextcloudLoginFlow(NextcloudServer.parse(server.url()), 5, trusting(other)).use { it.start() }
+            }.problem shouldBe NextcloudProblem.CERTIFICATE
+            server.requests.size shouldBe 0
         }
     }
 }

@@ -67,6 +67,10 @@ class SettingsActions(
     /** M15: the network drive's address, the only place KeepClear connects to; null when none is set up. */
     val networkHost: String? = null,
     val onForgetNetworkDrive: () -> Unit = {},
+    /** M17b: the Nextcloud's host (Advanced), another place KeepClear may connect to; null when none is set up. */
+    val nextcloudHost: String? = null,
+    val onForgetNextcloud: () -> Unit = {},
+    val onOpenNextcloud: () -> Unit = {},
     /** CLS-7 / SET-2: what the user kept or marked as junk, and how to undo it. */
     val choices: Choices = Choices(),
     val onRemoveKept: (String) -> Unit = {},
@@ -203,6 +207,22 @@ fun SettingsScreen(
                             Text(stringResource(R.string.settings_network_forget))
                         }
                     }
+                    actions.nextcloudHost?.let { host ->
+                        Text(
+                            stringResource(
+                                R.string.settings_nextcloud_only,
+                                io.github.tomerar.keepclear.core.common.Bidi.isolate(host),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("nextcloudOnly"),
+                        )
+                        TextButton(
+                            onClick = actions.onForgetNextcloud,
+                            modifier = Modifier.testTag("forgetNextcloud"),
+                        ) {
+                            Text(stringResource(R.string.settings_nextcloud_forget))
+                        }
+                    }
                 }
             }
             Text(stringResource(R.string.settings_advanced), style = MaterialTheme.typography.titleMedium)
@@ -219,6 +239,16 @@ fun SettingsScreen(
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("testModeSwitch").semantics { contentDescription = testModeLabel },
                     )
+                }
+            }
+            // M17b: Nextcloud as a backup place is Advanced only; the default path never shows it.
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.nextcloud_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.nextcloud_settings_body), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = actions.onOpenNextcloud, modifier = Modifier.testTag("openNextcloud")) {
+                        Text(stringResource(R.string.nextcloud_settings_button))
+                    }
                 }
             }
             if (actions.showDeviceCheck) {

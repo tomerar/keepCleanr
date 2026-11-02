@@ -498,4 +498,43 @@
     <string name="cloned_hidden_title">Cloned apps</string>
     <string name="cloned_hidden_body">KeepClear can\'t see the files of your cloned apps (Parallel apps or Dual apps). You can clean them inside each cloned app.</string>
     <string name="cloned_hidden_button">Open phone settings</string>
+    <string name="nextcloud_title">Back up to Nextcloud</string>
+    <string name="nextcloud_intro">Use your own Nextcloud as a backup place. KeepClear connects only to the address you type here, your Nextcloud checks every copy it stores, and space is freed only when you tap it.</string>
+    <string name="nextcloud_connected">Connected now: %1$s. Signing in again replaces it.</string>
+    <string name="nextcloud_address">Your Nextcloud\'s address (for example cloud.example.com)</string>
+    <string name="nextcloud_sign_in">Sign in with the browser</string>
+    <string name="nextcloud_manual">Use an app password instead</string>
+    <string name="nextcloud_manual_help">Make an app password in your Nextcloud: Settings › Security › Create new app password. Never type your account password here.</string>
+    <string name="nextcloud_user">User name</string>
+    <string name="nextcloud_app_password">App password</string>
+    <string name="nextcloud_connect">Connect</string>
+    <string name="nextcloud_working">Connecting to your Nextcloud…</string>
+    <string name="nextcloud_browser">Sign in on the page that opened in the browser and allow access, then come back here. KeepClear waits up to 20 minutes.</string>
+    <string name="nextcloud_open_again">Open the sign-in page again</string>
+    <string name="nextcloud_done">Your Nextcloud %1$s is ready. To back up to it, open Move to backup, choose what to move, tap \"Choose a USB drive or memory card\" and then \"Use your Nextcloud\".</string>
+    <string name="nextcloud_bad_address">Type the address you open your Nextcloud with, for example https://cloud.example.com, without a name, password or anything after a question mark.</string>
+    <string name="nextcloud_needs_https">Use an address that starts with https://. KeepClear never sends a password unencrypted.</string>
+    <string name="nextcloud_problem_unreachable">Nothing answered at this address. Check the address and the internet connection, and try again.</string>
+    <string name="nextcloud_problem_certificate">This server\'s certificate isn\'t trusted, so KeepClear didn\'t connect. Check the address, or ask whoever runs the server.</string>
+    <string name="nextcloud_problem_not_nextcloud">This address doesn\'t answer like a Nextcloud. Use the address you open it with in a browser.</string>
+    <string name="nextcloud_problem_other_address">The server tried to send KeepClear to another address, so KeepClear stopped. Use your Nextcloud\'s own address.</string>
+    <string name="nextcloud_problem_refused">Your Nextcloud refused the user name or app password. Check them and try again.</string>
+    <string name="nextcloud_problem_expired">The sign-in wasn\'t finished in time. Try again.</string>
+    <string name="nextcloud_settings_body">For people who have their own Nextcloud. Sign in once; then it can be chosen when you move files to a backup. Your Nextcloud checks every copy it stores.</string>
+    <string name="nextcloud_settings_button">Set up Nextcloud</string>
+    <string name="settings_nextcloud_only">Network: only to %1$s (your Nextcloud)</string>
+    <string name="settings_nextcloud_forget">Forget your Nextcloud</string>
+    <string name="move_nextcloud_option">Use your Nextcloud (%1$s)</string>
+    <string name="move_problem_nextcloud_sign_in">Your Nextcloud no longer accepts KeepClear\'s sign-in. Sign in again in Settings › Advanced.</string>
+    <string name="move_problem_nextcloud_unreachable">Your Nextcloud didn\'t answer. Check the internet connection and try again.</string>
+    <string name="restore_from_nextcloud">It\'s on your Nextcloud (%1$s)</string>
+    <plurals name="move_receipt_verified_nextcloud">
+        <item quantity="one">%1$s file (%2$s) copied. Your Nextcloud checked it: what it stored matches the original.</item>
+        <item quantity="other">%1$s files (%2$s) copied. Your Nextcloud checked each file: what it stored matches the original.</item>
+    </plurals>
+    <plurals name="move_receipt_nextcloud">
+        <item quantity="one">%1$s of them was checked by your Nextcloud.</item>
+        <item quantity="other">%1$s of them were checked by your Nextcloud.</item>
+    </plurals>
+    <string name="details_nextcloud_check">Your Nextcloud computed the SHA-256 of each stored copy (X-Hash-SHA256 over WebDAV) and it matched the original\'s, so nothing had to be downloaded. Copies it didn\'t report were read back over the network instead. Before space is freed, every copy is read back and checked once more.</string>
 </resources>

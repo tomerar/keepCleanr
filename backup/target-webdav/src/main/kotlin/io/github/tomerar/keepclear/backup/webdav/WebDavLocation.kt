@@ -76,12 +76,21 @@ class WebDavLocation(
         private val LOOPBACK = setOf("localhost", "127.0.0.1", "::1")
 
         /**
-         * A Nextcloud account's folder: `<server>/remote.php/dav/files/<user>/<folder>` (Nextcloud's WebDAV
-         * endpoint). [server] is what the user typed, e.g. `https://cloud.example.com` or with a sub path.
+         * A Nextcloud account's folder: `<server>/remote.php/dav/files/<filesUser>/<folder>` (Nextcloud's WebDAV
+         * endpoint). [server] is what the user typed, e.g. `https://cloud.example.com` or with a sub path. [user]
+         * signs in (the login name, which may be an e-mail address); [filesUser] is the account's user id in the
+         * files path (M17b: often the same; Login Flow v2 and the OCS user endpoint tell them apart).
          */
-        fun nextcloud(server: String, user: String, appPassword: String, folder: String): WebDavLocation {
+        fun nextcloud(
+            server: String,
+            user: String,
+            appPassword: String,
+            folder: String,
+            filesUser: String = user,
+        ): WebDavLocation {
+            require(DavPath.isSafeSegment(filesUser)) { "user id not allowed" }
             val folderSegments = folder.split('/').filter { it.isNotEmpty() }
-            val path = DavPath.encode(listOf("remote.php", "dav", "files", user) + folderSegments)
+            val path = DavPath.encode(listOf("remote.php", "dav", "files", filesUser) + folderSegments)
             return WebDavLocation(server.trim().trimEnd('/') + path, user, appPassword, nextcloud = true)
         }
     }

@@ -15,6 +15,7 @@ import io.github.tomerar.keepclear.engine.move.MoveFileState
 import io.github.tomerar.keepclear.engine.move.MoveJob
 import io.github.tomerar.keepclear.engine.move.MoveJobStore
 import io.github.tomerar.keepclear.engine.move.PauseReason
+import io.github.tomerar.keepclear.engine.move.VerifyMethod
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -53,6 +54,8 @@ data class MoveFileEntity(
     val nameChanged: Boolean,
     val reusedExisting: Boolean,
     @ColumnInfo(defaultValue = "NULL") val confirmedAt: Long? = null,
+    /** M17b: [io.github.tomerar.keepclear.engine.move.VerifyMethod] by name; null for older rows. */
+    @ColumnInfo(defaultValue = "NULL") val verifiedBy: String? = null,
 )
 
 @Dao
@@ -139,6 +142,7 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
             nameChanged = nameChanged,
             reusedExisting = reusedExisting,
             confirmedAt = confirmedAt,
+            verifiedBy = verifiedBy?.name,
         )
 
         fun MoveFileEntity.toFile(): MoveFile {
@@ -162,6 +166,14 @@ class RoomMoveJobStore(private val dao: MoveDao) : MoveJobStore {
                 reusedExisting = reusedExisting,
                 // H1: a second-pass claim only counts on a file that is still VERIFIED.
                 confirmedAt = if (known == MoveFileState.VERIFIED) confirmedAt else null,
+                // M17b: an unknown method is "not recorded", never a guessed one.
+                verifiedBy = if (known ==
+                    MoveFileState.VERIFIED
+                ) {
+                    verifiedBy?.let { enumOrNull<VerifyMethod>(it) }
+                } else {
+                    null
+                },
             )
         }
 
