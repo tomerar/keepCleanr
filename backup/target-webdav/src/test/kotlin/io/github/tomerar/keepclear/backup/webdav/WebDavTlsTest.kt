@@ -11,6 +11,7 @@ import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509TrustManager
 
 /**
  * M17: HTTPS is checked like a browser does (trusted chain + matching name), never "trust all". Certificates are
@@ -58,11 +59,11 @@ class WebDavTlsTest {
     }
 
     /** A client that trusts exactly this certificate (what a pinned self-signed certificate would do). */
-    private fun trusting(ks: KeyStore) = SSLContext.getInstance("TLS").apply {
-        val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-        tmf.init(ks)
-        init(null, tmf.trustManagers, null)
-    }.socketFactory
+    private fun trusting(ks: KeyStore): X509TrustManager =
+        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).run {
+            init(ks)
+            trustManagers.filterIsInstance<X509TrustManager>().single()
+        }
 
     @Test
     fun `an untrusted certificate is rejected`(): Unit = runBlocking {

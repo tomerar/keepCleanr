@@ -39,6 +39,9 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends samba
           scripts/samba-test-server.sh | sed 's/^export //' >> "$GITHUB_ENV"
+      - name: Nextcloud test server for the WebDAV target's real-server tests (W4)
+        # The official image (pinned by digest in the script), SQLite, one admin with an app password, on 127.0.0.1.
+        run: scripts/nextcloud-test-server.sh | sed 's/^export //' >> "$GITHUB_ENV"
       - name: ciCheck (format, string parity, unit + screenshot tests, Konsist, lint, manifest + dependency policies, both flavors)
         run: ./gradlew ciCheck :app:assembleFossRelease :app:assemblePlayRelease
       - name: Upload reports

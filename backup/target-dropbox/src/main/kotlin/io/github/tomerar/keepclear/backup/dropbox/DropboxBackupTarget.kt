@@ -9,11 +9,11 @@ import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.bool
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.long
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.obj
 import io.github.tomerar.keepclear.backup.dropbox.DropboxJson.string
+import io.github.tomerar.keepclear.backup.net.HostHttpClient
 import io.github.tomerar.keepclear.backup.net.HttpLengthMismatchException
 import io.github.tomerar.keepclear.backup.net.HttpProtocolException
 import io.github.tomerar.keepclear.backup.net.HttpResponse
 import io.github.tomerar.keepclear.backup.net.HttpStatusException
-import io.github.tomerar.keepclear.backup.net.MiniHttp
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.Stat
 import io.github.tomerar.keepclear.core.storage.StorageException
@@ -93,8 +93,8 @@ class DropboxBackupTarget(
     }
 
     private val timeout = (timeoutSeconds * 1000).toInt()
-    private val api = MiniHttp(endpoints.https, endpoints.apiHost, endpoints.port, timeout)
-    private val content = MiniHttp(endpoints.https, endpoints.contentHost, endpoints.port, timeout)
+    private val api = HostHttpClient(endpoints.https, endpoints.apiHost, endpoints.port, timeout)
+    private val content = HostHttpClient(endpoints.https, endpoints.contentHost, endpoints.port, timeout)
 
     // ------------------------------------------------------------------------------------------------- paths
 
@@ -188,7 +188,7 @@ class DropboxBackupTarget(
      * the request again (Dropbox refused it before doing anything). Other statuses go back to the caller.
      */
     private fun call(
-        http: MiniHttp,
+        http: HostHttpClient,
         endpoint: String,
         headers: List<Pair<String, String>>,
         body: ByteArray,
@@ -353,9 +353,9 @@ class DropboxBackupTarget(
         }
     }
 
-    /** One `upload` request, streamed with the length announced (the last byte is held back by MiniHttp). */
+    /** One `upload` request, streamed with the length announced (the last byte is held back by HostHttpClient). */
     private inner class SingleUpload(
-        private val up: MiniHttp.Upload,
+        private val up: HostHttpClient.Upload,
         private val path: KPath,
         private val target: String,
         private val size: Long,

@@ -124,6 +124,21 @@ class ArchitectureTest {
     }
 
     /**
+     * W3 (owner 2026-11-02): OkHttp (and its Okio) is used only inside `backup/net`, behind `HostHttpClient`. The
+     * target modules talk HTTP through that small API, so one strictly configured client is all there is.
+     * build-logic's `checkDependencyConfinement` keeps other modules from even declaring the library.
+     */
+    @Test
+    fun `OkHttp and Okio only in backup net`() {
+        val okhttp = Regex("""^import (okhttp3|okio)\.""", RegexOption.MULTILINE)
+        projectScope.files
+            .filterNot {
+                "/backup/net/" in it.path || "/build-logic/" in it.path || "/testing/architecture/" in it.path
+            }
+            .assertFalse { file -> okhttp.containsMatchIn(file.text) }
+    }
+
+    /**
      * SAFETY-5: the MOVE engine never deletes or renames an original. Its only destructive calls are
      * `target.delete(` / `target.rename(` on its own temp files, damaged copies and manifests on the drive.
      * Originals are freed later through the executor (M10).

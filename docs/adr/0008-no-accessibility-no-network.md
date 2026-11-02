@@ -20,3 +20,6 @@ The product promise is "no network except user-chosen backup targets". SAF-based
 
 ## Note (2026-11-01)
 Update 2026-11-01: both were accepted. ADR 0011 amends the network rule (network code only in `backup:target-*`, from the Google Drive milestone on); ADR 0012 keeps Accessibility out of v1. Originally: [ADR 0011](0011-network-and-cloud-targets.md) (network and cloud backup targets, network code only in dedicated `backup:target-*` modules) and [ADR 0012](0012-foss-accessibility-cache-cleaner.md) (an optional Accessibility cache cleaner in `foss` only). Until then, no INTERNET permission and no AccessibilityService, and CI keeps enforcing both.
+
+## Note (2026-11-02)
+The "lint/CI rule forbidding OkHttp/URL use elsewhere" now applies to an actual OkHttp dependency: by the owner's decision W3 the network targets use OkHttp through `backup:net` only, and CI enforces that no other module declares (build-logic `checkDependencyConfinement`) or imports (Konsist) it ([ADR 0011](0011-network-and-cloud-targets.md), owner decision of 2026-11-02).

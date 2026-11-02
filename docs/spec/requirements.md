@@ -242,7 +242,7 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---|---|---|
-| PRIV-1 | MVP | THE SYSTEM SHALL NOT include analytics, crash-reporting SDKs, ads, or Google Play Services dependencies. | CI dependency allowlist. |
+| PRIV-1 | MVP | THE SYSTEM SHALL NOT include analytics, crash-reporting SDKs, ads, or Google Play Services dependencies. | CI dependency allowlist; libraries confined to one module (OkHttp/Okio → `backup:net`, smbj/BouncyCastle → `backup:target-smb`) may not be declared by any other module (`checkDependencyConfinement`). |
 | PRIV-2 | MVP | THE SYSTEM SHALL NOT declare the INTERNET permission in MVP; when network targets arrive (M15), network code is confined to target modules and contacts only user-entered hosts (or, for cloud targets, the provider's fixed hosts, ADR 0011). | Merged-manifest check: INTERNET only when the manifest merger shows it came from a `:backup:target-*` module; Konsist: network imports only in `backup/target-*`; SMB accepts only a plain host name or address. |
 | PRIV-3 | MVP | THE SYSTEM SHALL use no fear language, no fake numbers, no "boost/speed/battery/virus" claims; all numbers are measured. | Copy review checklist ([07](../research/07-competitor-ux.md) §4). |
 | PRIV-4 | v1 | THE SYSTEM SHALL offer an optional local debug log export (user-initiated, redacted paths option) for bug reports. | — |

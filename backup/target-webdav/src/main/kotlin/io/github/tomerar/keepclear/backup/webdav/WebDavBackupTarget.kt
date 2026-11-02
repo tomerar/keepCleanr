@@ -4,11 +4,11 @@ package io.github.tomerar.keepclear.backup.webdav
 import io.github.tomerar.keepclear.backup.BackupTarget
 import io.github.tomerar.keepclear.backup.DigestKind
 import io.github.tomerar.keepclear.backup.TargetCaps
+import io.github.tomerar.keepclear.backup.net.HostHttpClient
 import io.github.tomerar.keepclear.backup.net.HttpLengthMismatchException
 import io.github.tomerar.keepclear.backup.net.HttpProtocolException
 import io.github.tomerar.keepclear.backup.net.HttpResponse
 import io.github.tomerar.keepclear.backup.net.HttpStatusException
-import io.github.tomerar.keepclear.backup.net.MiniHttp
 import io.github.tomerar.keepclear.backup.net.UploadStream
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.core.storage.Stat
@@ -21,7 +21,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
-import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.X509TrustManager
 
 /**
  * M17 (MOVE-3), ADR 0011: a backup target on a WebDAV server: Nextcloud, or any other WebDAV server.
@@ -46,7 +46,7 @@ class WebDavBackupTarget(
     override val id: String,
     override val label: String,
     timeoutSeconds: Long = 30,
-    sslSocketFactory: SSLSocketFactory? = null,
+    trustManager: X509TrustManager? = null,
 ) : BackupTarget {
     override val caps = TargetCaps(
         canReadBack = true,
@@ -56,12 +56,12 @@ class WebDavBackupTarget(
         serverDigests = if (location.nextcloud) setOf(DigestKind.SHA256) else emptySet(),
     )
 
-    private val http = MiniHttp(
+    private val http = HostHttpClient(
         location.https,
         location.host,
         location.port,
         (timeoutSeconds * 1000).toInt(),
-        sslSocketFactory,
+        trustManager,
     )
     private val scope = HrefScope(location.https, location.host, location.port, location.baseSegments)
     private val auth =
@@ -443,8 +443,9 @@ class WebDavBackupTarget(
 
             507 -> StorageException.NoSpace(path)
 
-            // Busy, in maintenance or a proxy that can't reach it: gone for now, try later.
-            408, 429, 502, 503, 504 -> StorageException.Disconnected(path)
+            // Busy, in maintenance or a proxy that can't reach it: gone for now, try later. 423: Nextcloud locks a
+            // name while an upload to it is running (seen on the real server, W4); another writer must wait.
+            408, 423, 429, 502, 503, 504 -> StorageException.Disconnected(path)
 
             else -> StorageException.Io(path, message = "the server answered $status")
         }

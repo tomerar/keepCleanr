@@ -55,6 +55,16 @@ object DependencyAllowlist {
         "net.engio:mbassador",
     )
 
+    /**
+     * Exact `group:module` ids (no prefix match). W3 (owner 2026-11-02): OkHttp and its Okio for the network
+     * backup targets, Apache-2.0; only `backup:net` may declare them ([DependencyConfinement]).
+     */
+    val allowedModules = setOf(
+        "com.squareup.okhttp3:okhttp",
+        "com.squareup.okio:okio",
+        "com.squareup.okio:okio-jvm",
+    )
+
     /** Returns violations for `group:module:version` ids. */
     fun check(moduleIds: Collection<String>): List<String> = moduleIds.sorted().mapNotNull { id ->
         val groupAndModule = id.substringBeforeLast(':')
@@ -64,7 +74,7 @@ object DependencyAllowlist {
                 "Denied dependency (PRIV-1): $id"
             }
 
-            allowedGroupPrefixes.none { groupAndModule.startsWith(it) } -> {
+            groupAndModule !in allowedModules && allowedGroupPrefixes.none { groupAndModule.startsWith(it) } -> {
                 "Dependency not on the allowlist (PRIV-1; discuss before adding): $id"
             }
 

@@ -9,6 +9,7 @@ import org.gradle.kotlin.dsl.configure
 class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
         pluginManager.apply("com.android.library")
+        registerDependencyConfinement()
         extensions.configure<LibraryExtension> {
             configureKotlinAndroid(this)
             defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
