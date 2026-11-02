@@ -7,7 +7,7 @@ Rules: gender-neutral (plural or infinitive), plain words, no Latin "Android", e
 and similar are placeholders filled by the app; ⏎ is a line break. The screen is where the code uses the
 string; "also" lists other screens.
 
-523 Hebrew strings.
+535 Hebrew strings.
 
 ## Contents
 
@@ -16,7 +16,7 @@ string; "also" lists other screens.
 - [Clean now](#clean-now) (16)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (29)
 - [Swipe review](#swipe-review) (13)
-- [Move to backup and restore](#move-to-backup-and-restore) (146)
+- [Move to backup and restore](#move-to-backup-and-restore) (158)
 - [Trash](#trash) (41)
 - [Apps](#apps) (29)
 - [Settings](#settings) (33)
@@ -320,16 +320,19 @@ string; "also" lists other screens.
 | `move_title` | Move to backup | העברה לגיבוי |  |
 | `move_view` | Show | להציג |  |
 | `move_what` | What to move | מה להעביר |  |
+| `restore_already_on_phone` | [one] %1$s file is already on the phone (nothing to copy) / [other] %1$s files are already on the phone (nothing to copy) | [one] קובץ אחד כבר נמצא בטלפון (אין מה להעתיק) / [two] %1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק) / [other] %1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק) |  |
 | `restore_already_there` | [one] %1$s was already on the phone / [other] %1$s were already on the phone | [one] %1$s כבר היה בטלפון / [two] %1$s כבר היו בטלפון / [other] %1$s כבר היו בטלפון |  |
 | `restore_choose` | What to bring back | מה להחזיר |  |
 | `restore_damaged` | [one] %1$s copy on the drive doesn't match the backup list and was not restored / [other] %1$s copies on the drive don't match the backup list and were not restored | [one] עותק %1$s בכונן לא תואם לרשימת הגיבוי ולא שוחזר / [two] %1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו / [other] %1$s עותקים בכונן לא תואמים לרשימת הגיבוי ולא שוחזרו |  |
 | `restore_done` | [one] %1$s file restored and checked / [other] %1$s files restored and checked | [one] קובץ %1$s שוחזר ונבדק / [two] %1$s קבצים שוחזרו ונבדקו / [other] %1$s קבצים שוחזרו ונבדקו |  |
 | `restore_failed` | [one] %1$s could not be restored / [other] %1$s could not be restored | [one] %1$s לא שוחזר / [two] %1$s לא שוחזרו / [other] %1$s לא שוחזרו |  |
+| `restore_fit` | Choose only what fits | לבחור רק מה שנכנס |  |
 | `restore_from_network` | It's on a network drive | הגיבוי בכונן רשת |  |
 | `restore_from_nextcloud` | It's on your Nextcloud (%1$s) | הגיבוי ב-Nextcloud (%1$s) |  |
 | `restore_interrupted` | The drive was disconnected. What was restored stays; restore again to finish. | הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים. |  |
 | `restore_needs_all_files` | To put files back where they were, KeepClear needs All files access (available in the KeepClear build from F-Droid or GitHub). You can still copy them from the drive with the Files app. | כדי להחזיר קבצים למקומם, KeepClear צריכה גישה לכל הקבצים (זמינה בגרסה מ-F-Droid או מ-GitHub). עדיין אפשר להעתיק אותם מהכונן בעזרת אפליקציית הקבצים. |  |
 | `restore_no_backup` | No KeepClear backup was found there. | לא נמצא שם גיבוי של KeepClear. |  |
+| `restore_not_enough_room` | Nothing was restored: there isn't enough room on the phone. KeepClear always leaves %1$s free. | שום דבר לא שוחזר: אין מספיק מקום בטלפון. KeepClear תמיד משאיר %1$s פנויים. |  |
 | `restore_ok` | OK | אישור | Nextcloud set-up (Settings › Advanced) |
 | `restore_pick_body` | Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself). | יש לבחור את הכונן או את התיקייה שבהם נמצא הגיבוי (התיקייה בשם KeepClear, או הכונן עצמו). |  |
 | `restore_pick_folder` | Choose drive or folder | בחירת כונן או תיקייה |  |
@@ -337,9 +340,18 @@ string; "also" lists other screens.
 | `restore_redirected` | [one] %1$s of them went to Pictures › KeepClear Restored / [other] %1$s of them went to Pictures › KeepClear Restored | [one] %1$s מהם נשמר בתמונות › KeepClear Restored / [two] %1$s מהם נשמרו בתמונות › KeepClear Restored / [other] %1$s מהם נשמרו בתמונות › KeepClear Restored |  |
 | `restore_run` | Restore | שחזור |  |
 | `restore_running` | Restoring… | משחזרים… |  |
+| `restore_simulated` | Would have restored %1$s (trial mode): %2$s back to where they were, %3$s to Pictures › KeepClear Restored. Nothing was written to the phone. | היו משוחזרים %1$s (מצב ניסיון): %2$s למקום המקורי, %3$s לתמונות › KeepClear Restored. שום דבר לא נכתב לטלפון. |  |
+| `restore_skipped` | [one] %1$s item is not restored (a hidden file or an app) / [other] %1$s items are not restored (hidden files or apps) | [one] פריט אחד לא ישוחזר (קובץ מוסתר או אפליקציה) / [two] %1$s פריטים לא ישוחזרו (קבצים מוסתרים או אפליקציות) / [other] %1$s פריטים לא ישוחזרו (קבצים מוסתרים או אפליקציות) |  |
+| `restore_space` | Free on the phone: %1$s. Chosen: %2$s. | פנוי בטלפון: %1$s. נבחרו: %2$s. |  |
+| `restore_space_unknown` | KeepClear couldn't check the free space on the phone, so it won't restore now. Try again in a moment. | KeepClear לא הצליח לבדוק כמה מקום פנוי בטלפון, ולכן לא ישחזר עכשיו. אפשר לנסות שוב בעוד רגע. |  |
 | `restore_start` | Restore from a backup | שחזור מגיבוי |  |
+| `restore_stopped_low_space` | Stopped because the phone is almost full. What was restored stays; make room, then restore again to finish. | השחזור נעצר כי הטלפון כמעט מלא. מה שכבר שוחזר נשאר. אפשר לפנות מקום ולשחזר שוב כדי להשלים. |  |
 | `restore_title` | Restore from a backup | שחזור מגיבוי |  |
-| `restore_where` | Each file goes back to where it was. If that place is taken or not safe, it goes to Pictures › KeepClear Restored. Nothing on the phone is replaced. | כל קובץ חוזר למקום שבו היה. אם המקום תפוס או לא בטוח, הקובץ נשמר בתמונות › KeepClear Restored. שום קובץ בטלפון לא מוחלף. |  |
+| `restore_to_folder` | To the restore folder (Pictures › KeepClear Restored) | לתיקיית שחזור (תמונות › KeepClear Restored) |  |
+| `restore_to_mixed` | %1$s back to where they were, %2$s to the restore folder | %1$s למקום המקורי, %2$s לתיקיית שחזור |  |
+| `restore_to_original` | Back to where they were | למקום המקורי |  |
+| `restore_too_big` | There isn't enough room for all of this. KeepClear always leaves %1$s free so the phone keeps working. Choose fewer months. | אין מספיק מקום לכל מה שבחרתם. KeepClear תמיד משאיר %1$s פנויים כדי שהטלפון ימשיך לעבוד. אפשר לבחור פחות חודשים. |  |
+| `restore_where` | Files go back to where they were only if KeepClear moved them from there on this phone. Others go to Pictures › KeepClear Restored. Hidden files and apps are not restored. Nothing on the phone is replaced. | קבצים חוזרים למקום המקורי רק אם KeepClear העביר אותם משם בטלפון הזה. השאר נשמרים בתמונות › KeepClear Restored. קבצים מוסתרים ואפליקציות לא משוחזרים. שום קובץ בטלפון לא מוחלף. |  |
 | `restore_which_phone` | Which phone's backup? | הגיבוי של איזה טלפון? |  |
 
 ## Trash

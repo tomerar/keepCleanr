@@ -406,8 +406,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Starts "Restore from a backup". Files go back where they were, so the app needs to write by path: All files
-     * access (decided conservatively for the `play` build, progress.md C10). Restoring only adds files, so it also
-     * runs in trial mode (C11).
+     * access (decided conservatively for the `play` build, progress.md C10). In trial mode restoring writes nothing
+     * and only says what it would do (D1, C11 as changed by the owner's review).
      */
     fun beginRestore() {
         val canWrite = BuildConfig.FLAVOR == "foss" &&
@@ -445,7 +445,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             check.target,
             app.localGateway,
             app.protectedPaths,
-            android.os.Environment.getExternalStorageDirectory().absolutePath,
+            phoneRoot,
+            space = phoneSpace,
+            // D2: the manifest's original path counts only when this phone's MOVE records hold it.
+            records = { src, sha -> controller.store.movedFrom(src, sha) },
+            isDryRun = { app.testMode.isOn },
         )
         restoreTarget?.useTarget { }
         restoreEngine = engine
@@ -458,19 +462,26 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The phone's shared storage, where restored files go. */
+    private val phoneRoot: String get() = android.os.Environment.getExternalStorageDirectory().absolutePath
+
+    /** D1: free space on [phoneRoot]. */
+    private val phoneSpace = io.github.tomerar.keepclear.engine.restore.SpaceProbe { measurePhoneSpace(app, phoneRoot) }
+
     fun chooseBackup(rootRel: String) {
         val engine = restoreEngine ?: return
         viewModelScope.launch {
-            val entries = withContext(Dispatchers.IO) { engine.catalog(rootRel) }.orEmpty()
+            val (entries, groups, space) = withContext(Dispatchers.IO) {
+                val entries = engine.catalog(rootRel).orEmpty()
+                // D2: where each file would go, shown per month before anything is chosen.
+                Triple(entries, restoreGroups(engine.plan(entries)), phoneSpace.measure())
+            }
             restoreEntries = entries
             if (entries.isEmpty()) {
                 _state.update { it.copy(restore = RestoreStep.NoBackup) }
                 return@launch
             }
-            val groups = entries.groupBy { "${it.group}|${it.month}" }.map { (_, list) ->
-                RestoreGroup(list.first().group, list.first().month, list.size, list.sumOf { it.line.size })
-            }.sortedWith(compareBy({ it.group }, { it.month }))
-            _state.update { it.copy(restore = RestoreStep.Catalog(rootRel, groups)) }
+            _state.update { it.copy(restore = RestoreStep.Catalog(rootRel, groups, space)) }
         }
     }
 

@@ -59,7 +59,8 @@ Out of scope: a fully compromised OS or root-level malware (it can already do an
 **Mitigations:**
 - **Deletion decisions never use the manifest.** MOVE deletion relies only on our Room records and our own read-back hash (SAFETY-5).
 - Manifest is parsed strictly: line ≤ 8 KiB, `sha256` is 64 hex chars, `rel` is a relative path that stays inside `KeepClear/` after normalisation, `size` ≥ 0.
-- Restore from backup (MOVE-17) computes destinations itself and runs them through `RestorePathValidator` (T1); manifest `src` paths are hints only.
+- Restore from backup (MOVE-17) computes destinations itself and runs them through `RestorePathValidator` (T1); manifest `src` paths are hints only: honoured only when a MOVE record on this phone holds that path with the same SHA-256 and the same file name, for photo/video/audio/document types; hidden files (`.nomedia`) and programs are never written (E-RES-1/2).
+- A hostile target can't fill the phone: reads stop at the manifest's size, and restore keeps max(5%, 1 GB) free, measured before each file (E-RES-3/4).
 - The target marker holds a random 128-bit id **plus** the volume/tree identity. A resume requires both to match (E-MOVE-2).
 
 ### T4. Races with other apps (TOCTOU)

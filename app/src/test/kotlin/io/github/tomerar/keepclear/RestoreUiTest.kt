@@ -6,8 +6,14 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.engine.restore.Placement
+import io.github.tomerar.keepclear.engine.restore.RestorePreview
 import io.github.tomerar.keepclear.engine.restore.RestoreReport
+import io.github.tomerar.keepclear.engine.restore.RoomCheck
+import io.github.tomerar.keepclear.engine.restore.Space
+import io.github.tomerar.keepclear.engine.restore.Where
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -22,10 +28,31 @@ class RestoreUiTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val catalog = RestoreStep.Catalog(
-        "KeepClear/OnePlus 10T",
-        listOf(RestoreGroup("Camera", "2021-01", 3, 30_000), RestoreGroup("WhatsApp Images", "2021-02", 2, 5_000)),
+    private val groups = listOf(
+        RestoreGroup("Camera", "2021-01", 30_000, toOriginal = 3, toRestoreFolder = 0),
+        RestoreGroup("WhatsApp Images", "2021-02", 5_000, toOriginal = 0, toRestoreFolder = 2, skipped = 1),
+        RestoreGroup("WhatsApp Images", "2021-03", 7_000, toOriginal = 1, toRestoreFolder = 1, alreadyThere = 2),
     )
+    private val plenty = Space(allocatable = 50_000_000_000, total = 128_000_000_000)
+    private val catalog = RestoreStep.Catalog("KeepClear/OnePlus 10T", groups, plenty)
+
+    private fun text(tag: String) = compose.onNodeWithTag(tag).fetchSemanticsNode()
+        .config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
+
+    private var shown: androidx.compose.runtime.MutableState<RestoreReport>? = null
+
+    /** Shows [report] as the result (content is set once per test) and returns its text. */
+    private fun done(report: RestoreReport): String {
+        val state = shown
+        if (state == null) {
+            val s = androidx.compose.runtime.mutableStateOf(report).also { shown = it }
+            compose.setContent { KeepClearTheme { RestoreDialogs(RestoreStep.Done(s.value), RestoreActions()) } }
+        } else {
+            state.value = report
+            compose.waitForIdle()
+        }
+        return text("restoreDone")
+    }
 
     @Test
     fun `nothing is pre-selected, and only the chosen months are restored`() {
@@ -49,9 +76,7 @@ class RestoreUiTest {
             damaged = 1,
             redirected = 1,
         )
-        compose.setContent { KeepClearTheme { RestoreDialogs(RestoreStep.Done(report), RestoreActions()) } }
-        val text = compose.onNodeWithTag("restoreDone").fetchSemanticsNode()
-            .config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
+        val text = done(report)
         listOf(
             "files restored and checked",
             "Pictures › KeepClear Restored",
@@ -60,6 +85,105 @@ class RestoreUiTest {
         ).forEach {
             assert(it in text) { "missing \"$it\" in: $text" }
         }
+    }
+
+    @Test
+    fun `the catalog says where each month goes, and free space against what is chosen (D1, D2)`() {
+        compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
+        assertEquals("Back to where they were", text("restoreWhere_Camera|2021-01"))
+        assert("restore folder" in text("restoreWhere_WhatsApp Images|2021-02"))
+        assert("back to where they were, " in text("restoreWhere_WhatsApp Images|2021-03"))
+        compose.onNodeWithTag("restore_Camera|2021-01").performClick()
+        val space = text("restoreSpace")
+        assert("Free on the phone" in space && "Chosen" in space) { space }
+        compose.onNodeWithTag("restoreTooBig").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "iw")
+    fun `in Hebrew the catalog says original place or restore folder (D2)`() {
+        compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
+        assertEquals("למקום המקורי", text("restoreWhere_Camera|2021-01"))
+        assert(text("restoreWhere_WhatsApp Images|2021-02").startsWith("לתיקיית שחזור"))
+    }
+
+    @Test
+    fun `months that don't fit can't be restored, and choosing only what fits trims them (D1)`() {
+        // Room for 20,000 bytes above the 1 GB reserve.
+        val tight = catalog.copy(space = Space(allocatable = 1_000_020_000, total = 16_000_000_000))
+        var chosen: Set<String>? = null
+        compose.setContent { KeepClearTheme { RestoreDialogs(tight, RestoreActions(onRestore = { chosen = it })) } }
+        compose.onNodeWithTag("restore_Camera|2021-01").performClick()
+        compose.onNodeWithTag("restore_WhatsApp Images|2021-02").performClick()
+        compose.onNodeWithTag("restoreRun").assertIsNotEnabled()
+        assert("1.0 GB" in text("restoreTooBig")) { text("restoreTooBig") }
+        compose.onNodeWithTag("restoreFit").performScrollTo().performClick()
+        compose.onNodeWithTag("restoreRun").assertIsEnabled().performClick()
+        assertEquals(setOf("WhatsApp Images|2021-02"), chosen)
+    }
+
+    @Test
+    fun `nothing can be restored when free space can't be measured (D1)`() {
+        compose.setContent { KeepClearTheme { RestoreDialogs(catalog.copy(space = null), RestoreActions()) } }
+        compose.onNodeWithTag("restore_Camera|2021-01").performClick()
+        compose.onNodeWithTag("restoreRun").assertIsNotEnabled()
+        assert("couldn't check" in text("restoreSpace"))
+    }
+
+    @Test
+    fun `fitting by month keeps chosen months in order while they fit (D1)`() {
+        val all = groups.map { it.key }.toSet()
+        assertEquals(all, fitByMonth(groups, all, 42_000))
+        assertEquals(setOf("WhatsApp Images|2021-02", "WhatsApp Images|2021-03"), fitByMonth(groups, all, 29_999))
+        assertEquals(emptySet<String>(), fitByMonth(groups, all, 4_999))
+        assertEquals(setOf("WhatsApp Images|2021-03"), fitByMonth(groups, setOf("WhatsApp Images|2021-03"), 50_000))
+    }
+
+    @Test
+    fun `the catalog says which files are already on the phone (PR 42 review)`() {
+        compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
+        assert("already on the phone" in text("restoreAlready_WhatsApp Images|2021-03"))
+        compose.onNodeWithTag("restoreAlready_Camera|2021-01").assertDoesNotExist()
+    }
+
+    @Test
+    fun `months group what is already on the phone apart from what is written (PR 42 review)`() {
+        val line = { rel: String ->
+            io.github.tomerar.keepclear.engine.move.Manifest.Line(rel, "/x/$rel", 1_000, 0, "a".repeat(64), 0, false)
+        }
+        val entry = { rel: String -> io.github.tomerar.keepclear.engine.restore.BackupEntry("KeepClear/P", line(rel)) }
+        val placements = listOf(
+            Placement(entry("Camera/a.jpg"), Where.ORIGINAL, "/x/a.jpg"),
+            Placement(entry("Camera/b.jpg"), Where.ALREADY_THERE, "/x/b.jpg"),
+            Placement(entry("Camera/c.jpg"), Where.RESTORE_FOLDER, "/r/c.jpg"),
+        )
+        val group = restoreGroups(placements).single()
+        assertEquals(2_000L, group.bytes)
+        assertEquals(2, group.count)
+        assertEquals(1, group.alreadyThere)
+    }
+
+    @Test
+    fun `trial mode says what would be restored and that nothing was written (D1)`() {
+        val text = done(RestoreReport(simulated = RestorePreview(3, 2, 1, 2_000_000_000, alreadyThere = 4)))
+        listOf(
+            "Would have restored",
+            "trial mode",
+            "Nothing was written",
+            "not restored",
+            "already on the phone",
+        ).forEach {
+            assert(it in text) { "missing \"$it\" in: $text" }
+        }
+        assert("files restored and checked" !in text)
+    }
+
+    @Test
+    fun `the result says when the phone was too full (D1)`() {
+        val refused = done(RestoreReport(notEnoughRoom = RoomCheck(5_000_000_000, plenty)))
+        assert("Nothing was restored" in refused) { refused }
+        val stopped = done(RestoreReport(restored = listOf("/storage/emulated/0/a.jpg"), stoppedLowSpace = true))
+        assert("almost full" in stopped) { stopped }
     }
 
     @Test

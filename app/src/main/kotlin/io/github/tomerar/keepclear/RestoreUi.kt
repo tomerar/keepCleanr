@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -28,12 +29,69 @@ import io.github.tomerar.keepclear.backup.smb.SmbLocation
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.engine.classify.Total
+import io.github.tomerar.keepclear.engine.restore.Placement
 import io.github.tomerar.keepclear.engine.restore.RestoreReport
+import io.github.tomerar.keepclear.engine.restore.Space
+import io.github.tomerar.keepclear.engine.restore.Where
 
 /** MOVE-17: one source folder and month of a backup, restored together. */
-data class RestoreGroup(val group: String, val month: String, val count: Int, val bytes: Long) {
+data class RestoreGroup(
+    val group: String,
+    val month: String,
+    /** Bytes of the files that would be written (skipped and already-there ones not counted, D1). */
+    val bytes: Long,
+    /** D2: files that go back to where they were. */
+    val toOriginal: Int,
+    /** D2: files that go to the restore folder. */
+    val toRestoreFolder: Int,
+    /** D2: hidden files and programs, never written. */
+    val skipped: Int = 0,
+    /** Already on the phone with the same content: nothing written, no room needed. */
+    val alreadyThere: Int = 0,
+) {
     val key: String get() = "$group|$month"
+
+    /** Files that would be written. */
+    val count: Int get() = toOriginal + toRestoreFolder
 }
+
+/** Groups the engine's placements by source folder and month, for the catalog (D2). */
+fun restoreGroups(placements: List<Placement>): List<RestoreGroup> =
+    placements.groupBy { "${it.entry.group}|${it.entry.month}" }.map { (_, list) ->
+        val first = list.first().entry
+        RestoreGroup(
+            group = first.group,
+            month = first.month,
+            bytes = list.filter { it.writes }.sumOf { it.entry.line.size },
+            toOriginal = list.count { it.where == Where.ORIGINAL },
+            toRestoreFolder = list.count { it.where == Where.RESTORE_FOLDER },
+            skipped = list.count { it.where == Where.SKIPPED },
+            alreadyThere = list.count { it.where == Where.ALREADY_THERE },
+        )
+    }.sortedWith(compareBy({ it.group }, { it.month }))
+
+/**
+ * D1 "Choose only what fits": keeps the chosen months, in the catalog's order, while they fit in [room]. A
+ * month that doesn't fit is left out and smaller later ones may still come in.
+ */
+fun fitByMonth(groups: List<RestoreGroup>, chosen: Set<String>, room: Long): Set<String> {
+    var left = room
+    return groups.filter { it.key in chosen }.filter { g ->
+        (g.bytes <= left).also { fits -> if (fits) left -= g.bytes }
+    }.map { it.key }.toSet()
+}
+
+/**
+ * D1: free space on the phone's shared storage. Android's allocatable bytes (`StorageManager`) count cache it
+ * could clear; restoring doesn't ask Android to clear anything, so the smaller of that and what is free right now
+ * is used (decided conservatively, progress.md C34). Null when it can't be measured: then nothing is restored.
+ */
+fun measurePhoneSpace(context: android.content.Context, root: String): Space? = runCatching {
+    val sm = context.getSystemService(android.os.storage.StorageManager::class.java)
+    val stat = android.os.StatFs(root)
+    val allocatable = sm.getAllocatableBytes(sm.getUuidForPath(java.io.File(root)))
+    Space(allocatable = minOf(allocatable, stat.availableBytes), total = stat.totalBytes)
+}.getOrNull()
 
 /** Where the "Restore from a backup" flow is. */
 sealed interface RestoreStep {
@@ -49,7 +107,8 @@ sealed interface RestoreStep {
     /** The drive holds backups of several phones. */
     data class Backups(val roots: List<String>) : RestoreStep
 
-    data class Catalog(val rootRel: String, val groups: List<RestoreGroup>) : RestoreStep
+    /** [space] is the phone's free space when the catalog was read; null when it couldn't be measured (D1). */
+    data class Catalog(val rootRel: String, val groups: List<RestoreGroup>, val space: Space?) : RestoreStep
 
     data class Running(val done: Int, val total: Int) : RestoreStep
 
@@ -161,16 +220,7 @@ fun RestoreDialogs(step: RestoreStep?, actions: RestoreActions) {
         }
 
         is RestoreStep.Done -> {
-            val r = step.report
-            val lines = buildList {
-                add(countSentence(R.plurals.restore_done, r.restored.size))
-                if (r.redirected > 0) add(countSentence(R.plurals.restore_redirected, r.redirected))
-                if (r.alreadyThere > 0) add(countSentence(R.plurals.restore_already_there, r.alreadyThere))
-                if (r.damaged > 0) add(countSentence(R.plurals.restore_damaged, r.damaged))
-                if (r.failed > 0) add(countSentence(R.plurals.restore_failed, r.failed))
-                if (r.interrupted) add(stringResource(R.string.restore_interrupted))
-            }
-            Info(lines.joinToString("\n"), actions.onClose, tag = "restoreDone")
+            Info(doneLines(step.report).joinToString("\n"), actions.onClose, tag = "restoreDone")
         }
     }
     if (network) {
@@ -183,6 +233,69 @@ fun RestoreDialogs(step: RestoreStep?, actions: RestoreActions) {
             onDismiss = { network = false },
         )
     }
+}
+
+@Composable
+private fun doneLines(r: RestoreReport): List<String> {
+    val simulated = r.simulated
+    val noRoom = r.notEnoughRoom
+    return buildList {
+        when {
+            // D1, SAFETY-9: trial mode wrote nothing; say what would have happened.
+            simulated != null -> {
+                add(
+                    stringResource(
+                        R.string.restore_simulated,
+                        totalText(Total(simulated.files, simulated.bytes)),
+                        countText(simulated.toOriginal),
+                        countText(simulated.toRestoreFolder),
+                    ),
+                )
+                if (simulated.alreadyThere > 0) {
+                    add(countSentence(R.plurals.restore_already_on_phone, simulated.alreadyThere))
+                }
+                if (simulated.skipped > 0) add(countSentence(R.plurals.restore_skipped, simulated.skipped))
+                return@buildList
+            }
+
+            noRoom != null -> {
+                val space = noRoom.space
+                add(
+                    if (space == null) {
+                        stringResource(R.string.restore_space_unknown)
+                    } else {
+                        stringResource(R.string.restore_not_enough_room, sizeText(space.reserve))
+                    },
+                )
+                return@buildList
+            }
+
+            else -> {
+                add(countSentence(R.plurals.restore_done, r.restored.size))
+            }
+        }
+        if (r.redirected > 0) add(countSentence(R.plurals.restore_redirected, r.redirected))
+        if (r.alreadyThere > 0) add(countSentence(R.plurals.restore_already_there, r.alreadyThere))
+        if (r.damaged > 0) add(countSentence(R.plurals.restore_damaged, r.damaged))
+        if (r.failed > 0) add(countSentence(R.plurals.restore_failed, r.failed))
+        if (r.skipped > 0) add(countSentence(R.plurals.restore_skipped, r.skipped))
+        if (r.stoppedLowSpace) add(stringResource(R.string.restore_stopped_low_space))
+        if (r.interrupted) add(stringResource(R.string.restore_interrupted))
+    }
+}
+
+/** A count on its own, formatted for the locale and isolated. */
+@Composable
+private fun countText(count: Int): String =
+    Bidi.isolate(java.text.NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0]).format(count))
+
+/** D2: where a month's files go. */
+@Composable
+private fun whereText(g: RestoreGroup): String? = when {
+    g.count == 0 -> null
+    g.toRestoreFolder == 0 -> stringResource(R.string.restore_to_original)
+    g.toOriginal == 0 -> stringResource(R.string.restore_to_folder)
+    else -> stringResource(R.string.restore_to_mixed, countText(g.toOriginal), countText(g.toRestoreFolder))
 }
 
 @Composable
@@ -205,6 +318,11 @@ private fun Info(text: String, onClose: () -> Unit, tag: String = "restoreInfo")
 private fun CatalogDialog(step: RestoreStep.Catalog, actions: RestoreActions) {
     // Nothing is pre-selected: the user picks what comes back.
     var chosen by rememberSaveable(step.rootRel) { mutableStateOf(setOf<String>()) }
+    val picked = step.groups.filter { it.key in chosen }
+    val neededBytes = picked.sumOf { it.bytes }
+    val space = step.space
+    // D1: the chosen months must fit with the reserve left free.
+    val fits = space != null && neededBytes <= space.room
     AlertDialog(
         onDismissRequest = actions.onClose,
         title = { Text(stringResource(R.string.restore_choose)) },
@@ -224,23 +342,63 @@ private fun CatalogDialog(step: RestoreStep.Catalog, actions: RestoreActions) {
                         Column {
                             Text("${Bidi.isolate(g.group)} · ${Bidi.isolate(g.month)}")
                             Text(totalText(Total(g.count, g.bytes)), style = MaterialTheme.typography.bodySmall)
+                            whereText(g)?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("restoreWhere_${g.key}"),
+                                )
+                            }
+                            if (g.alreadyThere > 0) {
+                                Text(
+                                    countSentence(R.plurals.restore_already_on_phone, g.alreadyThere),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("restoreAlready_${g.key}"),
+                                )
+                            }
+                            if (g.skipped > 0) {
+                                Text(
+                                    countSentence(R.plurals.restore_skipped, g.skipped),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                         }
                     }
                 }
-                val total = step.groups.filter { it.key in chosen }
-                if (total.isNotEmpty()) {
+                if (picked.isNotEmpty()) {
                     Text(
-                        totalText(Total(total.sumOf { it.count }, total.sumOf { it.bytes })),
+                        totalText(Total(picked.sumOf { it.count }, neededBytes)),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.testTag("restoreTotal"),
                     )
+                }
+                // D1: free space against what is chosen, always visible.
+                Text(
+                    if (space == null) {
+                        stringResource(R.string.restore_space_unknown)
+                    } else {
+                        stringResource(R.string.restore_space, sizeText(space.allocatable), sizeText(neededBytes))
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.testTag("restoreSpace"),
+                )
+                if (space != null && !fits) {
+                    Text(
+                        stringResource(R.string.restore_too_big, sizeText(space.reserve)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag("restoreTooBig"),
+                    )
+                    TextButton(
+                        onClick = { chosen = fitByMonth(step.groups, chosen, space.room) },
+                        modifier = Modifier.testTag("restoreFit"),
+                    ) { Text(stringResource(R.string.restore_fit)) }
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = { actions.onRestore(chosen) },
-                enabled = chosen.isNotEmpty(),
+                enabled = picked.any { it.count > 0 } && fits,
                 modifier = Modifier.testTag("restoreRun"),
             ) { Text(stringResource(R.string.restore_run)) }
         },
