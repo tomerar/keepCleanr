@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.core.common.Bidi
@@ -27,6 +28,9 @@ import io.github.tomerar.keepclear.core.designsystem.KcShapes
 import io.github.tomerar.keepclear.core.designsystem.KcSpacing
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
 import java.text.NumberFormat
+
+/** The strip's test tag (it is decorative for TalkBack, so this is all a test can find). */
+const val THUMB_STRIP_TAG = "thumbStrip"
 
 /** At most this many places; with a "+N" tile, one fewer thumbnail (so the tile has room for "+2,320"). */
 const val THUMB_STRIP_MAX = 4
@@ -50,7 +54,7 @@ fun ThumbStrip(
     val moreCount = (total - shown.size).coerceAtLeast(0)
     val locale = LocalConfiguration.current.locales[0]
     Row(
-        modifier = modifier.clearAndSetSemantics { },
+        modifier = modifier.clearAndSetSemantics { testTag = THUMB_STRIP_TAG },
         horizontalArrangement = Arrangement.spacedBy(KcSpacing.s),
     ) {
         shown.forEach { painter ->

@@ -43,6 +43,21 @@ class SwipeReviewTest {
     }
 
     @Test
+    fun `the counter shows exact numbers with thousands separators`() {
+        // Owner scale: 2,324 screenshots. The counter said "1 of 2324".
+        val c = Classifier()
+        val items = (1..2_324).map { i ->
+            val p = "/storage/emulated/0/Pictures/Screenshots/s$i.png"
+            c.classify(ScanItem(KPath.Local(p), p, 1000L, 1_678_000_000_000L + i), now = now)
+        }
+        compose.setContent { KeepClearTheme { SwipeReview(items, onDone = {}, onClose = {}) } }
+        val text = compose.onNodeWithTag("swipeProgress").fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString("")
+        // Bidi isolates around each number; the digits are grouped.
+        assertEquals("1 of 2,324", text.filter { it.code !in 0x2066..0x2069 })
+    }
+
+    @Test
     fun `decisions, undo, and only Delete choices are returned`() {
         val items = group().items
 

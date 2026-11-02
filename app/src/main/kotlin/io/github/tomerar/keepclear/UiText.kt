@@ -18,6 +18,11 @@ fun countSentence(id: Int, count: Int, vararg more: Any): String {
     return pluralStringResource(id, count, Bidi.isolate(NumberFormat.getIntegerInstance(locale).format(count)), *more)
 }
 
+/** A count such as "2,324", formatted for the locale and isolated (exact numbers, CLAUDE.md "Copy"). */
+@Composable
+fun countText(count: Int): String =
+    Bidi.isolate(NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0]).format(count))
+
 /** A size such as "7.9 GB", isolated so a line that starts with it still reads in the UI's direction. */
 @Composable
 fun sizeText(bytes: Long): String = Bidi.isolate(ByteSize.format(bytes, LocalConfiguration.current.locales[0]))

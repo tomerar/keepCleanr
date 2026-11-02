@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KcIcons
@@ -184,7 +185,7 @@ fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Un
                             selected = t == tab,
                             onClick = { ui.onSelectTab(t) },
                             icon = { Icon(tabIcon(t), contentDescription = null) },
-                            label = { Text(stringResource(tabLabel(t)), maxLines = 1) },
+                            label = { TabLabel(stringResource(tabLabel(t))) },
                             modifier = Modifier.testTag("tab_${t.name}"),
                         )
                     }
@@ -192,6 +193,26 @@ fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Un
             }
         }
     }
+}
+
+/**
+ * F3: a bottom tab's label on one line; at large font sizes it shrinks just enough to fit its tab ("Free up space"
+ * was cut to "Free up" at 200%). It never gets smaller than the default size at 100%.
+ */
+@Composable
+private fun TabLabel(text: String) {
+    val style = MaterialTheme.typography.labelMedium
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    Text(
+        text,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+            minFontSize = style.fontSize / fontScale.coerceAtLeast(1f),
+            maxFontSize = style.fontSize,
+            stepSize = 0.5.sp,
+        ),
+    )
 }
 
 private fun tabLabel(tab: Tab) = when (tab) {
@@ -225,9 +246,16 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // F3: the wordmark is a logo and keeps its size at large font sizes (it would take the Trash chip's
+            // room at 200%, cutting its size to "2…"); everything else on the bar still grows with the font.
+            val title = MaterialTheme.typography.titleLarge
+            val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
             Text(
                 stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
+                style = title.copy(
+                    fontSize = title.fontSize / fontScale,
+                    lineHeight = if (title.lineHeight.isSp) title.lineHeight / fontScale else title.lineHeight,
+                ),
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
                 softWrap = false,

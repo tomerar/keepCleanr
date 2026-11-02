@@ -195,7 +195,7 @@ fun TrashScreen(
     /** F2 / TRASH-7: the uninstall note shows on the first visit only (Settings always has it). */
     showUninstallNote: Boolean = true,
     onUninstallNoteShown: () -> Unit = {},
-    now: Long = remember { System.currentTimeMillis() },
+    now: Long = LocalClock.current.let { clock -> remember { clock() } },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var pending by remember { mutableStateOf<Pending?>(null) }
@@ -213,6 +213,8 @@ fun TrashScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
+                // F3: a running restore, purge or release shows progress here too, like Home and Backup.
+                if (busy) BusyLine(Modifier.padding(bottom = 8.dp))
                 measured?.let { MeasuredBanner(it) }
                 if (trash.releaseHeldBack > 0) {
                     Text(

@@ -334,6 +334,9 @@ private fun LaneTotal(
         } else {
             val total = summary.phoneTotal(category)
             val count = NumberFormat.getIntegerInstance(locale).format(total.files)
+            // F3: a few pictures from the lane's largest groups, so memories are recognised by sight.
+            val sample = remember(summary, category) { laneThumbItems(summary, category) }
+            val thumbs = rememberThumbPainters(sample)
             LaneCard(
                 lane = lane,
                 title = categoryTitle(category),
@@ -342,10 +345,35 @@ private fun LaneTotal(
                 supporting = stringResource(body),
                 onClick = onOpen,
                 modifier = Modifier.testTag("open_$category"),
+                thumbnails = thumbs,
+                thumbnailTotal = total.files,
             )
         }
     }
 }
+
+/**
+ * F3: the items a Home lane card shows as its ThumbStrip: the newest few of the lane's largest groups on the phone
+ * (D5), taken in turn from each group so the strip shows the lane's mix (screenshots, AI images, big videos…). Reads
+ * only the first items of each group's newest bucket: no extra scan, no walk over thousands of files.
+ */
+internal fun laneThumbItems(summary: ClassificationSummary, category: Category, max: Int = 8): List<ClassifiedItem> {
+    val perGroup = summary.groups(category).take(THUMB_GROUPS).map { group ->
+        group.buckets.asSequence().flatMap { it.second.asSequence() }
+            .filter { PhoneStorage.contains(it.item.path) }
+            .take(max)
+            .toList()
+    }
+    val picked = mutableListOf<ClassifiedItem>()
+    var i = 0
+    while (picked.size < max && perGroup.any { i < it.size }) {
+        perGroup.forEach { items -> if (i < items.size && picked.size < max) picked += items[i] }
+        i++
+    }
+    return picked
+}
+
+private const val THUMB_GROUPS = 4
 
 /** F1b: the permission steps beyond photos (All files access, WhatsApp's folder), in one collapsed card. */
 @Composable
