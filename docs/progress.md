@@ -170,7 +170,7 @@ Accepted on 2026-11-01: [ADR 0011](adr/0011-network-and-cloud-targets.md) with G
 ## Notes for resuming
 
 - **State on 2026-11-01 evening:** v1 milestones M11–M16a, M17a, M17c and M18a are merged (PRs #19–#33). What is left needs the owner: M17b (wire Nextcloud/Dropbox into the app: needs W3, W4, W8), the rest of M18 (W5–W7), Google Drive (postponed), and the Later list.
-- One SMB test (`SmbBackupTargetTest` "list, delete files and empty folders, but not full ones") failed once on CI (PR #33, run 41332016757, the assertion at line 77) and passed on the next run and 6 times locally; the cause is not known yet. If it fails again, read the uploaded `reports` artifact first.
+- One SMB test (`SmbBackupTargetTest` "list, delete files and empty folders, but not full ones") failed once on CI (PR #33): a folder was still listed right after `delete()` returned. Not reproduced in 52 class runs (25 under full CPU load) and 2,000 stress iterations on the same Samba 4.19.5/ext4. Evidence, hypotheses and the no-data-loss reasoning: [issue #36](https://github.com/tomerar/keepCleanr/issues/36). The test now reports what was left (never retried into a pass) and CI uploads the Samba logs on failure.
 - Only one session at a time may restart the shared Samba test server (`scripts/samba-test-server.sh`): a restart changes the password and breaks SMB tests running elsewhere.
 
 - Local builds in the sandbox use a Maven Central mirror via `~/.gradle/init.d/mirror.gradle.kts` and `keepclear.robolectricRepoUrl` in `~/.gradle/gradle.properties` (Central returns HTTP 429 here). Not part of the repo; CI uses normal repositories.

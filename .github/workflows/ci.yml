@@ -50,6 +50,7 @@ jobs:
             **/build/reports/
             **/build/test-results/
             app/build/outputs/roborazzi/
+            /tmp/keepclear-smb/log.*
 
   reproducible:
     # M18: F-Droid ships our signed APK only if its own build of the tag is byte-identical (research 05 §6.4).
