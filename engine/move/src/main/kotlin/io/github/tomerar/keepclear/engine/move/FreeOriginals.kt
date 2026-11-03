@@ -108,7 +108,12 @@ class FreeOriginals(
             planned.skipped.forEach { (why, n) -> skip(why, n) }
             processed += batch.size - planned.ops.size - planned.notReached
             progress()
-            var stopped = planned.interrupted
+            // The target went away (or paused) while this batch's copies were being checked: nothing of this batch
+            // is deleted, not even the files whose copies were checked before that (SAFETY-5, E-MOVE-26).
+            if (planned.interrupted) {
+                return FreeReport(total, forGood, trashed, simulated, skipped, failed, interrupted = true)
+            }
+            var stopped = false
             if (planned.ops.isNotEmpty()) {
                 val report = run(planned.ops) { result ->
                     processed++

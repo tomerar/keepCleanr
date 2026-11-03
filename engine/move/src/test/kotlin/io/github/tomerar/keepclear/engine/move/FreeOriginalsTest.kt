@@ -185,6 +185,40 @@ class FreeOriginalsTest {
     }
 
     @Test
+    fun `copies checked before the drive went away in the same batch are not freed`(): Unit = runBlocking {
+        val r = FreeRig(files = 6)
+        val id = r.backup()
+        var reads = 0
+        r.fake.beforeOp = { op, path ->
+            if (op == FakeStorageGateway.Op.OPEN_READ && path.toString().startsWith(USB) && ++reads == 3) {
+                r.fake.disconnect(USB)
+            }
+        }
+        // One batch of all six: two copies are checked, then the drive goes away while checking the third.
+        val report = r.freer(batchFiles = 200).free(id, r.rig.items.map { it.path }.toSet())
+        report.interrupted shouldBe true
+        report.deletedForGood.size shouldBe 0
+        r.originalsLeft() shouldBe 6
+    }
+
+    @Test
+    fun `the drive unplugged in the middle of a later batch frees only the batches before it`(): Unit =
+        runBlocking {
+            val r = FreeRig(files = 6)
+            val id = r.backup()
+            var reads = 0
+            r.fake.beforeOp = { op, path ->
+                if (op == FakeStorageGateway.Op.OPEN_READ && path.toString().startsWith(USB) && ++reads == 4) {
+                    r.fake.disconnect(USB)
+                }
+            }
+            val report = r.freer(batchFiles = 2).free(id, r.rig.items.map { it.path }.toSet())
+            report.interrupted shouldBe true
+            report.deletedForGood.size shouldBe 2
+            r.originalsLeft() shouldBe 4
+        }
+
+    @Test
     fun `a copy check that is too old, or for other content, doesn't count`(): Unit = runBlocking {
         val r = FreeRig(files = 1)
         val id = r.backup()

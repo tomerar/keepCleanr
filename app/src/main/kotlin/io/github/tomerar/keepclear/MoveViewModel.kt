@@ -25,6 +25,7 @@ import io.github.tomerar.keepclear.engine.move.MovePlanner
 import io.github.tomerar.keepclear.engine.move.PauseReason
 import io.github.tomerar.keepclear.engine.move.Receipt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -218,7 +219,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { app.freeSettings.state.collect { on -> _state.update { it.copy(keepInTrash = on) } } }
         // Owner decision P3: a backup that paused for the battery and whose service has gone goes on by itself once
         // the app is open and the phone charges (or the battery is back up). It only copies; nothing is freed.
-        viewModelScope.launch(Dispatchers.IO) { resumeAfterBattery() }
+        // Keeps looking while the screen is open (review of PR #53): the charger often goes in after the app opened.
+        viewModelScope.launch(Dispatchers.IO) {
+            while (resumeAfterBattery()) delay(batteryPollMillis)
+        }
         viewModelScope.launch {
             controller.results.collect { r ->
                 _state.update {
@@ -250,15 +254,19 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(jobs = jobs) }
     }
 
-    /** Owner decision P3: see init. Only when nothing runs and the job is still paused for the battery. */
-    private suspend fun resumeAfterBattery() {
-        if (controller.running.value != null) return
+    /**
+     * Owner decision P3: see init. Only when nothing runs and the job is still paused for the battery. Returns true
+     * while there is still a backup waiting for the battery (so the caller looks again later), false otherwise.
+     */
+    private suspend fun resumeAfterBattery(): Boolean {
         val waiting = controller.store.jobs().firstOrNull {
             it.state == io.github.tomerar.keepclear.engine.move.JobState.PAUSED &&
                 it.pauseReason == PauseReason.BATTERY_LOW
-        } ?: return
-        if (!io.github.tomerar.keepclear.engine.move.BatteryPolicy.canResume(app.batterySource())) return
+        } ?: return false
+        if (controller.running.value != null) return true
+        if (!io.github.tomerar.keepclear.engine.move.BatteryPolicy.canResume(app.batterySource())) return true
         withContext(Dispatchers.Main) { controller.start(app, waiting.id) }
+        return false
     }
 
     private suspend fun view(job: MoveJob, running: String?): JobView {
@@ -979,6 +987,10 @@ internal class RestoreLoads {
         const val NONE = 0
     }
 }
+
+/** How often the Backup screen looks again whether a backup paused for the battery can go on (P3). Tests shorten it. */
+@Volatile
+internal var batteryPollMillis: Long = 30_000L
 
 /** Owner decision P1: what the result banner shows after freeing. */
 internal fun freeResult(
