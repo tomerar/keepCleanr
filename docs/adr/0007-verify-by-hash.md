@@ -31,6 +31,18 @@ page cache instead of the drive. A fake-capacity USB stick (reports 2 TB, wraps 
   deletion; cloud providers need a server-computed checksum (ADR 0011).
 - Copies verified before this change (database v3) are not confirmed and must pass "Check backup" first.
 
+### Amendment (2026-11-03, owner decision P1)
+Freeing now **deletes the original for good** after a verified backup (ADR 0006 amendment of 2026-11-03), so the
+checks above become the only thing between the user and a lost file. They stay, and are now bound to each delete:
+- The **second pass** must have confirmed the copy (`confirmedAt`); without it nothing is deleted for good.
+- **At free time the copy is read back and hashed again**, batch by batch, right before that batch runs; the result is
+  carried to the executor as a `BackupProof` (the copy's SHA-256 and when it was read, at most one hour old).
+- Right before each delete the executor re-checks the original's size, date and identity and **re-hashes it (strict
+  mode)**; only if that matches the proof's SHA-256 is the original deleted for good. With strict mode off nothing is
+  deleted for good (it is on by default and has no switch in the app).
+- Any mismatch, a missing copy, an edited original or a stale proof → that file is skipped and counted; it is never
+  sent to the trash instead. Test mode simulates the whole free.
+
 ## Consequences
 - Roughly 3× the target I/O (write + two reads). 75 GB ≈ 70–90 min over USB 2.0 [ESTIMATE]. Acceptable for a one-time move; resumable by year.
 - Users can independently verify their backup on a PC with `sha256sum -c SHA256SUMS`.
