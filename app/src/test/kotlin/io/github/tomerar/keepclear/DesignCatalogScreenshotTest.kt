@@ -100,7 +100,7 @@ class DesignCatalogScreenshotTest(private val locale: String, private val night:
         )
         LaneCard(
             KcLane.REVIEW,
-            t("Choose what to keep", "לבחור מה להשאיר"),
+            t("Choose what to delete", "לבחור מה למחוק"),
             count = t("2,324 screenshots", "2,324 צילומי מסך"),
             size = t("9.4 GB", "9.4GB"),
             onClick = {},

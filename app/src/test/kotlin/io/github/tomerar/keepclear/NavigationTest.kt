@@ -207,11 +207,28 @@ class NavigationTest {
     // --- Trash chip ---
 
     @Test
-    fun `no Trash chip while the trash is empty`() {
-        showApp(HomeUiState())
+    fun `an empty trash still has its chip, muted, and it opens the Trash (owner brief H2 item 3)`() {
+        var opened = 0
+        showApp(HomeUiState(), onOpenTrash = { opened++ })
         compose.onNodeWithTag("wordmark").assertIsDisplayed()
         compose.onNodeWithTag("openSettings").assertIsDisplayed()
-        compose.onNodeWithTag("trashChip").assertDoesNotExist()
+        compose.onNodeWithTag("trashChip").assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(TrashChipEmpty, true))
+            .assert(
+                SemanticsMatcher("says the bin is empty, never 0B") {
+                    val d = it.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }.orEmpty()
+                    d == listOf("Recycle bin, empty")
+                },
+            )
+        compose.onNodeWithTag("trashChip").performClick()
+        assertEquals(1, opened)
+        compose.onNodeWithTag("trash").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a non-empty trash chip is not muted`() {
+        showApp(HomeUiState(trash = TrashUi(listOf(entry(258_000_000)))))
+        compose.onNodeWithTag("trashChip").assert(SemanticsMatcher.expectValue(TrashChipEmpty, false))
     }
 
     @Test

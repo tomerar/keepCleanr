@@ -99,11 +99,8 @@ class Shots(
         capture("confirm_clean")
     }
 
-    /**
-     * Back on Home after cleaning, on top. Owner decision 2026-11-02: what the owner-shaped phone cleans (statuses,
-     * thumbnails, temp files, the gallery's bin) is all deleted for good, so the banner is the measured result.
-     */
-    fun result() {
+    /** Owner brief H2 item 6: what cleaning the owner-shaped phone's SAFE items leaves on Home. */
+    private fun cleaned(): Pair<CleanResult, Set<String>> {
         val safe = OwnerPhone.summary.groups(Category.SAFE).flatMap { it.items }
         val forGood = io.github.tomerar.keepclear.engine.enrich.CleanPlanner.permanentReasons(safe, OwnerPhone.NOW)
         val (gone, trashed) = safe.partition { it.item.path in forGood }
@@ -117,8 +114,36 @@ class Shots(
             deletedForGood = Total(gone.size, freed),
             measured = Measured(freed, OwnerPhone.FREE_BYTES + freed, OwnerPhone.FREE_BYTES, Screen.Home),
         )
-        show { Home(OwnerPhone.home.copy(cleanResult = done, trash = OwnerPhone.trash)) }
+        return done to safe.mapTo(HashSet()) { it.item.path }
+    }
+
+    /**
+     * Back on Home right after cleaning (owner brief H2 item 6: the real post-clean Home, through the ViewModel's own
+     * [afterClean]): the measured result on top, the cleaned items gone from the totals, the hero at the measured
+     * free space and „הכול נקי ✓” pointing to the backup. Owner decision 2026-11-02: what the owner-shaped phone
+     * cleans (statuses, thumbnails, temp files, the gallery's bin) is all deleted for good.
+     */
+    fun result() {
+        val (done, paths) = cleaned()
+        val state = OwnerPhone.home.copy(trash = OwnerPhone.trash).afterClean(done, paths, done.measured!!.nowFree)
+        show { Home(state) }
         capture("result")
+    }
+
+    /** Owner brief H2 item 6: the next day, nothing left to clean: „הכול נקי ✓” and the biggest win (the backup). */
+    fun allClean() {
+        val (done, paths) = cleaned()
+        val state = OwnerPhone.home.copy(trash = OwnerPhone.trash).afterClean(done, paths, done.measured!!.nowFree)
+            .copy(cleanResult = null)
+        show { Home(state) }
+        capture("home_all_clean")
+    }
+
+    /** Owner brief H2 item 1: each intro page with its picture. */
+    fun introPage(page: Int) {
+        show { IntroScreen({}) }
+        repeat(page) { compose.onNodeWithTag("introNext").performClick() }
+        capture("intro_${page + 1}")
     }
 
     fun reviewList() {
@@ -276,10 +301,5 @@ class Shots(
         show { SettingsScreen(true, {}, {}, {}, settingsActions) }
         compose.onNodeWithTag("settings").performScrollToNode(hasTestTag("openNextcloud"))
         capture("settings_advanced")
-    }
-
-    fun intro() {
-        show { IntroScreen {} }
-        capture("intro")
     }
 }

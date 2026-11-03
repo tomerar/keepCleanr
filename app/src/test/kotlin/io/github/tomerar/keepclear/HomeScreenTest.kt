@@ -37,7 +37,7 @@ class HomeScreenTest {
     @Config(qualifiers = "iw")
     fun `renders Hebrew`() {
         show(HomeUiState())
-        compose.onNodeWithText("לבחור מה להשאיר").assertIsDisplayed()
+        compose.onNodeWithText("לבחור מה למחוק").assertIsDisplayed()
     }
 
     @Test
@@ -72,16 +72,13 @@ class HomeScreenTest {
     @Test
     fun `all-files card only where the flavor allows it`() {
         show(HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = false, scan = ScanState.Done(1, 1, true)))
-        // F1b: the permission steps are in ONE collapsed "See more files" card.
-        compose.onNodeWithTag("allowAllFiles").assertDoesNotExist()
-        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
+        // Owner brief H2 item 2: after the scan, offered in context (no collapsed card any more).
         compose.onNodeWithTag("allowAllFiles").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `play flavor never offers all-files`() {
         show(HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = null, scan = ScanState.Done(1, 1, true)))
-        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
         compose.onNodeWithTag("allowAllFiles").assertDoesNotExist()
     }
 
