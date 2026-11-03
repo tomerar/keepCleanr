@@ -11,18 +11,18 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-659 Hebrew strings; 233 new since the last review (161 new, 72 changed).
+673 Hebrew strings; 256 new since the last review (180 new, 76 changed).
 
 ## Contents
 
-- [Intro and permissions](#intro-and-permissions) (39, 6 new since last review)
+- [Intro and permissions](#intro-and-permissions) (40, 12 new since last review)
 - [Top app bar and tabs](#top-app-bar-and-tabs) (5, 3 new since last review)
-- [Home](#home) (39, 14 new since last review)
-- [Clean now](#clean-now) (35, 18 new since last review)
-- [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (32, 4 new since last review)
+- [Home](#home) (40, 21 new since last review)
+- [Clean now](#clean-now) (38, 18 new since last review)
+- [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (33, 6 new since last review)
 - [Swipe review](#swipe-review) (17, 9 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (230, 118 new since last review)
-- [Trash](#trash) (49, 17 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (235, 123 new since last review)
+- [Trash](#trash) (52, 20 new since last review)
 - [Apps](#apps) (31, 4 new since last review)
 - [Settings](#settings) (44, 17 new since last review)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25, 10 new since last review)
@@ -39,9 +39,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `access_allow` | Allow access | לאשר גישה | Home | reviewed |
 | `access_card_body` | To look at your photos, videos and files, KeepClear needs your permission. Everything stays on this phone. | כדי להסתכל על התמונות, הסרטונים והקבצים, KeepClear צריך את האישור שלכם. הכול נשאר בטלפון. | Home | reviewed |
 | `access_card_title` | See what's taking space | לראות מה תופס מקום | Home | reviewed |
-| `allfiles_card_body` | Optional. Lets KeepClear find WhatsApp media, old-phone folders and recycle bins. | לא חובה. מאפשר ל-KeepClear למצוא מדיה של וואטסאפ, תיקיות מהטלפון הקודם וסלי מחזור. | Home | reviewed |
 | `allfiles_card_button` | Allow all files | לאשר גישה לכל הקבצים | Home | reviewed |
-| `allfiles_card_title` | See all your files | לראות את כל הקבצים | Home | reviewed |
 | `explainer_allfiles_never` | Android still keeps other apps' private data closed. KeepClear never deletes anything without asking you. | גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. KeepClear אף פעם לא מוחק בלי לשאול. | Home | reviewed |
 | `explainer_allfiles_title` | See all your files | לראות את כל הקבצים | Home | reviewed |
 | `explainer_allfiles_why` | Finds WhatsApp media, folders left from your old phone, and other apps' recycle bins. | כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות. | Home | reviewed |
@@ -62,17 +60,20 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `explainer_whatsapp_why` | To find photos you sent, voice notes and documents that WhatsApp keeps out of the gallery. | כדי למצוא תמונות שנשלחו, הודעות קוליות ומסמכים שוואטסאפ לא מציג בגלריה. | Home | **changed** (new since last review) |
 | `intro_1_body` | KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you. | ‏KeepClear מוצא מה תופס מקום בטלפון ומסביר כל דבר במילים פשוטות. שום דבר לא נמחק בלי לשאול. |  | reviewed |
 | `intro_1_title` | Keep what matters | שומרים את מה שחשוב |  | reviewed |
-| `intro_2_body` | What you clean waits 30 days in KeepClear's trash. You can put it back with one tap. | מה שמנקים מחכה 30 יום בסל המחזור של KeepClear. אפשר להחזיר בלחיצה אחת. |  | reviewed |
-| `intro_2_title` | Everything can come back | הכול אפשר להחזיר |  | reviewed |
+| `intro_2_body` | Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted right away. | רוב מה שמנקים מחכה 30 יום בסל המחזור. קבצים שנבנים מחדש לבד נמחקים מיד. |  | **changed** (new since last review) |
+| `intro_2_title` | Most of it can come back | את רוב הדברים אפשר לשחזר |  | **changed** (new since last review) |
 | `intro_3_body` | Photos and videos are copied to your own drive and checked. Space is freed only when you say so. | תמונות וסרטונים מועתקים לכונן שלכם ונבדקים. מקום מתפנה רק כשאתם מחליטים. |  | reviewed |
 | `intro_3_title` | Memories are moved, not deleted | זיכרונות מועברים, לא נמחקים |  | reviewed |
 | `intro_next` | Next | להמשיך |  | reviewed |
+| `intro_page` | %1$d of %2$d | %1$d מתוך %2$d | Settings | **new** (new since last review) |
+| `intro_restore` | New phone? Restore from a backup | טלפון חדש? לשחזר מגיבוי |  | **new** (new since last review) |
 | `intro_skip` | Skip | לדלג |  | reviewed |
 | `intro_start` | Start | להתחיל |  | reviewed |
 | `media_only_note` | Seeing photos, videos and audio only. | רואים רק תמונות, סרטונים ושמע. | Home | reviewed |
-| `whatsapp_card_body` | Photos you sent, voice messages and documents from WhatsApp. | תמונות שנשלחו, הודעות קוליות ומסמכים מוואטסאפ. | Home | **changed** (new since last review) |
 | `whatsapp_card_button` | Choose WhatsApp's folder | לבחור את התיקייה של וואטסאפ | Home | **changed** (new since last review) |
-| `whatsapp_card_title` | Photos and files from WhatsApp | תמונות וקבצים מוואטסאפ | Home | reviewed |
+| `whatsapp_offer_body_allfiles` | Right now KeepClear sees your gallery only. With access to all files it also finds WhatsApp files, folders from your old phone and other apps' bins. | כרגע KeepClear רואה רק את הגלריה. עם גישה לכל הקבצים הוא ימצא גם קבצים מוואטסאפ, תיקיות מהטלפון הקודם וסלים של אפליקציות אחרות. | Home | **new** (new since last review) |
+| `whatsapp_offer_body_folder` | This version of KeepClear doesn't ask for access to all files. You can choose WhatsApp's folder, and KeepClear will look only there. | בגרסה הזו KeepClear לא מבקש גישה לכל הקבצים. אפשר לבחור את התיקייה של וואטסאפ, ו-KeepClear יסתכל רק בה. | Home | **new** (new since last review) |
+| `whatsapp_offer_title` | Find WhatsApp photos and documents too? | למצוא גם תמונות ומסמכים מוואטסאפ? | Home | **new** (new since last review) |
 | `whatsapp_try_again` | Try again | לנסות שוב | Home | reviewed |
 | `whatsapp_wrong_folder` | That isn't the right folder. Choose: Android › media › com.whatsapp › WhatsApp | זו לא התיקייה הנכונה. צריך לבחור: Android › media › com.whatsapp › WhatsApp | Home | **changed** (new since last review) |
 
@@ -83,7 +84,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `back` | Back | לחזור |  | reviewed |
 | `tab_apps` | Apps | אפליקציות |  | **new** (new since last review) |
 | `tab_backup` | Backup | גיבוי |  | **new** (new since last review) |
-| `tab_free` | Free up space | לפנות מקום |  | **new** (new since last review) |
+| `tab_free` | Free up space | לפנות מקום | Move to backup and restore | **new** (new since last review) |
 | `test_mode_banner` | Trial mode – no file will be deleted or moved | מצב ניסיון – שום קובץ לא יימחק או יועבר |  | reviewed |
 
 ## Home
@@ -96,22 +97,25 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `cloned_hidden_title` | Cloned apps | אפליקציות משוכפלות |  | reviewed |
 | `debug_toggle_rtl` | Debug: flip layout direction | דיבאג: להפוך את כיוון המסך |  | **changed** (new since last review) |
 | `file_count` | [one] %s file / [other] %s files | [one] קובץ אחד / [two] %s קבצים / [other] %s קבצים | Clean now, Review (categories, groups, item preview), Move to backup and restore, Trash | reviewed |
+| `home_all_clean` | All clean ✓ | הכול נקי ✓ |  | **new** (new since last review) |
+| `home_big_win_backup` | The most space comes from backing up your photos: %1$s | הכי הרבה מקום יתפנה מגיבוי התמונות: %1$s |  | **new** (new since last review) |
+| `home_big_win_backup_button` | Back up photos | לגבות תמונות | Review (categories, groups, item preview) | **new** (new since last review) |
+| `home_big_win_review` | The most space comes from choosing what to delete: %1$s | הכי הרבה מקום יתפנה ממה שתבחרו למחוק: %1$s |  | **new** (new since last review) |
 | `home_busy` | Working on it… | KeepClear עובד על זה… |  | **new** (new since last review) |
 | `home_card_counting` | Counting… | סופרים… | Move to backup and restore | reviewed |
-| `home_card_needs_access` | Needs access | צריך גישה |  | reviewed |
+| `home_card_needs_access` | Shows after you allow access | יופיע אחרי האישור |  | **changed** (new since last review) |
+| `home_card_review_title` | Choose what to delete | לבחור מה למחוק | Review (categories, groups, item preview) | **changed** (new since last review) |
 | `home_clean_button` | Clean %1$s | לנקות %1$s |  | reviewed |
-| `home_clean_nothing` | Nothing to clean right now | אין מה לנקות כרגע |  | reviewed |
 | `home_free_label` | free | פנויים |  | **new** (new since last review) |
 | `home_hero_safe` | %1$s can be freed safely | אפשר לפנות בבטחה %1$s |  | **new** (new since last review) |
-| `home_more_files` | See more files | לראות עוד קבצים |  | **new** (new since last review) |
+| `home_lane_empty` | Nothing here right now | אין כאן כלום כרגע |  | **new** (new since last review) |
 | `home_notice_dismiss` | Close | לסגור | Review (categories, groups, item preview) | **new** (new since last review) |
 | `home_see_details` | See details | לראות פירוט |  | **new** (new since last review) |
 | `home_storage_line` | %1$s used · %2$s free | %1$s בשימוש · %2$s פנויים |  | reviewed |
 | `home_total_move_body` | Photos and videos to back up, check, then free. | תמונות וסרטונים לגבות, לבדוק ואז לפנות. |  | reviewed |
-| `home_total_review_body` | Screenshots, big videos, old-phone folders. You decide. | צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. ההחלטה שלכם. |  | reviewed |
+| `home_total_review_body` | Screenshots, big videos, old-phone folders. Nothing is deleted unless you choose it. | צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. שום דבר לא נמחק בלי שתבחרו. |  | **changed** (new since last review) |
 | `low_space_light` | Your phone is almost full. KeepClear is using as little space as possible. | הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום. |  | reviewed |
 | `low_space_minimal` | Less than 100 MB left. To avoid filling the phone, KeepClear isn't saving any data until there's room. Start by clearing apps' temporary files. | נשארו פחות מ-100MB. כדי לא למלא את הטלפון, KeepClear לא שומר נתונים עד שיתפנה מקום. כדאי להתחיל מניקוי קבצים זמניים. |  | reviewed |
-| `one_by_one_button` | Clear one app at a time | לנקות אפליקציה אחת בכל פעם | Clean now, Apps | reviewed |
 | `partial_banner` | KeepClear sees only the photos you picked. Allow all to get full numbers. | KeepClear רואה רק את התמונות שבחרתם. כדי לקבל מספרים מלאים, אפשר לתת גישה לכולן. |  | **changed** (new since last review) |
 | `partial_change` | Change | לשנות |  | reviewed |
 | `scan_again` | Scan again | לסרוק שוב |  | reviewed |
@@ -120,15 +124,13 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `scan_status_done` | Scanned %1$s · %2$s | נסרקו %1$s · %2$s |  | reviewed |
 | `scan_status_running` | Counting files… %1$s so far | סופרים קבצים… %1$s עד עכשיו |  | reviewed |
 | `strip_legend_free` | Free | פנוי |  | **new** (new since last review) |
-| `strip_legend_move` | Back up | לגבות |  | **new** (new since last review) |
+| `strip_legend_move` | To back up | לגיבוי |  | **new** (new since last review) |
 | `strip_legend_other` | Other | אחר |  | **new** (new since last review) |
-| `strip_legend_review` | Choose | לבחור |  | **new** (new since last review) |
-| `strip_legend_safe` | Clean | לנקות |  | **new** (new since last review) |
-| `trim_body` | Android deletes temporary files that apps download again by themselves. | אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן. | Clean now | reviewed |
-| `trim_button` | Clear temporary files | לנקות קבצים זמניים | Clean now | reviewed |
-| `trim_result` | Android freed %1$s. | אנדרואיד פינה %1$s. | Clean now | reviewed |
-| `trim_result_zero` | Android found nothing to clear right now. Apps' temporary files are usually already small, and on a nearly full phone Android clears them by itself. | אנדרואיד לא מצא כרגע מה לנקות. בדרך כלל הקבצים הזמניים של אפליקציות כבר קטנים, וכשהטלפון כמעט מלא אנדרואיד מנקה אותם בעצמו. | Clean now | reviewed |
-| `trim_title` | Clear apps' temporary files | לנקות קבצים זמניים של אפליקציות | Clean now | reviewed |
+| `strip_legend_review` | To choose | לבחירה |  | **new** (new since last review) |
+| `strip_legend_safe` | Junk files | קבצים מיותרים |  | **new** (new since last review) |
+| `trim_button` | Clear temporary files | לנקות קבצים זמניים | Clean now, Apps | reviewed |
+| `trim_result` | Android freed %1$s. | אנדרואיד פינה %1$s. | Clean now, Apps | reviewed |
+| `trim_result_zero` | Android found nothing to clear right now. Apps' temporary files are usually already small, and on a nearly full phone Android clears them by itself. | אנדרואיד לא מצא כרגע מה לנקות. בדרך כלל הקבצים הזמניים של אפליקציות כבר קטנים, וכשהטלפון כמעט מלא אנדרואיד מנקה אותם בעצמו. | Clean now, Apps | reviewed |
 
 ## Clean now
 
@@ -138,8 +140,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `android_trash_declined` | Nothing changed: the request was declined in Android's window. | שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד. |  | reviewed |
 | `android_trash_done` | %1$s moved to Android's trash. Android deletes them after 30 days; until then you can put them back from KeepClear's trash. | %1$s הועברו לסל המחזור של אנדרואיד. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר להחזיר אותם מסל המחזור של KeepClear. |  | reviewed |
 | `clean_button` | Clean %1$s | לנקות %1$s |  | reviewed |
-| `clean_confirm_for_good_bins` | Files from other apps' bins will be deleted for good: they were already deleted once, so they can't be put back. | קבצים מסלי מחזור של אפליקציות אחרות יימחקו לצמיתות: הם כבר נמחקו פעם אחת, אי אפשר יהיה להחזיר אותם. |  | **new** (new since last review) |
-| `clean_confirm_for_good_rebuilds` | Thumbnails, temporary files and old statuses will be deleted for good: they rebuild themselves. | תמונות ממוזערות, קבצים זמניים וסטטוסים ישנים יימחקו לצמיתות: הם נבנים מחדש לבד. |  | **new** (new since last review) |
 | `clean_confirm_note` | For 30 days you can put everything back from the trash. | במשך 30 יום אפשר להחזיר הכול מסל המחזור. |  | **new** (new since last review) |
 | `clean_confirm_note_rest` | Everything else can be put back from the trash for 30 days. | את כל השאר אפשר להחזיר מסל המחזור במשך 30 יום. |  | **new** (new since last review) |
 | `clean_confirm_title` | Clean %1$s? | לנקות %1$s? |  | reviewed |
@@ -149,26 +149,31 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `clean_done` | Done. %1$s moved to the trash. | בוצע. %1$s הועברו לסל המחזור. |  | reviewed |
 | `clean_done_space` | The space comes back to the phone on %1$s. Need it now? | המקום יחזור לטלפון ב-%1$s. צריך אותו עכשיו? | Move to backup and restore | reviewed |
 | `clean_empty_now` | Empty now | לרוקן עכשיו | Move to backup and restore | reviewed |
+| `clean_happens_part` | %1$s: %2$s | %1$s: %2$s |  | **new** (new since last review) |
+| `clean_happens_rebuilds` | Deleted now; the phone makes them again by itself | נמחקים עכשיו; הטלפון יוצר אותם מחדש לבד |  | **new** (new since last review) |
 | `clean_in_trash` | %1$s in the trash, freed on %2$s | %1$s בסל, יתפנו ב-%2$s |  | **new** (new since last review) |
+| `clean_reassurance` | Your photos, videos and chats are not deleted. | התמונות, הסרטונים והצ'אטים שלכם לא נמחקים. |  | **new** (new since last review) |
+| `clean_risk_bins` | %1$s from other apps' bins will be deleted for good. They were already deleted once, so they can't be restored. | %1$s מסלים של אפליקציות אחרות יימחקו לצמיתות. הם כבר נמחקו פעם אחת, ואי אפשר יהיה לשחזר אותם. |  | **new** (new since last review) |
 | `clean_selected` | Selected: %1$s | נבחרו: %1$s |  | reviewed |
 | `clean_skipped` | [one] %1$s file changed since the scan, so we left it alone. / [other] %1$s files changed since the scan, so we left them alone. | [one] קובץ אחד השתנה מאז הסריקה, ולכן לא נגענו בו. / [two] שני קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. / [other] %1$s קבצים השתנו מאז הסריקה, ולכן לא נגענו בהם. |  | reviewed |
 | `clean_skipped_protected` | [one] %1$s file is protected (chats, a backup, or something you kept), so we left it alone. / [other] %1$s files are protected (chats, a backup, or something you kept), so we left them alone. | [one] קובץ אחד מוגן (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בו. / [two] שני קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. / [other] %1$s קבצים מוגנים (צ'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם. |  | **new** (new since last review) |
 | `clean_title` | Clean now | לנקות עכשיו |  | reviewed |
 | `clean_undo` | Put it all back | להחזיר הכול |  | reviewed |
-| `confirm_fact_for_good` | Deleted for good now | יימחקו לצמיתות עכשיו |  | **new** (new since last review) |
 | `confirm_fact_how_many` | How many | כמה |  | **new** (new since last review) |
 | `confirm_fact_how_much` | How much space | כמה מקום |  | **new** (new since last review) |
-| `confirm_fact_to_trash` | To KeepClear's trash, for 30 days | לסל המחזור של KeepClear, ל-30 יום |  | **new** (new since last review) |
+| `confirm_fact_what_happens` | What happens | מה יקרה |  | **new** (new since last review) |
 | `confirm_fact_where` | Where it goes | לאן |  | **new** (new since last review) |
 | `confirm_part_value` | %1$s · %2$s | %1$s · %2$s |  | **new** (new since last review) |
-| `confirm_where_for_good` | Deleted for good, now | יימחקו לצמיתות, עכשיו |  | **new** (new since last review) |
 | `confirm_where_trash` | To KeepClear's trash, for 30 days | לסל המחזור של KeepClear, ל-30 יום | Move to backup and restore | **new** (new since last review) |
 | `confirm_where_trim` | Android deletes them; apps download them again when needed | אנדרואיד מוחק אותם, והאפליקציות מורידות אותם שוב כשצריך |  | **new** (new since last review) |
 | `obscured_touch_hint` | Something is covering the screen, so the tap was ignored. Close other apps' bubbles or overlays and try again. | משהו מכסה את המסך, ולכן הלחיצה לא נקלטה. אפשר לסגור בועות או חלונות של אפליקציות אחרות ולנסות שוב. |  | reviewed |
+| `one_by_one_button` | Clear one app at a time | לנקות אפליקציה אחת בכל פעם | Apps | reviewed |
 | `result_freed` | Freed %1$s · now %2$s free (was %3$s) | פונו %1$s · עכשיו פנויים %2$s (היו %3$s) |  | reviewed |
 | `result_freed_now` | Freed %1$s · now %2$s free | פונו %1$s · עכשיו פנויים %2$s | Move to backup and restore | **new** (new since last review) |
+| `trim_body` | Android deletes temporary files that apps download again by themselves. | אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן. | Apps | reviewed |
 | `trim_confirm_body` | Android will delete temporary files that apps download again by themselves, so the trash isn't needed. | אנדרואיד ימחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן, ולכן אין צורך בסל המחזור. |  | reviewed |
 | `trim_external_button` | Clear apps' external temporary files | לנקות קבצים זמניים חיצוניים של אפליקציות |  | reviewed |
+| `trim_title` | Clear apps' temporary files | לנקות קבצים זמניים של אפליקציות |  | reviewed |
 
 ## Review (categories, groups, item preview)
 
@@ -181,7 +186,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `choice_keep` | Don't suggest this again | לא להציע את זה שוב |  | **changed** (new since last review) |
 | `cloned_label` | Cloned app | אפליקציה משוכפלת |  | reviewed |
 | `home_card_move_title` | Move to backup | להעביר לגיבוי |  | reviewed |
-| `home_card_review_title` | Choose what to keep | לבחור מה להשאיר |  | reviewed |
 | `home_card_safe_title` | Clean now | לנקות עכשיו |  | reviewed |
 | `keep_signal_note` | A favourite or recently changed, so it needs your review. | מועדף או שהשתנה לאחרונה, ולכן צריך את ההחלטה שלכם. |  | reviewed |
 | `label_if_deleted` | What happens if it's deleted? | מה יקרה אם זה יימחק? |  | reviewed |
@@ -190,7 +194,9 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `review_confirm_body` | They'll wait in the trash for 30 days. Tap ✕ to keep any of them. | הם יחכו 30 יום בסל המחזור. הקישו ✕ כדי להשאיר מה שתרצו. |  | reviewed |
 | `review_confirm_title` | Delete %1$s? | למחוק %1$s? |  | reviewed |
 | `review_delete` | Delete %1$s | למחוק %1$s |  | reviewed |
+| `review_list_empty` | Nothing to choose from right now. New screenshots and big videos show up here after the next scan. | אין כרגע מה לבחור. צילומי מסך וסרטונים גדולים חדשים יופיעו כאן אחרי הסריקה הבאה. |  | **new** (new since last review) |
 | `review_long_press_hint` | Long-press a picture to see it large. | לחיצה ארוכה על תמונה מציגה אותה בגדול. |  | reviewed |
+| `review_nothing_without_you` | Nothing is deleted unless you choose it. | שום דבר לא נמחק בלי שתבחרו. |  | **new** (new since last review) |
 | `review_preview` | Preview | להציג בגדול |  | reviewed |
 | `review_remove_from_list` | Keep this one | להשאיר את זה |  | reviewed |
 | `review_select_all` | Select all | לבחור הכול |  | reviewed |
@@ -333,6 +339,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_network_title` | Network drive | כונן רשת |  | reviewed |
 | `move_network_user` | User name (leave empty for guest) | שם משתמש (ריק לגישת אורח) |  | reviewed |
 | `move_nextcloud_option` | Use your Nextcloud: %1$s | להשתמש ב-Nextcloud: %1$s |  | **changed** (new since last review) |
+| `move_nothing` | No photos or videos to back up right now. | אין כרגע תמונות או סרטונים לגבות. |  | **new** (new since last review) |
 | `move_notif_allow` | Allow notifications | לאשר התראות |  | reviewed |
 | `move_notif_body` | So you can see backup progress and get told when it's done or needs you. | כדי לראות את התקדמות הגיבוי ולקבל הודעה כשהוא מסתיים או צריך אתכם. |  | reviewed |
 | `move_notif_skip` | Not now | לא עכשיו |  | reviewed |
@@ -400,8 +407,12 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_title` | Backup | גיבוי |  | **changed** (new since last review) |
 | `move_view` | Show | להציג |  | reviewed |
 | `move_what` | What to back up | מה לגבות |  | **changed** (new since last review) |
+| `pause_free_phone` | Free up space on the phone | לפנות מקום בטלפון |  | **new** (new since last review) |
 | `pause_full_needed` | Not enough space on the USB drive: %1$s more needed | אין מספיק מקום בדיסק און קי: צריך עוד %1$s |  | **new** (new since last review) |
 | `pause_full_sizes` | Not enough space on the USB drive: %1$s needed, %2$s free | אין מספיק מקום בדיסק און קי: צריך %1$s, פנויים %2$s |  | **new** (new since last review) |
+| `pause_next_full` | Delete what you don't need from the USB drive, or choose fewer photos this time, then tap Continue. | אפשר למחוק מהדיסק און קי דברים שלא צריך, או לבחור פחות תמונות הפעם, ואז ללחוץ על „להמשיך”. |  | **new** (new since last review) |
+| `pause_next_phone_space` | Free some space on the phone first, then tap Continue. | כדאי קודם לפנות קצת מקום בטלפון, ואז ללחוץ על „להמשיך”. |  | **new** (new since last review) |
+| `pause_next_unexpected` | Tap Continue. If it happens again, unplug the USB drive and plug it back in, or restart the phone. | אפשר ללחוץ על „להמשיך”. אם זה קורה שוב, לנתק את הדיסק און קי ולחבר שוב, או להפעיל מחדש את הטלפון. |  | **new** (new since last review) |
 | `pause_phone_stopped` | The phone stopped the backup to save battery | הטלפון עצר את הגיבוי כדי לחסוך סוללה |  | **new** (new since last review) |
 | `pause_unplugged` | The USB drive was unplugged — connect it and continue | הדיסק און קי נותק — לחבר ולהמשיך |  | **new** (new since last review) |
 | `readme_open` | On a computer: connect the drive and open the folders inside (Camera, WhatsApp, Pictures). They are ordinary photos and videos and open in any viewer. Please don't change or delete files here: this is the backup. | במחשב: לחבר את הכונן ולפתוח את התיקיות שבתוכו (Camera, WhatsApp, Pictures). אלה תמונות וסרטונים רגילים, ואפשר לפתוח אותם בכל תוכנה. בבקשה לא לשנות ולא למחוק כאן קבצים: זה הגיבוי. |  | **new** (new since last review) |
@@ -482,6 +493,9 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `trash_changed` | Changed since it was deleted | השתנה מאז שנמחק |  | reviewed |
 | `trash_changed_short` | Changed | השתנה |  | **new** (new since last review) |
 | `trash_chip` | Trash · %1$s | סל המחזור · %1$s | Top app bar and tabs | reviewed |
+| `trash_chip_empty_description` | Recycle bin, empty | סל המחזור ריק | Top app bar and tabs | **new** (new since last review) |
+| `trash_chip_empty_label` | Trash | סל | Top app bar and tabs | **new** (new since last review) |
+| `trash_chip_label` | Trash · %1$s | סל · %1$s | Top app bar and tabs | **new** (new since last review) |
 | `trash_confirm_delete` | Delete permanently | למחוק לצמיתות |  | reviewed |
 | `trash_confirm_empty_body` | %1$s. This can't be undone. Items with a checked copy on a drive are still safe there; the rest has no other copy. | %1$s. אי אפשר לבטל את זה. פריטים שיש להם עותק שנבדק בכונן עדיין שמורים שם; לשאר אין עותק נוסף. |  | reviewed |
 | `trash_confirm_empty_body_split` | %1$s have a checked copy on your drive. %2$s have no other copy and will be gone for good. | ל-%1$s יש עותק שנבדק בכונן שלכם. ל-%2$s אין עותק נוסף, והם יימחקו לצמיתות. |  | reviewed |
@@ -591,7 +605,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `settings_title` | Settings | הגדרות | Top app bar and tabs | reviewed |
 | `settings_uninstall_title` | Before you uninstall | לפני שמסירים את האפליקציה |  | reviewed |
 | `test_mode_body` | While trial mode is on, KeepClear only shows what it would do. No file is deleted, moved to the trash, restored or cleared. | כשמצב ניסיון פועל, ‏KeepClear רק מראה מה היה עושה. שום קובץ לא נמחק, לא עובר לסל המחזור, לא משוחזר ולא מנוקה. |  | reviewed |
-| `test_mode_caches_not_cleared` | Trial mode: Android was not asked to clear apps' temporary files. | מצב ניסיון: לא ביקשנו מאנדרואיד לנקות קבצים זמניים של אפליקציות. | Home, Clean now | reviewed |
+| `test_mode_caches_not_cleared` | Trial mode: Android was not asked to clear apps' temporary files. | מצב ניסיון: לא ביקשנו מאנדרואיד לנקות קבצים זמניים של אפליקציות. | Home, Clean now, Apps | reviewed |
 | `test_mode_off_body` | From now on, cleaning, deleting and freeing space change real files on the phone. Everything still goes to KeepClear's trash for 30 days first. | מעכשיו ניקוי, מחיקה ופינוי מקום ישנו באמת קבצים בטלפון. הכול עדיין עובר קודם לסל המחזור של KeepClear ל-30 יום. |  | reviewed |
 | `test_mode_off_body2` | Files will really move to the trash from now on. You can turn trial mode on again at any time. | מעכשיו קבצים יעברו באמת לסל המחזור. אפשר להפעיל שוב את מצב הניסיון בכל זמן. |  | reviewed |
 | `test_mode_off_confirm` | Turn off trial mode | לכבות את מצב הניסיון |  | reviewed |
@@ -776,6 +790,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | File | English | עברית |
 |---|---|---|
 | `changelogs/1.txt` | First version.<br>• Files you don't need cleared in one tap; everything else explained, and you decide.<br>• Photos and videos moved to your own drive or network folder: copied, checked, and freed only when you say so.<br>• 30-day trash: put anything back with one tap.<br>• Apps by size, duplicate review with a swipe, restore from a backup, an optional low-space reminder.<br>• English and Hebrew. | גרסה ראשונה.<br>• קבצים מיותרים מתנקים בלחיצה אחת; כל השאר מוסבר, וההחלטה שלכם.<br>• תמונות וסרטונים עוברים לכונן או לתיקיית רשת שלכם: מועתקים, נבדקים, והמקום מתפנה רק כשמבקשים.<br>• סל מחזור ל-30 יום: אפשר להחזיר הכול בלחיצה אחת.<br>• אפליקציות לפי גודל, מעבר על כפילויות בהחלקה, שחזור מגיבוי, תזכורת לא חובה כשהמקום נגמר.<br>• עברית ואנגלית. |
-| `full_description.txt` | KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you, and everything you clean can come back for 30 days.<br><br><b>How it sorts what it finds</b> (on the "Free up space" and "Backup" tabs)<br><ul><br><li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li><br><li><b>Choose what to keep</b>: large videos, screenshots, AI images, duplicates, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. You decide; nothing is selected for you.</li><br><li><b>Move to backup</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up the space now".</li><br></ul><br><br><b>Everything can come back</b><br>What you clean waits 30 days in KeepClear's trash. Put it back with one tap, or empty it sooner if you want the space now (KeepClear asks twice).<br><br><b>Also</b><br><ul><br><li>The Apps tab: see which apps use the most space and which you have not opened in about 6 months, and uninstall through Android's own window.</li><br><li>Go through a group (screenshots, for example) one by one with a swipe.</li><br><li>Restore files from a backup you made with KeepClear.</li><br><li>An optional reminder when space runs low. It only reminds; it never cleans by itself.</li><br><li>English and Hebrew, light and dark themes.</li><br></ul><br><br><b>Permissions, honestly</b><br>This build asks for <b>All files access</b>, so it can find WhatsApp media, folders from an old phone, other apps' recycle bins and leftover files. It also asks, only when you use the feature, for usage access (to show app sizes and when apps were last opened), the list of installed apps, notifications (backup progress) and network access (only for backups to a shared folder you set up, at the address you typed). Every permission is optional and explained before Android asks; KeepClear works with less if you say no.<br><br><b>Private by design</b><br>No ads, no analytics, no crash reporting, no account. Nothing about you or your files is sent anywhere. KeepClear is free software under the GNU GPL, version 3 or later. | KeepClear מוצא מה תופס מקום בטלפון ומסביר כל דבר במילים פשוטות. שום דבר לא נמחק בלי לשאול, וכל מה שמנקים אפשר להחזיר במשך 30 יום.<br><br><b>איך הממצאים מסודרים</b> (בלשוניות „לפנות מקום” ו„גיבוי”)<br><ul><br><li><b>לנקות עכשיו</b>: קבצים זמניים, תמונות ממוזערות, קבצים שכבר נמצאים בסלי מחזור של אפליקציות אחרות. מתנקה בלחיצה אחת.</li><br><li><b>לבחור מה להשאיר</b>: סרטונים גדולים, צילומי מסך, תמונות שנוצרו ב-AI, כפילויות, הורדות ישנות, מדיה של וואטסאפ וטלגרם. ליד כל פריט כתוב למה הוא נמצא ומה יקרה אם מוחקים אותו. ההחלטה שלכם; שום דבר לא מסומן מראש.</li><br><li><b>להעביר לגיבוי</b>: תמונות וסרטונים אף פעם לא פשוט נמחקים. KeepClear מעתיק אותם לכונן USB שלכם, לתיקייה שבוחרים או לתיקייה משותפת במחשב או בשרת הביתי, קורא כל עותק שוב כדי לבדוק אותו, מציג אישור, ומפנה את המקום רק כשלוחצים על „לפנות את המקום עכשיו”.</li><br></ul><br><br><b>הכול אפשר להחזיר</b><br>מה שמנקים מחכה 30 יום בסל המחזור של KeepClear. אפשר להחזיר בלחיצה אחת, או לרוקן מוקדם יותר כשצריך את המקום עכשיו (KeepClear שואל פעמיים).<br><br><b>ועוד</b><br><ul><br><li>הלשונית „אפליקציות”: לראות אילו אפליקציות תופסות הכי הרבה מקום ובאילו לא השתמשו כחצי שנה, ולהסיר אותן דרך החלון של אנדרואיד עצמו.</li><br><li>לעבור על קבוצה (למשל צילומי מסך) אחד-אחד, בהחלקה.</li><br><li>לשחזר קבצים מגיבוי שנעשה עם KeepClear.</li><br><li>תזכורת לא חובה כשהמקום נגמר. היא רק מזכירה, ואף פעם לא מנקה לבד.</li><br><li>עברית ואנגלית, ערכת נושא בהירה וכהה.</li><br></ul><br><br><b>הרשאות, בגלוי</b><br>הגרסה הזו מבקשת <b>גישה לכל הקבצים</b>, כדי למצוא מדיה של וואטסאפ, תיקיות מהטלפון הקודם, סלי מחזור של אפליקציות אחרות וקבצים שנשארו. היא מבקשת גם, רק כשמשתמשים בתכונה, גישה לנתוני שימוש (כדי להציג את הגודל של כל אפליקציה ומתי נפתחה לאחרונה), את רשימת האפליקציות המותקנות, התראות (התקדמות הגיבוי) וגישה לרשת (רק לגיבוי לתיקייה משותפת שהוגדרה, בכתובת שהוקלדה). כל ההרשאות לא חובה, וכל אחת מוסברת לפני שאנדרואיד שואל; KeepClear עובד גם עם פחות.<br><br><b>פרטיות מהיסוד</b><br>בלי פרסומות, בלי ניתוח שימוש, בלי דיווחי קריסה, בלי חשבון. שום דבר עליכם או על הקבצים שלכם לא נשלח לשום מקום. KeepClear הוא תוכנה חופשית ברישיון GNU GPL, גרסה 3 ואילך. |
+| `full_description.txt` | KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you, and most of what you clean can come back for 30 days.<br><br><b>How it sorts what it finds</b> (on the "Free up space" and "Backup" tabs)<br><ul><br><li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li><br><li><b>Choose what to delete</b>: large videos, screenshots, AI images, duplicates, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. Nothing is deleted unless you choose it, and nothing is selected for you.</li><br><li><b>Move to backup</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up the space now".</li><br></ul><br><br><b>Most of it can come back</b><br>Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted right away. Put it back with one tap, or empty it sooner if you want the space now (KeepClear asks twice).<br><br><b>Also</b><br><ul><br><li>The Apps tab: see which apps use the most space and which you have not opened in about 6 months, and uninstall through Android's own window.</li><br><li>Go through a group (screenshots, for example) one by one with a swipe.</li><br><li>Restore files from a backup you made with KeepClear.</li><br><li>An optional reminder when space runs low. It only reminds; it never cleans by itself.</li><br><li>English and Hebrew, light and dark themes.</li><br></ul><br><br><b>Permissions, honestly</b><br>This build asks for <b>All files access</b>, so it can find WhatsApp media, folders from an old phone, other apps' recycle bins and leftover files. It also asks, only when you use the feature, for usage access (to show app sizes and when apps were last opened), the list of installed apps, notifications (backup progress) and network access (only for backups to a shared folder you set up, at the address you typed). Every permission is optional and explained before Android asks; KeepClear works with less if you say no.<br><br><b>Private by design</b><br>No ads, no analytics, no crash reporting, no account. Nothing about you or your files is sent anywhere. KeepClear is free software under the GNU GPL, version 3 or later. | KeepClear מוצא מה תופס מקום בטלפון ומסביר כל דבר במילים פשוטות. שום דבר לא נמחק בלי לשאול, ואת רוב מה שמנקים אפשר לשחזר במשך 30 יום.<br><br><b>איך הממצאים מסודרים</b> (בלשוניות „לפנות מקום” ו„גיבוי”)<br><ul><br><li><b>לנקות עכשיו</b>: קבצים זמניים, תמונות ממוזערות, קבצים שכבר נמצאים בסלי מחזור של אפליקציות אחרות. מתנקה בלחיצה אחת.</li><br><li><b>לבחור מה למחוק</b>: סרטונים גדולים, צילומי מסך, תמונות שנוצרו ב-AI, כפילויות, הורדות ישנות, מדיה של וואטסאפ וטלגרם. ליד כל פריט כתוב למה הוא נמצא ומה יקרה אם מוחקים אותו. שום דבר לא נמחק בלי שתבחרו, ושום דבר לא מסומן מראש.</li><br><li><b>להעביר לגיבוי</b>: תמונות וסרטונים אף פעם לא פשוט נמחקים. KeepClear מעתיק אותם לכונן USB שלכם, לתיקייה שבוחרים או לתיקייה משותפת במחשב או בשרת הביתי, קורא כל עותק שוב כדי לבדוק אותו, מציג אישור, ומפנה את המקום רק כשלוחצים על „לפנות את המקום עכשיו”.</li><br></ul><br><br><b>את רוב הדברים אפשר לשחזר</b><br>רוב מה שמנקים מחכה 30 יום בסל המחזור. קבצים שנבנים מחדש לבד נמחקים מיד. אפשר לשחזר בלחיצה אחת, או לרוקן מוקדם יותר כשצריך את המקום עכשיו (KeepClear שואל פעמיים).<br><br><b>ועוד</b><br><ul><br><li>הלשונית „אפליקציות”: לראות אילו אפליקציות תופסות הכי הרבה מקום ובאילו לא השתמשו כחצי שנה, ולהסיר אותן דרך החלון של אנדרואיד עצמו.</li><br><li>לעבור על קבוצה (למשל צילומי מסך) אחד-אחד, בהחלקה.</li><br><li>לשחזר קבצים מגיבוי שנעשה עם KeepClear.</li><br><li>תזכורת לא חובה כשהמקום נגמר. היא רק מזכירה, ואף פעם לא מנקה לבד.</li><br><li>עברית ואנגלית, ערכת נושא בהירה וכהה.</li><br></ul><br><br><b>הרשאות, בגלוי</b><br>הגרסה הזו מבקשת <b>גישה לכל הקבצים</b>, כדי למצוא מדיה של וואטסאפ, תיקיות מהטלפון הקודם, סלי מחזור של אפליקציות אחרות וקבצים שנשארו. היא מבקשת גם, רק כשמשתמשים בתכונה, גישה לנתוני שימוש (כדי להציג את הגודל של כל אפליקציה ומתי נפתחה לאחרונה), את רשימת האפליקציות המותקנות, התראות (התקדמות הגיבוי) וגישה לרשת (רק לגיבוי לתיקייה משותפת שהוגדרה, בכתובת שהוקלדה). כל ההרשאות לא חובה, וכל אחת מוסברת לפני שאנדרואיד שואל; KeepClear עובד גם עם פחות.<br><br><b>פרטיות מהיסוד</b><br>בלי פרסומות, בלי ניתוח שימוש, בלי דיווחי קריסה, בלי חשבון. שום דבר עליכם או על הקבצים שלכם לא נשלח לשום מקום. KeepClear הוא תוכנה חופשית ברישיון GNU GPL, גרסה 3 ואילך. |
 | `short_description.txt` | Free up space: clean in one tap, the rest explained, photos backed up first | לפנות מקום בטלפון: לנקות בלחיצה אחת, הסבר לכל השאר, גיבוי לתמונות לפני הכול |
 | `title.txt` | KeepClear | KeepClear |

@@ -73,7 +73,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - "לשמור/להשאיר" means only "this time"; the permanent choice is "לא להציע את זה שוב".
 - No jargon on the default path: NAS, smb://, .KeepClearTrash, F-Droid/GitHub, SHA-256 go to Details/Advanced.
 - Curly Hebrew quotes „”. "יימחקו" with double yod.
-- Store listing uses the same lane names as the app ("לנקות עכשיו" / "לבחור מה להשאיר" / "להעביר לגיבוי").
+- Store listing uses the same lane names as the app ("לנקות עכשיו" / "לבחור מה למחוק" / "להעביר לגיבוי"; owner brief H2 item 7: the REVIEW lane deletes, so it is "לבחור מה למחוק" with "שום דבר לא נמחק בלי שתבחרו").
 
 ## Code conventions
 
