@@ -89,6 +89,9 @@ class SettingsActions(
     val choices: Choices = Choices(),
     val onRemoveKept: (String) -> Unit = {},
     val onRemoveJunk: (String) -> Unit = {},
+    /** Owner decision P1: "Keep the original in the 30-day trash too (frees no space)", off by default. */
+    val keepOriginalsInTrash: Boolean = false,
+    val onKeepOriginalsInTrash: (Boolean) -> Unit = {},
     /** SET-3: "Remind me when space is low" (off by default). */
     val reminderOn: Boolean = false,
     val onReminder: (Boolean) -> Unit = {},
@@ -196,6 +199,24 @@ fun SettingsScreen(
                         },
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("reminderSwitch").semantics { contentDescription = reminderLabel },
+                    )
+                }
+            }
+            val keepLabel = stringResource(R.string.settings_keep_originals)
+            KcCard(Modifier.testTag("keepOriginals")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(keepLabel, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(R.string.settings_keep_originals_body),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Switch(
+                        checked = actions.keepOriginalsInTrash,
+                        onCheckedChange = actions.onKeepOriginalsInTrash,
+                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
+                        modifier = Modifier.testTag("keepOriginalsSwitch").semantics { contentDescription = keepLabel },
                     )
                 }
             }

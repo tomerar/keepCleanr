@@ -123,7 +123,10 @@ class MoveActions(
     )
 }
 
-/** Items of [ruleIds] old enough for [age], never favourites (MOVE-1). */
+/**
+ * Items of [ruleIds] old enough for [age] (MOVE-1). Owner decision P2: favourites are backed up too (a backup only
+ * copies); the free step keeps them on the phone while its option is ticked.
+ */
 fun moveSelection(
     summary: ClassificationSummary,
     ruleIds: Set<String>,
@@ -132,7 +135,7 @@ fun moveSelection(
 ): List<ClassifiedItem> {
     val cutoff = age.months?.let { now - it * 30L * 86_400_000L }
     return summary.groups(Category.MOVE).filter { it.ruleId in ruleIds }.flatMap { it.items }
-        .filter { !it.item.isFavorite && (cutoff == null || it.item.mtimeMillis < cutoff) }
+        .filter { cutoff == null || it.item.mtimeMillis < cutoff }
 }
 
 /**
@@ -155,7 +158,10 @@ fun MoveScreen(
 ) {
     val groups = summary?.groups(Category.MOVE).orEmpty()
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
-    var age by rememberSaveable { mutableStateOf(MoveAge.OLDER_12) }
+    // Owner decision P2: the first backup defaults to "Everything"; after that, older than 12 months. The user's own
+    // choice sticks. Sources are never pre-selected (SAFETY-10).
+    var chosenAge by rememberSaveable { mutableStateOf<MoveAge?>(null) }
+    val age = chosenAge ?: defaultAge(state.jobs)
     var confirmFree by remember { mutableStateOf<JobView?>(null) }
     var guide by remember { mutableStateOf(false) }
     var confirmStop by remember { mutableStateOf(false) }
@@ -180,7 +186,9 @@ fun MoveScreen(
             }
             state.problem?.let { problem -> item { ProblemCard(problem) } }
             state.task?.let { task -> item { TaskProgressText(task) } }
-            state.freeResult?.let { r -> item { FreeResultCard(r, actions.onOpenTrash) } }
+            state.freeResult?.let { r ->
+                item { FreeResultCard(r, actions.onOpenTrash, onRestore = actions.restore.onStart) }
+            }
             state.check?.let { check ->
                 val label = state.jobs.firstOrNull { it.job.id == check.jobId }?.job?.targetLabel.orEmpty()
                 item { CheckCard(check, label, actions) }
@@ -206,7 +214,7 @@ fun MoveScreen(
                     )
                 }
             } else {
-                moveSources(summary, groups, selected, { selected = it }, age, { age = it }, now, actions)
+                moveSources(summary, groups, selected, { selected = it }, age, { chosenAge = it }, now, actions)
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
@@ -303,26 +311,125 @@ fun MoveScreen(
         )
     }
     confirmFree?.let { view ->
-        val freeing = Total(view.receipt.confirmed, view.receipt.confirmedBytes)
-        ConfirmSheet(
-            title = stringResource(R.string.move_free_confirm_title),
-            dismissText = stringResource(R.string.move_cancel),
+        FreeConfirmSheet(
+            view,
+            keepInTrash = state.keepInTrash,
+            now = now,
             onDismiss = { confirmFree = null },
-            facts = confirmFacts(freeing, stringResource(R.string.confirm_where_trash)),
-            note = stringResource(R.string.move_free_confirm_body, totalText(freeing)),
-            confirmButton = {
-                // Recoverable (30-day trash): not styled as destructive (review PR C).
-                SafeConfirmButton(
-                    stringResource(R.string.move_free_confirm_yes),
-                    onClick = {
-                        confirmFree = null
-                        actions.onFree(view.job.id, userConfirmed(view.freeablePaths))
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("confirmFree"),
-                    permanent = false,
-                )
+            onConfirm = { paths ->
+                confirmFree = null
+                actions.onFree(view.job.id, userConfirmed(paths))
             },
         )
+    }
+}
+
+/** Owner decision P2: the first backup ("no backup yet") defaults to everything, later ones to older than 12 months. */
+fun defaultAge(jobs: List<JobView>): MoveAge = if (jobs.isEmpty()) MoveAge.ALL else MoveAge.OLDER_12
+
+/**
+ * Owner decisions P1, P2, P4: the free step. Two options, ticked by default, **keep** favourites and the last 30 days
+ * on the phone (they protect files; nothing here selects anything for deletion, SAFETY-10). One honest sentence says
+ * what happens: deleted from the phone, the checked copy on the drive is the undo; or, with the user's setting, to the
+ * 30-day trash. WhatsApp media gets one more sentence. The confirm tap names exactly the files the options leave in.
+ */
+@Composable
+internal fun FreeConfirmSheet(
+    view: JobView,
+    keepInTrash: Boolean,
+    now: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (Set<String>) -> Unit,
+) {
+    var keepFavourites by rememberSaveable { mutableStateOf(true) }
+    var keepRecent by rememberSaveable { mutableStateOf(true) }
+    val options = io.github.tomerar.keepclear.engine.move.FreeOptions(keepFavourites, keepRecent)
+    val plan = remember(view.freeCandidates, options, now) {
+        io.github.tomerar.keepclear.engine.move.FreePlan.of(view.freeCandidates, options, now)
+    }
+    val freeing = Total(plan.count, plan.bytes)
+    val drive = Bidi.isolate(view.job.targetLabel)
+    val locale = LocalConfiguration.current.locales[0]
+    ConfirmSheet(
+        title = stringResource(R.string.move_free_confirm_title),
+        dismissText = stringResource(R.string.move_cancel),
+        onDismiss = onDismiss,
+        facts = confirmFacts(
+            freeing,
+            if (keepInTrash) {
+                stringResource(R.string.confirm_where_trash)
+            } else {
+                stringResource(R.string.free_where_for_good, drive)
+            },
+        ),
+        note = if (keepInTrash) {
+            stringResource(R.string.move_free_confirm_body, totalText(freeing))
+        } else {
+            stringResource(R.string.move_free_confirm_for_good, drive)
+        },
+        modifier = Modifier.testTag("freeConfirm"),
+        confirmButton = {
+            // C118: recoverable from the checked copy (or the trash), so ink, never red (red = unrecoverable).
+            SafeConfirmButton(
+                if (keepInTrash) {
+                    stringResource(R.string.move_free_confirm_yes)
+                } else {
+                    stringResource(R.string.move_free_button, Bidi.isolate(ByteSize.format(plan.bytes, locale)))
+                },
+                onClick = { if (plan.count > 0) onConfirm(plan.paths) },
+                modifier = Modifier.fillMaxWidth().testTag("confirmFree"),
+                permanent = false,
+            )
+        },
+    ) {
+        if (plan.hasWhatsApp) {
+            Text(
+                stringResource(R.string.free_whatsapp),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("freeWhatsApp"),
+            )
+        }
+        KeepOption(
+            stringResource(R.string.free_keep_favourites),
+            checked = keepFavourites,
+            kept = plan.keptFavourites,
+            tag = "keepFavourites",
+        ) { keepFavourites = it }
+        KeepOption(
+            stringResource(R.string.free_keep_recent),
+            checked = keepRecent,
+            kept = plan.keptRecent,
+            tag = "keepRecent",
+        ) { keepRecent = it }
+        if (plan.count == 0) {
+            Text(
+                stringResource(R.string.free_nothing),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("freeNothing"),
+            )
+        }
+    }
+}
+
+/** One "keep on the phone" option of the free step: a checkbox row and how many files it keeps. */
+@Composable
+private fun KeepOption(label: String, checked: Boolean, kept: Int, tag: String, onChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange)
+            .testTag(tag),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Column(Modifier.weight(1f).padding(start = 8.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            if (checked && kept > 0) {
+                Text(
+                    countSentence(R.plurals.free_kept_count, kept),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -475,25 +582,44 @@ private fun ProblemCard(problem: TargetProblem) {
 }
 
 @Composable
-private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit) {
+private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit, onRestore: () -> Unit) {
     val total = Total(r.done, r.bytes)
+    val trashed = !r.simulated && !r.forGood && r.done > 0
     val detail = buildList {
         // Zero counts are not shown (review PR C).
-        if (!r.simulated && r.done > 0) add(stringResource(R.string.clean_done_space, trashDate()))
+        if (trashed) add(stringResource(R.string.clean_done_space, trashDate()))
         if (r.skipped > 0) add(countSentence(R.plurals.move_free_skipped, r.skipped))
         if (r.failed > 0) add(countSentence(R.plurals.move_free_failed, r.failed))
+        if (r.interrupted) add(stringResource(R.string.move_free_interrupted, Bidi.isolate(r.targetLabel)))
     }.joinToString("\n").ifEmpty { null }
+    // Owner decision P1: deleted for good, the undo is the checked copy ("Restore from a backup");
+    // in the trash, Empty now.
+    val restorable = r.forGood && !r.simulated && r.done > 0
     Box(Modifier.fillMaxWidth().testTag("freeResult")) {
         ResultBanner(
-            message = if (r.simulated) {
-                stringResource(R.string.test_mode_would_free, totalText(total))
-            } else {
-                stringResource(R.string.move_free_done, totalText(total))
+            message = when {
+                r.simulated -> stringResource(R.string.test_mode_would_free, totalText(total))
+
+                r.forGood -> stringResource(
+                    R.string.move_free_done_for_good,
+                    totalText(total),
+                    Bidi.isolate(r.targetLabel),
+                )
+
+                else -> stringResource(R.string.move_free_done, totalText(total))
             },
             detail = detail,
-            actionText = stringResource(R.string.clean_empty_now).takeIf { !r.simulated && r.done > 0 },
-            onAction = onOpenTrash.takeIf { !r.simulated && r.done > 0 },
-            actionModifier = Modifier.testTag("freeEmptyNow"),
+            actionText = when {
+                restorable -> stringResource(R.string.restore_start)
+                trashed -> stringResource(R.string.clean_empty_now)
+                else -> null
+            },
+            onAction = when {
+                restorable -> onRestore
+                trashed -> onOpenTrash
+                else -> null
+            },
+            actionModifier = Modifier.testTag(if (restorable) "freeRestore" else "freeEmptyNow"),
             modifier = Modifier.testTag(if (r.simulated) "simulatedResult" else "freeBanner"),
         )
     }
@@ -556,6 +682,13 @@ private fun JobCard(
                         style = KeepClearTheme.type.number,
                         modifier = Modifier.testTag("moveProgress"),
                     )
+                    // Owner decision P3: waiting for the charger (the service keeps the job and goes on by itself).
+                    if (view.job.state == JobState.PAUSED && view.job.pauseReason == PauseReason.BATTERY_LOW) {
+                        Text(
+                            stringResource(R.string.move_paused_battery),
+                            modifier = Modifier.testTag("moveBatteryWait"),
+                        )
+                    }
                     view.etaMillis?.let { eta ->
                         Text(
                             stringResource(R.string.move_time_left, durationText(eta)),
@@ -622,6 +755,7 @@ private fun pauseText(reason: PauseReason?, label: String): String = when (reaso
     PauseReason.INTERRUPTED -> stringResource(R.string.move_paused_interrupted)
     PauseReason.WRONG_TARGET -> stringResource(R.string.move_paused_wrong, Bidi.isolate(label))
     PauseReason.UNEXPECTED_ERROR -> stringResource(R.string.move_paused_unexpected)
+    PauseReason.BATTERY_LOW -> stringResource(R.string.move_paused_battery)
     PauseReason.PAUSED_BY_USER, null -> stringResource(R.string.move_paused_user)
 }
 
@@ -991,6 +1125,8 @@ private fun PickedDialog(picked: PickedTarget, actions: MoveActions) {
 
                         MovePlanner.Issue.BatteryLow -> stringResource(R.string.move_issue_battery)
 
+                        MovePlanner.Issue.BatteryWarning -> stringResource(R.string.move_issue_battery_warning)
+
                         is MovePlanner.Issue.NamesChanged -> countSentence(R.plurals.move_issue_names, issue.count)
 
                         MovePlanner.Issue.CannotVerify -> stringResource(R.string.move_issue_cannot_verify)
@@ -1175,10 +1311,21 @@ internal fun TaskProgressText(task: TaskProgress) {
             TaskKind.RESTORE -> R.string.task_notification_restore
         },
     )
-    val line = if (task.total > 0) {
-        "$title " + pluralStringResource(R.plurals.task_progress, task.total, task.done, task.total)
-    } else {
-        title
+    val line = when {
+        // Owner decision P1: "Deleted 400 of 6,830" while freeing.
+        task.freeMode != null && task.total > 0 -> freeProgressLine(task)
+
+        task.total > 0 -> "$title " + pluralStringResource(R.plurals.task_progress, task.total, task.done, task.total)
+
+        else -> title
     }
     Text(line, modifier = Modifier.testTag("taskProgress"))
+}
+
+/** Owner decision P1: the free's progress in plain words ("Deleted 400 of 6,830"). */
+@Composable
+private fun freeProgressLine(task: TaskProgress): String = when (task.freeMode) {
+    FreeMode.FOR_GOOD -> stringResource(R.string.free_progress_deleted, countText(task.freed), countText(task.total))
+    FreeMode.TRASH -> stringResource(R.string.free_progress_trash, countText(task.freed), countText(task.total))
+    FreeMode.TEST, null -> stringResource(R.string.free_progress_test, countText(task.done), countText(task.total))
 }

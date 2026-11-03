@@ -169,6 +169,7 @@ class MainActivity : ComponentActivity() {
                 val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 val choices by app.userChoices.state.collectAsStateWithLifecycle()
                 var reminderOn by androidx.compose.runtime.remember { mutableStateOf(app.reminderPrefs.enabled) }
+                val keepOriginalsInTrash by app.freeSettings.state.collectAsStateWithLifecycle()
                 // D6: forgetting the Nextcloud revokes its app password on the server first; it runs in the app's
                 // scope (survives rotation, PR #44 review) and its state lives in the application.
                 val nextcloudForget by app.nextcloudForget.collectAsStateWithLifecycle()
@@ -182,6 +183,8 @@ class MainActivity : ComponentActivity() {
                             choices = choices,
                             onRemoveKept = vm::removeKept,
                             onRemoveJunk = vm::removeJunk,
+                            keepOriginalsInTrash = keepOriginalsInTrash,
+                            onKeepOriginalsInTrash = app.freeSettings::setKeepInTrash,
                             reminderOn = reminderOn,
                             onReminder = { on ->
                                 app.reminderPrefs.enabled = on

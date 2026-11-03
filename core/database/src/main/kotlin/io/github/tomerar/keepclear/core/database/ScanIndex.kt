@@ -30,7 +30,16 @@ class ScanIndex(private val db: KeepClearDatabase, private val clock: () -> Long
 
     suspend fun lastGeneration(): Long? = dao.lastCompleteRun()?.mediaGeneration
 
+    /**
+     * Owner decision P2: favourite or not, per path the latest scan knows (Android's "favourite" flag from MediaStore).
+     * A path missing from the result is unknown to the scan. Asked in chunks below SQLite's variable limit.
+     */
+    suspend fun favourites(paths: Collection<String>): Map<String, Boolean> =
+        paths.distinct().chunked(FAVOURITE_CHUNK).flatMap { dao.favourites(it) }.associate { it.path to it.isFavorite }
+
     companion object {
+        private const val FAVOURITE_CHUNK = 500
+
         fun ScanItem.toEntity(runId: Long) = ScanItemEntity(
             path = path,
             refKind = when (ref) {

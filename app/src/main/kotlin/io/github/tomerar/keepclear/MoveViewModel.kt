@@ -14,7 +14,6 @@ import androidx.lifecycle.viewModelScope
 import io.github.tomerar.keepclear.backup.saf.SafTargets
 import io.github.tomerar.keepclear.backup.saf.TargetKind
 import io.github.tomerar.keepclear.core.safety.ActionPlan
-import io.github.tomerar.keepclear.core.safety.ExecutionReport
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.move.CheckResult
@@ -92,6 +91,11 @@ data class JobView(
      * KeepClear only copies to it and never offers to free the originals (the engine refuses too).
      */
     val copyOnly: Boolean = false,
+    /**
+     * Owner decisions P1/P2: the originals the receipt offers to free (confirmed copies), with what the free step's
+     * "keep on the phone" options need (date, favourite). Empty while the job runs.
+     */
+    val freeCandidates: List<io.github.tomerar.keepclear.engine.move.FreeCandidate> = emptyList(),
 ) {
     /**
      * MOVE-9, H1: freeing is offered only once every file is settled and copies passed the second check
@@ -135,15 +139,20 @@ sealed interface BackupCheck {
     data class Interrupted(override val jobId: String) : BackupCheck
 }
 
-/** Result of freeing originals after a verified copy (MOVE-10). */
+/** Result of freeing originals after a verified copy (MOVE-10, owner decision P1). */
 data class FreeResult(
     val jobId: String,
     val done: Int,
     val bytes: Long,
     val skipped: Int,
     val failed: Int,
-    /** Test mode (SAFETY-9): nothing was moved to the trash; [done]/[bytes] would have been. */
+    /** Test mode (SAFETY-9): nothing was deleted or moved; [done]/[bytes] would have been. */
     val simulated: Boolean = false,
+    /** Owner decision P1: the originals were deleted for good (the copy on [targetLabel] is the undo). */
+    val forGood: Boolean = false,
+    val targetLabel: String = "",
+    /** The drive went away (or access was lost) mid-way; what wasn't freed stays on the phone. */
+    val interrupted: Boolean = false,
 )
 
 data class MoveUiState(
@@ -160,6 +169,8 @@ data class MoveUiState(
     val task: TaskProgress? = null,
     /** F2 (C76): setting up the computer at home under Settings › Advanced; null when no set-up ran. */
     val networkSetup: NetworkSetup? = null,
+    /** Owner decision P1: the user's "keep the original in the 30-day trash too" setting. */
+    val keepInTrash: Boolean = false,
 )
 
 /** F2: the computer at home is set up in Settings › Advanced: KeepClear opens it once, and saves it only then. */
@@ -204,6 +215,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         // E3: free / check / restore run app-wide; their state and results come back here (also after a restart
         // of this screen).
         viewModelScope.launch { controller.task.collect { t -> _state.update { it.copy(task = t) } } }
+        viewModelScope.launch { app.freeSettings.state.collect { on -> _state.update { it.copy(keepInTrash = on) } } }
+        // Owner decision P3: a backup that paused for the battery and whose service has gone goes on by itself once
+        // the app is open and the phone charges (or the battery is back up). It only copies; nothing is freed.
+        viewModelScope.launch(Dispatchers.IO) { resumeAfterBattery() }
         viewModelScope.launch {
             controller.results.collect { r ->
                 _state.update {
@@ -235,11 +250,41 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(jobs = jobs) }
     }
 
+    /** Owner decision P3: see init. Only when nothing runs and the job is still paused for the battery. */
+    private suspend fun resumeAfterBattery() {
+        if (controller.running.value != null) return
+        val waiting = controller.store.jobs().firstOrNull {
+            it.state == io.github.tomerar.keepclear.engine.move.JobState.PAUSED &&
+                it.pauseReason == PauseReason.BATTERY_LOW
+        } ?: return
+        if (!io.github.tomerar.keepclear.engine.move.BatteryPolicy.canResume(app.batterySource())) return
+        withContext(Dispatchers.Main) { controller.start(app, waiting.id) }
+    }
+
     private suspend fun view(job: MoveJob, running: String?): JobView {
         val files = controller.store.files(job.id)
-        val freeable = files.filter {
+        val confirmed = files.filter {
             it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.VERIFIED && it.confirmedAt != null
-        }.map { it.sourcePath }.toSet()
+        }
+        val freeable = confirmed.map { it.sourcePath }.toSet()
+        // Owner decision P2: favourites from the latest scan; a file it doesn't know counts as a favourite (C119).
+        val favourites = if (confirmed.isEmpty() || job.id == running) {
+            emptyMap()
+        } else {
+            runCatching { app.scanIndex.favourites(freeable) }.getOrDefault(emptyMap())
+        }
+        val candidates = if (job.id == running) {
+            emptyList()
+        } else {
+            confirmed.map {
+                io.github.tomerar.keepclear.engine.move.FreeCandidate(
+                    it.sourcePath,
+                    it.sourceSize,
+                    it.sourceMtime,
+                    favourites[it.sourcePath],
+                )
+            }
+        }
         val total = files.sumOf { it.sourceSize }
         val done = files.filter { it.state in Receipt.DONE_STATES }.sumOf { it.sourceSize }
         val checking = files.any { it.state == io.github.tomerar.keepclear.engine.move.MoveFileState.PLACED }
@@ -253,6 +298,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             phase = if (checking) MovePhase.CHECKING else MovePhase.COPYING,
             etaMillis = if (job.id == running) eta.estimate(job.id, System.currentTimeMillis(), done, total) else null,
             copyOnly = copyOnly(job),
+            freeCandidates = candidates,
         )
     }
 
@@ -659,8 +705,11 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     fun resume(jobId: String) = controller.start(app, jobId)
 
     /**
-     * MOVE-10: after the user confirmed in this session, trash the originals whose copy is verified and still on
-     * the drive. Everything goes through the executor: re-check, strict re-hash, PROTECTED paths, 30-day trash.
+     * MOVE-10, owner decision P1: after the user confirmed in this session, free the originals the confirmation names
+     * (the free step's "keep on the phone" options already left the rest out). In batches: the copies of a batch are
+     * read back from the drive and hashed again, then the executor re-checks and re-hashes each original right before
+     * deleting it for good (or, with the user's setting, moving it to the 30-day trash). The drive stays open until
+     * the end; if it goes away, freeing stops and says so.
      */
     fun freeOriginals(jobId: String, confirmation: io.github.tomerar.keepclear.core.safety.Confirmation) {
         // E3: in the foreground service, so leaving KeepClear doesn't stop it halfway; one task at a time.
@@ -674,39 +723,27 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main) { _state.update { it.copy(problem = TargetProblem.UNAVAILABLE) } }
                 return@runTask
             }
-            // H1: only copies confirmed by the second check, re-hashed on the drive right now. The drive is
-            // released right after; freeing itself only touches the phone.
-            val ops = check.target.useTarget { engine(it).originalsPlan(jobId) }
-            if (ops.isEmpty()) {
-                controller.results.update { it.copy(freeResult = FreeResult(jobId, 0, 0, 0, 0)) }
-                return@runTask
+            val mode = when {
+                app.testMode.isOn -> FreeMode.TEST
+                app.freeSettings.keepInTrash -> FreeMode.TRASH
+                else -> FreeMode.FOR_GOOD
             }
-            // Review PR B: the confirmation lists the originals the receipt offered; anything else is rejected.
-            val plan = ActionPlan(UUID.randomUUID().toString(), ops, "move").confirm(confirmation, app.sessionId)
-            var done = 0
-            progress(0, ops.size)
-            val report = app.executor(onResult = { progress(++done, ops.size) }).run(plan)
-            val result = when (report) {
-                is ExecutionReport.Ran -> {
-                    val wouldHave = report.results
-                        .filterIsInstance<io.github.tomerar.keepclear.core.safety.OpResult.Simulated>()
-                        .map { it.op }
-                    val freed = report.done.map { it.op } + wouldHave
-                    FreeResult(
-                        jobId,
-                        freed.size,
-                        freed.sumOf { it.expectedSize },
-                        report.skipped.size,
-                        report.failed.size,
-                        simulated = wouldHave.isNotEmpty(),
-                    )
-                }
-
-                is ExecutionReport.Rejected -> {
-                    FreeResult(jobId, 0, 0, 0, ops.size)
+            controller.updateTask(TaskKind.FREE) { it.copy(freeMode = mode) }
+            val report = check.target.useTarget { target ->
+                io.github.tomerar.keepclear.engine.move.FreeOriginals(
+                    engine(target),
+                    run = { ops, onResult ->
+                        // Review PR B: the confirmation lists the originals the user saw; anything else is rejected.
+                        val plan = ActionPlan(UUID.randomUUID().toString(), ops, "move")
+                            .confirm(confirmation, app.sessionId)
+                        app.executor(onResult = onResult).run(plan)
+                    },
+                ).free(jobId, confirmation.paths) { p ->
+                    progress(p.processed, p.total)
+                    controller.updateTask(TaskKind.FREE) { it.copy(freed = p.freed, freeMode = mode) }
                 }
             }
-            controller.results.update { it.copy(freeResult = result) }
+            controller.results.update { it.copy(freeResult = freeResult(jobId, job.targetLabel, report)) }
         }
     }
 
@@ -941,4 +978,25 @@ internal class RestoreLoads {
     companion object {
         const val NONE = 0
     }
+}
+
+/** Owner decision P1: what the result banner shows after freeing. */
+internal fun freeResult(
+    jobId: String,
+    targetLabel: String,
+    report: io.github.tomerar.keepclear.engine.move.FreeReport,
+): FreeResult {
+    val freed = report.deletedForGood + report.trashed + report.simulated
+    return FreeResult(
+        jobId = jobId,
+        done = freed.size,
+        bytes = freed.sumOf { it.expectedSize },
+        skipped = report.skippedCount,
+        failed = report.failed + if (report.rejected) report.total - freed.size else 0,
+        simulated = report.simulated.isNotEmpty(),
+        forGood = report.deletedForGood.isNotEmpty() ||
+            report.simulated.any { it.kind == io.github.tomerar.keepclear.core.safety.OpKind.DELETE_FOR_GOOD },
+        targetLabel = targetLabel,
+        interrupted = report.interrupted,
+    )
 }

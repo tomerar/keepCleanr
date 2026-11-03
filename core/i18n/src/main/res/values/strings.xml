@@ -124,7 +124,7 @@
     <string name="move_age_12">More than a year old</string>
     <string name="move_age_6">More than 6 months old</string>
     <string name="move_age_all">Everything</string>
-    <string name="move_favourites_note">Favourites are never included.</string>
+    <string name="move_favourites_note">Favourites are backed up too. When you free up space, you can keep them on the phone.</string>
     <string name="move_view">Show</string>
     <string name="move_selected">Selected: %1$s</string>
     <string name="move_pick_target">Choose where to back up</string>
@@ -140,7 +140,7 @@
         <item quantity="one">%1$s file is larger than 4 GB. KeepClear can\'t tell if this drive takes files that big, so to be safe it stays on the phone.</item>
         <item quantity="other">%1$s files are larger than 4 GB. KeepClear can\'t tell if this drive takes files that big, so to be safe they stay on the phone.</item>
     </plurals>
-    <string name="move_issue_battery">Battery is below 20 percent. Connect the charger to start.</string>
+    <string name="move_issue_battery">Battery is below 10 percent. Connect the charger to start.</string>
     <plurals name="move_issue_names">
         <item quantity="one">%1$s file gets a slightly different name so the drive accepts it. The original name is kept in the backup\'s list.</item>
         <item quantity="other">%1$s files get a slightly different name so the drive accepts them. The original names are kept in the backup\'s list.</item>
@@ -336,12 +336,12 @@
     <string name="details_check_pc">Developer check on a computer: sha256sum -c SHA256SUMS in the backup folder. Each file\'s SHA-256 is in keepclear-manifest.jsonl.</string>
     <string name="move_free_done">%1$s moved to the trash.</string>
     <plurals name="move_free_skipped">
-        <item quantity="one">%1$s file was skipped (changed, or its copy is missing).</item>
-        <item quantity="other">%1$s files were skipped (changed, or their copy is missing).</item>
+        <item quantity="one">%1$s file was skipped and stays on the phone (it changed, or its copy didn\'t check out).</item>
+        <item quantity="other">%1$s files were skipped and stay on the phone (they changed, or their copy didn\'t check out).</item>
     </plurals>
     <plurals name="move_free_failed">
-        <item quantity="one">%1$s file couldn\'t be moved.</item>
-        <item quantity="other">%1$s files couldn\'t be moved.</item>
+        <item quantity="one">%1$s file couldn\'t be freed.</item>
+        <item quantity="other">%1$s files couldn\'t be freed.</item>
     </plurals>
     <string name="settings_language">Language</string>
     <string name="settings_language_system">Phone\'s language</string>
@@ -648,4 +648,24 @@
     <string name="strip_legend_free">Free</string>
     <!-- Design QA item 3: Trash. -->
     <string name="trash_from_gallery_bin">From the gallery\'s bin</string>
+    <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
+    <string name="move_issue_battery_warning">Better to charge first; the backup pauses by itself at 10% and goes on later.</string>
+    <string name="move_paused_battery">The backup paused by itself because the battery reached 10%. It goes on once the phone charges.</string>
+    <string name="move_free_confirm_for_good">The originals will be deleted from the phone. The copy stays on %1$s, checked file by file, and you can bring files back from it at any time.</string>
+    <string name="free_where_for_good">Deleted from the phone; the copy stays on %1$s</string>
+    <string name="free_keep_favourites">Keep favourites on the phone</string>
+    <string name="free_keep_recent">Keep the last 30 days on the phone</string>
+    <plurals name="free_kept_count">
+        <item quantity="one">%1$s file stays on the phone</item>
+        <item quantity="other">%1$s files stay on the phone</item>
+    </plurals>
+    <string name="free_whatsapp">In the chat the file will show as unavailable; the copy is kept in the backup.</string>
+    <string name="free_nothing">With these choices there is nothing to free.</string>
+    <string name="free_progress_deleted">Deleted %1$s of %2$s</string>
+    <string name="free_progress_trash">Moved to the trash: %1$s of %2$s</string>
+    <string name="free_progress_test">Checked %1$s of %2$s · trial mode, nothing is deleted</string>
+    <string name="move_free_done_for_good">Freed %1$s from the phone. The copy stays on %2$s.</string>
+    <string name="move_free_interrupted">Freeing stopped: %1$s couldn\'t be read. What wasn\'t deleted yet stays on the phone.</string>
+    <string name="settings_keep_originals">Keep the original in the 30-day trash too (frees no space)</string>
+    <string name="settings_keep_originals_body">After a checked backup, freeing space then moves each original to KeepClear\'s trash for 30 days instead of deleting it. The space comes back only when the trash is emptied.</string>
 </resources>

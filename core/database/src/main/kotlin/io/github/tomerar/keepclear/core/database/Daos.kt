@@ -8,6 +8,9 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
 
+/** One row of [ScanDao.favourites]. */
+data class FavouriteRow(val path: String, val isFavorite: Boolean)
+
 @Dao
 interface ScanDao {
     @Insert
@@ -33,6 +36,10 @@ interface ScanDao {
 
     @Query("SELECT COUNT(*) FROM scan_item")
     suspend fun countItems(): Int
+
+    /** Owner decision P2: whether each of [paths] is a favourite, for the ones the latest scan knows. */
+    @Query("SELECT path, isFavorite FROM scan_item WHERE path IN (:paths)")
+    suspend fun favourites(paths: List<String>): List<FavouriteRow>
 
     @Query("SELECT COALESCE(SUM(size), 0) FROM scan_item")
     suspend fun totalBytes(): Long
