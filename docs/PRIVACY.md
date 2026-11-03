@@ -31,6 +31,7 @@ All of these are optional. KeepClear explains each one before Android asks you, 
 - An index of scanned files (paths, sizes, dates, content fingerprints), kept in KeepClear's private storage.
 - Its trash: files you deleted, kept for 30 days in a hidden folder on the same storage (`.KeepClearTrash`), each with a small description file. Other apps with file access can see this folder, just like any gallery's "Recently deleted".
 - Backup receipts (what was copied where, and when).
+- A one-by-one review you left before finishing ("Continue where you left off"): the paths, sizes and dates of the files you decided on and what you chose, in KeepClear's private settings (never in a cloud backup or device transfer); it is forgotten when you finish or start over.
 
 You can delete all of it by clearing KeepClear's storage in Android settings, or by uninstalling. The trash folder stays after uninstall so you can still recover files; KeepClear tells you this and offers to empty it.
 

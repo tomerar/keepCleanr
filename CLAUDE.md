@@ -69,7 +69,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 - KeepClear is grammatically masculine everywhere ("KeepClear מתחבר", never "מתחברת").
 - Address the user in plural ("לכם", "בחרתם"), never singular.
-- Buttons are infinitives (לשחזר, להתחבר, לבחור, למחוק, לדלג, לסגור, להחזיר), never nouns (שחזור, התחברות, בחירת…, מחיקה, דילוג, ביטול, סגירה).
+- Buttons are infinitives (לשחזר, להתחבר, לבחור, למחוק, לדלג, לסגור, להחזיר), never nouns (שחזור, התחברות, בחירת…, מחיקה, דילוג, ביטול, סגירה). One owner exception (terminology 2026-11-03): undo is „חזרה” (with the auto-mirrored ↶ icon).
 - "לשמור/להשאיר" means only "this time"; the permanent choice is "לא להציע את זה שוב".
 - No jargon on the default path: NAS, smb://, .KeepClearTrash, F-Droid/GitHub, SHA-256 go to Details/Advanced.
 - Curly Hebrew quotes „”. "יימחקו" with double yod.

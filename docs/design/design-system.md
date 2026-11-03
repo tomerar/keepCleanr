@@ -220,7 +220,7 @@ All components wrap stable Material 3 (1.4.x) so Expressive can be swapped in la
 - Layout uses start/end only; directional icons are auto-mirrored (`arrow_back`, `chevron_right`, `undo`).
 - StorageStrip fills from the start side (right in Hebrew; tested).
 - File names, paths and numbers are bidi-isolated (`Bidi.isolate…`); sizes from `ByteSize` are already isolated.
-- Swipe directions are fixed by meaning, not by layout direction (F2).
+- Swipe directions are physical, the same in both layout directions (PR H2b, C148): a swipe to the **left** deletes and to the right keeps, and the Delete button sits on the left; Settings „להחליף את כיווני ההחלקה” swaps both. A one-time hint says which way deletes; the card's edge label („למחוק” / „להשאיר”, icon + word, ink outline, never red) appears with the drag. The undo icon is auto-mirrored.
 
 ## 12. Navigation and information architecture (F1b, after PR E)
 
