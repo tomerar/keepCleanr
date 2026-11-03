@@ -36,6 +36,10 @@ object KcIcons {
     val Grid: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_grid_view)
     val List: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_view_list)
 
+    // PR H3: the top bar's Help ("?") and the activity history.
+    val Help: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_help)
+    val History: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_history)
+
     /** The lane's icon (SAFE leaf, REVIEW photos, MOVE box). */
     @Composable
     fun lane(lane: KcLane): ImageVector = when (lane) {

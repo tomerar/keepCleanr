@@ -144,6 +144,8 @@ class TabsUi(
     val onSelectTab: (Tab) -> Unit = {},
     val onOpenTrash: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** PR H3: the "?" opens the offline Help. */
+    val onOpenHelp: () -> Unit = {},
 )
 
 /**
@@ -257,7 +259,7 @@ private fun tabIcon(tab: Tab): ImageVector = when (tab) {
 
 /**
  * The main tabs' top app bar: a small wordmark (the screen's heading), the Trash chip with its size whenever the
- * trash isn't empty (KeepClear's trash and Android's, C73), and the Settings gear.
+ * trash isn't empty (KeepClear's trash and Android's, C73), Help ("?", PR H3) and the Settings gear.
  */
 @Composable
 fun MainTopBar(trash: TrashUi, ui: TabsUi) {
@@ -290,6 +292,10 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
             )
             // The wordmark keeps its width; the chip takes what is left and shortens its label if it must.
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { TrashChip(trash, ui.onOpenTrash) }
+            // Owner brief H3 item 1: Help is one tap away from every main tab.
+            IconButton(onClick = ui.onOpenHelp, modifier = Modifier.testTag("openHelp")) {
+                Icon(KcIcons.Help, contentDescription = stringResource(R.string.help_title))
+            }
             IconButton(onClick = ui.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                 Icon(KcIcons.Settings, contentDescription = stringResource(R.string.settings_title))
             }

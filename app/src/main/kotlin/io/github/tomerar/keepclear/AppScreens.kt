@@ -59,6 +59,8 @@ fun AppScreens(
     moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>? = null,
     /** F1b: the tabs, the Trash chip and the Settings gear. */
     tabs: TabsUi = TabsUi(),
+    /** PR H3: Help, history and About. */
+    info: InfoUi = InfoUi(),
 ) {
     // F1b: system Back pops the shown tab's stack, then goes to the first tab; there it closes the app.
     BackHandler(enabled = Nav.handlesBack(state), onBack = onBack)
@@ -98,6 +100,7 @@ fun AppScreens(
                     selectionActions,
                     moveFlow,
                     tabs,
+                    info,
                 )
             }
         }
@@ -236,8 +239,14 @@ private fun CurrentScreen(
     selectionActions: SelectionActions?,
     moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
     tabs: TabsUi,
+    info: InfoUi,
 ) {
     val summary = state.summary
+    // PR H3: Help's and Settings' links open screens only; "Restore from a backup" is the Backup tab's own flow.
+    val restoreFromBackup = {
+        tabs.onSelectTab(Tab.BACKUP)
+        moveActions.restore.onStart()
+    }
     val current = state.screens.last()
     // Review PR C: a result belongs to the screen it came from (no stale Undo elsewhere).
     val result = state.cleanResult?.takeIf { it.origin == null || it.origin == current }
@@ -386,7 +395,50 @@ private fun CurrentScreen(
         }
 
         Screen.Settings -> {
-            SettingsScreen(testMode.on, testMode.turnOn, testMode.turnOff, onBack, settingsActions)
+            SettingsScreen(
+                testMode.on,
+                testMode.turnOn,
+                testMode.turnOff,
+                onBack,
+                settingsActions,
+                nav = SettingsNav(
+                    onHelp = { onOpen(Screen.Help) },
+                    onHistory = { onOpen(Screen.History) },
+                    onAbout = { onOpen(Screen.About) },
+                    onTrash = tabs.onOpenTrash,
+                    onRestoreFromBackup = restoreFromBackup,
+                ),
+            )
+        }
+
+        Screen.Help -> {
+            HelpScreen(HelpTopics.all(info.foss), onOpenTopic = { onOpen(Screen.HelpTopic(it)) }, onBack = onBack)
+        }
+
+        is Screen.HelpTopic -> {
+            val topic = HelpTopics.byId(screen.id, info.foss)
+            if (topic == null) {
+                HelpScreen(HelpTopics.all(info.foss), onOpenTopic = { onOpen(Screen.HelpTopic(it)) }, onBack = onBack)
+            } else {
+                HelpTopicScreen(
+                    topic,
+                    onLink = { link ->
+                        when (link) {
+                            HelpLink.TRASH -> tabs.onOpenTrash()
+                            HelpLink.RESTORE_FROM_BACKUP -> restoreFromBackup()
+                        }
+                    },
+                    onBack = onBack,
+                )
+            }
+        }
+
+        Screen.History -> {
+            HistoryScreen(info.history, onBack)
+        }
+
+        Screen.About -> {
+            AboutScreen(info.about, onBack)
         }
 
         Screen.Trash -> {
@@ -422,6 +474,14 @@ private fun CurrentScreen(
         }
     }
 }
+
+/** PR H3: what Help, "What KeepClear did" and About show. */
+class InfoUi(
+    val history: HistoryState = HistoryState(),
+    val about: AboutUi = AboutUi(),
+    /** The `play` build has no All files access; Help's access topic says what it asks for instead. */
+    val foss: Boolean = BuildConfig.FLAVOR == "foss",
+)
 
 class SafeActions(
     val onClean: (

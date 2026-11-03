@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3, app icon option 3 (Paper & Ink): An ink ring with three bars inside, tall to short, in the lane colours. Foreground layer, 108dp, inside the 66dp safe circle. Our own artwork (ADR 0002). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M31,54a23,23 0,1 0,46,0a23,23 0,1 0,-46,0z"
+        android:strokeColor="#FF2F4B7C"
+        android:strokeWidth="3.5" />
+    <path
+        android:fillColor="#FF3D6B4F"
+        android:pathData="M45.5,42h0a3.5,3.5 0,0 1,3.5,3.5v17a3.5,3.5 0,0 1,-3.5,3.5h0a3.5,3.5 0,0 1,-3.5,-3.5v-17a3.5,3.5 0,0 1,3.5,-3.5z" />
+    <path
+        android:fillColor="#FF4D5D73"
+        android:pathData="M54,49h0a3.5,3.5 0,0 1,3.5,3.5v10a3.5,3.5 0,0 1,-3.5,3.5h0a3.5,3.5 0,0 1,-3.5,-3.5v-10a3.5,3.5 0,0 1,3.5,-3.5z" />
+    <path
+        android:fillColor="#FF8A5A12"
+        android:pathData="M62.5,56h0a3.5,3.5 0,0 1,3.5,3.5v3a3.5,3.5 0,0 1,-3.5,3.5h0a3.5,3.5 0,0 1,-3.5,-3.5v-3a3.5,3.5 0,0 1,3.5,-3.5z" />
+</vector>

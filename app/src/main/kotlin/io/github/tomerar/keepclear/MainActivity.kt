@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -49,11 +50,16 @@ class MainActivity : ComponentActivity() {
     private val appIcons by lazy { AppIconLoader(packageManager) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // PR H3 (owner brief H3 item 6): the paper splash on every Android version, then Theme.KeepClear.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // SEC-7: ignore touches while another app's overlay covers KeepClear.
         window.decorView.filterTouchesWhenObscured = true
-        if (savedInstanceState == null) handleRecheck(intent)
+        if (savedInstanceState == null) {
+            handleRecheck(intent)
+            handleShortcut(intent)
+        }
         setContent {
             KeepClearTheme {
                 val vm: HomeViewModel = viewModel()
@@ -189,6 +195,44 @@ class MainActivity : ComponentActivity() {
                 // D6: forgetting the Nextcloud revokes its app password on the server first; it runs in the app's
                 // scope (survives rotation, PR #44 review) and its state lives in the application.
                 val nextcloudForget by app.nextcloudForget.collectAsStateWithLifecycle()
+                // PR H3: history, the crash card, "What's new" and the report sheet.
+                val history by app.history.state.collectAsStateWithLifecycle()
+                val crash by app.crashNotice.collectAsStateWithLifecycle()
+                val whatsNew by app.whatsNew.collectAsStateWithLifecycle()
+                var report by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var reportPreparing by remember { mutableStateOf(false) }
+                var reportNoEmail by remember { mutableStateOf(false) }
+                var reportCopied by remember { mutableStateOf(false) }
+                report?.let { body ->
+                    ReportSheet(
+                        ReportUi(
+                            body = body,
+                            preparing = reportPreparing,
+                            noEmailApp = reportNoEmail,
+                            copied = reportCopied,
+                            onSend = { text, attach ->
+                                reportPreparing = attach
+                                lifecycleScope.launch {
+                                    val uri = if (attach) diagnosticsUri(app) else null
+                                    reportPreparing = false
+                                    val sent = sendReport(text, uri)
+                                    reportNoEmail = !sent
+                                    if (sent) report = null
+                                }
+                            },
+                            onCopy = { text ->
+                                DeviceCheckShare.copy(this@MainActivity, text)
+                                reportCopied = true
+                            },
+                            onDismiss = {
+                                report = null
+                                reportNoEmail = false
+                                reportCopied = false
+                            },
+                        ),
+                    )
+                }
+                whatsNew?.let { entry -> WhatsNewSheet(entry) { app.whatsNew.value = null } }
                 CompositionLocalProvider(
                     LocalThumbnailLoader provides thumbnails,
                     LocalAppIcons provides appIcons,
@@ -254,6 +298,21 @@ class MainActivity : ComponentActivity() {
                                 deviceCheckVm.runIfEmpty()
                                 vm.open(Screen.DeviceCheck)
                             },
+                            onReport = {
+                                reportNoEmail = false
+                                reportCopied = false
+                                report = reportBody(app, state, testModeOn)
+                            },
+                        ),
+                        info = InfoUi(
+                            history = history,
+                            about = AboutUi(
+                                version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+                                versionCode = packageManager.getPackageInfo(packageName, 0).longVersionCode,
+                                onOpenSource = { openLink(SOURCE_URL) },
+                                onOpenPrivacy = ::openPrivacy,
+                                onTranslate = { openLink(TRANSLATE_URL) },
+                            ),
                         ),
                         deviceCheck = DeviceCheckUi(
                             enabled = DeviceCheckGate.visible(),
@@ -329,6 +388,7 @@ class MainActivity : ComponentActivity() {
                                 vm.open(Screen.Trash)
                             },
                             onOpenSettings = { vm.open(Screen.Settings) },
+                            onOpenHelp = { vm.open(Screen.Help) },
                         ),
                         selectionActions = SelectionActions(
                             onSelect = vm::select,
@@ -434,6 +494,18 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 state = state,
                                 showDebugTools = BuildConfig.DEBUG,
+                                // Owner brief H3 item 3: once per unexpected exit; sharing is the user's choice.
+                                topNotice = crash?.let { record ->
+                                    {
+                                        CrashCard(
+                                            onShare = {
+                                                shareCrash(record)
+                                                app.crashNotice.value = null
+                                            },
+                                            onDismiss = { app.crashNotice.value = null },
+                                        )
+                                    }
+                                },
                                 actions = HomeActions(
                                     onRequestMedia = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
                                     onRequestAllFiles = {
@@ -566,6 +638,74 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleRecheck(intent)
+        handleShortcut(intent)
+    }
+
+    /** Owner brief H3 item 7: a launcher shortcut opens its screen, nothing else ([ShortcutNavigator]). */
+    private fun handleShortcut(intent: Intent?) {
+        val route = ShortcutRoute.of(intent) ?: return
+        Shortcuts.handle(
+            route,
+            Shortcuts.navigator(androidx.lifecycle.ViewModelProvider(this)[HomeViewModel::class.java]),
+        )
+    }
+
+    /** Owner brief H3 item 2: the email's text, from totals and counts only ([ReportFacts]). */
+    private fun reportBody(app: KeepClearApplication, state: HomeUiState, testMode: Boolean): String {
+        val facts = ReportFacts.of(
+            home = state,
+            backups = androidx.lifecycle.ViewModelProvider(this)[MoveViewModel::class.java].state.value.jobs.size,
+            device = ReportFacts.Device(Build.MANUFACTURER, Build.MODEL, Build.VERSION.RELEASE, Build.VERSION.SDK_INT),
+            app = io.github.tomerar.keepclear.devcheck.AppFacts(
+                packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+                packageManager.getPackageInfo(packageName, 0).longVersionCode,
+                BuildConfig.FLAVOR,
+                BuildConfig.BUILD_TYPE,
+            ),
+            language = resources.configuration.locales[0].language,
+            testMode = testMode,
+        )
+        return ProblemReport.body(getString(R.string.report_prompt), facts)
+    }
+
+    /** The diagnostics file (device check, no paths), or null if it couldn't be made (the email goes without it). */
+    private suspend fun diagnosticsUri(app: KeepClearApplication): android.net.Uri? = try {
+        withContext(Dispatchers.IO) { ProblemReport.writeDiagnostics(app) }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        android.util.Log.w("KeepClear", "diagnostics file not made: ${e.javaClass.simpleName}")
+        null
+    }
+
+    /** Opens the email app; false when the phone has none. KeepClear itself sends nothing. */
+    private fun sendReport(body: String, attachment: android.net.Uri?): Boolean {
+        val address = getString(R.string.report_email)
+        val intent = ProblemReport.intent(address, getString(R.string.report_subject), body, attachment)
+        return try {
+            startActivity(intent)
+            true
+        } catch (e: android.content.ActivityNotFoundException) {
+            false
+        }
+    }
+
+    /** Owner brief H3 item 3: the redacted report through the share sheet; the user picks where it goes. */
+    private fun shareCrash(record: ExitRecord) {
+        val text = CrashText.report(
+            record,
+            packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+            packageManager.getPackageInfo(packageName, 0).longVersionCode,
+            "${Build.MANUFACTURER} ${Build.MODEL}",
+            Build.VERSION.SDK_INT,
+        )
+        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+            .putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crash_title))
+        runCatching { startActivity(Intent.createChooser(send, null)) }
+    }
+
+    private fun openLink(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addCategory(Intent.CATEGORY_BROWSABLE)) }
     }
 
     /**
@@ -601,3 +741,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val PRIVACY_URL = "https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md"
+
+/** PR H3: About's links (opened in the browser; KeepClear itself has no internet for them). */
+private const val SOURCE_URL = "https://github.com/tomerar/keepCleanr"
+private const val TRANSLATE_URL = "https://github.com/tomerar/keepCleanr/blob/main/CONTRIBUTING.md#translations"

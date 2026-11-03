@@ -49,6 +49,23 @@ import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.designsystem.component.KcCard
 import io.github.tomerar.keepclear.core.i18n.R
 
+/** PR H3: a Settings row that opens another screen: the whole card is the target, with a chevron. */
+@Composable
+private fun LinkCard(title: String, body: String, tag: String, onClick: () -> Unit) {
+    KcCard(Modifier.testTag(tag), onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(body, style = MaterialTheme.typography.bodySmall)
+            }
+            androidx.compose.material3.Icon(
+                io.github.tomerar.keepclear.core.designsystem.KcIcons.Chevron,
+                contentDescription = null,
+            )
+        }
+    }
+}
+
 /** Always visible while test mode is on (SAFETY-9): nothing will be deleted or moved. */
 @Composable
 fun TestModeBanner(modifier: Modifier = Modifier) {
@@ -115,6 +132,17 @@ class SettingsActions(
     /** Test builds only ([io.github.tomerar.keepclear.devcheck.DeviceCheckGate]): Advanced › Device check. */
     val showDeviceCheck: Boolean = false,
     val onOpenDeviceCheck: () -> Unit = {},
+    /** PR H3 (owner brief H3 item 2): opens the "Report a problem" sheet. */
+    val onReport: () -> Unit = {},
+)
+
+/** PR H3: the screens Settings links to (screens only; nothing here acts on files). */
+class SettingsNav(
+    val onHelp: () -> Unit = {},
+    val onHistory: () -> Unit = {},
+    val onAbout: () -> Unit = {},
+    val onTrash: () -> Unit = {},
+    val onRestoreFromBackup: () -> Unit = {},
 )
 
 /**
@@ -128,6 +156,7 @@ fun SettingsScreen(
     onTestModeOff: () -> Unit,
     onBack: () -> Unit,
     actions: SettingsActions = SettingsActions(),
+    nav: SettingsNav = SettingsNav(),
 ) {
     // 0 = no dialog, 1 = first confirmation, 2 = second confirmation.
     var step by rememberSaveable { mutableIntStateOf(0) }
@@ -151,10 +180,30 @@ fun SettingsScreen(
                         )
                     }
             }
+            // Owner brief H3 item 1: Help, one tap from Settings (and from the top bar's "?").
+            LinkCard(
+                stringResource(R.string.help_title),
+                stringResource(R.string.settings_help_body),
+                "openHelpSettings",
+                nav.onHelp,
+            )
+            // Owner brief H3 item 1: the card links to the Trash and to restoring from a backup.
             KcCard(Modifier.testTag("getBack")) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.settings_get_back_title), style = MaterialTheme.typography.titleSmall)
                     Text(stringResource(R.string.settings_get_back_body), style = MaterialTheme.typography.bodyMedium)
+                    KcButton(
+                        stringResource(R.string.settings_get_back_trash),
+                        nav.onTrash,
+                        Modifier.testTag("getBackTrash"),
+                        style = KcButtonStyle.Text,
+                    )
+                    KcButton(
+                        stringResource(R.string.restore_start),
+                        nav.onRestoreFromBackup,
+                        Modifier.testTag("getBackRestore"),
+                        style = KcButtonStyle.Text,
+                    )
                 }
             }
             if (actions.trashBytes > 0) {
@@ -295,6 +344,19 @@ fun SettingsScreen(
                 Modifier.testTag("replayIntro"),
                 style = KcButtonStyle.Text,
             )
+            // Owner brief H3 items 4 and 2.
+            LinkCard(
+                stringResource(R.string.history_title),
+                stringResource(R.string.settings_history_body),
+                "openHistory",
+                nav.onHistory,
+            )
+            LinkCard(
+                stringResource(R.string.report_title),
+                stringResource(R.string.settings_report_body),
+                "openReport",
+                actions.onReport,
+            )
             KcCard(Modifier.testTag("about")) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.settings_about), style = MaterialTheme.typography.titleSmall)
@@ -309,6 +371,13 @@ fun SettingsScreen(
                         stringResource(R.string.settings_privacy),
                         actions.onOpenPrivacy,
                         Modifier.testTag("privacy"),
+                        style = KcButtonStyle.Text,
+                    )
+                    // Owner brief H3 item 5: version, source, licences, translations.
+                    KcButton(
+                        stringResource(R.string.settings_about_open),
+                        nav.onAbout,
+                        Modifier.testTag("openAbout"),
                         style = KcButtonStyle.Text,
                     )
                 }

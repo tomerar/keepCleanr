@@ -774,6 +774,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
             if (report.restored.isNotEmpty()) {
                 android.media.MediaScannerConnection.scanFile(app, report.restored.toTypedArray(), null, null)
             }
+            app.recordHistory(HistoryEvents.fromRestore(report, System.currentTimeMillis()))
             step(RestoreStep.Done(report))
         }
     }
@@ -831,6 +832,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             val after = controller.phoneFree()
+            // Owner brief H3 item 4: freed for good (counts in the total) or moved to the trash; test mode: nothing.
+            app.recordHistory(HistoryEvents.fromFree(report, System.currentTimeMillis()))
             controller.results.update {
                 it.copy(freeResult = freeResult(jobId, job.targetLabel, report).measured(before, after))
             }

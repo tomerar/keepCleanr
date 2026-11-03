@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3: the app icon's paper background (Paper & Ink "background" token #F6F2EA, the same in light and dark: an app
+     icon is a printed mark, the launcher picks its own surroundings). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#1F5F4F" />
+    <solid android:color="#F6F2EA" />
 </shape>

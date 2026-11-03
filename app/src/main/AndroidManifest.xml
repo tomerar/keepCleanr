@@ -55,14 +55,32 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KeepClear"
         tools:targetApi="33">
+        <!-- PR H3: starts on the paper splash (core-splashscreen), then Theme.KeepClear. -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.KeepClear.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- PR H3 (owner brief H3 item 7): launcher shortcuts; they only open a screen (ShortcutRoute). -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- PR H3 (owner brief H3 item 2): shares only the diagnostics file KeepClear writes in its own cache, read-only,
+             to the email app the user picks (res/xml/report_paths.xml). Not exported. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.reports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/report_paths" />
+        </provider>
 
         <service
             android:name=".MoveService"

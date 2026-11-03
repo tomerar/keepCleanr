@@ -5,6 +5,9 @@
     <string name="app_name" translatable="false">KeepClear</string>
     <!-- Launcher and system label; test builds override it with "KeepClear test" (app/build.gradle.kts). -->
     <string name="launcher_name" translatable="false">KeepClear</string>
+    <!-- PR H3 (C166): where "Report a problem" sends. Empty until the owner names a project address (progress W14):
+         the email app then opens with an empty "To" and the user fills it in. Never a private address. -->
+    <string name="report_email" translatable="false"></string>
     <string name="home_card_safe_title">Clean now</string>
     <string name="home_card_review_title">Choose what to delete</string>
     <string name="home_card_move_title">Back up</string>
@@ -748,4 +751,60 @@
     <string name="pause_next_unexpected">Tap Continue. If it happens again, unplug the USB drive and plug it back in, or restart the phone.</string>
     <string name="review_list_empty">Nothing to choose from right now. New screenshots and big videos show up here after the next scan.</string>
     <string name="move_nothing">No photos or videos to back up right now.</string>
+    <!-- Owner brief H3 (PR H3): Help entry points, activity history, report a problem, crash card, About, What's new,
+         launcher shortcuts. Long Help texts are in help.xml. -->
+    <string name="settings_help_body">Answers to common questions, also without the internet.</string>
+    <string name="settings_get_back_trash">Open the trash</string>
+    <string name="history_title">What KeepClear did</string>
+    <string name="settings_history_body">What was cleaned, freed up, backed up and restored, with dates and sizes.</string>
+    <string name="history_total_label">freed up so far</string>
+    <string name="history_total">You have freed up %1$s so far</string>
+    <string name="history_total_none">No space freed up yet</string>
+    <string name="history_note">Only space that really came back counts. Files moved to the trash count once the trash is emptied.</string>
+    <string name="history_empty">Nothing here yet. What KeepClear does will show here, with dates and sizes.</string>
+    <string name="history_kind_cleaned">Cleaned</string>
+    <string name="history_kind_caches">Apps\' temporary files cleared</string>
+    <string name="history_kind_trash_emptied">Deleted for good from the trash</string>
+    <string name="history_kind_trash_expired">Trash: files older than 30 days deleted for good</string>
+    <string name="history_kind_backed_up">Backed up and checked</string>
+    <string name="history_kind_freed_backup">Freed up after a checked backup</string>
+    <string name="history_kind_originals_trash">Originals moved to the trash after a backup</string>
+    <string name="history_kind_restored_trash">Restored from the trash</string>
+    <string name="history_kind_restored_backup">Restored from a backup</string>
+    <string name="history_freed">Freed up %1$s</string>
+    <string name="report_title">Report a problem</string>
+    <string name="settings_report_body">An email you see and can change before it is sent. No file names.</string>
+    <string name="report_intro">KeepClear opens your email app with this text. Change it as you like before sending. The device details are in English, for the developer, and have no file names.</string>
+    <string name="report_message_label">Your message</string>
+    <string name="report_prompt">What happened?</string>
+    <string name="report_attach">Attach a diagnostics file: counts and sizes from this phone, no file names</string>
+    <string name="report_preparing">Preparing the diagnostics file…</string>
+    <string name="report_send">Open email</string>
+    <string name="report_copy">Copy the text</string>
+    <string name="report_copied">Copied. Paste it into an email or a message.</string>
+    <string name="report_no_email">No email app was found on this phone. Copy the text and send it any way you like.</string>
+    <string name="report_subject">KeepClear: a problem</string>
+    <string name="crash_title">KeepClear closed unexpectedly. Share a report?</string>
+    <string name="crash_body">The report shows where in its own code KeepClear stopped, without file names. You choose where to send it.</string>
+    <string name="crash_share">Share the report</string>
+    <string name="about_version">Version %1$s (%2$d)</string>
+    <string name="about_source">See the source code</string>
+    <string name="about_source_body">KeepClear is free software (GPL-3.0): its code is public, so anyone can read and check it.</string>
+    <string name="about_privacy_body">KeepClear doesn\'t collect or send anything. Its history, settings and the list of the trash stay on this phone.</string>
+    <string name="about_translate">Help translate</string>
+    <string name="about_translate_body">Want KeepClear in your language? The translation guide explains how.</string>
+    <string name="about_translators">Translations</string>
+    <string name="about_translators_body">Hebrew and English: the KeepClear team.</string>
+    <string name="about_licences">Licences</string>
+    <string name="about_licences_body">KeepClear is built with these free fonts, icons and libraries.</string>
+    <string name="about_licence_read">Read the licence</string>
+    <string name="settings_about_open">See details</string>
+    <string name="whats_new_title">What\'s new</string>
+    <string name="whats_new_ok">Continue</string>
+    <string name="shortcut_free_short">Free up</string>
+    <string name="shortcut_free_long">Free up space</string>
+    <string name="shortcut_trash_short">Trash</string>
+    <string name="shortcut_trash_long">Open the trash</string>
+    <string name="shortcut_backup_short">Back up</string>
+    <string name="shortcut_backup_long">Back up photos</string>
 </resources>

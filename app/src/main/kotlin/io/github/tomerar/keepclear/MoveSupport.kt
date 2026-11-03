@@ -395,6 +395,19 @@ class MoveService : Service() {
                     .also { store.putJob(it) }
             }
         }
+        // Owner brief H3 item 4: a finished backup in the activity history (its checked copies).
+        if (end.state == JobState.DONE) {
+            val copied = store.files(jobId).filter { it.state == MoveFileState.VERIFIED }
+            app.recordHistory(
+                HistoryEvents.fromBackup(
+                    copied.size,
+                    copied.sumOf {
+                        it.sourceSize
+                    },
+                    System.currentTimeMillis(),
+                ),
+            )
+        }
         MoveNotifications.result(this, end, verified)
     }
 
