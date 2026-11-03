@@ -113,6 +113,8 @@ class SettingsActions(
     val choices: Choices = Choices(),
     val onRemoveKept: (String) -> Unit = {},
     val onRemoveJunk: (String) -> Unit = {},
+    /** PR H5: the latest scan, for what each rule matched; null before any scan. */
+    val summary: io.github.tomerar.keepclear.engine.classify.ClassificationSummary? = null,
     /** Owner decision P1: "Keep the original in the 30-day trash too (frees no space)", off by default. */
     val keepOriginalsInTrash: Boolean = false,
     val onKeepOriginalsInTrash: (Boolean) -> Unit = {},
@@ -251,14 +253,28 @@ fun SettingsScreen(
                 }
             }
             if (actions.choices.kept.isNotEmpty() || actions.choices.junk.isNotEmpty()) {
+                // PR H5: "Your rules": each rule, what it matched in the latest scan, and „לבטל את הבחירה”, which
+                // changes only the rule (never a file).
+                val rules =
+                    remember(actions.choices, actions.summary) { UserRules.of(actions.choices, actions.summary) }
                 KcCard(Modifier.testTag("keptByYou")) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.group_user_kept), style = MaterialTheme.typography.titleSmall)
-                        actions.choices.kept.sorted().forEach { path ->
-                            ChoiceRow(path, R.string.choice_kept_label, "removeKept") { actions.onRemoveKept(path) }
-                        }
-                        actions.choices.junk.sorted().forEach { folder ->
-                            ChoiceRow(folder, R.string.choice_junk_label, "removeJunk") { actions.onRemoveJunk(folder) }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.settings_rules_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text(stringResource(R.string.settings_rules_body), style = MaterialTheme.typography.bodySmall)
+                        rules.forEach { rule ->
+                            when (rule.kind) {
+                                UserRule.Kind.KEPT -> RuleRow(rule, R.string.choice_kept_label, "removeKept") {
+                                    actions.onRemoveKept(rule.path)
+                                }
+
+                                UserRule.Kind.JUNK -> RuleRow(rule, R.string.choice_junk_label, "removeJunk") {
+                                    actions.onRemoveJunk(rule.path)
+                                }
+                            }
                         }
                     }
                 }
@@ -607,20 +623,40 @@ private fun NetworkSetupLine(setup: NetworkSetup?) {
     if (setup == NetworkSetup.Checking) LinearProgressIndicator(Modifier.fillMaxWidth())
 }
 
+/** PR H5: one rule: what it does, where (in plain words), what it matched, and „לבטל את הבחירה”. */
 @Composable
-private fun ChoiceRow(path: String, label: Int, tag: String, onRemove: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.weight(1f)) {
+private fun RuleRow(rule: UserRule, label: Int, tag: String, onCancel: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().testTag("rule_${rule.path}"),
+    ) {
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
             Text(stringResource(label), style = MaterialTheme.typography.labelMedium)
             Text(
-                io.github.tomerar.keepclear.core.common.Bidi.isolateLtr(path),
+                io.github.tomerar.keepclear.core.common.Bidi.isolate(
+                    HumanLocation.phonePlace(
+                        rule.path,
+                        phoneName = stringResource(R.string.location_phone),
+                        cardName = stringResource(R.string.location_memory_card),
+                    ),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                when {
+                    rule.matched == null -> stringResource(R.string.rule_matches_unknown)
+                    rule.matched.files == 0 -> stringResource(R.string.rule_matches_none)
+                    else -> stringResource(R.string.rule_matches, totalText(rule.matched))
+                },
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("ruleMatched_${rule.path}"),
             )
         }
         KcButton(
-            stringResource(R.string.choice_remove),
-            onRemove,
-            Modifier.testTag("${tag}_$path"),
+            stringResource(R.string.rule_cancel),
+            onCancel,
+            Modifier.testTag("${tag}_${rule.path}"),
             style = KcButtonStyle.Text,
         )
     }

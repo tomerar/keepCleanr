@@ -5,7 +5,10 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import io.github.tomerar.keepclear.core.safety.CanonicalPath
 import io.github.tomerar.keepclear.core.storage.KPath
+import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.JunkFolders
+import io.github.tomerar.keepclear.engine.classify.Rules
+import io.github.tomerar.keepclear.engine.classify.Total
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -69,5 +72,37 @@ class UserChoices(private val prefs: SharedPreferences) {
          * (C12, C51). The engine owns the rule, so the classifier ignores anything this would refuse.
          */
         fun canBeJunk(folder: String): Boolean = isValid(folder) && JunkFolders.canBeJunk(folder)
+    }
+}
+
+/** PR H5: one of the user's rules („לא להציע את זה שוב”, „להציע תמיד לנקות”) and what it matched. */
+data class UserRule(
+    val path: String,
+    val kind: Kind,
+    /** Files the rule matched in the latest scan; null before any scan. */
+    val matched: Total?,
+) {
+    enum class Kind { KEPT, JUNK }
+}
+
+/**
+ * PR H5: Settings' "Your rules": every rule the user made, with what it matched in the latest scan (the files the
+ * classifier put in "kept by you" or "always junk" under that path). Read-only: cancelling a rule only changes
+ * [UserChoices]; files are never touched (C188).
+ */
+object UserRules {
+    fun of(choices: Choices, summary: ClassificationSummary?): List<UserRule> {
+        val items = summary?.groups?.flatMap { it.items }
+
+        fun matched(path: String, ruleId: String): Total? {
+            val list = items ?: return null
+            val root = CanonicalPath.of(path) ?: return Total()
+            return list.filter { item ->
+                item.ruleId == ruleId &&
+                    CanonicalPath.of(item.item.path)?.let { it == root || it.startsWith("$root/") } == true
+            }.fold(Total()) { t, i -> t + i }
+        }
+        return choices.kept.sorted().map { UserRule(it, UserRule.Kind.KEPT, matched(it, Rules.USER_KEPT)) } +
+            choices.junk.sorted().map { UserRule(it, UserRule.Kind.JUNK, matched(it, Rules.USER_JUNK)) }
     }
 }

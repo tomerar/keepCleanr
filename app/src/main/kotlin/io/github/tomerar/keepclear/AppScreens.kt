@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
@@ -107,16 +109,19 @@ fun AppScreens(
             }
         }
     }
-    Column {
-        if (testMode.on) TestModeBanner()
-        // The banner already pads for the status bar; the screens below must not pad for it again.
-        Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
-            if (state.screens.size == 1 && Tab.rootOf(current) != null) {
-                MainTabs(state.tab, state.trash, tabs, content)
-            } else {
-                SubScreenFrame(content)
+    Box {
+        Column {
+            if (testMode.on) TestModeBanner()
+            // The banner already pads for the status bar; the screens below must not pad for it again.
+            Box(if (testMode.on) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier) {
+                if (state.screens.size == 1 && Tab.rootOf(current) != null) {
+                    MainTabs(state.tab, state.trash, tabs, content)
+                } else {
+                    SubScreenFrame(content)
+                }
             }
         }
+        state.keepNotice?.let { path -> KeepNotice(path, previewActions) }
     }
     state.lastCopy?.let { ops ->
         LastCopyDialog(ops, onConfirm = safeActions.onConfirmLastCopy, onDismiss = safeActions.onDismissLastCopy)
@@ -535,3 +540,28 @@ internal fun SubScreenFrame(content: @Composable () -> Unit) {
 }
 
 internal const val SUB_SCREEN_FRAME_TAG = "subScreenFrame"
+
+/**
+ * PR H5: after „לא להציע את זה שוב”, a short notice at the bottom says KeepClear won't suggest the file again, with
+ * „חזרה” (cancels that rule only). It stays for the accessibility-recommended time ([NoticeBar]).
+ */
+@Composable
+private fun KeepNotice(path: String, actions: PreviewActions) {
+    Box(Modifier.fillMaxSize().navigationBarsPadding().imePadding(), contentAlignment = Alignment.BottomCenter) {
+        Box(Modifier.widthIn(max = 560.dp).padding(16.dp)) {
+            io.github.tomerar.keepclear.core.designsystem.component.NoticeBar(
+                message = androidx.compose.ui.res.stringResource(
+                    io.github.tomerar.keepclear.core.i18n.R.string.keep_notice,
+                    io.github.tomerar.keepclear.core.common.Bidi.isolate(path.substringAfterLast('/')),
+                ),
+                actionText = androidx.compose.ui.res.stringResource(
+                    io.github.tomerar.keepclear.core.i18n.R.string.notice_undo,
+                ),
+                onAction = { actions.onUndoKeep(path) },
+                onDismiss = actions.onKeepNoticeDone,
+                modifier = Modifier.testTag("keepNotice"),
+                actionModifier = Modifier.testTag("keepNoticeUndo"),
+            )
+        }
+    }
+}

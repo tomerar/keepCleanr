@@ -467,7 +467,6 @@
     <string name="choice_always_junk_confirm">Always suggest it</string>
     <string name="choice_kept_label">Not suggested again</string>
     <string name="choice_junk_label">Always suggested</string>
-    <string name="choice_remove">Remove</string>
     <string name="swipe_start">Go through them one by one</string>
     <string name="swipe_progress">%1$s of %2$s</string>
     <string name="swipe_hint">Nothing is deleted until you finish and confirm.</string>
@@ -839,4 +838,45 @@
     <string name="apps_archive">Archive</string>
     <string name="apps_archive_note">Archiving keeps the app\'s data and icon and frees the app itself. Tap the icon to get it back.</string>
     <string name="apps_split">App %1$s · Data %2$s · Temporary files %3$s</string>
+
+    <!-- PR H5: power users (review group tools, rules, test-mode export, network drive fields). -->
+    <string name="group_tools_open">Sort and filter</string>
+    <string name="group_sort_newest">Newest first</string>
+    <string name="group_sort_oldest">Oldest first</string>
+    <string name="group_sort_largest">Largest first</string>
+    <string name="group_year_all">All years</string>
+    <string name="group_shown">Showing %1$s of %2$s</string>
+    <string name="group_clear_filter">Show all</string>
+    <string name="group_largest_button">Select the largest</string>
+    <string name="group_largest_title">How many of the largest?</string>
+    <string name="group_largest_body">From what is shown now. Nothing is deleted until you check the list and confirm.</string>
+    <string name="group_largest_option">Select the %1$s largest · %2$s</string>
+    <string name="group_select_shown">Select all shown</string>
+    <plurals name="group_selected_hidden">
+        <item quantity="one">One of them isn\'t shown now</item>
+        <item quantity="other">%1$s of them aren\'t shown now</item>
+    </plurals>
+    <string name="settings_rules_title">Your rules</string>
+    <string name="settings_rules_body">Rules change only what KeepClear suggests. Cancelling one never deletes or moves a file.</string>
+    <string name="rule_matches">Last scan: %1$s</string>
+    <string name="rule_matches_none">Nothing matched in the last scan</string>
+    <string name="rule_matches_unknown">Shown after the next scan</string>
+    <string name="rule_cancel">Cancel this choice</string>
+    <string name="keep_notice">KeepClear won\'t suggest %1$s again.</string>
+    <string name="notice_undo">Undo</string>
+    <string name="test_export_button">Export the list</string>
+    <string name="test_export_title">Export what test mode would delete?</string>
+    <string name="test_export_body">The list has the name, folder and size of each of the %1$s. It is saved only where you choose; KeepClear sends it nowhere.</string>
+    <string name="test_export_choose">Choose where to save</string>
+    <string name="test_export_done">The list was saved.</string>
+    <string name="test_export_failed">KeepClear couldn\'t save the list. You can try another folder.</string>
+    <string name="move_network_port">Port</string>
+    <string name="move_network_port_hint">445</string>
+    <string name="move_network_port_bad">A number from 1 to 65535</string>
+    <string name="move_network_domain">Domain</string>
+    <string name="move_network_optional">You can leave this empty</string>
+    <string name="move_network_domain_bad">Only English letters, digits, dots, dashes and underscores</string>
+    <string name="move_network_folder">Folder inside the shared folder</string>
+    <string name="move_network_folder_hint">Backups/Phone</string>
+    <string name="move_network_folder_bad">A folder inside the shared folder, like Backups/Phone, without .. and without / or \\ at the start</string>
 </resources>

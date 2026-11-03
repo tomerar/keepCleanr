@@ -55,6 +55,8 @@ data class SmbLocation(
         require(SmbPaths.isSafeSegment(share)) { "share must be one name" }
         require(folder.split('/').filter { it.isNotEmpty() }.all(SmbPaths::isSafeSegment)) { "folder not allowed" }
         require(port in 1..65535)
+        // PR H5: the domain field; a name only (never a path, a user or a second address).
+        require(SmbFields.isDomain(domain)) { "domain not allowed" }
     }
 
     /** D3: no user name means a guest session, which can't be signed: copies only, never "free up space". */
@@ -83,6 +85,42 @@ object SmbHosts {
      * names that lead to it are refused when connecting ([SmbCheck.OnThisPhone]).
      */
     fun isThisPhone(host: String): Boolean = ThisDevice.isLocalName(host)
+}
+
+/**
+ * PR H5: the network form's optional fields, as Material Files has them: port („445”), domain and a folder inside the
+ * share („אפשר להשאיר ריק”). Pure checks, so the form and [SmbLocation] refuse the same things; none of them changes
+ * which host is used ([HostRule.NetworkOnly], D3).
+ */
+object SmbFields {
+    const val DEFAULT_PORT = 445
+
+    private val domainName = Regex("""^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,253}[A-Za-z0-9])?$""")
+
+    /** The port typed: empty is 445; otherwise digits only, 1 to 65535; null when not allowed. */
+    fun port(text: String): Int? {
+        val t = text.trim()
+        if (t.isEmpty()) return DEFAULT_PORT
+        if (t.length > 5 || !t.all { it in '0'..'9' }) return null
+        return t.toInt().takeIf { it in 1..65535 }
+    }
+
+    /** Empty, or a Windows/NetBIOS or DNS-style name: letters, digits, `.`, `-`, `_`, no `..`. */
+    fun isDomain(text: String): Boolean = text.isEmpty() || (domainName.matches(text) && ".." !in text)
+
+    /**
+     * The folder inside the share as typed, made plain ("Backups/Phone"), or null when it would leave the share or
+     * name something odd: it may not start with `/` or `\` (absolute), contain `\`, `:` or control characters, or have
+     * a `.`/`..` or empty segment in the middle. A trailing `/` is dropped; empty means the share itself.
+     */
+    fun folder(text: String): String? {
+        val t = text.trim()
+        if (t.isEmpty()) return ""
+        if (t.startsWith('/') || t.startsWith('\\') || '\\' in t) return null
+        val segments = t.trimEnd('/').split('/')
+        if (segments.any { !SmbPaths.isSafeSegment(it) }) return null
+        return segments.joinToString("/")
+    }
 }
 
 /** D3: what may be sent to the share as one path segment. */

@@ -241,7 +241,37 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 whatsNew?.let { entry -> WhatsNewSheet(entry) { app.whatsNew.value = null } }
+                // PR H5: test mode's „לייצא את הרשימה”: Android's "create document" screen, then the CSV is written
+                // there (off the main thread); nothing else is written and nothing is read back.
+                var exportRows by remember { mutableStateOf<List<WouldDelete>>(emptyList()) }
+                val exportSaved = remember { mutableStateOf<Boolean?>(null) }
+                val exportLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TestExport.MIME)) { uri ->
+                        val rows = exportRows
+                        exportRows = emptyList()
+                        // Written only while test mode is still on, only to the place the user just chose.
+                        if (uri != null && app.testMode.isOn) {
+                            lifecycleScope.launch {
+                                exportSaved.value = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    runCatching {
+                                        contentResolver.openOutputStream(uri, "wt")!!.use { out ->
+                                            out.write(TestExport.csv(rows).toByteArray(Charsets.UTF_8))
+                                        }
+                                    }.isSuccess
+                                }
+                            }
+                        }
+                    }
+                val testExporter = remember(exportLauncher) {
+                    TestExporter(testModeOn = { app.testMode.isOn }, saved = exportSaved) { rows ->
+                        exportRows = rows
+                        exportSaved.value = null
+                        runCatching { exportLauncher.launch(TestExport.fileName(System.currentTimeMillis())) }
+                            .onFailure { exportSaved.value = false }
+                    }
+                }
                 CompositionLocalProvider(
+                    LocalTestExporter provides testExporter,
                     LocalThumbnailLoader provides thumbnails,
                     LocalAppIcons provides appIcons,
                     LocalSwipePrefs provides SwipePrefs(
@@ -254,6 +284,7 @@ class MainActivity : ComponentActivity() {
                         settingsActions = SettingsActions(
                             networkHost = networkHost,
                             choices = choices,
+                            summary = state.summary,
                             onRemoveKept = vm::removeKept,
                             onRemoveJunk = vm::removeJunk,
                             keepOriginalsInTrash = keepOriginalsInTrash,
@@ -340,7 +371,12 @@ class MainActivity : ComponentActivity() {
                             onCopy = { DeviceCheckShare.copy(this@MainActivity, it) },
                             onShare = { DeviceCheckShare.share(this@MainActivity, it) },
                         ),
-                        previewActions = PreviewActions(onKeep = vm::keep, onAlwaysJunk = vm::alwaysJunk),
+                        previewActions = PreviewActions(
+                            onKeep = vm::keep,
+                            onAlwaysJunk = vm::alwaysJunk,
+                            onUndoKeep = vm::undoKeep,
+                            onKeepNoticeDone = vm::dismissKeepNotice,
+                        ),
                         appsActions = AppsActions(
                             onAllowUsageAccess = {
                                 runCatching {

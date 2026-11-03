@@ -105,6 +105,8 @@ data class HomeUiState(
      * offers „להמשיך מאיפה שעצרתם” and drops decisions whose file changed ([SwipeSession.resume]).
      */
     val savedSwipes: Map<String, List<SwipeDecision>> = emptyMap(),
+    /** PR H5: the file just kept with „לא להציע את זה שוב”, for the short notice with „חזרה”; null when none. */
+    val keepNotice: String? = null,
 )
 
 /** E4: the key of a group's selection. */
@@ -256,7 +258,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** CLS-7 "This is important to me". */
     fun keep(path: String) {
-        if (app.userChoices.keep(path)) reclassify()
+        if (app.userChoices.keep(path)) {
+            // PR H5: a short notice says it was done, with „חזרה” (only the rule changes, never a file).
+            _state.update { it.copy(keepNotice = path) }
+            reclassify()
+        }
+    }
+
+    /** PR H5: „חזרה” on the keep notice: the rule just made is cancelled again; no file is touched. */
+    fun undoKeep(path: String) {
+        _state.update { it.copy(keepNotice = null) }
+        removeKept(path)
+    }
+
+    /** PR H5: the keep notice timed out or was closed. */
+    fun dismissKeepNotice() {
+        _state.update { it.copy(keepNotice = null) }
     }
 
     /** CLS-7 "Always treat this folder as junk". */
@@ -714,6 +731,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             var done = emptyList<PlannedOp>()
             var forGood = emptyList<PlannedOp>()
             var simulated = false
+            var wouldDelete = emptyList<WouldDelete>()
             // Owner decision 2026-11-02: what is deleted for good is measured (StatFs before and after, off the main
             // thread); what goes to the trash frees nothing until the trash is emptied.
             val before = freeNow()
@@ -732,6 +750,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         app.recordHistory(HistoryEvents.fromOps(report.done.map { it.op }, System.currentTimeMillis()))
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
+                        // PR H5: kept for „לייצא את הרשימה” (test mode only; the banner offers it, never automatic).
+                        wouldDelete = TestExport.rows(wouldHave)
                         done = report.done.map { it.op } + wouldHave
                         forGood = done.filter { op -> op.kind == OpKind.DELETE_FOR_GOOD }
                         // M12: Android asks the user itself; the result comes back in consentResult().
@@ -793,6 +813,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         simulated = simulated,
                         origin = origin,
                         trashedIds = trashedIds,
+                        wouldDelete = wouldDelete,
                     ),
                     cleaned = cleaned,
                     nowFree = after,

@@ -43,6 +43,7 @@ Nothing is sent by KeepClear itself.
 
 - **Report a problem (Settings):** KeepClear opens your email app with a text you can read and change first: what you write, then the device model, Android version, KeepClear's version and build, whether test mode is on, and totals (how many files and how much space in each group and in the trash, how many backups). No file names, paths or folder names. You can also attach a diagnostics file: the same kind of counts and sizes from a read-only check of the phone (storage, permissions, bins, drives), with no file names or paths. The file is made in KeepClear's private cache and shared only with the email app you pick, read-only. You decide whether and to whom to send.
 - **After an unexpected exit:** a card offers to share a report through Android's share sheet: KeepClear's version, the device model, the kind of exit and where in KeepClear's code it stopped, without messages, file names or paths. Nothing is shared unless you tap it.
+- **Test mode's list (test builds, Settings › Advanced):** after a test-mode clean you can tap "Export the list". KeepClear first tells you the list has the name, folder and size of every file that would have been deleted, then Android asks where to save it (a CSV file). It contains full file paths, so keep it to yourself. KeepClear writes it only to the place you pick, never makes it by itself, never sends it and never reads it back. Release builds start with test mode off and offer nothing to export.
 
 ## Backups
 
@@ -51,6 +52,8 @@ When you move files to a drive or computer you choose, KeepClear copies them the
 ## Network
 
 KeepClear has the Android `INTERNET` permission only for backups to a network drive (SMB: a shared folder on your computer or NAS, ADR 0011). It connects only to the address you typed, only while a backup, a check of a backup, or freeing space after a backup runs, and it sends only the files you chose to back up. The password is stored on the phone, encrypted with a key kept in Android's secure key store; it is never logged or sent anywhere else. Nothing else in KeepClear can use the network (checked automatically in every build). Settings shows the address in use.
+
+The network drive form can also take a port (445 unless you change it), a domain and a folder inside the shared folder; they are stored with the address and change nothing about where KeepClear connects. KeepClear does not search the network for computers: you type the address.
 
 **Nextcloud (Settings › Advanced).** If you connect your own Nextcloud, KeepClear talks only to the server address you typed, over HTTPS (plain http is refused except to the phone itself), and never through a proxy or to another address the server names: the sign-in page, the sign-in check and every backup request must be on that same server, or KeepClear stops. You sign in on your Nextcloud's own page in the browser (Nextcloud "Login Flow v2"), or type an app password you made there; KeepClear never asks for or stores your account password. It keeps only the app password Nextcloud issues, encrypted with a separate key in Android's secure key store, plus the server address, your user name and user id. Your Nextcloud learns what any Nextcloud app shows it: that a client named "KeepClear" signed in, from which network address, and the files you back up. Revoke the app password in Nextcloud (Settings › Security) at any time; "Forget your Nextcloud" in KeepClear's Settings removes it from the phone and stops a backup that is running to it. A server whose certificate isn't trusted is refused. Settings shows the address in use.
 
@@ -72,6 +75,6 @@ Open an issue at https://github.com/tomerar/keepCleanr/issues, or for security m
 
 ## מדיניות פרטיות בקצרה
 
-KeepClear עובד רק בטלפון שלכם. הוא לא אוסף, לא שולח, לא מוכר ולא משתף שום מידע. אין בו פרסומות, אין ניתוח שימוש, אין דיווחי קריסה אוטומטיים ואין חשבון. דוח על בעיה נשלח רק אם בוחרים לשלוח אותו, מאפליקציית המייל או השיתוף, ואין בו שמות של קבצים. בגרסה הנוכחית אין לו בכלל הרשאת אינטרנט. קבצים יוצאים מהטלפון רק לכונן או לתיקייה שבחרתם לגיבוי.
+KeepClear עובד רק בטלפון שלכם. הוא לא אוסף, לא שולח, לא מוכר ולא משתף שום מידע. אין בו פרסומות, אין ניתוח שימוש, אין דיווחי קריסה אוטומטיים ואין חשבון. דוח על בעיה נשלח רק אם בוחרים לשלוח אותו, מאפליקציית המייל או השיתוף, ואין בו שמות של קבצים. במצב ניסיון אפשר לייצא בעצמכם את רשימת הקבצים שהיו נמחקים; היא כוללת שמות ותיקיות, ונשמרת רק במקום שתבחרו. בגרסה הנוכחית אין לו בכלל הרשאת אינטרנט. קבצים יוצאים מהטלפון רק לכונן או לתיקייה שבחרתם לגיבוי.
 
 </div>
