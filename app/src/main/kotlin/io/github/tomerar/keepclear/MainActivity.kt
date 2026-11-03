@@ -183,12 +183,20 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(app.checkReminderPrefs.enabled)
                 }
                 val keepOriginalsInTrash by app.freeSettings.state.collectAsStateWithLifecycle()
+                // PR H2b: "Swap the swipe directions" and the one-time hint, read by the swipe screen.
+                val swipeSwapped by app.swipeSettings.swapped.collectAsStateWithLifecycle()
+                val swipeHintSeen by app.swipeSettings.hintSeen.collectAsStateWithLifecycle()
                 // D6: forgetting the Nextcloud revokes its app password on the server first; it runs in the app's
                 // scope (survives rotation, PR #44 review) and its state lives in the application.
                 val nextcloudForget by app.nextcloudForget.collectAsStateWithLifecycle()
                 CompositionLocalProvider(
                     LocalThumbnailLoader provides thumbnails,
                     LocalAppIcons provides appIcons,
+                    LocalSwipePrefs provides SwipePrefs(
+                        swapped = swipeSwapped,
+                        hintSeen = swipeHintSeen,
+                        onHintSeen = app.swipeSettings::markHintSeen,
+                    ),
                 ) {
                     AppScreens(
                         settingsActions = SettingsActions(
@@ -198,6 +206,8 @@ class MainActivity : ComponentActivity() {
                             onRemoveJunk = vm::removeJunk,
                             keepOriginalsInTrash = keepOriginalsInTrash,
                             onKeepOriginalsInTrash = app.freeSettings::setKeepInTrash,
+                            swipeSwapped = swipeSwapped,
+                            onSwipeSwapped = app.swipeSettings::setSwapped,
                             reminderOn = reminderOn,
                             onReminder = { on ->
                                 app.reminderPrefs.enabled = on
@@ -320,7 +330,11 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenSettings = { vm.open(Screen.Settings) },
                         ),
-                        selectionActions = SelectionActions(onSelect = vm::select, onSwipe = vm::swipe),
+                        selectionActions = SelectionActions(
+                            onSelect = vm::select,
+                            onSwipe = vm::swipe,
+                            onSwipeEnd = vm::endSwipe,
+                        ),
                         notificationsOff = notificationsOff,
                         moveActions = MoveActions(
                             onPickTarget = { items ->

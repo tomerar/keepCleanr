@@ -461,7 +461,7 @@
     <string name="choice_remove">Remove</string>
     <string name="swipe_start">Go through them one by one</string>
     <string name="swipe_progress">%1$s of %2$s</string>
-    <string name="swipe_hint">Swipe toward Delete or toward Keep, or use the buttons. Nothing is deleted until you confirm at the end.</string>
+    <string name="swipe_hint">Nothing is deleted until you finish and confirm.</string>
     <string name="swipe_keep">Keep</string>
     <string name="swipe_delete">Delete</string>
     <string name="swipe_skip">Skip</string>
@@ -469,7 +469,6 @@
     <string name="swipe_close">Close</string>
     <string name="swipe_summary_delete">To delete: %1$s</string>
     <string name="swipe_summary_note">Next you see the list and can take items out. Deleted files go to the trash for 30 days.</string>
-    <string name="swipe_review">Review and delete</string>
     <plurals name="swipe_kept">
         <item quantity="one">%1$s kept</item>
         <item quantity="other">%1$s kept</item>
@@ -478,6 +477,25 @@
         <item quantity="one">%1$s skipped</item>
         <item quantity="other">%1$s skipped</item>
     </plurals>
+    <!-- PR H2b (owner brief H2 item 8): swipe finish, resume, direction hint and setting. -->
+    <string name="swipe_finish">Finish and review · %1$s</string>
+    <string name="swipe_finish_none">Finish and review</string>
+    <string name="swipe_summary_none">Nothing chosen to delete</string>
+    <string name="swipe_dir_left_deletes">Swipe left to delete, right to keep.</string>
+    <string name="swipe_dir_right_deletes">Swipe right to delete, left to keep.</string>
+    <string name="swipe_resume_title">You went through %1$s of %2$s</string>
+    <string name="swipe_resume_none_marked">Nothing is marked to delete yet. Nothing was deleted.</string>
+    <plurals name="swipe_resume_marked">
+        <item quantity="one">%1$s file is marked to delete. Nothing was deleted yet.</item>
+        <item quantity="other">%1$s files are marked to delete. Nothing was deleted yet.</item>
+    </plurals>
+    <plurals name="swipe_resume_dropped">
+        <item quantity="one">%1$s file changed or is gone since, so its choice was dropped.</item>
+        <item quantity="other">%1$s files changed or are gone since, so their choices were dropped.</item>
+    </plurals>
+    <string name="swipe_resume_continue">Continue where you left off</string>
+    <string name="swipe_resume_restart">Start over</string>
+    <string name="settings_swipe_swap">Swap the swipe directions</string>
     <string name="reminder_setting">Remind me when space is low</string>
     <string name="reminder_setting_body" formatted="false">At most once a week, when less than 10% (or 2 GB) is free. It only reminds; nothing is deleted in the background.</string>
     <string name="reminder_channel">Space reminders</string>
@@ -600,15 +618,8 @@
     <string name="settings_network_checking">KeepClear is connecting…</string>
     <string name="settings_network_saved">Ready: KeepClear can back up to %1$s.</string>
     <string name="reminder_notif_explain">The reminder is a notification. Android will ask whether KeepClear may show notifications; without that, the reminder stays off.</string>
-    <string name="swipe_exit_body">Nothing was deleted. Leaving now forgets the choices made so far.</string>
-    <string name="swipe_exit_yes">Leave</string>
-    <string name="swipe_exit_no">Keep going</string>
     <string name="apps_loading">Reading the list of apps…</string>
     <string name="apps_others">Other apps by size</string>
-    <plurals name="swipe_exit_title">
-        <item quantity="one">Leave? 1 decision will be lost</item>
-        <item quantity="other">Leave? %s decisions will be lost</item>
-    </plurals>
     <string name="apps_open_app_content">See files inside apps\' own folders</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
     <string name="clean_confirm_yes_now">Clean now</string>

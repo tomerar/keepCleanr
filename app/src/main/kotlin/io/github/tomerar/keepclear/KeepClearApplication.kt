@@ -352,6 +352,18 @@ class KeepClearApplication : Application() {
         )
     }
 
+    /** PR H2b: saved one-by-one sessions ("Continue where you left off"); read and written off the main thread. */
+    val swipeStore by lazy {
+        SwipeSessionStore(
+            SwipeSessionStore.SharedPreferencesBackend(
+                getSharedPreferences(SwipeSessionStore.PREFS, MODE_PRIVATE),
+            ),
+        )
+    }
+
+    /** PR H2b: "Swap the swipe directions" and the one-time direction hint. */
+    val swipeSettings by lazy { MainThreadPolicy.settings { SwipeSettings(this) } }
+
     /** Owner decision P1: "Keep the original in the 30-day trash too" (off by default). */
     val freeSettings by lazy { MainThreadPolicy.settings { FreeSettings(this) } }
 

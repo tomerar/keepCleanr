@@ -105,8 +105,8 @@ class SwipeReviewTest {
         compose.onNodeWithTag("swipeDelete").performClick() // the file on screen: s2
         assertEquals(
             listOf(
-                SwipeDecision(items[0].item.path, SwipeChoice.KEEP),
-                SwipeDecision(items[1].item.path, SwipeChoice.DELETE),
+                SwipeDecision.of(items[0], SwipeChoice.KEEP),
+                SwipeDecision.of(items[1], SwipeChoice.DELETE),
             ),
             decisions,
         )
@@ -130,7 +130,7 @@ class SwipeReviewTest {
         compose.onNodeWithTag("swipeSummary").assertExists()
         // Nothing was deleted while swiping.
         assertEquals(null, deleted)
-        compose.onNodeWithTag("swipeReview").performClick()
+        compose.onNodeWithTag("swipeFinish").performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("confirmDelete").fetchSemanticsNodes()
                 .any { SemanticsProperties.Disabled !in it.config }
@@ -144,7 +144,7 @@ class SwipeReviewTest {
     fun `keeping everything offers nothing to delete`() {
         compose.setContent { KeepClearTheme { SwipeReview(group().items, onDone = {}, onClose = {}) } }
         repeat(3) { compose.onNodeWithTag("swipeKeep").performClick() }
-        compose.onNodeWithTag("swipeReview").assertIsNotEnabled()
+        compose.onNodeWithTag("swipeFinish").assertIsNotEnabled()
     }
 
     @Test
@@ -167,11 +167,12 @@ class SwipeReviewTest {
             }
         }
         compose.waitForIdle()
-        val firstPicture = compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes()
-        assertEquals(0, firstPicture.size) // the first item shows its picture, not its name
+
+        fun pictures() = compose.onAllNodesWithTag("thumbPicture", useUnmergedTree = true).fetchSemanticsNodes().size
+        assertEquals(1, pictures()) // the first item shows its picture
         compose.onNodeWithTag("swipeKeep").performClick()
         compose.waitForIdle()
-        // The second item is still loading: its name shows, never the first item's picture.
-        assertEquals(1, compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes().size)
+        // The second item is still loading: no picture at all, never the first item's.
+        assertEquals(0, pictures())
     }
 }

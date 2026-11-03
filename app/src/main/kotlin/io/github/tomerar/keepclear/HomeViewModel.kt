@@ -100,6 +100,11 @@ data class HomeUiState(
     val selections: Map<String, Set<String>> = emptyMap(),
     /** E4, E11: the one-by-one review's decisions per group, by path; null while not reviewing one by one. */
     val swipes: Map<String, List<SwipeDecision>> = emptyMap(),
+    /**
+     * PR H2b: one-by-one sessions left before (also in an earlier run of the app), per group, as saved; the group
+     * offers „להמשיך מאיפה שעצרתם” and drops decisions whose file changed ([SwipeSession.resume]).
+     */
+    val savedSwipes: Map<String, List<SwipeDecision>> = emptyMap(),
 )
 
 /** E4: the key of a group's selection. */
@@ -924,9 +929,49 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         it.copy(selections = if (paths.isEmpty()) it.selections - key else it.selections + (key to paths))
     }
 
-    /** E4, E11: the one-by-one review of group [key]; null when it closes. */
-    fun swipe(key: String, decisions: List<SwipeDecision>?) = _state.update {
-        it.copy(swipes = if (decisions == null) it.swipes - key else it.swipes + (key to decisions))
+    /**
+     * E4, E11: the one-by-one review of group [key]; null when it closes. PR H2b: every change is also saved (off
+     * the main thread), so closing the screen or the app keeps the session; closing keeps it too.
+     */
+    fun swipe(key: String, decisions: List<SwipeDecision>?) {
+        _state.update {
+            it.copy(
+                swipes = if (decisions == null) it.swipes - key else it.swipes + (key to decisions),
+                savedSwipes = when {
+                    decisions == null -> it.savedSwipes
+                    decisions.isEmpty() -> it.savedSwipes - key
+                    else -> it.savedSwipes + (key to decisions)
+                },
+            )
+        }
+        if (decisions != null) saveSwipe(key, decisions)
+    }
+
+    /** PR H2b: the session of group [key] ended („לסיים ולבדוק”, „להתחיל מחדש”): it is forgotten, also on disk. */
+    fun endSwipe(key: String) {
+        _state.update { it.copy(swipes = it.swipes - key, savedSwipes = it.savedSwipes - key) }
+        saveSwipe(key, emptyList())
+    }
+
+    /** The latest decisions per group waiting to be written; one writer, so only the newest list is written. */
+    private val pendingSwipes = java.util.concurrent.ConcurrentHashMap<String, List<SwipeDecision>>()
+    private val swipeWrites = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+
+    private fun saveSwipe(key: String, decisions: List<SwipeDecision>) {
+        pendingSwipes[key] = decisions
+        swipeWrites.trySend(key)
+    }
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val loaded = runCatching { app.swipeStore.loadAll() }.getOrDefault(emptyMap())
+            // A session changed in this run before the load finished wins over the one on disk.
+            _state.update { s -> s.copy(savedSwipes = loaded - pendingSwipes.keys + s.savedSwipes) }
+            for (key in swipeWrites) {
+                val latest = pendingSwipes.remove(key) ?: continue
+                runCatching { app.swipeStore.save(key, latest) }
+            }
+        }
     }
 
     private suspend fun freeNow(): Long = withContext(Dispatchers.IO) { phoneFreeBytes(app) }

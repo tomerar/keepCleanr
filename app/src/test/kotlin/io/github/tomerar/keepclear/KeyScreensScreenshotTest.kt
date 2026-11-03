@@ -43,6 +43,13 @@ class KeyScreensScreenshotTest(private val locale: String, private val night: Bo
 
     @Test fun trash(): Unit = at200 { shots.trash() }
 
+    // Owner brief H6: swipe at 200% too (PR H2b: the session, the hint and the resume prompt).
+    @Test fun swipe(): Unit = at200 { shots.swipe() }
+
+    @Test fun swipeHint(): Unit = at200 { shots.swipeHint() }
+
+    @Test fun swipeResume(): Unit = at200 { shots.swipeResume() }
+
     private fun at200(shot: () -> Unit) {
         assumeTrue(font == 200)
         shot()

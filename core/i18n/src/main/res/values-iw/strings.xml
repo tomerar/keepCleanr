@@ -492,15 +492,14 @@
     <string name="choice_remove">להסיר</string>
     <string name="swipe_start">לעבור עליהם אחד-אחד</string>
     <string name="swipe_progress">%1$s מתוך %2$s</string>
-    <string name="swipe_hint">אפשר להחליק לכיוון „למחוק” או לכיוון „להשאיר”, או להשתמש בכפתורים. שום דבר לא נמחק עד האישור בסוף.</string>
+    <string name="swipe_hint">שום דבר לא נמחק עד שמסיימים ומאשרים.</string>
     <string name="swipe_keep">להשאיר</string>
     <string name="swipe_delete">למחוק</string>
     <string name="swipe_skip">לדלג</string>
-    <string name="swipe_undo">לבטל</string>
+    <string name="swipe_undo">חזרה</string>
     <string name="swipe_close">לסגור</string>
     <string name="swipe_summary_delete">למחיקה: %1$s</string>
     <string name="swipe_summary_note">בשלב הבא מוצגת הרשימה ואפשר להוציא ממנה פריטים. קבצים שנמחקים עוברים לסל המחזור ל-30 יום.</string>
-    <string name="swipe_review">לבדוק ולמחוק</string>
     <plurals name="swipe_kept">
         <item quantity="one">%1$s נשאר</item>
         <item quantity="two">%1$s נשארו</item>
@@ -511,6 +510,27 @@
         <item quantity="two">%1$s דולגו</item>
         <item quantity="other">%1$s דולגו</item>
     </plurals>
+    <!-- PR H2b (owner brief H2 item 8): swipe finish, resume, direction hint and setting. -->
+    <string name="swipe_finish">לסיים ולבדוק · %1$s</string>
+    <string name="swipe_finish_none">לסיים ולבדוק</string>
+    <string name="swipe_summary_none">לא נבחר כלום למחיקה</string>
+    <string name="swipe_dir_left_deletes">החלקה שמאלה — למחוק, ימינה — להשאיר.</string>
+    <string name="swipe_dir_right_deletes">החלקה ימינה — למחוק, שמאלה — להשאיר.</string>
+    <string name="swipe_resume_title">עברתם על %1$s מתוך %2$s</string>
+    <string name="swipe_resume_none_marked">עוד לא סימנתם כלום למחיקה. שום דבר לא נמחק.</string>
+    <plurals name="swipe_resume_marked">
+        <item quantity="one">קובץ אחד מסומן למחיקה. שום דבר עוד לא נמחק.</item>
+        <item quantity="two">%1$s קבצים מסומנים למחיקה. שום דבר עוד לא נמחק.</item>
+        <item quantity="other">%1$s קבצים מסומנים למחיקה. שום דבר עוד לא נמחק.</item>
+    </plurals>
+    <plurals name="swipe_resume_dropped">
+        <item quantity="one">קובץ אחד השתנה או נעלם מאז, אז הבחירה שלו לא נשמרה.</item>
+        <item quantity="two">%1$s קבצים השתנו או נעלמו מאז, אז הבחירות שלהם לא נשמרו.</item>
+        <item quantity="other">%1$s קבצים השתנו או נעלמו מאז, אז הבחירות שלהם לא נשמרו.</item>
+    </plurals>
+    <string name="swipe_resume_continue">להמשיך מאיפה שעצרתם</string>
+    <string name="swipe_resume_restart">להתחיל מחדש</string>
+    <string name="settings_swipe_swap">להחליף את כיווני ההחלקה</string>
     <string name="reminder_setting">להזכיר לי כשהמקום מתמלא</string>
     <string name="reminder_setting_body" formatted="false">לכל היותר פעם בשבוע, כשנשאר פחות מ-10% (או 2 GB) פנוי. רק תזכורת; שום דבר לא נמחק ברקע.</string>
     <string name="reminder_channel">תזכורות מקום</string>
@@ -638,16 +658,8 @@
     <string name="settings_network_checking">KeepClear מתחבר…</string>
     <string name="settings_network_saved">מוכן: KeepClear יכול לגבות אל %1$s.</string>
     <string name="reminder_notif_explain">התזכורת היא התראה. אנדרואיד ישאל אם KeepClear יכול להציג התראות. בלי זה התזכורת תישאר כבויה.</string>
-    <string name="swipe_exit_body">שום דבר לא נמחק. יציאה עכשיו תשכח את הבחירות שנעשו עד כאן.</string>
-    <string name="swipe_exit_yes">לצאת</string>
-    <string name="swipe_exit_no">להמשיך</string>
     <string name="apps_loading">KeepClear קורא את רשימת האפליקציות…</string>
     <string name="apps_others">שאר האפליקציות, לפי גודל</string>
-    <plurals name="swipe_exit_title">
-        <item quantity="one">לצאת? החלטה אחת תאבד</item>
-        <item quantity="two">לצאת? %s החלטות יאבדו</item>
-        <item quantity="other">לצאת? %s החלטות יאבדו</item>
-    </plurals>
     <string name="apps_open_app_content">לראות קבצים בתוך התיקיות של אפליקציות</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
     <string name="clean_confirm_yes_now">לנקות עכשיו</string>

@@ -208,10 +208,18 @@ fun GroupScreen(
     // E4: never a 10,000-path set in saved state (TransactionTooLarge); the ViewModel keeps it.
     var localSelected by remember { mutableStateOf(setOf<String>()) }
     var localSwipe by remember { mutableStateOf<List<SwipeDecision>?>(null) }
+    var localSaved by remember { mutableStateOf<List<SwipeDecision>?>(null) }
     val selected = selection?.selected ?: localSelected
     val setSelected: (Set<String>) -> Unit = selection?.onSelect ?: { localSelected = it }
     val swipe = if (selection != null) selection.swipe else localSwipe
-    val setSwipe: (List<SwipeDecision>?) -> Unit = selection?.onSwipe ?: { localSwipe = it }
+    // PR H2b: without a ViewModel (tests) the session is kept here, as the ViewModel keeps it on disk.
+    val setSwipe: (List<SwipeDecision>?) -> Unit = selection?.onSwipe ?: { d ->
+        localSwipe = d
+        if (d != null) localSaved = d
+    }
+    val saved = if (selection != null) selection.saved else localSaved
+    val endSwipe: () -> Unit = selection?.onSwipeEnd ?: { localSaved = null }
+    var askResume by remember { mutableStateOf<List<SwipeDecision>?>(null) }
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
     var why by remember { mutableStateOf(false) }
     val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
@@ -272,7 +280,17 @@ fun GroupScreen(
                             if (group.items.size > 1) {
                                 KcButton(
                                     stringResource(R.string.swipe_start),
-                                    onClick = { setSwipe(emptyList()) },
+                                    onClick = {
+                                        // PR H2b: a session left earlier is offered first („להמשיך מאיפה שעצרתם”).
+                                        // Nothing left of it (every file changed or went away): a new start.
+                                        val raw = saved.orEmpty()
+                                        if (SwipeSession.resume(group.items, raw).isNotEmpty()) {
+                                            askResume = raw
+                                        } else {
+                                            if (raw.isNotEmpty()) endSwipe()
+                                            setSwipe(emptyList())
+                                        }
+                                    },
                                     style = KcButtonStyle.Tonal,
                                     modifier = Modifier.testTag("startSwipe"),
                                 )
@@ -352,11 +370,29 @@ fun GroupScreen(
             Text(stringResource(text.ifDeleted), style = MaterialTheme.typography.bodyMedium)
         }
     }
+    askResume?.let { raw ->
+        ResumeSwipeSheet(
+            items = group.items,
+            saved = raw,
+            onContinue = {
+                askResume = null
+                setSwipe(SwipeSession.resume(group.items, raw))
+            },
+            onRestart = {
+                askResume = null
+                endSwipe()
+                setSwipe(emptyList())
+            },
+            onDismiss = { askResume = null },
+        )
+    }
     if (swipe != null) {
         SwipeReview(
             items = group.items,
             onDone = { list ->
+                // „לסיים ולבדוק” ends the session: what was marked goes to the usual confirmation, nothing else.
                 setSwipe(null)
+                endSwipe()
                 setSelected(list.map { it.item.path }.toSet())
                 if (list.isNotEmpty()) confirming = list
             },
@@ -389,7 +425,64 @@ class GroupSelection(
     val onSelect: (Set<String>) -> Unit,
     val swipe: List<SwipeDecision>?,
     val onSwipe: (List<SwipeDecision>?) -> Unit,
+    /** PR H2b: the session saved for this group (as left; [SwipeSession.resume] drops what changed), or null. */
+    val saved: List<SwipeDecision>? = null,
+    /** PR H2b: the session ended („לסיים ולבדוק” or „להתחיל מחדש”): forget the saved one. */
+    val onSwipeEnd: () -> Unit = {},
 )
+
+/**
+ * PR H2b: „להמשיך מאיפה שעצרתם”. Says how far the user got and how many are marked, and how many decisions were
+ * dropped because their file changed or went away since; starting over forgets the saved session.
+ */
+@Composable
+private fun ResumeSwipeSheet(
+    items: List<ClassifiedItem>,
+    saved: List<SwipeDecision>,
+    onContinue: () -> Unit,
+    onRestart: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val kept = SwipeSession.resume(items, saved)
+    val dropped = saved.size - kept.size
+    val marked = SwipeSession.toDelete(items, kept).size
+    val title = stringResource(
+        R.string.swipe_resume_title,
+        countText(SwipeSession.decided(items, kept)),
+        countText(items.size),
+    )
+    InfoSheet(
+        title = title,
+        dismissText = stringResource(R.string.swipe_resume_restart),
+        onDismiss = onDismiss,
+        dismissAction = onRestart,
+        dismissModifier = Modifier.testTag("swipeResumeRestart"),
+        modifier = Modifier.testTag("swipeResume"),
+        primaryButton = {
+            KcButton(
+                stringResource(R.string.swipe_resume_continue),
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth().testTag("swipeResumeContinue"),
+            )
+        },
+    ) {
+        Text(
+            if (marked == 0) {
+                stringResource(R.string.swipe_resume_none_marked)
+            } else {
+                countSentence(R.plurals.swipe_resume_marked, marked)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (dropped > 0) {
+            Text(
+                countSentence(R.plurals.swipe_resume_dropped, dropped),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("swipeResumeDropped"),
+            )
+        }
+    }
+}
 
 /** REV-3: the user sees and can trim exactly what will move to the trash. */
 @Composable
@@ -549,7 +642,7 @@ private fun ThumbContent(item: ClassifiedItem, sizeDp: Int, showName: Boolean) {
             image.asImageBitmap(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag("thumbPicture"),
         )
     } else if (showName) {
         Text(

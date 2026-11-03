@@ -253,28 +253,35 @@ class F2ScreensTest {
     }
 
     @Test
-    fun `swipe direction is fixed by meaning - toward the Delete button deletes, in Hebrew and in English`() {
-        // English: Delete sits at the right (end); Hebrew: at the left (end in RTL).
-        assertEquals(SwipeChoice.DELETE, SwipeSession.choiceFor(300f, 100f, rtl = false))
-        assertEquals(SwipeChoice.KEEP, SwipeSession.choiceFor(-300f, 100f, rtl = false))
-        assertEquals(SwipeChoice.DELETE, SwipeSession.choiceFor(-300f, 100f, rtl = true))
-        assertEquals(SwipeChoice.KEEP, SwipeSession.choiceFor(300f, 100f, rtl = true))
-        assertNull(SwipeSession.choiceFor(99f, 100f, rtl = false))
-        assertNull(SwipeSession.choiceFor(-99f, 100f, rtl = true))
+    fun `swipe direction - a swipe to the left deletes in Hebrew and in English, swapped it keeps (C148)`() {
+        // Physical pixels: negative is to the left in either layout direction.
+        assertEquals(SwipeChoice.DELETE, SwipeSession.choiceFor(-300f, 100f, deleteOnLeft = true))
+        assertEquals(SwipeChoice.KEEP, SwipeSession.choiceFor(300f, 100f, deleteOnLeft = true))
+        assertEquals(SwipeChoice.KEEP, SwipeSession.choiceFor(-300f, 100f, deleteOnLeft = false))
+        assertEquals(SwipeChoice.DELETE, SwipeSession.choiceFor(300f, 100f, deleteOnLeft = false))
+        assertNull(SwipeSession.choiceFor(99f, 100f, deleteOnLeft = true))
+        assertNull(SwipeSession.choiceFor(-99f, 100f, deleteOnLeft = true))
+        assertEquals(true, SwipeSession.deleteOnLeft(swapped = false))
+        assertEquals(false, SwipeSession.deleteOnLeft(swapped = true))
     }
 
-    private fun swipeOnce(direction: LayoutDirection, toLeft: Boolean): List<SwipeDecision> {
+    private fun swipeOnce(direction: LayoutDirection, toLeft: Boolean, swapped: Boolean = false): List<SwipeDecision> {
         var decisions by mutableStateOf(listOf<SwipeDecision>())
         val items = swipeItems()
         compose.setContent {
             KeepClearTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides direction,
+                    LocalSwipePrefs provides SwipePrefs(swapped = swapped),
+                ) {
                     SwipeReview(items, onDone = {
                     }, onClose = {}, decisions = decisions, onDecisions = { decisions = it })
                 }
             }
         }
-        compose.onNodeWithTag("swipeCard").performTouchInput { if (toLeft) swipeLeft() else swipeRight() }
+        compose.onNodeWithTag("swipeCard", useUnmergedTree = true).performTouchInput {
+            if (toLeft) swipeLeft() else swipeRight()
+        }
         compose.waitForIdle()
         return decisions
     }
@@ -285,8 +292,28 @@ class F2ScreensTest {
     }
 
     @Test
-    fun `in English a swipe to the right deletes`() {
-        assertEquals(SwipeChoice.DELETE, swipeOnce(LayoutDirection.Ltr, toLeft = false).single().choice)
+    fun `in Hebrew a swipe to the right keeps`() {
+        assertEquals(SwipeChoice.KEEP, swipeOnce(LayoutDirection.Rtl, toLeft = false).single().choice)
+    }
+
+    @Test
+    fun `in English a swipe to the left deletes`() {
+        assertEquals(SwipeChoice.DELETE, swipeOnce(LayoutDirection.Ltr, toLeft = true).single().choice)
+    }
+
+    @Test
+    fun `in English a swipe to the right keeps`() {
+        assertEquals(SwipeChoice.KEEP, swipeOnce(LayoutDirection.Ltr, toLeft = false).single().choice)
+    }
+
+    @Test
+    fun `swapped directions - in Hebrew a swipe to the right deletes`() {
+        assertEquals(SwipeChoice.DELETE, swipeOnce(LayoutDirection.Rtl, toLeft = false, swapped = true).single().choice)
+    }
+
+    @Test
+    fun `swapped directions - in English a swipe to the right deletes`() {
+        assertEquals(SwipeChoice.DELETE, swipeOnce(LayoutDirection.Ltr, toLeft = false, swapped = true).single().choice)
     }
 
     @Test
@@ -295,26 +322,34 @@ class F2ScreensTest {
             KeepClearTheme { SwipeReview(swipeItems(), onDone = {}, onClose = {}) }
         }
         compose.onNodeWithTag("swipeLabel", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithTag("swipeCard").performTouchInput {
+        compose.onNodeWithTag("swipeCard", useUnmergedTree = true).performTouchInput {
             down(center)
-            moveBy(androidx.compose.ui.geometry.Offset(width * 0.45f, 0f))
+            moveBy(androidx.compose.ui.geometry.Offset(-width * 0.45f, 0f))
         }
-        compose.onNodeWithTag("swipeLabel", useUnmergedTree = true)
+        compose.onNodeWithTag("swipeLabel_DELETE", useUnmergedTree = true)
             .assertTextContains(context.getString(R.string.swipe_delete))
     }
 
     @Test
-    fun `leaving with decisions asks first, and only leaving loses them`() {
+    fun `closing keeps the decisions for later and asks nothing`() {
         var closed = 0
+        var decisions by mutableStateOf(listOf<SwipeDecision>())
         compose.setContent {
-            KeepClearTheme { SwipeReview(swipeItems(), onDone = {}, onClose = { closed++ }) }
+            KeepClearTheme {
+                SwipeReview(
+                    swipeItems(),
+                    onDone = {},
+                    onClose = { closed++ },
+                    decisions = decisions,
+                    onDecisions = { decisions = it },
+                )
+            }
         }
         compose.onNodeWithTag("swipeKeep").performClick()
         compose.onNodeWithTag("swipeClose").performClick()
-        compose.onNodeWithTag("swipeExit").assertExists()
-        assertEquals(0, closed)
-        compose.onNodeWithTag("swipeExitYes").performClick()
         assertEquals(1, closed)
+        // Nothing is thrown away by closing: the group offers „להמשיך מאיפה שעצרתם” (SwipeResumeTest).
+        assertEquals(1, decisions.size)
     }
 
     @Test
@@ -325,7 +360,6 @@ class F2ScreensTest {
         }
         compose.onNodeWithTag("swipeClose").performClick()
         assertEquals(1, closed)
-        compose.onNodeWithTag("swipeExit").assertDoesNotExist()
     }
 
     // ---------------------------------------------------------------- Apps tab
