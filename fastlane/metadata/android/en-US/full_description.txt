@@ -4,7 +4,7 @@ KeepClear finds what takes space on your phone and explains each thing in plain 
 <ul>
 <li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' bins. Cleared in one tap.</li>
 <li><b>Choose what to delete</b>: large videos, screenshots, AI images, duplicates, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. Nothing is deleted unless you choose it, and nothing is selected for you.</li>
-<li><b>Back up</b>: your photos and videos are never just deleted. KeepClear backs them up to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees up space only when you tap "Free up" and confirm.</li>
+<li><b>Back up</b>: your photos and videos are never just deleted. KeepClear backs them up to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, checks it once more after you unplug the drive and plug it back in, shows you a receipt, and frees up space only when you tap "Free up" and confirm. Favourites and the last 30 days stay on the phone unless you choose otherwise.</li>
 </ul>
 
 <b>Most of it can come back</b>
@@ -15,6 +15,7 @@ Most of what you clean waits 30 days in the trash. Files that rebuild themselves
 <li>The Apps tab: see which apps use the most space and which you have not opened in about 6 months, and uninstall through Android's own window.</li>
 <li>Go through a group (screenshots, for example) one by one with a swipe.</li>
 <li>Restore files from a backup you made with KeepClear.</li>
+<li>Help inside the app, also offline, and a history of what KeepClear did.</li>
 <li>An optional reminder when space runs low. It only reminds; it never cleans by itself.</li>
 <li>English and Hebrew, light and dark themes.</li>
 </ul>

@@ -35,7 +35,12 @@ class Shots(
     private val locale: String,
     private val night: Boolean,
     private val fontScale: Float = 1f,
+    /** Owner brief H6: "tablet_" for the tablet set, so its files sit next to the phone's under their own name. */
+    private val prefix: String = "",
 ) {
+    /** On a tablet a screen shown alone keeps the readable width, as in [AppScreens] ([ReadableWidth], UI-2). */
+    private val tablet = prefix.isNotEmpty()
+
     init {
         // Dates on screen (the trash's "space comes back on …", "last used") are worked out in the phone's zone.
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
@@ -46,16 +51,17 @@ class Shots(
     fun path(screen: String): String {
         val theme = if (night) "dark" else "light"
         val font = if (fontScale != 1f) "_font${(fontScale * 100).toInt()}" else ""
-        return "src/test/screenshots/${screen}_${locale}_$theme${font}_api${Build.VERSION.SDK_INT}.png"
+        return "src/test/screenshots/$prefix${screen}_${locale}_$theme${font}_api${Build.VERSION.SDK_INT}.png"
     }
 
-    fun show(content: @Composable () -> Unit) {
+    /** [alone]: a screen shown without [AppScreens] (which already keeps the readable width on a tablet). */
+    fun show(alone: Boolean = false, content: @Composable () -> Unit) {
         compose.setContent {
             KeepClearTheme(darkTheme = night, reducedMotion = true) {
                 CompositionLocalProvider(
                     LocalThumbnailLoader provides OwnerPhone.thumbnails,
                     LocalClock provides { OwnerPhone.NOW },
-                ) { content() }
+                ) { if (tablet && alone) ReadableWidth { content() } else content() }
             }
         }
     }
@@ -165,7 +171,7 @@ class Shots(
 
     /** PR H2b: in the middle of a session: „לסיים ולבדוק · 14” always on screen, „חזרה” apart from „לסגור”. */
     fun swipe() {
-        show { SwipeReview(swipeItems, {}, {}, decisions = midSession()) }
+        show(alone = true) { SwipeReview(swipeItems, {}, {}, decisions = midSession()) }
         capture("swipe")
     }
 
@@ -204,7 +210,7 @@ class Shots(
 
     /** H1c: the Trash as a grid of pictures by month (its default). */
     fun trash() {
-        show {
+        show(alone = true) {
             TrashScreen(OwnerPhone.trash, { _, _ -> }, { _, _ -> }, {}, showUninstallNote = true, now = OwnerPhone.NOW)
         }
         capture("trash")
@@ -295,6 +301,104 @@ class Shots(
         val view = JobView(job.copy(state = JobState.DONE), receipt, canReadBack = true)
         show { Backup(MoveUiState(jobs = listOf(view))) }
         capture("backup_summary")
+    }
+
+    /** The owner-shaped phone's backup, copied and checked once (H1: before the second check, [confirmed] = 0). */
+    private fun receipt(confirmed: Int) = Receipt(
+        "j1",
+        "SanDisk USB",
+        "KeepClear/Phone",
+        verified = 6_830,
+        verifiedBytes = 31_000_000_000,
+        failed = emptyMap(),
+        changed = 0,
+        pending = 0,
+        namesChanged = 0,
+        confirmed = confirmed,
+        confirmedBytes = confirmed * (31_000_000_000 / 6_830),
+    )
+
+    /**
+     * Owner decisions P1, P2, P4: the 6,830 originals the receipt offers to free: 120 favourites and 310 from the last
+     * 30 days (both kept on the phone by the pre-ticked options), and 400 WhatsApp photos (the extra sentence).
+     */
+    private val freeCandidates: List<io.github.tomerar.keepclear.engine.move.FreeCandidate> by lazy {
+        val day = 86_400_000L
+        val size = 31_000_000_000 / 6_830
+        (0 until 6_830).map { i ->
+            val whatsApp = i % 17 == 0
+            val path = if (whatsApp) {
+                "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/IMG-$i-WA0001.jpg"
+            } else {
+                "/storage/emulated/0/DCIM/Camera/IMG_$i.jpg"
+            }
+            io.github.tomerar.keepclear.engine.move.FreeCandidate(
+                path,
+                size,
+                mtime = OwnerPhone.NOW - (if (i % 22 == 1) 3L else 400L + i % 300) * day,
+                favourite = i % 57 == 2,
+            )
+        }
+    }
+
+    /** Owner brief H1 item 6: copied and checked once: „הועתק ✓ · שלב אחרון: בדיקה”, no stamp yet. */
+    fun backupCopied() {
+        val view = JobView(job.copy(state = JobState.DONE), receipt(confirmed = 0), canReadBack = true)
+        show { Backup(MoveUiState(jobs = listOf(view))) }
+        capture("backup_copied")
+    }
+
+    /**
+     * Owner brief H1 item 6: the re-plug check, one picture per live state (unplug → unplugged ✓, plug it back in →
+     * checking → the stamp).
+     */
+    fun backupCheck(step: String) {
+        val check = when (step) {
+            "unplug" -> BackupCheck.Unplug("j1")
+            "plugback" -> BackupCheck.PlugBack("j1")
+            "checking" -> BackupCheck.Checking("j1")
+            else -> BackupCheck.Done("j1", io.github.tomerar.keepclear.engine.move.CheckResult(6_830, 0, 0))
+        }
+        val confirmed = if (check is BackupCheck.Done) 6_830 else 0
+        val view = JobView(job.copy(state = JobState.DONE), receipt(confirmed), canReadBack = true)
+        show { Backup(MoveUiState(jobs = listOf(view), check = check)) }
+        capture("backup_check_$step")
+    }
+
+    /** Owner decisions P1, P2, P4: the free step's confirmation, opened from the receipt, its button ready. */
+    fun freeConfirm() {
+        val view = JobView(
+            job.copy(state = JobState.DONE),
+            receipt(confirmed = 6_830),
+            canReadBack = true,
+            freeCandidates = freeCandidates,
+        )
+        show { Backup(MoveUiState(jobs = listOf(view))) }
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("freeOriginals"))
+        compose.onNodeWithTag("freeOriginals").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmFree").fetchSemanticsNodes()
+                .any { androidx.compose.ui.semantics.SemanticsProperties.Disabled !in it.config }
+        }
+        capture("free_confirm")
+    }
+
+    /** Owner brief H1 item 7: after freeing, the measured result („פונו 31.0GB · עכשיו פנויים 47.8GB”). */
+    fun freeResult() {
+        val view = JobView(job.copy(state = JobState.DONE), receipt(confirmed = 6_830), canReadBack = true)
+        val result = FreeResult(
+            "j1",
+            done = 6_000,
+            bytes = 27_200_000_000,
+            skipped = 0,
+            failed = 0,
+            forGood = true,
+            targetLabel = "SanDisk USB",
+            measuredFreed = 27_200_000_000,
+            nowFree = 44_000_000_000,
+        )
+        show { Backup(MoveUiState(jobs = listOf(view), freeResult = result)) }
+        capture("free_result")
     }
 
     /** H1c: "Restore from a backup" as a sheet: the backup's files by month, with pictures from the USB drive. */

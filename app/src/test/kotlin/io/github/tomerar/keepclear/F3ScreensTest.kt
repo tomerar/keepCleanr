@@ -114,6 +114,30 @@ class F3ScreensTest {
         assertTrue(camera.joinToString { it.item.path }, camera.all { it.item.mtimeMillis < cutoff })
     }
 
+    // PR H6 (C197): the screenshots showed „Trash · 25…” next to the wordmark, the "?" and the gear.
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `at 100 percent font on a 360dp phone the Trash chip's words are never cut in English`(): Unit =
+        chipFitsAt100("en")
+
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `at 100 percent font on a 360dp phone the Trash chip's words are never cut in Hebrew`(): Unit =
+        chipFitsAt100("iw")
+
+    private fun chipFitsAt100(locale: String) {
+        org.robolectric.RuntimeEnvironment.setQualifiers("+$locale")
+        compose.setContent {
+            KeepClearTheme {
+                androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.width(360.dp)) {
+                    MainTopBar(OwnerPhone.trash, TabsUi())
+                }
+            }
+        }
+        val chip = compose.onNodeWithTag("trashChip").fetchSemanticsNode()
+        assertEquals("the chip's words were cut", true, chip.config[TrashChipFits])
+    }
+
     @Test
     // Real text measurement (the default Robolectric graphics measure every character as 1 px).
     @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)

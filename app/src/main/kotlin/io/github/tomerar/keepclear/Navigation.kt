@@ -267,8 +267,11 @@ private fun tabIcon(tab: Tab): ImageVector = when (tab) {
 fun MainTopBar(trash: TrashUi, ui: TabsUi) {
     val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
     // PR H3 (C171): with the "?" on the bar, large font sizes give the Trash chip the bar's gaps instead (the icon
-    // buttons keep their 48dp touch targets), so its words are never cut.
-    val large = fontScale >= 1.5f
+    // buttons keep their 48dp touch targets), so its words are never cut. PR H6 (C197): the same compact bar on a
+    // narrow phone at 100 % when the chip's words don't fit („Trash · 25…” at 360dp); it stays compact once chosen
+    // (going back would cut the words again).
+    var narrow by remember { mutableStateOf(false) }
+    val large = fontScale >= 1.5f || narrow
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier
@@ -296,7 +299,9 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
                 modifier = Modifier.semantics { heading() }.testTag("wordmark"),
             )
             // The wordmark keeps its width; the chip takes what is left and shortens its label if it must.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { TrashChip(trash, ui.onOpenTrash) }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                TrashChip(trash, ui.onOpenTrash, compact = large, onCut = { narrow = true })
+            }
             // Owner brief H3 item 1: Help is one tap away from every main tab.
             IconButton(onClick = ui.onOpenHelp, modifier = Modifier.testTag("openHelp")) {
                 Icon(KcIcons.Help, contentDescription = stringResource(R.string.help_title))
@@ -323,7 +328,7 @@ val TrashChipLabel = androidx.compose.ui.semantics.SemanticsPropertyKey<String>(
  * text in the variant colour), but it still opens the Trash. Never "0B".
  */
 @Composable
-private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit) {
+private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit, compact: Boolean, onCut: () -> Unit) {
     val bytes = trashChipBytes(trash)
     val locale = LocalConfiguration.current.locales[0]
     val empty = bytes == null
@@ -340,7 +345,7 @@ private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit) {
     }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-    val large = fontScale >= 1.5f
+    val large = compact
     val labelStyle = MaterialTheme.typography.labelLarge
     var fits by remember { mutableStateOf(true) }
     AssistChip(
@@ -354,7 +359,10 @@ private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit) {
                 ),
                 maxLines = 1,
                 softWrap = false,
-                onTextLayout = { fits = !it.hasVisualOverflow },
+                onTextLayout = {
+                    fits = !it.hasVisualOverflow
+                    if (!fits) onCut()
+                },
                 // Shrinks rather than cutting the size, never below its size at 100% font.
                 autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
                     minFontSize = labelStyle.fontSize / fontScale.coerceAtLeast(1f),
@@ -363,8 +371,8 @@ private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit) {
                 ),
             )
         },
-        // At large font sizes the word „סל” says what the chip is; the icon gives its room to the size (F3: the
-        // whole size next to the wordmark at 200%).
+        // At large font sizes, or when the bar is too narrow (C197), the word „סל” says what the chip is; the icon
+        // gives its room to the size (F3: the whole size next to the wordmark at 200%).
         leadingIcon = if (large) {
             null
         } else {
