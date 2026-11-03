@@ -296,6 +296,26 @@ Decided (Q1): "Move to trash" is the default action; "Free the space now" is the
 - Result: "פונו 24.1GB · 6,830 קבצים מהטלפון. העותק נשאר ב-SanDisk." `[לשחזר מגיבוי]`; skipped files are counted and stay on the phone; if the drive goes away: "הפינוי נעצר: …".
 - With Settings' "לשמור את המקור גם בסל 30 יום (לא מפנה מקום)" on, the sheet and result are the trash version above ("להעביר לסל המחזור", Empty now).
 
+### 5.8 Backup screens after PR H1b (owner brief H1, 2026-11-03; replaces §5.1, §5.2, §5.4 and the receipt's stamp)
+
+```
+גיבוי
+בשלב הזה רק מעתיקים. שום תמונה לא נמחקת.
+[the latest job / receipt]
+מה לגבות?  (age chips, source rows; hidden while a job runs)
+──────────────── sticky, above the tabs ────────────────
+נבחרו: ‏8,912 קבצים · 31.0GB
+[ לגבות 31.0GB ]
+```
+- **Choose where (item 3).** The sheet follows the drives live: none plugged → „לחבר את הדיסק און קי לטלפון” · "KeepClear מזהה אותו ברגע שהוא מחובר." and `[לבחור את הכונן]` disabled; plugged → „זוהה ✓ SanDisk USB drive” · "במסך הבא להקיש על „שימוש בתיקייה הזו”." and Android's picker opens right at the drive. `[לבחור מקום אחר]` and the places set up under Advanced stay.
+- **Running (items 4, 5).** „מגבים אל SanDisk” · „אפשר להמשיך להשתמש בטלפון · לא לנתק את הדיסק און קי · כדאי לחבר למטען” (network: without the drive part) · small label „מעתיקים” / „בודקים” · ONE line „12.9 מתוך 31.0GB · נשארו כ-41 דקות” (time left from a smoothed rate, nothing in the first 10 s) · progress bar · `[להשהות]` `[לעצור]`. TalkBack hears „הגיבוי הגיע ל-40%” in 10 % steps. Notification: same line, Pause / Stop; Android 16: a Live Update with two segments (copy, check) and „42%” in the status-bar chip.
+- **Receipt (item 6).** Before the second check: „הועתק ✓ · שלב אחרון: בדיקה” and `[לבדוק את הגיבוי]`, no stamp. The stamp „נבדק קובץ-קובץ” only when every copy passed the second check. Re-plug: „לנתק את הדיסק און קי” → „ניתוק זוהה ✓ — לחבר שוב” → „בודקים…” → stamp. "Details" holds „הקבצים בכונן נשמרים כמו שהם, בלי הצפנה, כך שאפשר לפתוח אותם בכל מחשב.”
+- **Partial (item 8).** „הסתיים עם 3 שגיאות” `[להציג]` opens the reasons and the file names.
+- **Paused (item 8).** One message, one button `[להמשיך]`: „אין מספיק מקום בדיסק און קי: צריך 4.1GB, פנויים 2.3GB” (after a restart: „…: צריך עוד 4.1GB”), „הדיסק און קי נותק — לחבר ולהמשיך”, „הטלפון עצר את הגיבוי כדי לחסוך סוללה” (a job found running with no service and no user stop; PR H4 adds the real exit reason). The battery wait has no button: it goes on by itself.
+- **Freed (item 7).** „פונו 31.0GB · עכשיו פנויים 47.8GB” (measured) · „פונו … מהטלפון. העותק נשאר ב-SanDisk.” · `[לשחזר מגיבוי]`.
+- **On the drive (item 10).** `KeepClear/<phone>/README.html` next to the manifest: Hebrew then English, what the folder is, how to open it on a computer, how to restore with KeepClear. Not a backup file.
+- **Reminder (item 11).** Settings: „להזכיר לבדוק את הגיבוי” (off). Three months after the last check: „עברו 3 חודשים מהבדיקה האחרונה — לחבר את הדיסק און קי לבדיקה חוזרת”; tapping opens Backup with "לחבר את הדיסק און קי, ואז להקיש על „לבדוק את הגיבוי”." `[לבדוק את הגיבוי]`.
+
 ---
 
 ## 6. Trash (TRASH-1…6)
