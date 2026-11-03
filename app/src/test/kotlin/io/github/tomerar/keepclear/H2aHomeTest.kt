@@ -98,7 +98,7 @@ class H2aHomeTest {
         show { IntroScreen({}) }
         compose.onNodeWithTag("introNext").performClick()
         compose.onNodeWithText(
-            "Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted " +
+            "Most of what you clean waits 30 days in the trash. Files that rebuild themselves are deleted " +
                 "right away.",
         ).assertIsDisplayed()
         compose.onNodeWithText("Everything can come back").assertDoesNotExist()

@@ -109,7 +109,7 @@ class DesignCatalogScreenshotTest(private val locale: String, private val night:
         )
         LaneCard(
             KcLane.MOVE,
-            t("Move to backup", "להעביר לגיבוי"),
+            t("Back up", "לגבות"),
             count = t("10,472 photos and videos", "10,472 תמונות וסרטונים"),
             size = t("31 GB", "31.0GB"),
             onClick = {},

@@ -109,7 +109,12 @@ fun SafeScreen(
         topBar = { SubScreenTopBar(stringResource(R.string.clean_title), onBack) },
         bottomBar = {
             KcButton(
-                stringResource(R.string.clean_button, totalText(selectedTotal)),
+                // Owner brief H2 item 10: never "0 files · 0B"; with nothing selected the disabled button is "Clean".
+                if (selectedItems.isEmpty()) {
+                    stringResource(R.string.clean_button_empty)
+                } else {
+                    stringResource(R.string.clean_button, totalText(selectedTotal))
+                },
                 onClick = { confirmClean = true },
                 enabled = selectedItems.isNotEmpty() && !busy,
                 icon = KcIcons.Safe,
@@ -125,7 +130,7 @@ fun SafeScreen(
             result?.let { r -> item { CleanResultBanner(r, onUndo, onOpenTrash) } }
             item {
                 Text(
-                    stringResource(R.string.clean_selected, totalText(selectedTotal)),
+                    selectionText(selectedTotal, R.string.clean_selected),
                     modifier = Modifier.testTag("selectedTotal"),
                 )
             }
@@ -335,22 +340,9 @@ internal fun cleanSheetText(items: List<ClassifiedItem>): CleanSheetText {
     return CleanSheetText(facts, note, risk, anyForGood = reasons.isNotEmpty())
 }
 
-/** "4.1GB · 1,234 files", each part isolated. */
+/** "1,234 files · 4.1GB" (count first, owner brief H2 item 10), each part isolated. */
 @Composable
-private fun partValue(items: List<ClassifiedItem>): String {
-    val locale = LocalConfiguration.current.locales[0]
-    val total = items.fold(Total()) { t, i -> t + i }
-    val count = pluralStringResource(
-        R.plurals.file_count,
-        total.files,
-        java.text.NumberFormat.getIntegerInstance(locale).format(total.files),
-    )
-    return stringResource(
-        R.string.confirm_part_value,
-        io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(total.bytes, locale)),
-        io.github.tomerar.keepclear.core.common.Bidi.isolate(count),
-    )
-}
+private fun partValue(items: List<ClassifiedItem>): String = totalText(items.fold(Total()) { t, i -> t + i })
 
 /** Design QA item 5: the title is only the question, „לנקות 7.9GB?”; the count and the rest are in the rows. */
 @Composable

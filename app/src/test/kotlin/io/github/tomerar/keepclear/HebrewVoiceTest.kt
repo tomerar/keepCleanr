@@ -100,7 +100,7 @@ class HebrewVoiceTest {
     @Test
     fun `the owner's rewrites, exactly`() {
         assertEquals(
-            "הקבצים נמצאים ב-%1\$s, בתיקייה %2\$s. כדי להחזיר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.",
+            "הקבצים נמצאים ב-%1\$s, בתיקייה %2\$s. כדי לשחזר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.",
             context.getString(R.string.move_receipt_how_back, "%1\$s", "%2\$s"),
         )
         assertEquals("לא להציע את זה שוב", context.getString(R.string.choice_keep))

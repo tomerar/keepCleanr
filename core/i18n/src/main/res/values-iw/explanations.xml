@@ -6,8 +6,8 @@
     <string name="why_protected">היסטוריית הצ\'אטים של וואטסאפ והגיבויים שלה.</string>
     <string name="if_deleted_protected">KeepClear לעולם לא מוחק את אלה.</string>
     <string name="group_other_app_bin">כבר נמחקו באפליקציות אחרות</string>
-    <string name="why_other_app_bin">כבר מחקתם את אלה באפליקציה אחרת, והם מחכים בסל המחזור שלה.</string>
-    <string name="if_deleted_other_app_bin">אחרי 30 יום בסל המחזור של KeepClear הם נעלמים לגמרי. כבר בחרתם למחוק אותם פעם אחת.</string>
+    <string name="why_other_app_bin">כבר מחקתם את אלה באפליקציה אחרת, והם מחכים בסל של אותה אפליקציה.</string>
+    <string name="if_deleted_other_app_bin">הם נמחקים לצמיתות, בלי סל המחזור: כבר בחרתם למחוק אותם פעם אחת.</string>
     <string name="group_wa_status_old">סטטוסים שכבר נצפו</string>
     <string name="why_wa_status_old">סטטוסים שכבר צפיתם בהם. הם פגים אחרי 24 שעות בכל מקרה.</string>
     <string name="if_deleted_wa_status_old">שום דבר לא משתנה בוואטסאפ. ממילא אי אפשר לצפות שוב בסטטוסים ישנים.</string>
@@ -28,12 +28,12 @@
     <string name="if_deleted_wa_private">אם זה העותק היחיד, הוא יימחק.</string>
     <string name="group_wa_received">תמונות וסרטונים שקיבלתם</string>
     <string name="why_wa_received">זיכרונות מהצ\'אטים. לעתים קרובות זה העותק היחיד.</string>
-    <string name="if_deleted_wa_received">KeepClear מסיר אותם רק אחרי שהם הועתקו לכונן שלכם וכל קובץ נבדק.</string>
+    <string name="if_deleted_wa_received">KeepClear מפנה אותם רק אחרי שהם גובו וכל קובץ נבדק.</string>
     <string name="group_wa_other">קבצים אחרים מוואטסאפ</string>
     <string name="why_wa_other">מסמכים, מדבקות, שמע וקבצים אחרים מהצ\'אטים.</string>
     <string name="if_deleted_wa_other">קבצים שנמצאים רק כאן יימחקו. הצ\'אטים נשארים.</string>
-    <string name="group_thumbnails">תמונות תצוגה מקדימה</string>
-    <string name="why_thumbnails">תמונות קטנות לתצוגה מקדימה שאפליקציות יוצרות.</string>
+    <string name="group_thumbnails">תמונות ממוזערות</string>
+    <string name="why_thumbnails">תמונות ממוזערות שאפליקציות יוצרות לתצוגה מקדימה.</string>
     <string name="if_deleted_thumbnails">האפליקציות יוצרות אותן מחדש כשצריך.</string>
     <string name="group_lost_dir">שברי קבצים משוחזרים</string>
     <string name="why_lost_dir">חלקי קבצים שאנדרואיד שחזר אחרי תקלה באחסון.</string>
@@ -64,7 +64,7 @@
     <string name="if_deleted_old_phone">כדאי להציץ קודם: ייתכן שיש בהן תמונות שלא קיימות בשום מקום אחר.</string>
     <string name="group_telegram_saved">תמונות וסרטונים שנשמרו מטלגרם</string>
     <string name="why_telegram_saved">מדיה ששמרתם מצ\'אטים בטלגרם.</string>
-    <string name="if_deleted_telegram_saved">KeepClear מסיר אותם רק אחרי גיבוי שנבדק.</string>
+    <string name="if_deleted_telegram_saved">KeepClear מפנה אותם רק אחרי גיבוי שנבדק.</string>
     <string name="group_telegram_docs">קבצים שנשמרו מטלגרם</string>
     <string name="why_telegram_docs">מסמכים ומוזיקה ששמרתם מטלגרם.</string>
     <string name="if_deleted_telegram_docs">בדרך כלל אפשר להוריד אותם שוב מהצ\'אט.</string>
@@ -73,10 +73,10 @@
     <string name="if_deleted_telegram_legacy">מדיה שנמצאת רק כאן תימחק.</string>
     <string name="group_camera">תמונות וסרטונים מהמצלמה</string>
     <string name="why_camera">התמונות והסרטונים שלכם, וגם המקום הכי גדול שאפשר לפנות.</string>
-    <string name="if_deleted_camera">KeepClear מסיר אותם רק אחרי שהם הועתקו לכונן שלכם וכל קובץ נבדק.</string>
+    <string name="if_deleted_camera">KeepClear מפנה אותם רק אחרי שהם גובו וכל קובץ נבדק.</string>
     <string name="group_big_video">סרטונים גדולים</string>
     <string name="why_big_video">סרטונים מעל 100MB.</string>
-    <string name="if_deleted_big_video">אם זה העותק היחיד, הוא יימחק. אפשר להעביר אותו לכונן במקום.</string>
+    <string name="if_deleted_big_video">אם זה העותק היחיד, הוא יימחק. אפשר לגבות אותו במקום.</string>
     <string name="group_apk_files">קובצי התקנה של אפליקציות</string>
     <string name="why_apk_files">קובצי התקנה (APK) של אפליקציות.</string>
     <string name="if_deleted_apk_files">אפליקציות שכבר מותקנות ממשיכות לעבוד.</string>
@@ -88,7 +88,7 @@
     <string name="if_deleted_unknown">קבצים שנמצאים רק כאן יימחקו. כדאי להציץ קודם.</string>
     <string name="group_pictures_media">תמונות וסרטונים באלבומים</string>
     <string name="why_pictures_media">תמונות וסרטונים ששמורים בתיקיות התמונות שלכם.</string>
-    <string name="if_deleted_pictures_media">KeepClear מסיר אותם רק אחרי שהם הועתקו לכונן שלכם וכל קובץ נבדק.</string>
+    <string name="if_deleted_pictures_media">KeepClear מפנה אותם רק אחרי שהם גובו וכל קובץ נבדק.</string>
     <string name="group_app_content">בתוך התיקיות של אפליקציות</string>
     <string name="why_app_content">הקבצים האלה שייכים לאפליקציה אחרת (למשל מוזיקה או סרטונים שהיא הורידה). האפליקציה הזו מנהלת אותם.</string>
     <string name="if_deleted_app_content">‏KeepClear לא מוחק אותם. אפשר לפתוח את האפליקציה ולהסיר את ההורדות שם, כדי שהיא תדע שהן נמחקו.</string>
@@ -97,5 +97,5 @@
     <string name="if_deleted_user_kept">KeepClear לא ימחק את זה. כדי לשנות: הגדרות › מה שבחרתם לשמור.</string>
     <string name="group_user_junk">מה שביקשתם להציע תמיד לנקות</string>
     <string name="why_user_junk">ביקשתם מ-KeepClear להציע תמיד לנקות את הקבצים בתיקייה הזו.</string>
-    <string name="if_deleted_user_junk">הקובץ עובר קודם לסל המחזור ל-30 יום, כך שאפשר להחזיר אותו. כדי להפסיק: הגדרות › מה שבחרתם לשמור.</string>
+    <string name="if_deleted_user_junk">הקובץ עובר קודם לסל המחזור ל-30 יום, כך שאפשר לשחזר אותו. כדי להפסיק: הגדרות › מה שבחרתם לשמור.</string>
 </resources>

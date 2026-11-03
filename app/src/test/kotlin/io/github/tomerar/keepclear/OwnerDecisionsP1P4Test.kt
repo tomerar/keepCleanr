@@ -140,8 +140,9 @@ class OwnerDecisionsP1P4Test {
     @Config(qualifiers = "iw")
     fun `P1 the Hebrew confirmation is the owner's sentence`() {
         val he = context.getString(R.string.move_free_confirm_for_good, "SanDisk")
+        // C158: the owner's P1 sentence, with the terminology table's „לשחזר” (bring back).
         assertEquals(
-            "המקור יימחק מהטלפון. העותק נשאר ב-SanDisk, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.",
+            "המקור יימחק מהטלפון. העותק נשאר ב-SanDisk, נבדק קובץ-קובץ, ואפשר לשחזר ממנו בכל זמן.",
             he,
         )
         assertEquals("להשאיר בטלפון מועדפים", context.getString(R.string.free_keep_favourites))

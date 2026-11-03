@@ -635,10 +635,13 @@ private fun CatalogSheet(step: RestoreStep.Catalog, actions: RestoreActions) {
             }
             // D1: free space against what is chosen, always visible.
             Text(
-                if (space == null) {
-                    stringResource(R.string.restore_space_unknown)
-                } else {
-                    stringResource(R.string.restore_space, sizeText(space.allocatable), sizeText(neededBytes))
+                when {
+                    space == null -> stringResource(R.string.restore_space_unknown)
+
+                    // Owner brief H2 item 10: an empty choice is "Nothing selected", never "Chosen: 0B".
+                    choice.count == 0 -> stringResource(R.string.restore_space_none, sizeText(space.allocatable))
+
+                    else -> stringResource(R.string.restore_space, sizeText(space.allocatable), sizeText(neededBytes))
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("restoreSpace"),

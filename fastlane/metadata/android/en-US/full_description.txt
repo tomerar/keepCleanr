@@ -2,13 +2,13 @@ KeepClear finds what takes space on your phone and explains each thing in plain 
 
 <b>How it sorts what it finds</b> (on the "Free up space" and "Backup" tabs)
 <ul>
-<li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' recycle bins. Cleared in one tap.</li>
+<li><b>Clean now</b>: temporary files, thumbnails, files already in other apps' bins. Cleared in one tap.</li>
 <li><b>Choose what to delete</b>: large videos, screenshots, AI images, duplicates, old downloads, WhatsApp and Telegram media. Each item says why it was found and what happens if you delete it. Nothing is deleted unless you choose it, and nothing is selected for you.</li>
-<li><b>Move to backup</b>: your photos and videos are never just deleted. KeepClear copies them to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees the space only when you tap "Free up the space now".</li>
+<li><b>Back up</b>: your photos and videos are never just deleted. KeepClear backs them up to your own USB drive, a folder you choose, or a shared folder on your computer or home server, reads every copy back to check it, shows you a receipt, and frees up space only when you tap "Free up" and confirm.</li>
 </ul>
 
 <b>Most of it can come back</b>
-Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted right away. Put it back with one tap, or empty it sooner if you want the space now (KeepClear asks twice).
+Most of what you clean waits 30 days in the trash. Files that rebuild themselves are deleted right away. Restore it with one tap, or empty it sooner if you want the space now (KeepClear asks twice).
 
 <b>Also</b>
 <ul>
@@ -20,7 +20,7 @@ Most of what you clean waits 30 days in the recycle bin. Files that rebuild them
 </ul>
 
 <b>Permissions, honestly</b>
-This build asks for <b>All files access</b>, so it can find WhatsApp media, folders from an old phone, other apps' recycle bins and leftover files. It also asks, only when you use the feature, for usage access (to show app sizes and when apps were last opened), the list of installed apps, notifications (backup progress) and network access (only for backups to a shared folder you set up, at the address you typed). Every permission is optional and explained before Android asks; KeepClear works with less if you say no.
+This build asks for <b>All files access</b>, so it can find WhatsApp media, folders from an old phone, other apps' bins and leftover files. It also asks, only when you use the feature, for usage access (to show app sizes and when apps were last opened), the list of installed apps, notifications (backup progress) and network access (only for backups to a shared folder you set up, at the address you typed). Every permission is optional and explained before Android asks; KeepClear works with less if you say no.
 
 <b>Private by design</b>
 No ads, no analytics, no crash reporting, no account. Nothing about you or your files is sent anywhere. KeepClear is free software under the GNU GPL, version 3 or later.
