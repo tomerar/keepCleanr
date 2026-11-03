@@ -222,6 +222,14 @@ fun HomeScreen(
                         button = stringResource(R.string.access_allow),
                         tag = "allowAccess",
                         onClick = { explainer = Explainer.MEDIA },
+                        // Review of PR #56 (play, ADR 0005): the same one card also lets someone who doesn't want
+                        // to give the gallery choose WhatsApp's folder alone; no scan starts without one of the two.
+                        secondary = if (state.allFiles == null && state.grantedFolders.isEmpty()) {
+                            stringResource(R.string.access_folder_only) to { explainer = Explainer.WHATSAPP }
+                        } else {
+                            null
+                        },
+                        secondaryTag = "accessFolderOnly",
                     )
                 } else {
                     if (state.mediaAccess == MediaAccess.PARTIAL) {
@@ -361,12 +369,15 @@ private fun LaneTotal(
         if (summary == null) {
             LaneCard(lane = lane, title = categoryTitle(category), supporting = stringResource(pending))
         } else if (summary.phoneTotal(category).files == 0) {
-            // Owner brief H2 items 6 and 11: an empty lane says so in words, never "0 files · 0B".
+            // Owner brief H2 items 6 and 11: an empty lane says so in words, never "0 files · 0B". Review of PR #56:
+            // items only on an SD card (D5 counts the phone alone) keep the lane open, with a line that says where.
+            val elsewhere = summary.groups(category).isNotEmpty()
             LaneCard(
                 lane = lane,
                 title = categoryTitle(category),
-                supporting = stringResource(R.string.home_lane_empty),
-                modifier = Modifier.testTag("empty_$category"),
+                supporting = stringResource(if (elsewhere) R.string.home_lane_elsewhere else R.string.home_lane_empty),
+                onClick = if (elsewhere) onOpen else null,
+                modifier = Modifier.testTag(if (elsewhere) "open_$category" else "empty_$category"),
             )
         } else {
             val total = summary.phoneTotal(category)
@@ -682,6 +693,8 @@ private fun ActionCard(
     tag: String,
     onClick: () -> Unit,
     primary: Boolean = true,
+    secondary: Pair<String, () -> Unit>? = null,
+    secondaryTag: String = "${tag}Secondary",
 ) {
     KcCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -693,6 +706,9 @@ private fun ActionCard(
                 Modifier.testTag(tag),
                 style = if (primary) KcButtonStyle.Primary else KcButtonStyle.Tonal,
             )
+            secondary?.let { (label, action) ->
+                KcButton(label, action, Modifier.testTag(secondaryTag), style = KcButtonStyle.Text)
+            }
         }
     }
 }

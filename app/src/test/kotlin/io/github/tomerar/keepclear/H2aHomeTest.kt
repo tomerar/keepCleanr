@@ -191,6 +191,37 @@ class H2aHomeTest {
         compose.onNodeWithTag("moreFilesOffer").assertDoesNotExist()
     }
 
+    @Test
+    fun `on play the one access card also offers WhatsApp's folder alone, before any scan (PR 56 review)`() {
+        var picked = 0
+        home(OwnerPhone.beforeAccess.copy(allFiles = null), HomeActions(onPickWhatsApp = { picked++ }))
+        // Still ONE card: the folder choice is a second button inside it.
+        assertEquals(1, compose.onAllNodesWithTag("allowAccess").fetchSemanticsNodes().size)
+        compose.onNodeWithTag("moreFilesOffer").assertDoesNotExist()
+        compose.onNodeWithTag("accessFolderOnly").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("explainerContinue").performClick()
+        assertEquals(1, picked)
+    }
+
+    @Test
+    fun `on foss the access card has no folder-only button`() {
+        home(OwnerPhone.beforeAccess.copy(allFiles = false))
+        compose.onNodeWithTag("accessFolderOnly").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a lane with items only on the SD card still opens its list (PR 56 review)`() {
+        var opened: Category? = null
+        val sdOnly = OwnerPhone.summary.copy(
+            phoneTotals = OwnerPhone.summary.phoneTotals - Category.REVIEW,
+        )
+        home(OwnerPhone.home.copy(summary = sdOnly), HomeActions(onOpenCategory = { opened = it }))
+        compose.onNodeWithTag("empty_REVIEW").assertDoesNotExist()
+        compose.onNodeWithText("None on the phone. Some on the memory card or another drive").assertIsDisplayed()
+        compose.onNodeWithTag("open_REVIEW").performClick()
+        assertEquals(Category.REVIEW, opened)
+    }
+
     // ------------------------------------------------------------------------------------------- 3 trash chip
 
     @Test
