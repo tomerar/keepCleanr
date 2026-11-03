@@ -238,4 +238,22 @@ class H3HistoryTest {
         assertTrue(File(p).exists())
         assertEquals(HistoryState(), t.app.history.state.value)
     }
+
+    @Test
+    fun `every expired-trash purge in the app goes through the one path that records it (PR 59 review)`() {
+        val root = java.io.File("src/main/kotlin")
+        val callers = root.walkTopDown().filter { it.isFile && it.extension == "kt" }
+            .flatMap { f ->
+                f.readLines().mapIndexedNotNull { i, line ->
+                    "${f.name}:${i + 1}".takeIf {
+                        "purgeExpired()" in
+                            line
+                    }
+                }
+            }
+            .toList()
+        // Only purgeExpiredAndRecord itself calls TrashManager.purgeExpired().
+        assertEquals(callers.toString(), 1, callers.size)
+        assertTrue(callers.toString(), callers.single().startsWith("TrashSupport.kt:"))
+    }
 }

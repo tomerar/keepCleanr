@@ -485,7 +485,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val manager = app.trashManager
         if (!trashRecovered) {
             manager.recover()
-            if (!app.testMode.isOn) manager.purgeExpired()
+            app.purgeExpiredAndRecord()
             trashRecovered = true
         }
         val entries = manager.entries().sortedByDescending { it.deletedAt }
