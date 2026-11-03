@@ -120,7 +120,7 @@
     <string name="move_title">Backup</string>
     <string name="move_photos_note">KeepClear can\'t see what\'s in Google Photos. If you use it, check there or use its own \"Free up space\".</string>
     <string name="move_open_photos">Open Google Photos</string>
-    <string name="move_what">What to move</string>
+    <string name="move_what">What to back up</string>
     <string name="move_age_12">More than a year old</string>
     <string name="move_age_6">More than 6 months old</string>
     <string name="move_age_all">Everything</string>

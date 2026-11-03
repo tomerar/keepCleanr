@@ -11,7 +11,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-644 Hebrew strings; 216 new since the last review (145 new, 71 changed).
+644 Hebrew strings; 217 new since the last review (145 new, 72 changed).
 
 ## Contents
 
@@ -21,7 +21,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 - [Clean now](#clean-now) (35, 18 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (32, 4 new since last review)
 - [Swipe review](#swipe-review) (17, 9 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (217, 104 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (217, 105 new since last review)
 - [Trash](#trash) (47, 14 new since last review)
 - [Apps](#apps) (31, 4 new since last review)
 - [Settings](#settings) (44, 17 new since last review)
@@ -391,7 +391,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_target_unknown` | KeepClear can't check copies in this place, so it copies only and the originals stay on the phone. | ‏KeepClear לא יכול לבדוק עותקים במקום הזה, ולכן הוא רק מעתיק והמקור נשאר בטלפון. |  | reviewed |
 | `move_title` | Backup | גיבוי |  | **changed** (new since last review) |
 | `move_view` | Show | להציג |  | reviewed |
-| `move_what` | What to move | מה להעביר |  | reviewed |
+| `move_what` | What to back up | מה לגבות |  | **changed** (new since last review) |
 | `pause_full_needed` | Not enough space on the USB drive: %1$s more needed | אין מספיק מקום בדיסק און קי: צריך עוד %1$s |  | **new** (new since last review) |
 | `pause_full_sizes` | Not enough space on the USB drive: %1$s needed, %2$s free | אין מספיק מקום בדיסק און קי: צריך %1$s, פנויים %2$s |  | **new** (new since last review) |
 | `pause_phone_stopped` | The phone stopped the backup to save battery | הטלפון עצר את הגיבוי כדי לחסוך סוללה |  | **new** (new since last review) |
