@@ -50,6 +50,18 @@ class KeyScreensScreenshotTest(private val locale: String, private val night: Bo
 
     @Test fun swipeResume(): Unit = at200 { shots.swipeResume() }
 
+    // Owner brief H6: the first-run and the all-clean Home, and the backup (the tab, backup mode, the free step) at
+    // 200 % too.
+    @Test fun homeBeforeAccess(): Unit = at200 { shots.homeBeforeAccess() }
+
+    @Test fun allClean(): Unit = at200 { shots.allClean() }
+
+    @Test fun backup(): Unit = at200 { shots.backup() }
+
+    @Test fun backupProgress(): Unit = at200 { shots.backupProgress() }
+
+    @Test fun freeConfirm(): Unit = at200 { shots.freeConfirm() }
+
     private fun at200(shot: () -> Unit) {
         assumeTrue(font == 200)
         shot()
