@@ -32,7 +32,7 @@ class SecondPassTest {
         return "j"
     }
 
-    private val attach = AttachTracker("process-1")
+    private var attach = AttachTracker("process-1")
 
     private fun engine(drive: FakeCapacityDrive) = MoveEngine(
         fake,
@@ -176,10 +176,14 @@ class SecondPassTest {
             boot = "boot-2"
             engine(drive).run(id)
             engine(drive).unprovenNow(id) shouldBe 3
+            val verifiedInBoot1 = store.files(id).filter { it.verifyBootId == "boot-1" }.map { it.sourcePath }.toSet()
+            verifiedInBoot1.size shouldBe 3
             val result = engine(drive).confirm(id, FreshRead.REBOOTED)
             result.ok shouldBe 3
             result.unproven shouldBe 3
-            store.files(id).filter { it.confirmedAt != null }.map { it.verifyBootId }.toSet() shouldBe setOf("boot-1")
+            // Exactly the files first checked in boot-1 are confirmed (their baseline is now this check, PR #54).
+            store.files(id).filter { it.confirmedAt != null }.map { it.sourcePath }.toSet() shouldBe verifiedInBoot1
+            store.files(id).filter { it.confirmedAt != null }.map { it.verifyBootId }.toSet() shouldBe setOf("boot-2")
         }
 
     private class StopHere : RuntimeException()
@@ -250,5 +254,25 @@ class SecondPassTest {
             engine(drive).confirm(id, FreshRead.REBOOTED).unproven shouldBe 6
             boot = "boot-2"
             engine(drive).confirm(id, FreshRead.REBOOTED).ok shouldBe 6
+        }
+
+    @Test
+    fun `a re-check after an app restart in the same boot needs a fresh read of confirmed copies (PR 54)`(): Unit =
+        runBlocking {
+            val drive = FakeCapacityDrive(realBytes = 1_000_000)
+            val id = job(drive)
+            engine(drive).run(id).state shouldBe JobState.DONE
+            reattach(drive)
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+            // KeepClear's process restarts; the phone doesn't reboot. Months later the reminder asks for a re-check.
+            attach = AttachTracker("process-2")
+            engine(drive).unprovenNow(id) shouldBe 0
+            // The re-check must not read at once: none of the confirmed copies has a fresh-read proof now.
+            engine(drive).unprovenNow(id, includeConfirmed = true) shouldBe 6
+            reattach(drive)
+            engine(drive).unprovenNow(id, includeConfirmed = true) shouldBe 0
+            engine(drive).confirm(id, FreshRead.REATTACHED).ok shouldBe 6
+            // That read is the new baseline: another re-check in this process needs another unplug first.
+            engine(drive).unprovenNow(id, includeConfirmed = true) shouldBe 6
         }
 }

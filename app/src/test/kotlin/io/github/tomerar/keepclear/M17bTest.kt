@@ -54,7 +54,6 @@ class M17bTest {
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("source_camera"))
         compose.onNodeWithTag("source_camera").performClick()
         compose.onNodeWithTag("age_ALL").performClick()
-        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").performClick()
         compose.onNodeWithTag("pickGuide").assertExists()
     }

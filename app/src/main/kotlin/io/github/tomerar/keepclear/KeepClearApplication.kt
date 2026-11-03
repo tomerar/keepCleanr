@@ -383,6 +383,17 @@ class KeepClearApplication : Application() {
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }
 
+    /** Owner brief H1 items 3 and 6: tests replace the volume source before [drives] is first used. */
+    @Volatile internal var volumeSource: VolumeSource? = null
+
+    /** Owner brief H1 items 3 and 6: the removable drives, live (watching starts on first use). */
+    val drives by lazy { DriveWatcher(volumeSource ?: AndroidVolumeSource(this)).also { it.start() } }
+
+    /** Owner brief H1 item 11: the opt-in "check the backup again" reminder. */
+    val checkReminderPrefs by lazy {
+        MainThreadPolicy.settings { CheckReminderPrefs(getSharedPreferences("check-reminder", MODE_PRIVATE)) }
+    }
+
     /** D4: drives' unmount → mount events in this process (the proof "Check backup" needs). */
     val volumeEvents = VolumeEvents(epoch = sessionId)
 

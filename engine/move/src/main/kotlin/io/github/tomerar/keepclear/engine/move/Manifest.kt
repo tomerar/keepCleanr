@@ -75,6 +75,18 @@ object Manifest {
 
     private val json = Json { ignoreUnknownKeys = false }
 
+    /**
+     * Files KeepClear itself keeps in the device folder (the manifest, the checksums, [BackupReadme]). They are never
+     * user data: a manifest line naming one is dropped, so the restore never writes or parses them as a backup file.
+     */
+    fun isReserved(inner: String): Boolean {
+        val name = inner.lowercase(java.util.Locale.ROOT)
+        if ('/' in name) return false
+        return name == BackupReadme.NAME.lowercase(java.util.Locale.ROOT) ||
+            name.startsWith(JSONL) || name.startsWith(SUMS.lowercase(java.util.Locale.ROOT)) ||
+            name.startsWith(BackupReadme.NAME.lowercase(java.util.Locale.ROOT) + ".")
+    }
+
     /** Path of a file relative to the manifest folder; null if it escapes it (SEC-3). */
     fun relToRoot(relTarget: String, rootRel: String): String? {
         if (!relTarget.startsWith("$rootRel/")) return null
@@ -128,6 +140,8 @@ object Manifest {
         val line = runCatching { json.decodeFromString(Line.serializer(), raw) }.getOrNull() ?: return null
         if (!Sha256.isValidHex(line.sha256) || line.size < 0) return null
         if (relToRoot("$rootRel/${line.rel}", rootRel) == null) return null
+        // Owner brief H1 item 10: README.html and our own files are never a backed-up file.
+        if (isReserved(line.rel)) return null
         return line
     }
 

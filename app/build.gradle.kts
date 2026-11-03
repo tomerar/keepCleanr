@@ -25,6 +25,13 @@ android {
     androidResources {
         localeFilters += listOf("en", "iw")
     }
+    // PR H1b: README.html on the backup drive is written in Hebrew and English whatever the phone's language, and the
+    // in-app language switch needs both too: a Play bundle keeps every language in the base APK (two languages only).
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
     signingConfigs {
         // Test builds only: a committed, non-secret key so CI test APKs update each other (keystore/README.md).
         // Releases are signed by the owner's key, never from this repository (ADR 0009).

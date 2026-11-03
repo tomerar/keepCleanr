@@ -157,6 +157,14 @@ data class MediaConsent(
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
 data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val origin: Screen)
 
+/**
+ * The phone's free space now, as the clean result measures it (StatFs on KeepClear's own folder, review PR C). Also
+ * the free result after a backup (owner brief H1 item 7). Reads storage: never on the main thread.
+ */
+internal fun phoneFreeBytes(
+    context: android.content.Context,
+): Long = StatFs(context.filesDir.absolutePath).availableBytes
+
 /** Simple in-memory navigation (no navigation library needed yet). */
 sealed interface Screen {
     /** The "Free up space" tab. */
@@ -906,9 +914,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         it.copy(swipes = if (decisions == null) it.swipes - key else it.swipes + (key to decisions))
     }
 
-    private suspend fun freeNow(): Long = withContext(Dispatchers.IO) {
-        StatFs(app.filesDir.absolutePath).availableBytes
-    }
+    private suspend fun freeNow(): Long = withContext(Dispatchers.IO) { phoneFreeBytes(app) }
 
     private fun currentScreen(): Screen = _state.value.screens.last()
 

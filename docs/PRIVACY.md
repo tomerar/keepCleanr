@@ -19,6 +19,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps. Android asks you to confirm; KeepClear never removes an app by itself. | No |
 | Network (`INTERNET`) | Only to back up to a network drive or a Nextcloud you set up, at the address you typed. | Only the files you back up, to that address (for Nextcloud also the sign-in, to that server) |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
+| Promoted notifications (`POST_PROMOTED_NOTIFICATIONS`, Android 16) | To show backup progress as a Live Update (status-bar chip, lock screen); a normal permission. | No |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`) | To keep a backup running while the screen is off. | No |
 | Background jobs (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, added by Android's WorkManager) | To empty trash items once their 30 days are over, also after a restart. | No |
 | Media management (`MANAGE_MEDIA`, optional) | To move items to the trash without an extra Android confirmation each time. | No |

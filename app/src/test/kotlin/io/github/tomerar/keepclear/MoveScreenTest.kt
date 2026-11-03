@@ -114,15 +114,13 @@ class MoveScreenTest {
     @Test
     fun `nothing is pre-selected and the first backup defaults to everything, favourites included (P2)`() {
         show()
-        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").assertIsNotEnabled()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("source_camera"))
         compose.onNodeWithTag("source_camera").performClick()
-        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").assertIsEnabled().performClick()
         // Review PR C: two plain steps before Android's folder picker.
         compose.onNodeWithTag("pickGuide").assertExists()
-        compose.onNodeWithTag("guideContinue").performClick()
+        compose.onNodeWithTag("guideAnyway").performClick()
         assertEquals(
             setOf("old.jpg", "older.jpg", "recent.jpg", "fav.jpg"),
             picked!!.map { it.item.path.substringAfterLast('/') }.toSet(),
@@ -134,9 +132,8 @@ class MoveScreenTest {
         show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = true))))
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("source_camera"))
         compose.onNodeWithTag("source_camera").performClick()
-        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").performClick()
-        compose.onNodeWithTag("guideContinue").performClick()
+        compose.onNodeWithTag("guideAnyway").performClick()
         assertEquals(
             setOf("old.jpg", "older.jpg", "fav.jpg"),
             picked!!.map { it.item.path.substringAfterLast('/') }.toSet(),
@@ -161,6 +158,10 @@ class MoveScreenTest {
         show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = true, freeCandidates = candidates()))))
         compose.onNodeWithTag("receiptVerified").assertExists()
         compose.onNodeWithTag("howBack").assertExists()
+        // H1b item 6: the "not encrypted" line lives under Details, in neutral words.
+        compose.onNodeWithTag("unencrypted").assertDoesNotExist()
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("receiptDetails"))
+        compose.onNodeWithTag("receiptDetails").performClick()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("unencrypted"))
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("freeOriginals"))
         compose.onNodeWithTag("freeOriginals").performClick()
@@ -244,6 +245,10 @@ class MoveScreenTest {
                 jobs = listOf(JobView(job, receipt(failed = mapOf(FailReason.TOO_LARGE_FOR_TARGET to 2)), true)),
             ),
         )
+        // H1b item 8: one line, "Finished with 2 errors · Show", which opens the list.
+        compose.onNodeWithTag("failed_TOO_LARGE_FOR_TARGET").assertDoesNotExist()
+        compose.onNodeWithTag("errorsLine").assertExists()
+        compose.onNodeWithTag("errorsShow").performClick()
         compose.onNodeWithTag("failed_TOO_LARGE_FOR_TARGET").assertExists()
     }
 
