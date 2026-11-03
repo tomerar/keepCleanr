@@ -505,6 +505,8 @@ class H2aHomeTest {
                 PauseReason.TARGET_FULL to io.github.tomerar.keepclear.core.i18n.R.string.pause_next_full,
                 PauseReason.PHONE_LOW_SPACE to io.github.tomerar.keepclear.core.i18n.R.string.pause_next_phone_space,
                 PauseReason.UNEXPECTED_ERROR to io.github.tomerar.keepclear.core.i18n.R.string.pause_next_unexpected,
+                // PR H4 item 5: why the phone stops it, above the battery help.
+                PauseReason.STOPPED_BY_PHONE to io.github.tomerar.keepclear.core.i18n.R.string.pause_phone_stopped_next,
             ),
             PauseReason.entries.mapNotNull { r -> pauseNextStep(r)?.let { r to it } }.toMap(),
         )
