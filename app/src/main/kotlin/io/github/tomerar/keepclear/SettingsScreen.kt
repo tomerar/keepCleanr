@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,13 +32,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
 import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
+import io.github.tomerar.keepclear.core.designsystem.component.IntroIllustration
+import io.github.tomerar.keepclear.core.designsystem.component.IntroPicture
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.designsystem.component.KcCard
@@ -494,29 +501,44 @@ private fun ChoiceRow(path: String, label: Int, tag: String, onRemove: () -> Uni
     }
 }
 
-/** ONB-1: three short screens on first launch; Settings can show them again. */
+/**
+ * ONB-1: three short screens on first launch; Settings can show them again. Owner brief H2 item 1: a picture per page
+ * ([IntroPicture]), dots that TalkBack reads as "1 of 3", the honest trash promise, and "New phone? Restore from a
+ * backup" ([onRestore]) straight into the restore flow.
+ */
 @Composable
-fun IntroScreen(onDone: () -> Unit) {
+fun IntroScreen(onDone: () -> Unit, onRestore: () -> Unit = onDone) {
     val pages = listOf(
-        R.string.intro_1_title to R.string.intro_1_body,
-        R.string.intro_2_title to R.string.intro_2_body,
-        R.string.intro_3_title to R.string.intro_3_body,
+        Triple(R.string.intro_1_title, R.string.intro_1_body, IntroPicture.STRIP),
+        Triple(R.string.intro_2_title, R.string.intro_2_body, IntroPicture.CHOOSE),
+        Triple(R.string.intro_3_title, R.string.intro_3_body, IntroPicture.BACKUP),
     )
     var page by rememberSaveable { mutableIntStateOf(0) }
     Scaffold { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().navigationBarsPadding().padding(24.dp).testTag("intro"),
+            modifier = Modifier.padding(padding).fillMaxSize().navigationBarsPadding()
+                .verticalScroll(rememberScrollState()).padding(24.dp).testTag("intro"),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                "${page + 1} / ${pages.size}",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.testTag("introPage"),
+            IntroIllustration(
+                pages[page].third,
+                Modifier.align(Alignment.CenterHorizontally).testTag("introArt_${pages[page].third.name}"),
             )
-            Text(stringResource(pages[page].first), style = MaterialTheme.typography.headlineMedium)
+            PageDots(page, pages.size)
+            Text(
+                stringResource(pages[page].first),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.semantics { heading() },
+            )
             Text(stringResource(pages[page].second), style = MaterialTheme.typography.bodyLarge)
-            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.foundation.layout.Spacer(Modifier.heightIn(min = 8.dp))
+            KcButton(
+                stringResource(R.string.intro_restore),
+                onRestore,
+                Modifier.testTag("introRestore"),
+                style = KcButtonStyle.Text,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (page < pages.lastIndex) {
                     KcButton(
                         stringResource(R.string.intro_skip),
@@ -526,11 +548,35 @@ fun IntroScreen(onDone: () -> Unit) {
                     )
                 }
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                androidx.compose.material3.Button(
+                KcButton(
+                    stringResource(if (page < pages.lastIndex) R.string.intro_next else R.string.intro_start),
                     onClick = { if (page < pages.lastIndex) page++ else onDone() },
                     modifier = Modifier.testTag("introNext"),
-                ) {
-                    Text(stringResource(if (page < pages.lastIndex) R.string.intro_next else R.string.intro_start))
+                )
+            }
+        }
+    }
+}
+
+/** The intro's page dots: the current one filled in ink, the others outlined; TalkBack hears "1 of 3". */
+@Composable
+private fun PageDots(page: Int, count: Int) {
+    val label = stringResource(R.string.intro_page, page + 1, count)
+    val ink = MaterialTheme.colorScheme.primary
+    val outline = MaterialTheme.colorScheme.outline
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = label
+            testTag = "introPage"
+        },
+    ) {
+        repeat(count) { i ->
+            androidx.compose.foundation.Canvas(Modifier.size(if (i == page) 10.dp else 8.dp)) {
+                if (i == page) {
+                    drawCircle(ink)
+                } else {
+                    drawCircle(outline, style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
                 }
             }
         }

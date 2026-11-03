@@ -77,10 +77,19 @@ class MainActivity : ComponentActivity() {
                 // ONB-1: the intro on first launch, or when Settings asks for it again.
                 var showIntro by remember { mutableStateOf(!Onboarding.seen(this)) }
                 if (showIntro) {
-                    IntroScreen(onDone = {
-                        Onboarding.setSeen(this, true)
-                        showIntro = false
-                    })
+                    IntroScreen(
+                        onDone = {
+                            Onboarding.setSeen(this, true)
+                            showIntro = false
+                        },
+                        // Owner brief H2 item 1: "New phone? Restore from a backup" opens the restore flow.
+                        onRestore = {
+                            Onboarding.setSeen(this, true)
+                            showIntro = false
+                            vm.selectTab(Tab.BACKUP)
+                            moveVm.beginRestore()
+                        },
+                    )
                     return@KeepClearTheme
                 }
                 val treeLauncher =
