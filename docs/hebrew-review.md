@@ -11,13 +11,13 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-673 Hebrew strings; 256 new since the last review (180 new, 76 changed).
+675 Hebrew strings; 258 new since the last review (182 new, 76 changed).
 
 ## Contents
 
-- [Intro and permissions](#intro-and-permissions) (40, 12 new since last review)
+- [Intro and permissions](#intro-and-permissions) (41, 13 new since last review)
 - [Top app bar and tabs](#top-app-bar-and-tabs) (5, 3 new since last review)
-- [Home](#home) (40, 21 new since last review)
+- [Home](#home) (41, 22 new since last review)
 - [Clean now](#clean-now) (38, 18 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (33, 6 new since last review)
 - [Swipe review](#swipe-review) (17, 9 new since last review)
@@ -39,6 +39,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `access_allow` | Allow access | לאשר גישה | Home | reviewed |
 | `access_card_body` | To look at your photos, videos and files, KeepClear needs your permission. Everything stays on this phone. | כדי להסתכל על התמונות, הסרטונים והקבצים, KeepClear צריך את האישור שלכם. הכול נשאר בטלפון. | Home | reviewed |
 | `access_card_title` | See what's taking space | לראות מה תופס מקום | Home | reviewed |
+| `access_folder_only` | Only choose WhatsApp's folder | לבחור רק את התיקייה של וואטסאפ | Home | **new** (new since last review) |
 | `allfiles_card_button` | Allow all files | לאשר גישה לכל הקבצים | Home | reviewed |
 | `explainer_allfiles_never` | Android still keeps other apps' private data closed. KeepClear never deletes anything without asking you. | גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. KeepClear אף פעם לא מוחק בלי לשאול. | Home | reviewed |
 | `explainer_allfiles_title` | See all your files | לראות את כל הקבצים | Home | reviewed |
@@ -108,6 +109,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `home_clean_button` | Clean %1$s | לנקות %1$s |  | reviewed |
 | `home_free_label` | free | פנויים |  | **new** (new since last review) |
 | `home_hero_safe` | %1$s can be freed safely | אפשר לפנות בבטחה %1$s |  | **new** (new since last review) |
+| `home_lane_elsewhere` | None on the phone. Some on the memory card or another drive | אין בטלפון. יש בכרטיס הזיכרון או בכונן אחר |  | **new** (new since last review) |
 | `home_lane_empty` | Nothing here right now | אין כאן כלום כרגע |  | **new** (new since last review) |
 | `home_notice_dismiss` | Close | לסגור | Review (categories, groups, item preview) | **new** (new since last review) |
 | `home_see_details` | See details | לראות פירוט |  | **new** (new since last review) |

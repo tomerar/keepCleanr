@@ -774,6 +774,8 @@
     <string name="home_big_win_backup_button">לגבות תמונות</string>
     <string name="home_big_win_review">הכי הרבה מקום יתפנה ממה שתבחרו למחוק: %1$s</string>
     <string name="home_lane_empty">אין כאן כלום כרגע</string>
+    <string name="access_folder_only">לבחור רק את התיקייה של וואטסאפ</string>
+    <string name="home_lane_elsewhere">אין בטלפון. יש בכרטיס הזיכרון או בכונן אחר</string>
     <string name="whatsapp_offer_title">למצוא גם תמונות ומסמכים מוואטסאפ?</string>
     <string name="whatsapp_offer_body_allfiles">כרגע KeepClear רואה רק את הגלריה. עם גישה לכל הקבצים הוא ימצא גם קבצים מוואטסאפ, תיקיות מהטלפון הקודם וסלים של אפליקציות אחרות.</string>
     <string name="whatsapp_offer_body_folder">בגרסה הזו KeepClear לא מבקש גישה לכל הקבצים. אפשר לבחור את התיקייה של וואטסאפ, ו-KeepClear יסתכל רק בה.</string>

@@ -731,6 +731,8 @@
     <string name="home_big_win_backup_button">Back up photos</string>
     <string name="home_big_win_review">The most space comes from choosing what to delete: %1$s</string>
     <string name="home_lane_empty">Nothing here right now</string>
+    <string name="access_folder_only">Only choose WhatsApp\'s folder</string>
+    <string name="home_lane_elsewhere">None on the phone. Some on the memory card or another drive</string>
     <string name="whatsapp_offer_title">Find WhatsApp photos and documents too?</string>
     <string name="whatsapp_offer_body_allfiles">Right now KeepClear sees your gallery only. With access to all files it also finds WhatsApp files, folders from your old phone and other apps\' bins.</string>
     <string name="whatsapp_offer_body_folder">This version of KeepClear doesn\'t ask for access to all files. You can choose WhatsApp\'s folder, and KeepClear will look only there.</string>
