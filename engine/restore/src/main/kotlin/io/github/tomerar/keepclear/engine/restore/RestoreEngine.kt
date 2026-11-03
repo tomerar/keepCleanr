@@ -56,6 +56,8 @@ data class RestoreReport(
     val stoppedLowSpace: Boolean = false,
     /** D1, SAFETY-9: test mode. Nothing was written; this is what would have happened. */
     val simulated: RestorePreview? = null,
+    /** Owner brief H3 item 4: the size of the files in [restored] (the activity history shows it). */
+    val restoredBytes: Long = 0,
 )
 
 /** Free space on the phone's shared storage (D1). Measured by the app (`StorageManager.getAllocatableBytes`). */
@@ -376,6 +378,7 @@ class RestoreEngine(
         val room = roomCheck(placements)
         if (!room.fits) return RestoreReport(notEnoughRoom = room)
         val restored = mutableListOf<String>()
+        var restoredBytes = 0L
         var already = 0
         var damaged = 0
         var redirected = 0
@@ -391,6 +394,7 @@ class RestoreEngine(
             interrupted = interrupted,
             skipped = skipped,
             stoppedLowSpace = lowSpace,
+            restoredBytes = restoredBytes,
         )
         for ((index, entry) in entries.withIndex()) {
             currentCoroutineContext().ensureActive()
@@ -398,6 +402,7 @@ class RestoreEngine(
                 when (val outcome = restoreOne(entry)) {
                     is Outcome.Restored -> {
                         restored += outcome.path
+                        restoredBytes += entry.line.size
                         if (outcome.redirected) redirected++
                     }
 

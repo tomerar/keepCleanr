@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Owner brief H3 item 1: offline Help, one title and one body per topic (paragraphs split by a blank line).
+     Hebrew in values-iw/help.xml; parity is checked in CI (I18N-1) and by HelpTest. Keep it true to what the app
+     does today: when a behaviour changes, change its topic in the same PR. -->
+<resources>
+    <string name="help_title">Help</string>
+    <string name="help_intro">Answers to common questions. They work without the internet.</string>
+    <string name="help_more">Still stuck? Report a problem from Settings: an email you see and can change before it is sent.</string>
+
+    <string name="help_how_title">How KeepClear works</string>
+    <string name="help_how_body">KeepClear looks at what takes space on this phone and sorts it into three groups.\n\nClean now: files that are safe to remove, like temporary files, thumbnails and old WhatsApp statuses. One button frees up the space.\n\nChoose what to delete: things only you can decide on, like screenshots, big videos and copies of the same photo. Nothing is deleted until you choose.\n\nBack up: photos and videos worth keeping. KeepClear copies them to a USB drive and checks every copy. Space on the phone comes back only after a second check, and only when you tap \"Free up space\".</string>
+
+    <string name="help_safe_title">Is it safe?</string>
+    <string name="help_safe_body">KeepClear never deletes anything without your tap, and never in the background.\n\nMost of what you clean waits 30 days in the trash, so you can restore it. Files that rebuild themselves are deleted right away.\n\nKeepClear never touches WhatsApp chats and their backups, the drive you back up to, or files you chose to keep.\n\nRight before it deletes anything, KeepClear checks each file again. A file that changed since the scan is left where it is, and you are told.\n\nNothing leaves the phone except the copies you back up to a place you chose. There are no ads, no tracking and no account.\n\nTest mode: the test version starts in test mode. A line at the top of every screen says so, and nothing is deleted or moved; you only see what would happen.</string>
+
+    <string name="help_permanent_title">What is deleted for good, and what goes to the trash</string>
+    <string name="help_permanent_body">To the trash, for 30 days: duplicates, files you chose to delete, unpacked archives and everything else you clean. You can restore them from the trash. After 30 days KeepClear deletes them for good.\n\nDeleted for good right away: files that rebuild themselves (thumbnails, temporary files, system leftovers, WhatsApp statuses older than a day) and files that were already in another app\'s bin, like the gallery\'s bin. There is nothing to restore: the phone makes them again, or they were already deleted once.\n\nAfter a checked backup: \"Free up space\" deletes the originals from the phone for good. The copy on the USB drive, checked file by file, is how you restore them. If you prefer, turn on \"Keep the original in the 30-day trash too (frees no space)\" in Settings.\n\nEmptying the trash deletes what is in it for good. KeepClear asks first.</string>
+
+    <string name="help_get_back_title">How to restore a file</string>
+    <string name="help_get_back_body">From the trash: tap \"Trash\" at the top of the screen, find the file by its date or name, and tap \"Restore\". It goes back to where it was. Files stay in the trash for 30 days.\n\nFrom a backup: connect the USB drive, open the Backup tab and tap \"Restore from a backup\". Choose whole months or single photos. KeepClear checks each file and restores it to its folder; if that place is taken, it goes to the restore folder instead.\n\nFiles deleted for good right away (thumbnails, temporary files) don\'t need restoring: the phone makes them again.</string>
+
+    <string name="help_access_title">Why KeepClear asks to see all files</string>
+    <string name="help_access_body">With your permission to see photos and videos, KeepClear finds screenshots, big videos and what to back up.\n\nWhatsApp keeps its photos and videos in its own folder, and old phones and other apps leave folders behind. To see those, KeepClear asks for access to all files. It only reads them on this phone and never sends them anywhere.\n\nKeepClear also works without it: choose WhatsApp\'s folder once instead, and everything else stays as it is.\n\nYou can turn the access off at any time in Android\'s settings.</string>
+    <string name="help_access_title_play">Why KeepClear asks for access</string>
+    <string name="help_access_body_play">With your permission to see photos and videos, KeepClear finds screenshots, big videos and what to back up.\n\nWhatsApp keeps its photos and videos in its own folder. To see it, KeepClear asks you to choose that folder once, in Android\'s own folder picker. It only reads what is there on this phone and never sends it anywhere.\n\nYou can take the access back at any time in Android\'s settings.</string>
+
+    <string name="help_whatsapp_title">What happens to WhatsApp</string>
+    <string name="help_whatsapp_body">KeepClear never touches your chats, their backups or WhatsApp\'s database.\n\nWhatsApp statuses older than a day are deleted for good: WhatsApp no longer shows them.\n\nPhotos, videos and documents you sent or received can be chosen for deleting or backed up, like any other file. Copies of photos you sent, when the same photo is still in your gallery, are offered for cleaning and go to the trash for 30 days.\n\nAfter you back up WhatsApp media and free up space, the chat shows that the file isn\'t available. The copy is kept in the backup.</string>
+
+    <string name="help_stopped_title">The backup stopped: what to do</string>
+    <string name="help_stopped_body">Nothing is lost: what was copied and checked stays on the drive, and the backup continues from where it stopped.\n\nThe USB drive was unplugged: connect it again and tap \"Continue\".\n\nThe USB drive is full: KeepClear says how much space is needed. Delete what you don\'t need from the drive, use a bigger one, or choose fewer photos this time.\n\nThe battery is low: at 10% the backup pauses by itself, and it continues once the phone is charging.\n\nThe phone stopped the backup to save battery: open KeepClear and tap \"Continue\". Allowing notifications helps the backup keep running.\n\nAnything else: the Backup tab says what happened, with one button to go on. If it keeps happening, report a problem from Settings.</string>
+
+    <string name="help_new_phone_title">New phone</string>
+    <string name="help_new_phone_body">Install KeepClear on the new phone and connect the USB drive with your backup.\n\nOn the first screen tap \"New phone? Restore from a backup\", or later open the Backup tab and tap \"Restore from a backup\".\n\nChoose the backup and the months you want. KeepClear checks each file before it writes it and restores it to the folder it was in. If the new phone doesn\'t have enough free space, KeepClear says so before it starts.\n\nThe old phone\'s trash doesn\'t move with you: restore what you need from it before you switch.</string>
+</resources>

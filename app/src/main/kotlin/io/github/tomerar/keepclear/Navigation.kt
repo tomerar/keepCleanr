@@ -144,6 +144,8 @@ class TabsUi(
     val onSelectTab: (Tab) -> Unit = {},
     val onOpenTrash: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** PR H3: the "?" opens the offline Help. */
+    val onOpenHelp: () -> Unit = {},
 )
 
 /**
@@ -257,10 +259,14 @@ private fun tabIcon(tab: Tab): ImageVector = when (tab) {
 
 /**
  * The main tabs' top app bar: a small wordmark (the screen's heading), the Trash chip with its size whenever the
- * trash isn't empty (KeepClear's trash and Android's, C73), and the Settings gear.
+ * trash isn't empty (KeepClear's trash and Android's, C73), Help ("?", PR H3) and the Settings gear.
  */
 @Composable
 fun MainTopBar(trash: TrashUi, ui: TabsUi) {
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    // PR H3 (C171): with the "?" on the bar, large font sizes give the Trash chip the bar's gaps instead (the icon
+    // buttons keep their 48dp touch targets), so its words are never cut.
+    val large = fontScale >= 1.5f
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier
@@ -269,14 +275,13 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 )
                 .heightIn(min = 64.dp)
-                .padding(start = 20.dp, end = 4.dp),
+                .padding(start = if (large) 12.dp else 20.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (large) 0.dp else 8.dp),
         ) {
             // F3: the wordmark is a logo and keeps its size at large font sizes (it would take the Trash chip's
             // room at 200%, cutting its size to "2…"); everything else on the bar still grows with the font.
             val title = MaterialTheme.typography.titleLarge
-            val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
             Text(
                 stringResource(R.string.app_name),
                 style = title.copy(
@@ -290,6 +295,10 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
             )
             // The wordmark keeps its width; the chip takes what is left and shortens its label if it must.
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { TrashChip(trash, ui.onOpenTrash) }
+            // Owner brief H3 item 1: Help is one tap away from every main tab.
+            IconButton(onClick = ui.onOpenHelp, modifier = Modifier.testTag("openHelp")) {
+                Icon(KcIcons.Help, contentDescription = stringResource(R.string.help_title))
+            }
             IconButton(onClick = ui.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                 Icon(KcIcons.Settings, contentDescription = stringResource(R.string.settings_title))
             }

@@ -214,6 +214,18 @@ sealed interface Screen {
 
     /** M17b: Settings › Advanced › Back up to Nextcloud. */
     data object Nextcloud : Screen
+
+    /** PR H3: the offline Help (from Settings and the top bar's "?"). */
+    data object Help : Screen
+
+    /** PR H3: one Help topic ([HelpTopics]). */
+    data class HelpTopic(val id: String) : Screen
+
+    /** PR H3: "What KeepClear did". */
+    data object History : Screen
+
+    /** PR H3: About (version, source, privacy, translations, licences). */
+    data object About : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -556,6 +568,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val plan = lastCopyPlan(UUID.randomUUID().toString(), ops, lastCopyGroupSizes)
                 .confirm(confirmation, app.sessionId)
             val report = withContext(Dispatchers.IO) { app.executor().run(plan) }
+            (report as? ExecutionReport.Ran)?.let { ran ->
+                app.recordHistory(HistoryEvents.fromOps(ran.done.map { it.op }, System.currentTimeMillis()))
+            }
             if (report is ExecutionReport.Rejected) {
                 _state.update {
                     it.copy(
@@ -658,7 +673,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             if (ops.isNotEmpty()) {
                 val plan = ActionPlan(UUID.randomUUID().toString(), ops, kind.name).confirm(confirmation, app.sessionId)
-                app.executor().run(plan)
+                val report = app.executor().run(plan)
+                // Owner brief H3 item 4: emptied (space really back) or restored; nothing in test mode.
+                (report as? ExecutionReport.Ran)?.let { ran ->
+                    app.recordHistory(HistoryEvents.fromOps(ran.done.map { it.op }, System.currentTimeMillis()))
+                }
             }
         }
         val after = freeNow()
@@ -709,6 +728,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 // E1: the executor re-checks and may hash (witnesses); never on the main thread.
                 when (val report = withContext(Dispatchers.IO) { app.executor().run(plan) }) {
                     is ExecutionReport.Ran -> {
+                        // Owner brief H3 item 4: only what was really done (never a test-mode result).
+                        app.recordHistory(HistoryEvents.fromOps(report.done.map { it.op }, System.currentTimeMillis()))
                         val wouldHave = report.results.filterIsInstance<OpResult.Simulated>().map { it.op }
                         simulated = wouldHave.isNotEmpty()
                         done = report.done.map { it.op } + wouldHave
@@ -827,6 +848,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(consent = next) }
             return
         }
+        // Owner brief H3 item 4: what Android's own dialogs carried out (cleaned, emptied or restored).
+        app.recordHistory(HistoryEvents.fromOps(next.approved, System.currentTimeMillis()))
         _state.update { it.copy(consent = null, cleanResult = next.result()) }
         refresh()
         scan()
@@ -901,6 +924,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             val after = freeNow()
             val freed = (after - before).coerceAtLeast(0)
+            app.recordHistory(HistoryEvents.fromTrim(freed, System.currentTimeMillis()))
             _state.update {
                 it.copy(
                     busy = false,

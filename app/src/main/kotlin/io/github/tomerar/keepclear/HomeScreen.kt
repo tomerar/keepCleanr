@@ -100,6 +100,8 @@ fun HomeScreen(
     showDebugTools: Boolean,
     modifier: Modifier = Modifier,
     actions: HomeActions = HomeActions(),
+    /** PR H3: a one-time notice at the top (the crash card after an unexpected exit). */
+    topNotice: (@Composable () -> Unit)? = null,
 ) {
     var forceFlip by rememberSaveable { mutableStateOf(false) }
     var explainer by rememberSaveable { mutableStateOf<Explainer?>(null) }
@@ -124,6 +126,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val summary = state.summary
+                topNotice?.invoke()
                 // F2: the measured result of the last action, on top, where the eye is after tapping.
                 state.measured?.takeIf { it.origin == Screen.Home }?.let { MeasuredBanner(it) }
                 state.cleanResult?.takeIf { it.origin == Screen.Home }?.let { r ->

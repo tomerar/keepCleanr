@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3: the launcher icon is option 1 of three (owner picks later, progress W-item "icon choice"): paper background,
+     ink frame with the three lane colours as stacked bars, and a monochrome layer for themed icons. Both flavors;
+     test builds keep their own label, "KeepClear test". -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+    <foreground android:drawable="@drawable/ic_launcher_option1_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_option1_monochrome" />
 </adaptive-icon>

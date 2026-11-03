@@ -110,6 +110,20 @@ Decisions C154–C160 in [progress.md](../progress.md); the full list of changed
 - **Places in plain words:** the receipt „…בתיקייה KeepClear › Pixel 8”; a trash row „עותק שנבדק נמצא ב-SanDisk” (its details sheet: „SanDisk › KeepClear › Pixel 8 › Camera”); „ישוחזר לתיקייה KeepClear › Restored-changed › DCIM”. Never "USB:KeepClear/Phone/IMG" or "/storage/emulated/0/…".
 - **About:** the "no ads, no tracking" sentence appears once (the second line under the privacy link is gone).
 
+### H3 (2026-11-03): help, trust and finish (owner brief H3 items 1–7; HELP-1…7)
+
+Decisions C161–C171 in [progress.md](../progress.md).
+
+- **Help („עזרה”):** the main top bar is wordmark · „סל · 258MB” · **?** · ⚙. "?" and Settings' „עזרה” card open the topic list (offline, string resources): „איך זה עובד” · „האם זה בטוח” · „מה נמחק לצמיתות ומה עובר לסל” · „איך משחזרים קובץ” · „למה צריך גישה לכל הקבצים” (`play`: „למה צריך גישה”) · „מה קורה לוואטסאפ” · „הגיבוי נעצר — מה לעשות” · „טלפון חדש”. A topic is short paragraphs; topics about getting files back end with tonal buttons „לפתוח את סל המחזור” / „לשחזר מגיבוי” (screens only). Under the list: „עדיין לא מסתדרים? אפשר לדווח על בעיה מההגדרות…”. PR H4 adds „ניהול שטח / שמירת נתונים בהסרה” and „מרחב פרטי”.
+- **Settings:** „עזרה” (card with ›) above „איך משחזרים קבצים”, which now has „לפתוח את סל המחזור” and „לשחזר מגיבוי”; after the intro button: „מה KeepClear עשה” and „לדווח על בעיה” (cards with ›); the About card keeps its sentence and the privacy link and adds „לראות פרטים” (About screen).
+- **Report a problem:** a sheet: one line on what happens („KeepClear פותח את אפליקציית המייל עם הטקסט הזה…”), the editable text („מה קרה?”, room to write, then `---` and the device facts in English: version, flavor, build type, device, Android, language, test mode, Clean now / Choose / Back up / Trash totals, backups made, "No file paths are included."), the checkbox „לצרף קובץ אבחון: מספרים וגדלים מהטלפון, בלי שמות של קבצים”, then `[לפתוח במייל]`, „להעתיק את הטקסט”, „לסגור”. With the file, „מכינים את קובץ האבחון…” with a progress bar first. No email app: „לא נמצאה אפליקציית מייל בטלפון. אפשר להעתיק את הטקסט…”.
+- **After an unexpected exit:** on Home, above everything, once: card „KeepClear נסגר באופן לא צפוי. לשתף דוח?” · „בדוח רואים איפה בקוד שלו KeepClear נעצר, בלי שמות של קבצים. אתם בוחרים לאן לשלוח אותו.” · `[לשתף את הדוח]` (Android's share sheet) · „לא עכשיו”.
+- **What KeepClear did:** hero „18.4GB פיניתם עד היום” with „נספר רק מקום שבאמת התפנה. קבצים שעברו לסל נספרים כשהסל מתרוקן.” (nothing yet: „עוד לא פיניתם מקום”), then one card per action, newest first: icon, kind („נוקו קבצים”, „נוקו קבצים זמניים של אפליקציות”, „נמחקו לצמיתות מהסל”, „סל המחזור: קבצים בני יותר מ-30 יום נמחקו לצמיתות”, „גובו ונבדקו”, „פונה מקום אחרי גיבוי שנבדק”, „המקור עבר לסל אחרי גיבוי”, „שוחזרו מסל המחזור”, „שוחזרו מגיבוי”), „2,324 קבצים · 7.9GB”, „פונו 7.9GB” when space came back, date and time. Empty: „עוד אין כאן כלום…”.
+- **About:** „גרסה 0.0.1 (1)”; „לראות את קוד המקור”; a privacy sentence and „לקרוא את מדיניות הפרטיות”; „תרגומים” „עברית ואנגלית: צוות KeepClear.” with „לעזור לתרגם”; „רישיונות”: one card per font, icon set and library (name, copyright, licence) with „לקרוא את הרישיון” (the text from the APK, in a sheet). Links open in the browser.
+- **What's new:** a sheet „מה חדש” with `[להמשיך]`, only the first launch after an update that has an entry (none yet), never after a first install.
+- **App icon and splash:** paper background, option 1 (ink frame with three stacked bars in the lane colours), themed icon from its monochrome layer; the starting window is paper with the mark (light and dark), then the app. Options 1–3: [gallery](../design/gallery.md#app-icon-options-pr-h3).
+- **Launcher shortcuts** (long-press the icon): „לפנות מקום” (Home), „סל המחזור” (the Trash), „לגבות” (the Backup tab). They open the screen and do nothing else.
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)

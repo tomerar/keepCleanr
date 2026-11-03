@@ -125,7 +125,11 @@ class TrashPurgeWorker(context: Context, params: WorkerParameters) : CoroutineWo
         app.refreshGrantedFolders()
         app.trashManager.recover()
         // Test mode: nothing is permanently deleted, not even expired trash.
-        if (!app.testMode.isOn) app.trashManager.purgeExpired()
+        if (!app.testMode.isOn) {
+            val bytes = app.trashManager.purgeExpired()
+            // Owner brief H3 item 4: items older than 30 days, deleted for good: space really back.
+            app.history.record(HistoryEvents.fromExpired(bytes, System.currentTimeMillis()))
+        }
         return Result.success()
     }
 
