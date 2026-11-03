@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Owner brief H3 item 2: the only folder KeepClear's FileProvider shares: the diagnostics file it writes in its own
+     cache, read-only, to the email app the user picks. Never user files. -->
+<paths>
+    <cache-path
+        name="reports"
+        path="reports/" />
+</paths>

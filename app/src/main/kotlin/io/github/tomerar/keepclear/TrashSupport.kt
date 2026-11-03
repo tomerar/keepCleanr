@@ -115,6 +115,19 @@ class SystemTrashClock(
 }
 
 /**
+ * TRASH-2 and owner brief H3 item 4: deletes trash entries older than 30 days for good and records the space that
+ * really came back in the activity history. The only caller of [TrashManager.purgeExpired] in the app: the daily
+ * worker and the first trash load of a process both go through here (review of PR #59), so no purge is missed.
+ * Test mode: nothing is permanently deleted, not even expired trash.
+ */
+internal suspend fun KeepClearApplication.purgeExpiredAndRecord(now: Long = System.currentTimeMillis()): Long {
+    if (testMode.isOn) return 0
+    val bytes = trashManager.purgeExpired()
+    history.record(HistoryEvents.fromExpired(bytes, now))
+    return bytes
+}
+
+/**
  * Daily purge of expired trash (TRASH-2). Only deletes what the user already confirmed into the trash
  * 30+ days ago; never touches anything else (SAFETY-1/2).
  */
@@ -124,8 +137,7 @@ class TrashPurgeWorker(context: Context, params: WorkerParameters) : CoroutineWo
         // Granted folders are trash volumes too; their grants may have changed since the process started.
         app.refreshGrantedFolders()
         app.trashManager.recover()
-        // Test mode: nothing is permanently deleted, not even expired trash.
-        if (!app.testMode.isOn) app.trashManager.purgeExpired()
+        app.purgeExpiredAndRecord()
         return Result.success()
     }
 

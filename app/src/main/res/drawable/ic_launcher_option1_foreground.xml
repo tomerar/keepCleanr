@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3, app icon option 1 (Paper & Ink): Three stacked rounded bars, like the storage strip, in an ink frame (the phone's storage). Foreground layer, 108dp, inside the 66dp safe circle. Our own artwork (ADR 0002). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M42,32h24a10,10 0,0 1,10,10v24a10,10 0,0 1,-10,10h-24a10,10 0,0 1,-10,-10v-24a10,10 0,0 1,10,-10z"
+        android:strokeColor="#FF2F4B7C"
+        android:strokeWidth="3.5" />
+    <path
+        android:fillColor="#FF3D6B4F"
+        android:pathData="M43.5,41h21a3.5,3.5 0,0 1,3.5,3.5v0a3.5,3.5 0,0 1,-3.5,3.5h-21a3.5,3.5 0,0 1,-3.5,-3.5v0a3.5,3.5 0,0 1,3.5,-3.5z" />
+    <path
+        android:fillColor="#FF4D5D73"
+        android:pathData="M43.5,50.5h13a3.5,3.5 0,0 1,3.5,3.5v0a3.5,3.5 0,0 1,-3.5,3.5h-13a3.5,3.5 0,0 1,-3.5,-3.5v0a3.5,3.5 0,0 1,3.5,-3.5z" />
+    <path
+        android:fillColor="#FF8A5A12"
+        android:pathData="M43.5,60h5a3.5,3.5 0,0 1,3.5,3.5v0a3.5,3.5 0,0 1,-3.5,3.5h-5a3.5,3.5 0,0 1,-3.5,-3.5v0a3.5,3.5 0,0 1,3.5,-3.5z" />
+</vector>

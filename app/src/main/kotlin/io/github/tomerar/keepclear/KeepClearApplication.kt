@@ -389,6 +389,35 @@ class KeepClearApplication : Application() {
         return cached.second.isProtected(path)
     }
 
+    /** Owner brief H3 item 4: "What KeepClear did" (a small versioned file in private storage, C163). */
+    val history by lazy {
+        ActivityHistory(historyBackend ?: AtomicFileBackend(java.io.File(filesDir, "history/history-v1.txt")))
+    }
+
+    /** Owner brief H3 item 3: the trace of a Java crash, written as KeepClear crashes (redacted), read next launch. */
+    val crashStore by lazy { CrashTraceStore(java.io.File(filesDir, "crash/last-trace.txt")) }
+
+    /** Owner brief H3 item 3: the unexpected exit to offer once on Home (null: none, or already offered). */
+    val crashNotice = kotlinx.coroutines.flow.MutableStateFlow<ExitRecord?>(null)
+
+    /** Owner brief H3 item 5: the "What's new" note to show once after a bigger update. */
+    val whatsNew = kotlinx.coroutines.flow.MutableStateFlow<WhatsNewEntry?>(null)
+
+    /** Tests only: an in-memory history file. */
+    internal var historyBackend: ActivityHistory.Backend? = null
+
+    /** Records [events] off the main thread (E1); a failure to write is never fatal and never logs a path. */
+    fun recordHistory(events: List<HistoryEvent>) {
+        if (events.isEmpty()) return
+        moveController.scope.launch {
+            try {
+                history.record(events)
+            } catch (e: java.io.IOException) {
+                android.util.Log.w("KeepClear", "history not written: ${e.javaClass.simpleName}")
+            }
+        }
+    }
+
     /** E13: full hashes of files seen in earlier classifications (memory only), so a rescan doesn't read them again. */
     val hashCache by lazy { MemoryHashCache() }
 
@@ -413,6 +442,14 @@ class KeepClearApplication : Application() {
         super.onCreate()
         // E1: in test builds a disk read or write on the main thread crashes at once (NFR-1).
         if (BuildConfig.DEBUG) MainThreadPolicy.enable()
+        // Owner brief H3 item 3: a Java crash's trace is kept (redacted, private storage) for the next launch's card.
+        // No crash SDK and nothing sent: the user decides whether to share it.
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            // The process is ending; this small private file is written even on the main thread (StrictMode, E1).
+            runCatching { MainThreadPolicy.settings { crashStore.save(System.currentTimeMillis(), error) } }
+            previous?.uncaughtException(thread, error)
+        }
         // D4: watch from the start, so an unplug during "Check backup" is never missed. Never fatal.
         runCatching { volumeEvents.register(this) }
         // E1: off the main thread (it checks folders). The purge worker refreshes the grants itself before any
@@ -420,6 +457,17 @@ class KeepClearApplication : Application() {
         moveController.scope.launch {
             runCatching { refreshGrantedFolders() }
             TrashPurgeWorker.schedule(this@KeepClearApplication)
+            // Owner brief H3 items 3 and 5: each offered once (marked as offered right away).
+            runCatching {
+                val crashPrefs = getSharedPreferences(CrashCheck.PREFS, MODE_PRIVATE)
+                crashNotice.value =
+                    CrashCheck.take(AndroidExitInfoSource(this@KeepClearApplication, crashStore), crashPrefs)
+            }
+            runCatching {
+                val code = packageManager.getPackageInfo(packageName, 0).longVersionCode
+                whatsNew.value = WhatsNew.take(getSharedPreferences(WhatsNew.PREFS, MODE_PRIVATE), code)
+            }
+            runCatching { history.load() }
         }
     }
 }

@@ -44,3 +44,26 @@ On the owner-shaped phone everything "Clean" offers (WhatsApp statuses, thumbnai
 one of the two kinds deleted for good, so the sheet has no trash part and the banner has no Undo. A plan that mixes both
 shows two rows ("deleted for good now" and "to the trash, for 30 days") and the banner adds „<size> בסל, יתפנו ב-…”
 with Undo and "Empty now" (`DesignQaTest`).
+
+## App icon options (PR H3)
+
+Owner brief H3 item 6: three Paper & Ink adaptive icons (our own vectors in `app/src/main/res/drawable/ic_launcher_option{1,2,3}_*.xml`):
+paper background, ink with the three lane colours, and a monochrome layer for themed icons. Each column is one option; the
+rows are the full 108 dp square, the launcher's circle mask, and the themed icon (the monochrome layer tinted by the system).
+**Option 1 is the launcher icon now** (and, in white, the notification icon); the owner picks one later (progress W16).
+
+| | Light | Dark |
+|---|---|---|
+| Options 1 · 2 · 3 | ![Icon options, light](../../app/src/test/screenshots/icon_options_iw_light_api36.png) | ![Icon options, dark](../../app/src/test/screenshots/icon_options_iw_dark_api36.png) |
+
+1. **Strip stack:** an ink frame (the phone's storage) holding three stacked rounded bars, sage, slate and amber, shortest last.
+2. **Strip and check:** the Home storage strip (sage, slate, amber, then free paper) in an ink outline under an ink check mark.
+3. **Ring:** an ink ring with three bars inside, tall to short, in the lane colours.
+
+## Help, history and About (PR H3)
+
+Hebrew, light theme, from the screenshot tests (`H3ScreenshotTest`; English and dark are next to them in `app/src/test/screenshots/`).
+
+| Help | A topic | Report a problem | After a crash | What KeepClear did | About |
+|---|---|---|---|---|---|
+| ![Help](../../app/src/test/screenshots/help_iw_light_api36.png) | ![Help topic](../../app/src/test/screenshots/help_topic_iw_light_api36.png) | ![Report](../../app/src/test/screenshots/report_iw_light_api36.png) | ![Crash card](../../app/src/test/screenshots/crash_card_iw_light_api36.png) | ![History](../../app/src/test/screenshots/history_iw_light_api36.png) | ![About](../../app/src/test/screenshots/about_iw_light_api36.png) |

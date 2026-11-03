@@ -42,6 +42,9 @@ SCREENS = [
     ("Trash", ["TrashScreen", "TrashSupport"]),
     ("Apps", ["AppsScreen", "AppsScreens", "AppsSource"]),
     ("Settings", ["SettingsScreen", "TestMode"]),
+    # PR H3: Help, "What KeepClear did", About, Report a problem, the crash card, What's new.
+    ("Help, history and About", ["HelpScreen", "HistoryScreen", "History", "AboutScreen", "ReportProblem",
+                                 "CrashReport"]),
     ("Nextcloud set-up (Settings › Advanced)", ["Nextcloud"]),
     ("Notifications", ["SpaceReminder", "Notification"]),
     ("Device check (test builds)", ["DeviceCheck"]),
@@ -59,6 +62,8 @@ PREFIXES = [
     ("Notifications", ["reminder_text", "reminder_title", "reminder_channel"]),
     ("Settings", ["settings_", "reminder_setting", "test_mode", "choice_kept", "choice_junk_list"]),
     ("Nextcloud set-up (Settings › Advanced)", ["nextcloud_"]),
+    ("Help, history and About", ["help_", "history_", "about_", "report_", "crash_", "whats_new_"]),
+    ("Launcher shortcuts", ["shortcut_"]),
     ("Device check (test builds)", ["debug_device_check"]),
 ]
 
@@ -135,6 +140,10 @@ def usages() -> dict:
                     around = name
                 found.setdefault(m.group(1), set()).add(screen_of(f, around))
                 by_function.setdefault(m.group(1), []).append(FUNCTION_SCREENS.get(around))
+    # PR H3: strings used only by resource XML (the launcher's shortcuts).
+    for f in sorted((ROOT / "app/src").rglob("res/xml/*.xml")):
+        for m in re.finditer(r"@string/([a-zA-Z0-9_]+)", f.read_text(encoding="utf-8")):
+            found.setdefault(m.group(1), set()).add("Launcher shortcuts")
     for key in found:
         found[key].discard(None)
     FUNCTION_ONLY.clear()
@@ -166,9 +175,12 @@ def cell(s: str) -> str:
 
 
 def render() -> str:
-    order = [name for name, _ in SCREENS] + ["Other", "Explanations (why / if deleted)", "Not used in code"]
-    en = {**load(RES / "values/strings.xml"), **load(RES / "values/explanations.xml")}
-    he = {**load(RES / "values-iw/strings.xml"), **load(RES / "values-iw/explanations.xml")}
+    order = [name for name, _ in SCREENS] + ["Launcher shortcuts", "Other", "Explanations (why / if deleted)",
+                                             "Not used in code"]
+    # PR H3: help.xml holds the offline Help's long texts.
+    en = {**load(RES / "values/strings.xml"), **load(RES / "values/explanations.xml"), **load(RES / "values/help.xml")}
+    he = {**load(RES / "values-iw/strings.xml"), **load(RES / "values-iw/explanations.xml"),
+          **load(RES / "values-iw/help.xml")}
     explanation_keys = set(load(RES / "values/explanations.xml"))
     used = usages()
     baseline = reviewed()

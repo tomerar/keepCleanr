@@ -54,6 +54,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - Copy: exact numbers (count + bytes), plain language, no fear or "boost" claims. Every item has why / what-happens-if-deleted texts in **English and Hebrew**.
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).
 - All strings live in resources; en/he parity is checked in CI.
+- Help, trust and finish (PR H3, HELP-1…7): Help's long texts live in `core/i18n/.../values*/help.xml` (parity, `TerminologyTest` and `hebrew-review.py` read it) and must stay true to the code (`H3HelpTest` pins the facts): change a topic in the same PR as the behaviour. "Report a problem" and the crash card are KeepClear's own code, user-initiated, never automatic, and never carry a path or a file name (`ReportFacts`, `CrashText`). The activity history records only what really happened, never in test mode, and its total counts only space really freed. Launcher shortcuts only navigate (`ShortcutNavigator`).
 
 ## Design rules ("Paper & Ink", ADR 0013, `docs/design/design-system.md`)
 

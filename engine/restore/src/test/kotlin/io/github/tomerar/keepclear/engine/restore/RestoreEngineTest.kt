@@ -74,6 +74,8 @@ class RestoreEngineTest {
         catalog shouldHaveSize 4
         val report = engine().restore(catalog)
         report.restored shouldHaveSize 4
+        // Owner brief H3 item 4: the activity history shows the restored size.
+        report.restoredBytes shouldBe originals.values.sumOf { it.size.toLong() }
         report.redirected shouldBe 0
         originals.forEach { (path, bytes) -> fake.readAllBytes(path).toList() shouldBe bytes }
         // No temporary file is left behind.
@@ -114,6 +116,8 @@ class RestoreEngineTest {
         val report = engine().restore(catalog)
         report.alreadyThere shouldBe 1
         report.redirected shouldBe 1
+        // Only what was written counts, not the file that was already there.
+        report.restoredBytes shouldBe items.drop(1).sumOf { originals.getValue(it.path).size.toLong() }
         String(fake.readAllBytes(items[1].path)) shouldBe "someone else's file"
         val moved = report.restored.single { "KeepClear Restored" in it }
         moved shouldStartWith "$phone/Pictures/KeepClear Restored/Camera/"

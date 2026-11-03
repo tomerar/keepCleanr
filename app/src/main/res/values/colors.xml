@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3: the window and splash background before Compose draws: Paper & Ink "background" (light). Must match
+     KeepClearSchemes.Light.background (ThemeColorsTest). -->
+<resources>
+    <color name="kc_window_background">#F6F2EA</color>
+    <!-- The splash icon sits on a paper circle in both themes (ink would vanish on the dark background). -->
+    <color name="kc_splash_icon_background">#F6F2EA</color>
+</resources>

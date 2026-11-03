@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3, app icon option 2: the monochrome layer for themed icons (Android 13+), same shapes in one colour. Our own artwork (ADR 0002). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M35,55h7a5,5 0,0 1,5,5v0a5,5 0,0 1,-5,5h-7a5,5 0,0 1,-5,-5v0a5,5 0,0 1,5,-5z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M50.5,55h7a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-7a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M63,55h3a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-3a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z" />
+    <path
+        android:pathData="M35,55h38a5,5 0,0 1,5,5v0a5,5 0,0 1,-5,5h-38a5,5 0,0 1,-5,-5v0a5,5 0,0 1,5,-5z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="3.5" />
+    <path
+        android:pathData="M40,41l7,7 15,-15"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

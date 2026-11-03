@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Test builds (applicationId io.github.tomerar.keepclear.test): the same shortcuts as src/main/res/xml/shortcuts.xml, only the target package differs (ShortcutsTest keeps them in step). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_free"
+        android:shortcutId="free"
+        android:shortcutLongLabel="@string/shortcut_free_long"
+        android:shortcutShortLabel="@string/shortcut_free_short">
+        <intent
+            android:action="io.github.tomerar.keepclear.action.SHORTCUT"
+            android:targetClass="io.github.tomerar.keepclear.MainActivity"
+            android:targetPackage="io.github.tomerar.keepclear.test">
+            <extra
+                android:name="io.github.tomerar.keepclear.shortcut"
+                android:value="free" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_trash"
+        android:shortcutId="trash"
+        android:shortcutLongLabel="@string/shortcut_trash_long"
+        android:shortcutShortLabel="@string/shortcut_trash_short">
+        <intent
+            android:action="io.github.tomerar.keepclear.action.SHORTCUT"
+            android:targetClass="io.github.tomerar.keepclear.MainActivity"
+            android:targetPackage="io.github.tomerar.keepclear.test">
+            <extra
+                android:name="io.github.tomerar.keepclear.shortcut"
+                android:value="trash" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_backup"
+        android:shortcutId="backup"
+        android:shortcutLongLabel="@string/shortcut_backup_long"
+        android:shortcutShortLabel="@string/shortcut_backup_short">
+        <intent
+            android:action="io.github.tomerar.keepclear.action.SHORTCUT"
+            android:targetClass="io.github.tomerar.keepclear.MainActivity"
+            android:targetPackage="io.github.tomerar.keepclear.test">
+            <extra
+                android:name="io.github.tomerar.keepclear.shortcut"
+                android:value="backup" />
+        </intent>
+    </shortcut>
+</shortcuts>

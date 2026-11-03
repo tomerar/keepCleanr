@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3: dark theme: Paper & Ink "background" (dark). Must match KeepClearSchemes.Dark.background. -->
+<resources>
+    <color name="kc_window_background">#161513</color>
+</resources>

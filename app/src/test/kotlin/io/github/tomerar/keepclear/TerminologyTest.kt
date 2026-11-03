@@ -65,7 +65,8 @@ class TerminologyTest {
 
     private fun strings(dir: String): Map<String, String> {
         val out = linkedMapOf<String, String>()
-        for (name in listOf("strings.xml", "explanations.xml")) {
+        // PR H3: the offline Help's long texts too.
+        for (name in listOf("strings.xml", "explanations.xml", "help.xml")) {
             val file = File(root, "core/i18n/src/main/res/$dir/$name")
             val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
             val nodes = doc.documentElement.childNodes
