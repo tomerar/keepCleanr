@@ -119,7 +119,7 @@
     <string name="review_unselect_month">לבטל את בחירת החודש</string>
     <string name="review_confirm_title">למחוק %1$s?</string>
     <string name="review_confirm_body">הם יחכו 30 יום בסל המחזור. הקישו ✕ כדי להשאיר מה שתרצו.</string>
-    <string name="move_title">העברה לגיבוי</string>
+    <string name="move_title">גיבוי</string>
     <string name="move_photos_note">‏KeepClear לא רואה מה יש ב-Google Photos. אם משתמשים בו, כדאי לבדוק שם או להשתמש ב„פינוי מקום” שלו.</string>
     <string name="move_open_photos">לפתוח את Google Photos</string>
     <string name="move_what">מה להעביר</string>
@@ -157,7 +157,6 @@
     <string name="move_problem_marker">בתיקייה הזו יש גיבוי ש-KeepClear לא מזהה. כדאי לבחור תיקייה אחרת.</string>
     <string name="move_problem_selection_lost">‏KeepClear נסגר בזמן בחירת הכונן, ולכן הבחירה אבדה. צריך לבחור שוב מה להעביר.</string>
     <string name="move_problem_unavailable">‏KeepClear לא מצליח לפתוח את הכונן. כדאי לבדוק שהוא מחובר ולנסות שוב.</string>
-    <string name="move_running">מעתיקים אל %1$s: נבדקו %2$s מתוך %3$s</string>
     <string name="move_pause">להשהות</string>
     <string name="move_stop">לעצור</string>
     <string name="move_continue">להמשיך</string>
@@ -173,8 +172,6 @@
     <string name="move_check_needed">לפני שמפנים מקום, צריך לבדוק את הגיבוי פעם נוספת, בקריאה ישירה מהכונן.</string>
     <string name="move_check_button">לבדוק את הגיבוי</string>
     <string name="move_check_unplug">עכשיו לנתק את %1$s ולחבר אותו שוב.</string>
-    <string name="move_check_plug_back">עכשיו לחבר שוב את %1$s.</string>
-    <string name="move_check_checking">בודקים כל קובץ בכונן…</string>
     <plurals name="move_check_ok">
         <item quantity="one">קובץ אחד נבדק: זהה למקור.</item>
         <item quantity="two">שני קבצים נבדקו: זהים למקור.</item>
@@ -247,7 +244,6 @@
         <item quantity="other">%1$s קבצים קיבלו שם אחר בכונן (שמור ברשימת הגיבוי).</item>
     </plurals>
     <string name="move_receipt_how_back">הקבצים נמצאים ב-%1$s, בתיקייה %2$s. כדי להחזיר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.</string>
-    <string name="move_receipt_unencrypted">העותק בכונן לא מוצפן. כל מי שמחזיק בכונן יכול לפתוח אותו.</string>
     <string name="move_free_button">לפנות %1$s מהטלפון</string>
     <string name="move_free_unavailable">המקור נשאר בטלפון: אי אפשר לבדוק את המקום הזה.</string>
     <string name="move_free_confirm_title">לפנות מקום בטלפון?</string>
@@ -262,7 +258,6 @@
     <string name="move_notif_skip">לא עכשיו</string>
     <string name="move_channel">גיבוי</string>
     <string name="move_notification_title">גיבוי KeepClear</string>
-    <string name="move_notification_progress">נבדקו: %1$d מתוך %2$d</string>
     <string name="move_notification_paused">הגיבוי הושהה. אפשר לפתוח את KeepClear כדי להמשיך.</string>
     <string name="move_notification_updated">הגיבוי הושהה בגלל עדכון של האפליקציה. אפשר להקיש כדי להמשיך.</string>
     <string name="task_notification_free">מפנים מקום…</string>
@@ -341,12 +336,8 @@
     <string name="move_phase_copying">מעתיקים</string>
     <string name="move_phase_checking">בודקים</string>
     <string name="move_progress_bytes">%1$s מתוך %2$s</string>
-    <string name="move_time_left">נשארו בערך %1$s</string>
     <string name="move_guide_title">לפני הבחירה</string>
-    <string name="move_guide_1">1. לחבר את הדיסק און קי או להכניס את כרטיס הזיכרון.</string>
-    <string name="move_guide_2">2. במסך הבא, להקיש על שם הכונן בתפריט (☰), ואז על „שימוש בתיקייה הזו”.</string>
     <string name="move_guide_continue">לבחור את הכונן</string>
-    <string name="move_guide_no_drive">לא מחובר דיסק און קי או כרטיס זיכרון. צריך לחבר אחד ולנסות שוב.</string>
     <string name="move_preflight_ok">מוכן</string>
     <string name="move_preflight_blocks">אי אפשר להתחיל</string>
     <string name="move_preflight_note">לשים לב</string>
@@ -708,4 +699,42 @@
     <string name="move_free_interrupted">הפינוי נעצר: אי אפשר היה לקרוא את %1$s. מה שעוד לא נמחק נשאר בטלפון.</string>
     <string name="settings_keep_originals">לשמור את המקור גם בסל 30 יום (לא מפנה מקום)</string>
     <string name="settings_keep_originals_body">אחרי גיבוי שנבדק, פינוי מקום יעביר כל מקור לסל המחזור של KeepClear ל-30 יום במקום למחוק אותו. המקום יתפנה רק כשהסל יתרוקן.</string>
+    <!-- PR H1b: backup screens (owner brief H1 items 1-8, 10, 11). -->
+    <string name="backup_only_copies">בשלב הזה רק מעתיקים. שום תמונה לא נמחקת.</string>
+    <string name="backup_button">לגבות %1$s</string>
+    <string name="backup_button_empty">לגבות</string>
+    <string name="backup_mode_drive">אפשר להמשיך להשתמש בטלפון · לא לנתק את הדיסק און קי · כדאי לחבר למטען</string>
+    <string name="backup_mode_network">אפשר להמשיך להשתמש בטלפון · כדאי לחבר למטען</string>
+    <string name="backup_progress_eta">%1$s מתוך %2$s · נשארו כ-%3$s</string>
+    <string name="backup_progress_announce" formatted="false">הגיבוי הגיע ל-%1$s</string>
+    <string name="drive_found">זוהה ✓ %1$s</string>
+    <string name="drive_found_hint">במסך הבא להקיש על „שימוש בתיקייה הזו”.</string>
+    <string name="drive_connect">לחבר את הדיסק און קי לטלפון</string>
+    <string name="drive_connect_live">KeepClear מזהה אותו ברגע שהוא מחובר.</string>
+    <string name="replug_unplug">לנתק את הדיסק און קי</string>
+    <string name="replug_detected">ניתוק זוהה ✓ — לחבר שוב</string>
+    <string name="replug_checking">בודקים…</string>
+    <string name="receipt_copied_next_check">הועתק ✓ · שלב אחרון: בדיקה</string>
+    <string name="details_unencrypted">הקבצים בכונן נשמרים כמו שהם, בלי הצפנה, כך שאפשר לפתוח אותם בכל מחשב.</string>
+    <string name="pause_full_sizes">אין מספיק מקום בדיסק און קי: צריך %1$s, פנויים %2$s</string>
+    <string name="pause_full_needed">אין מספיק מקום בדיסק און קי: צריך עוד %1$s</string>
+    <string name="pause_unplugged">הדיסק און קי נותק — לחבר ולהמשיך</string>
+    <string name="pause_phone_stopped">הטלפון עצר את הגיבוי כדי לחסוך סוללה</string>
+    <plurals name="backup_errors">
+        <item quantity="one">הסתיים עם שגיאה אחת</item>
+        <item quantity="two">הסתיים עם שתי שגיאות</item>
+        <item quantity="other">הסתיים עם %1$s שגיאות</item>
+    </plurals>
+    <string name="backup_errors_show">להציג</string>
+    <string name="backup_errors_hide">להסתיר</string>
+    <string name="check_reminder_setting">להזכיר לבדוק את הגיבוי</string>
+    <string name="check_reminder_setting_body">3 חודשים אחרי הבדיקה האחרונה תופיע הודעה שמבקשת לחבר את הדיסק און קי לבדיקה חוזרת. רק תזכורת.</string>
+    <string name="check_reminder_channel">תזכורות גיבוי</string>
+    <string name="check_reminder_text">עברו 3 חודשים מהבדיקה האחרונה — לחבר את הדיסק און קי לבדיקה חוזרת</string>
+    <string name="recheck_card">לחבר את הדיסק און קי, ואז להקיש על „לבדוק את הגיבוי”.</string>
+    <string name="readme_title">גיבוי של KeepClear</string>
+    <string name="readme_what">בתיקייה הזו יש עותקים של תמונות וסרטונים מהטלפון ששמו מופיע למעלה. האפליקציה KeepClear יצרה אותם, וכל עותק נבדק מול המקור, קובץ-קובץ.</string>
+    <string name="readme_open">במחשב: לחבר את הכונן ולפתוח את התיקיות שבתוכו (Camera, WhatsApp, Pictures). אלה תמונות וסרטונים רגילים, ואפשר לפתוח אותם בכל תוכנה. בבקשה לא לשנות ולא למחוק כאן קבצים: זה הגיבוי.</string>
+    <string name="readme_restore">כדי להחזיר אותם לטלפון: להתקין את KeepClear, לפתוח את הלשונית „גיבוי”, להקיש על „לשחזר מגיבוי” ולבחור את הכונן הזה.</string>
+    <string name="backup_running_to">מגבים אל %1$s</string>
 </resources>

@@ -25,6 +25,7 @@ import io.github.tomerar.keepclear.engine.move.MoveEngine
 import io.github.tomerar.keepclear.engine.move.MoveFileState
 import io.github.tomerar.keepclear.engine.move.MoveJob
 import io.github.tomerar.keepclear.engine.move.PauseReason
+import io.github.tomerar.keepclear.engine.move.Receipt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -166,12 +167,21 @@ class MoveController(private val app: KeepClearApplication) {
      * as paused; copying resumes only when the user taps Continue. Deleting originals always needs a new
      * confirmation (MIG-5): confirmed plans live only in memory, bound to the session.
      */
-    suspend fun markInterrupted(): List<MoveJob> {
+    suspend fun markInterrupted(reason: PauseReason = PauseReason.INTERRUPTED): List<MoveJob> {
         if (_running.value != null) return emptyList()
         return store.jobs().filter { it.state == JobState.RUNNING }.map { job ->
-            job.copy(state = JobState.PAUSED, pauseReason = PauseReason.INTERRUPTED).also { store.putJob(it) }
+            job.copy(state = JobState.PAUSED, pauseReason = reason).also { store.putJob(it) }
         }
     }
+
+    /**
+     * Owner brief H1 item 8: the drive's free space when a job paused because it was full (memory only: after a
+     * restart the message says only what is needed).
+     */
+    val targetFree = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    /** Owner brief H1 item 7: the phone's free space now (StatFs, the same measure as the clean result); tests swap it. */
+    internal var phoneFree: () -> Long? = { runCatching { phoneFreeBytes(app) }.getOrNull() }
 
     /** Starts the service for a copy job; tests replace it (Robolectric runs no services). */
     internal var startJobService: (Context, String) -> Unit = { context, jobId ->
@@ -207,6 +217,9 @@ class MoveService : Service() {
         const val EXTRA_TASK = "task"
         const val EXTRA_REASON = "reason"
         private const val NOTIFICATION_ID = 41
+
+        /** Settled states a file reaches exactly once per run (the notification's bytes done). */
+        private val COUNTED = setOf(MoveFileState.VERIFIED, MoveFileState.FAILED, MoveFileState.COPIED_UNVERIFIED)
 
         /** Owner decision P3: how often a backup paused for the battery looks again. */
         private const val BATTERY_POLL_MILLIS = 30_000L
@@ -255,7 +268,11 @@ class MoveService : Service() {
         if (jobId == null && task == null) return START_NOT_STICKY.also { stopSelf(startId) }
         MoveNotifications.ensureChannel(this)
         // Every startForegroundService() must be answered with startForeground(), even one that stops at once.
-        val first = if (jobId != null) MoveNotifications.progress(this, 0, 0) else MoveNotifications.task(this, task)
+        val first = if (jobId != null) {
+            MoveNotifications.progress(this, CopyNotice())
+        } else {
+            MoveNotifications.task(this, task)
+        }
         startForeground(NOTIFICATION_ID, first, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         if (jobId != null) {
             if (!runner.start(jobId)) stopNow()
@@ -305,8 +322,12 @@ class MoveService : Service() {
             MoveNotifications.result(this, store.job(jobId)!!, 0)
             return
         }
-        val total = store.files(jobId).size
-        var verified = store.files(jobId).count { it.state == MoveFileState.VERIFIED }
+        val files = store.files(jobId)
+        var verified = files.count { it.state == MoveFileState.VERIFIED }
+        // Owner brief H1 items 4-5: progress by bytes with a smoothed time left, in the notification too.
+        val totalBytes = files.sumOf { it.sourceSize }
+        var doneBytes = files.filter { it.state in Receipt.DONE_STATES }.sumOf { it.sourceSize }
+        val eta = EtaTracker().apply { onRunning(jobId) }
         val nm = getSystemService(NotificationManager::class.java)
         // E7: at most one notification update a second, however fast small files go.
         val throttle = NotificationThrottle()
@@ -315,10 +336,14 @@ class MoveService : Service() {
             target = check.target,
             store = store,
             onProgress = { f ->
+                // Each file reaches one of these once (a file that keeps changing is counted when it is given up).
+                if (f.state in COUNTED) doneBytes += f.sourceSize
                 if (f.state == MoveFileState.VERIFIED) verified++
                 app.moveController.ticks.value++
                 if (MoveNotifications.allowed(this) && throttle.ready()) {
-                    nm.notify(NOTIFICATION_ID, MoveNotifications.progress(this, verified, total))
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    val notice = CopyNotice(doneBytes, totalBytes, eta.estimate(jobId, now, doneBytes, totalBytes))
+                    nm.notify(NOTIFICATION_ID, MoveNotifications.progress(this, notice))
                 }
             },
             cancelReason = stopReason,
@@ -327,6 +352,8 @@ class MoveService : Service() {
             attachGeneration = { app.volumeEvents.generation(check.target.volumeId) },
             // Owner decision P3: pauses itself at 10 % on battery.
             battery = app.batterySource,
+            // Owner brief H1 item 10: README.html next to the manifest, in Hebrew and English.
+            readme = readmeTexts(this),
         )
         // The target (a network drive's connection) is released when the job ends, fails or is cancelled.
         val end = check.target.useTarget {
@@ -346,7 +373,13 @@ class MoveService : Service() {
                     },
                 ) {
                     currentWait = null
-                    engine.run(jobId)
+                    engine.run(jobId).also { ended ->
+                        // Owner brief H1 item 8: "needs 4.1GB, 2.3GB free" — the drive's free space while it is open.
+                        if (ended.pauseReason == PauseReason.TARGET_FULL) {
+                            runCatching { check.target.freeBytes() }.getOrNull()
+                                ?.let { app.moveController.targetFree[jobId] = it }
+                        }
+                    }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 currentWait?.let { waiting ->
@@ -423,6 +456,42 @@ class PackageReplacedReceiver : BroadcastReceiver() {
     }
 }
 
+/**
+ * Owner brief H1 item 10: the README's texts in Hebrew and English from the string resources (whatever the app's
+ * language), so family can read it on any computer.
+ */
+internal fun readmeTexts(context: Context): List<io.github.tomerar.keepclear.engine.move.BackupReadme.Texts> =
+    listOf(java.util.Locale.forLanguageTag("he") to "rtl", java.util.Locale.ENGLISH to "ltr").map { (locale, dir) ->
+        val config = android.content.res.Configuration(context.resources.configuration).apply { setLocale(locale) }
+        val c = context.createConfigurationContext(config)
+        io.github.tomerar.keepclear.engine.move.BackupReadme.Texts(
+            lang = locale.language.let { if (it == "iw") "he" else it },
+            dir = dir,
+            title = c.getString(R.string.readme_title),
+            what = c.getString(R.string.readme_what),
+            open = c.getString(R.string.readme_open),
+            restore = c.getString(R.string.readme_restore),
+        )
+    }
+
+/** Owner brief H1 items 4-5: what the copy notification shows. */
+data class CopyNotice(val doneBytes: Long = 0, val totalBytes: Long = 0, val etaMillis: Long? = null)
+
+/**
+ * Owner brief H1 item 5: the Live Update's two segments, copy (copying and the first read-back) and check (the second
+ * check after re-plugging), in units of one bar.
+ */
+object BackupSegments {
+    const val COPY = 1_000
+    const val CHECK = 500
+
+    fun copyPosition(done: Long, total: Long): Int =
+        if (total <= 0) 0 else (done.coerceIn(0, total) * COPY / total).toInt()
+
+    fun checkPosition(done: Long, total: Long): Int =
+        COPY + if (total <= 0) 0 else (done.coerceIn(0, total) * CHECK / total).toInt()
+}
+
 object MoveNotifications {
     private const val CHANNEL = "backup"
     private const val RESULT_ID = 42
@@ -457,8 +526,37 @@ object MoveNotifications {
     )
 
     /** E3: free / check / restore in progress (no pause or stop here: those live in the app). */
-    fun task(context: Context, kind: TaskKind?, progress: TaskProgress? = null): Notification =
-        NotificationCompat.Builder(context, CHANNEL)
+    fun task(context: Context, kind: TaskKind?, progress: TaskProgress? = null): Notification {
+        // Owner brief H1 item 5: the second check is the backup's last segment ("copy ✓, check …").
+        if (kind == TaskKind.CHECK && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+            val done = progress?.done?.toLong() ?: 0
+            val total = progress?.total?.toLong() ?: 0
+            return NotificationCompat.Builder(context, CHANNEL)
+                .setSmallIcon(android.R.drawable.stat_sys_upload)
+                .setContentTitle(context.getString(R.string.task_notification_check))
+                .apply {
+                    if (total > 0) {
+                        setContentText(
+                            context.resources.getQuantityString(
+                                R.plurals.task_progress,
+                                total.toInt(),
+                                done.toInt(),
+                                total.toInt(),
+                            ),
+                        )
+                    }
+                }
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(openApp(context))
+                .promoted(
+                    BackupSegments.checkPosition(done, total),
+                    indeterminate = false,
+                    shortText = percentText(done, total, context.resources.configuration.locales[0]),
+                )
+                .build()
+        }
+        return NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(
                 context.getString(
@@ -488,6 +586,32 @@ object MoveNotifications {
             .setOnlyAlertOnce(true)
             .setContentIntent(openApp(context))
             .build()
+    }
+
+    /**
+     * Owner brief H1 item 5, Android 16+: a Live Update. One bar in two segments, copy then check
+     * ([BackupSegments]); Android may promote it (status-bar chip, lock screen) and shows [shortText] ("42%") in the
+     * chip. Older Android keeps the plain progress bar (see [progress]).
+     */
+    private fun NotificationCompat.Builder.promoted(
+        position: Int,
+        indeterminate: Boolean,
+        shortText: String?,
+    ): NotificationCompat.Builder = apply {
+        setStyle(
+            NotificationCompat.ProgressStyle()
+                .setProgressSegments(
+                    listOf(
+                        NotificationCompat.ProgressStyle.Segment(BackupSegments.COPY),
+                        NotificationCompat.ProgressStyle.Segment(BackupSegments.CHECK),
+                    ),
+                )
+                .setProgress(position)
+                .setProgressIndeterminate(indeterminate),
+        )
+        setRequestPromotedOngoing(true)
+        if (shortText != null) setShortCriticalText(shortText)
+    }
 
     /** Owner decision P1: "Deleted 400 of 6,830" while freeing; null for any other task. */
     fun freeProgressText(context: Context, progress: TaskProgress): String? {
@@ -526,18 +650,38 @@ object MoveNotifications {
         .addAction(0, context.getString(R.string.move_stop), control(context, PauseReason.CANCELLED, 2))
         .build()
 
-    fun progress(context: Context, verified: Int, total: Int): Notification =
-        NotificationCompat.Builder(context, CHANNEL)
+    /**
+     * The copy in progress: "12.9 of 31.0GB · about 41 minutes left", Pause and Stop. Owner brief H1 item 5: a Live
+     * Update with copy/check segments on Android 16+, the plain progress bar before.
+     */
+    fun progress(context: Context, notice: CopyNotice): Notification {
+        val locale = context.resources.configuration.locales[0]
+        val unknown = notice.totalBytes <= 0
+        return NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(context.getString(R.string.move_notification_title))
-            .setContentText(context.getString(R.string.move_notification_progress, verified, total))
-            .setProgress(total, verified, total == 0)
+            .apply {
+                if (!unknown) {
+                    setContentText(backupProgressLine(context, notice.doneBytes, notice.totalBytes, notice.etaMillis))
+                }
+                val position = BackupSegments.copyPosition(notice.doneBytes, notice.totalBytes)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                    promoted(
+                        position,
+                        indeterminate = unknown,
+                        shortText = if (unknown) null else percentText(notice.doneBytes, notice.totalBytes, locale),
+                    )
+                } else {
+                    setProgress(BackupSegments.COPY, position, unknown)
+                }
+            }
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(openApp(context))
             .addAction(0, context.getString(R.string.move_pause), control(context, PauseReason.PAUSED_BY_USER, 1))
             .addAction(0, context.getString(R.string.move_stop), control(context, PauseReason.CANCELLED, 2))
             .build()
+    }
 
     fun result(context: Context, job: MoveJob, verified: Int) {
         if (!allowed(context)) return

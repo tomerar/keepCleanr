@@ -348,7 +348,10 @@ class MoveEngine(
         } ?: return
         if (!manifest.isFile) return
         try {
-            replace("${job.rootRel}/${BackupReadme.NAME}", BackupReadme.html(job.rootRel.substringAfterLast('/'), readme))
+            replace(
+                "${job.rootRel}/${BackupReadme.NAME}",
+                BackupReadme.html(job.rootRel.substringAfterLast('/'), readme),
+            )
         } catch (e: Pause) {
             // The drive went away right after the manifest: the backup itself is complete.
         } catch (e: StorageException) {

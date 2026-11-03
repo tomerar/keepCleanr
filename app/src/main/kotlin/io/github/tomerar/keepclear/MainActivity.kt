@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // SEC-7: ignore touches while another app's overlay covers KeepClear.
         window.decorView.filterTouchesWhenObscured = true
+        if (savedInstanceState == null) handleRecheck(intent)
         setContent {
             KeepClearTheme {
                 val vm: HomeViewModel = viewModel()
@@ -169,6 +170,9 @@ class MainActivity : ComponentActivity() {
                 val networkHost by app.networkDrives.hostState.collectAsStateWithLifecycle()
                 val choices by app.userChoices.state.collectAsStateWithLifecycle()
                 var reminderOn by androidx.compose.runtime.remember { mutableStateOf(app.reminderPrefs.enabled) }
+                var checkReminderOn by androidx.compose.runtime.remember {
+                    mutableStateOf(app.checkReminderPrefs.enabled)
+                }
                 val keepOriginalsInTrash by app.freeSettings.state.collectAsStateWithLifecycle()
                 // D6: forgetting the Nextcloud revokes its app password on the server first; it runs in the app's
                 // scope (survives rotation, PR #44 review) and its state lives in the application.
@@ -190,6 +194,12 @@ class MainActivity : ComponentActivity() {
                                 app.reminderPrefs.enabled = on
                                 reminderOn = on
                                 SpaceReminder.schedule(this@MainActivity, on)
+                            },
+                            checkReminderOn = checkReminderOn,
+                            onCheckReminder = { on ->
+                                app.checkReminderPrefs.enabled = on
+                                checkReminderOn = on
+                                CheckReminder.schedule(this@MainActivity, on)
                             },
                             // F2: explained first in Settings; allowed() is always true below Android 13.
                             needsNotificationPermission = !MoveNotifications.allowed(this@MainActivity),
@@ -306,7 +316,8 @@ class MainActivity : ComponentActivity() {
                         moveActions = MoveActions(
                             onPickTarget = { items ->
                                 moveVm.pendingItems = items
-                                treeLauncher.launch(null)
+                                // Owner brief H1 item 3: Android's picker opens at the plugged-in drive.
+                                treeLauncher.launch(moveVm.state.value.drive?.let { app.drives.pickerStart(it) })
                             },
                             onNetworkDrive = { items, location ->
                                 moveVm.pendingItems = items
@@ -352,7 +363,6 @@ class MainActivity : ComponentActivity() {
                                 moveVm.state.value.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt)
                             },
                             onOpenGooglePhotos = ::openGooglePhotos,
-                            hasRemovableDrive = ::hasRemovableDrive,
                             onOpenTrash = {
                                 vm.loadTrash()
                                 vm.open(Screen.Trash)
@@ -515,10 +525,22 @@ class MainActivity : ComponentActivity() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_URL.toUri())) }
     }
 
-    /** A USB drive or memory card is mounted (checked before Android's folder picker, review PR C). */
-    private fun hasRemovableDrive(): Boolean =
-        getSystemService(android.os.storage.StorageManager::class.java).storageVolumes
-            .any { it.isRemovable && it.state == android.os.Environment.MEDIA_MOUNTED }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleRecheck(intent)
+    }
+
+    /**
+     * Owner brief H1 item 11: the "check the backup again" reminder was tapped: the Backup tab offers the check. The
+     * extra only names which backup to offer (the check itself reads only, and waits for the user's tap).
+     */
+    private fun handleRecheck(intent: Intent?) {
+        val jobId = intent?.getStringExtra(CheckReminder.EXTRA_RECHECK) ?: return
+        intent.removeExtra(CheckReminder.EXTRA_RECHECK)
+        val provider = androidx.lifecycle.ViewModelProvider(this)
+        provider[HomeViewModel::class.java].selectTab(Tab.BACKUP)
+        provider[MoveViewModel::class.java].offerRecheck(jobId)
+    }
 
     /** MOVE-13: share a receipt as plain text. */
     private fun shareReceipt(view: JobView) {

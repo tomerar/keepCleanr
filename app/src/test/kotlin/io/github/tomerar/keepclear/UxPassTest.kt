@@ -4,6 +4,8 @@ package io.github.tomerar.keepclear
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -232,7 +234,8 @@ class UxPassTest {
             }
         }
         compose.onNodeWithTag("moveProgress").assertExists()
-        compose.onNodeWithTag("moveEta").assertExists()
+        // H1b item 4: ONE progress line with the time left.
+        compose.onNodeWithTag("moveProgress").assertTextContains("left", substring = true)
         compose.onNodeWithTag("stop").performClick()
         assertEquals(0, stopped)
         compose.onNodeWithTag("keepGoing").assertExists()
@@ -258,7 +261,7 @@ class UxPassTest {
                     state = MoveUiState(),
                     now = now,
                     notificationsOff = false,
-                    actions = MoveActions(onPickTarget = { picked = true }, hasRemovableDrive = { false }),
+                    actions = MoveActions(onPickTarget = { picked = true }),
                     onBack = {},
                 )
             }
@@ -266,10 +269,10 @@ class UxPassTest {
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("source_camera"))
         compose.onNodeWithTag("source_camera").performClick()
         compose.onNodeWithTag("age_ALL").performClick()
-        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").performClick()
-        compose.onNodeWithTag("guideContinue").performClick()
+        // H1b item 3: with no drive the sheet says to connect one, and the picker isn't opened.
         compose.onNodeWithTag("noDrive").assertExists()
+        compose.onNodeWithTag("guideContinue").assertIsNotEnabled()
         assertEquals(false, picked)
         // Advisory: another place (e.g. a cloud folder) can still be chosen.
         compose.onNodeWithTag("guideAnyway").performClick()

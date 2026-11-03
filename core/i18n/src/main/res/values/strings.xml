@@ -117,7 +117,7 @@
     <string name="review_unselect_month">Unselect the month</string>
     <string name="review_confirm_title">Delete %1$s?</string>
     <string name="review_confirm_body">They\'ll wait in the trash for 30 days. Tap ✕ to keep any of them.</string>
-    <string name="move_title">Move to backup</string>
+    <string name="move_title">Backup</string>
     <string name="move_photos_note">KeepClear can\'t see what\'s in Google Photos. If you use it, check there or use its own \"Free up space\".</string>
     <string name="move_open_photos">Open Google Photos</string>
     <string name="move_what">What to move</string>
@@ -152,7 +152,6 @@
     <string name="move_problem_marker">This folder has a backup KeepClear doesn\'t recognise. Pick another folder.</string>
     <string name="move_problem_selection_lost">KeepClear was closed while you were choosing the drive, so the selection was lost. Select what to move again.</string>
     <string name="move_problem_unavailable">KeepClear can\'t open this drive. Check that it\'s plugged in and try again.</string>
-    <string name="move_running">Copying to %1$s: %2$s of %3$s checked</string>
     <string name="move_pause">Pause</string>
     <string name="move_stop">Stop</string>
     <string name="move_continue">Continue</string>
@@ -168,8 +167,6 @@
     <string name="move_check_needed">Before freeing space, check the backup once more, read straight from the drive.</string>
     <string name="move_check_button">Check backup</string>
     <string name="move_check_unplug">Unplug %1$s now, then plug it back in.</string>
-    <string name="move_check_plug_back">Now plug %1$s back in.</string>
-    <string name="move_check_checking">Checking every file on the drive…</string>
     <plurals name="move_check_ok">
         <item quantity="one">%1$s file checked: identical to the original.</item>
         <item quantity="other">%1$s files checked: identical to the originals.</item>
@@ -229,7 +226,6 @@
         <item quantity="other">%1$s files got a different name on the drive (kept in the backup\'s list).</item>
     </plurals>
     <string name="move_receipt_how_back">Your files are on %1$s, in the folder %2$s. To bring them back to the phone: \"Restore from a backup\" on the Backup tab.</string>
-    <string name="move_receipt_unencrypted">The copy on the drive is not encrypted. Anyone with the drive can open it.</string>
     <string name="move_free_button">Free up %1$s from the phone</string>
     <string name="move_free_unavailable">The originals stay on the phone: this place can\'t be checked.</string>
     <string name="move_free_confirm_title">Free space on the phone?</string>
@@ -244,7 +240,6 @@
     <string name="move_notif_skip">Not now</string>
     <string name="move_channel">Backup</string>
     <string name="move_notification_title">KeepClear backup</string>
-    <string name="move_notification_progress">Checked: %1$d of %2$d</string>
     <string name="move_notification_paused">The backup is paused. Open KeepClear to continue.</string>
     <string name="move_notification_updated">Backup paused by an app update. Tap to continue.</string>
     <!-- E3: free / check / restore keep running after leaving the app (foreground notification). -->
@@ -323,12 +318,8 @@
     <string name="move_phase_copying">Copying</string>
     <string name="move_phase_checking">Checking</string>
     <string name="move_progress_bytes">%1$s of %2$s</string>
-    <string name="move_time_left">About %1$s left</string>
     <string name="move_guide_title">Before you choose</string>
-    <string name="move_guide_1">1. Plug in the USB drive or insert the memory card.</string>
-    <string name="move_guide_2">2. In the next screen, tap the drive\'s name on the left (☰), then \"Use this folder\".</string>
     <string name="move_guide_continue">Choose the drive</string>
-    <string name="move_guide_no_drive">No USB drive or memory card is connected. Plug one in, then try again.</string>
     <string name="move_preflight_ok">Ready</string>
     <string name="move_preflight_blocks">Can\'t start</string>
     <string name="move_preflight_note">Note</string>
@@ -668,4 +659,41 @@
     <string name="move_free_interrupted">Freeing stopped: %1$s couldn\'t be read. What wasn\'t deleted yet stays on the phone.</string>
     <string name="settings_keep_originals">Keep the original in the 30-day trash too (frees no space)</string>
     <string name="settings_keep_originals_body">After a checked backup, freeing space then moves each original to KeepClear\'s trash for 30 days instead of deleting it. The space comes back only when the trash is emptied.</string>
+    <!-- PR H1b: backup screens (owner brief H1 items 1-8, 10, 11). -->
+    <string name="backup_only_copies">At this step KeepClear only copies. No photo is deleted.</string>
+    <string name="backup_button">Back up %1$s</string>
+    <string name="backup_button_empty">Back up</string>
+    <string name="backup_mode_drive">You can keep using the phone · Don\'t unplug the USB drive · Best to connect the charger</string>
+    <string name="backup_mode_network">You can keep using the phone · Best to connect the charger</string>
+    <string name="backup_progress_eta">%1$s of %2$s · about %3$s left</string>
+    <string name="backup_progress_announce" formatted="false">Backup %1$s done</string>
+    <string name="drive_found">Found ✓ %1$s</string>
+    <string name="drive_found_hint">On the next screen, tap \"Use this folder\".</string>
+    <string name="drive_connect">Connect the USB drive to the phone</string>
+    <string name="drive_connect_live">KeepClear notices when it is connected.</string>
+    <string name="replug_unplug">Unplug the USB drive</string>
+    <string name="replug_detected">Unplugged ✓ — plug it back in</string>
+    <string name="replug_checking">Checking…</string>
+    <string name="receipt_copied_next_check">Copied ✓ · Last step: check</string>
+    <string name="details_unencrypted">Files on the drive are stored as they are, without encryption, so any computer can open them.</string>
+    <string name="pause_full_sizes">Not enough space on the USB drive: %1$s needed, %2$s free</string>
+    <string name="pause_full_needed">Not enough space on the USB drive: %1$s more needed</string>
+    <string name="pause_unplugged">The USB drive was unplugged — connect it and continue</string>
+    <string name="pause_phone_stopped">The phone stopped the backup to save battery</string>
+    <plurals name="backup_errors">
+        <item quantity="one">Finished with %1$s error</item>
+        <item quantity="other">Finished with %1$s errors</item>
+    </plurals>
+    <string name="backup_errors_show">Show</string>
+    <string name="backup_errors_hide">Hide</string>
+    <string name="check_reminder_setting">Remind me to check the backup</string>
+    <string name="check_reminder_setting_body">3 months after the last check, a notification asks to connect the USB drive for another check. It only reminds.</string>
+    <string name="check_reminder_channel">Backup reminders</string>
+    <string name="check_reminder_text">3 months since the last check — connect the USB drive for another check</string>
+    <string name="recheck_card">Connect the USB drive, then tap \"Check backup\".</string>
+    <string name="readme_title">KeepClear backup</string>
+    <string name="readme_what">This folder holds copies of photos and videos from the phone named above, made by the KeepClear app. Each copy was checked against its original, file by file.</string>
+    <string name="readme_open">On a computer: connect the drive and open the folders inside (Camera, WhatsApp, Pictures). They are ordinary photos and videos and open in any viewer. Please don\'t change or delete files here: this is the backup.</string>
+    <string name="readme_restore">To put them back on a phone: install KeepClear, open the Backup tab and tap \"Restore from a backup\", then choose this drive.</string>
+    <string name="backup_running_to">Backing up to %1$s</string>
 </resources>

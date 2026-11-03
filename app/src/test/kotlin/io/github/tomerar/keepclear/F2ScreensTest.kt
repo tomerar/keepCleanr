@@ -489,6 +489,9 @@ class F2ScreensTest {
             changed = 0,
             pending = 0,
             namesChanged = 0,
+            // H1b item 6: the stamp comes only after the second check.
+            confirmed = 2,
+            confirmedBytes = 2_000,
         )
         compose.setContent {
             KeepClearTheme { ReceiptCard(JobView(job, receipt, canReadBack = true), onFree = {}, onShare = {}) }
