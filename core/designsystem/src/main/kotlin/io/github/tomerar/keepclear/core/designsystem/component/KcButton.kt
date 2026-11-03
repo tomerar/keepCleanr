@@ -37,6 +37,9 @@ object KcButtonDefaults {
     val MinHeight = 48.dp
     val ContentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
 
+    /** PR H2b: two buttons side by side at a large font size (swipe's Keep / Delete) keep whole words. */
+    val CompactPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+
     /**
      * Design QA item 5: a confirm button that is getting ready shows a track of its own colour at this alpha, filling
      * with the full colour; its label stays readable on both (ContrastTest).
@@ -67,8 +70,11 @@ fun KcButton(
     style: KcButtonStyle = KcButtonStyle.Primary,
     enabled: Boolean = true,
     icon: ImageVector? = null,
+    /** Narrower side padding ([KcButtonDefaults.CompactPadding]) for filled and tonal styles. */
+    compact: Boolean = false,
 ) {
     val content: @Composable RowScope.() -> Unit = { ButtonContent(text, icon) }
+    val padding = if (compact) KcButtonDefaults.CompactPadding else KcButtonDefaults.ContentPadding
     val m = modifier.heightIn(min = KcButtonDefaults.MinHeight)
     when (style) {
         KcButtonStyle.Primary, KcButtonStyle.Destructive -> Button(
@@ -77,7 +83,7 @@ fun KcButton(
             enabled = enabled,
             shape = KcShapes.pill,
             colors = KcButtonDefaults.filledColors(permanent = style == KcButtonStyle.Destructive),
-            contentPadding = KcButtonDefaults.ContentPadding,
+            contentPadding = padding,
             content = content,
         )
 
@@ -86,7 +92,7 @@ fun KcButton(
             modifier = m,
             enabled = enabled,
             shape = KcShapes.pill,
-            contentPadding = KcButtonDefaults.ContentPadding,
+            contentPadding = padding,
             content = content,
         )
 
