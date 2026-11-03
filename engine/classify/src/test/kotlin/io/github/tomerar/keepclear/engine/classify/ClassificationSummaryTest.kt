@@ -26,6 +26,21 @@ class ClassificationSummaryTest {
     private val summary = ClassificationSummary.of(items)
 
     @Test
+    fun `cleaned items leave every total at once (owner brief H2 item 6)`() {
+        val after = summary.without(setOf("$root/DCIM/.thumbnails/t.jpg", "$root/Pictures/Screenshots/b.png"))
+        after.total(Category.SAFE) shouldBe Total()
+        after.phoneTotal(Category.SAFE) shouldBe Total()
+        after.total(Category.REVIEW) shouldBe Total(2, 400)
+        after.phoneTotal(Category.REVIEW) shouldBe Total(2, 400)
+        after.groups(Category.SAFE) shouldBe emptyList()
+        after.group("screenshots", Category.REVIEW)!!.items.map { it.item.path.substringAfterLast('/') } shouldBe
+            listOf("c.png", "a.png")
+        // Unknown paths and nothing change nothing.
+        summary.without(setOf("$root/nope.jpg")) shouldBe summary
+        summary.without(emptySet()) shouldBe summary
+    }
+
+    @Test
     fun `totals equal the sum of their items`() {
         summary.total(Category.REVIEW) shouldBe Total(3, 600)
         summary.total(Category.MOVE) shouldBe Total(1, 5_000)

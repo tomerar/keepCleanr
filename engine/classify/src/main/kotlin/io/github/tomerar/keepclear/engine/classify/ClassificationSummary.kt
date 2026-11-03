@@ -39,6 +39,13 @@ data class ClassificationSummary(
     fun group(ruleId: String, category: Category): GroupSummary? =
         groups.firstOrNull { it.ruleId == ruleId && it.category == category }
 
+    /**
+     * Owner brief H2 item 6: this summary without the items at [paths] (cleaned just now), with every total, group
+     * and bucket worked out again, so Home stops counting them at once instead of after the next scan.
+     */
+    fun without(paths: Set<String>): ClassificationSummary =
+        if (paths.isEmpty()) this else of(groups.flatMap { it.items }.filter { it.item.path !in paths })
+
     /** Bytes per broad area for "Where your space is" (camera, WhatsApp, junk, other), on the phone only (D5). */
     fun areas(): Map<Area, Long> {
         val result = linkedMapOf(Area.CAMERA to 0L, Area.WHATSAPP to 0L, Area.JUNK to 0L, Area.OTHER to 0L)

@@ -44,6 +44,12 @@ data class ConfirmFact(val label: String, val value: String)
 /** Test tag of the sheet's scrolling part. */
 const val CONFIRM_SHEET_BODY_TAG = "kcConfirmSheetBody"
 
+/** Test tag of a sheet's [risk] line. */
+const val CONFIRM_SHEET_RISK_TAG = "kcConfirmSheetRisk"
+
+/** Test tag of the fade drawn above the buttons while more of the sheet is below (owner brief H2 item 5). */
+const val CONFIRM_SHEET_FADE_TAG = "kcConfirmSheetFade"
+
 /**
  * The confirmation of every destructive action (design-system.md §7): a sheet anchored to the bottom with a heading
  * [title], the [facts] (numbers in tabular figures), an optional [note], the editable list in [content], then the
@@ -71,54 +77,91 @@ fun ConfirmSheet(
      * [onDismiss] (PR #48 review: a sheet whose main button is "Keep going" puts its real action here).
      */
     dismissAction: (() -> Unit)? = null,
+    /**
+     * Owner brief H2 item 5: the one line about what can't be undone, in error red, right under the title (before
+     * the rows), so it is seen first also at 200% font. Only for a permanent loss (e.g. other apps' bins).
+     */
+    risk: String? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     SheetFrame(onDismiss = onDismiss, modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .testTag(CONFIRM_SHEET_BODY_TAG)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(KcSpacing.m),
-        ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { heading() },
-            )
-            facts.forEach { fact ->
-                Column(Modifier.semantics(mergeDescendants = true) { }) {
+        val scroll = rememberScrollState()
+        Box(Modifier.weight(1f, fill = false)) {
+            Column(
+                modifier = Modifier
+                    .testTag(CONFIRM_SHEET_BODY_TAG)
+                    .verticalScroll(scroll),
+                verticalArrangement = Arrangement.spacedBy(KcSpacing.m),
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() },
+                )
+                if (risk != null) {
                     Text(
-                        fact.label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        fact.value,
-                        style = KeepClearTheme.type.number,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        risk,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag(CONFIRM_SHEET_RISK_TAG),
                     )
                 }
+                facts.forEach { fact ->
+                    Column(Modifier.semantics(mergeDescendants = true) { }) {
+                        Text(
+                            fact.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            fact.value,
+                            style = KeepClearTheme.type.number,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                if (note != null) {
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (permanent) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+                content()
             }
-            if (note != null) {
-                Text(
-                    note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (permanent) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
-            content()
+            ScrollFade(scroll, Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.height(KcSpacing.l))
         // A column, so a slot with more than one button never stacks them on top of each other (PR #48 review).
         Column(Modifier.fillMaxWidth()) { confirmButton() }
         KcButton(dismissText, dismissAction ?: onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
+}
+
+/**
+ * Owner brief H2 item 5: while more of a sheet's body is below, a fade in the sheet's own colour above the sticky
+ * buttons says "there's more" (decorative: TalkBack scrolls the body itself).
+ */
+@Composable
+private fun ScrollFade(scroll: androidx.compose.foundation.ScrollState, modifier: Modifier) {
+    if (!scroll.canScrollForward) return
+    val paper = MaterialTheme.colorScheme.surfaceContainerLow
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(KcSpacing.xl * 2)
+            .testTag(CONFIRM_SHEET_FADE_TAG)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(paper.copy(alpha = 0f), paper),
+                ),
+            ),
+    )
 }
 
 /**
