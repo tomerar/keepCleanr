@@ -432,16 +432,24 @@ class SwipeH2bTest {
     }
 
     @Test
-    fun `Delete button on the left in LTR`() = assertTrue(buttons(LayoutDirection.Ltr, swapped = false))
+    fun `Delete button on the left in LTR`() {
+        assertTrue(buttons(LayoutDirection.Ltr, swapped = false))
+    }
 
     @Test
-    fun `Delete button on the left in RTL`() = assertTrue(buttons(LayoutDirection.Rtl, swapped = false))
+    fun `Delete button on the left in RTL`() {
+        assertTrue(buttons(LayoutDirection.Rtl, swapped = false))
+    }
 
     @Test
-    fun `swapped, Delete button on the right in LTR`() = assertFalse(buttons(LayoutDirection.Ltr, swapped = true))
+    fun `swapped, Delete button on the right in LTR`() {
+        assertFalse(buttons(LayoutDirection.Ltr, swapped = true))
+    }
 
     @Test
-    fun `swapped, Delete button on the right in RTL`() = assertFalse(buttons(LayoutDirection.Rtl, swapped = true))
+    fun `swapped, Delete button on the right in RTL`() {
+        assertFalse(buttons(LayoutDirection.Rtl, swapped = true))
+    }
 
     @Test
     fun `Keep and Delete look the same - Delete is not the filled ink button`() {
