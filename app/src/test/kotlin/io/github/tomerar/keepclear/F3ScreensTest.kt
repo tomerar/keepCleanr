@@ -84,10 +84,24 @@ class F3ScreensTest {
 
     @Test
     fun `a backup source's pictures are of the chosen age, like its count`() {
+        // Owner decision P2: the first backup defaults to everything; after one, to older than a year (tested here).
+        val job = io.github.tomerar.keepclear.engine.move.MoveJob(
+            "j0",
+            "t",
+            "SanDisk",
+            "KeepClear/Phone",
+            1,
+            io.github.tomerar.keepclear.engine.move.JobState.DONE,
+        )
+        val earlierBackup = MoveUiState(
+            jobs = listOf(
+                JobView(job, io.github.tomerar.keepclear.engine.move.Receipt.of(job, emptyList()), canReadBack = true),
+            ),
+        )
         compose.setContent {
             KeepClearTheme {
                 CompositionLocalProvider(LocalThumbnailLoader provides loader) {
-                    MoveScreen(OwnerPhone.summary, MoveUiState(), OwnerPhone.NOW, false, MoveActions(), onBack = null)
+                    MoveScreen(OwnerPhone.summary, earlierBackup, OwnerPhone.NOW, false, MoveActions(), onBack = null)
                 }
             }
         }

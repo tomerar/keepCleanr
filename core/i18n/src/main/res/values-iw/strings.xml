@@ -688,8 +688,8 @@
     <!-- Design QA item 3: Trash. -->
     <string name="trash_from_gallery_bin">מסל הגלריה</string>
     <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
-    <string name="move_issue_battery_warning">כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך</string>
-    <string name="move_paused_battery">הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען.</string>
+    <string name="move_issue_battery_warning" formatted="false">כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך</string>
+    <string name="move_paused_battery" formatted="false">הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען.</string>
     <string name="move_free_confirm_for_good">המקור יימחק מהטלפון. העותק נשאר ב-%1$s, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.</string>
     <string name="free_where_for_good">יימחקו מהטלפון; העותק נשאר ב-%1$s</string>
     <string name="free_keep_favourites">להשאיר בטלפון מועדפים</string>

@@ -277,18 +277,17 @@ class ViewModelStabilityTest {
             store.putJob(store.job(id)!!.copy(state = JobState.PAUSED, pauseReason = PauseReason.BATTERY_LOW))
         }
         app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = false) }
-        // The service is started through the application's base context (Robolectric's application).
-        val shadow = shadowOf(ApplicationProvider.getApplicationContext<android.app.Application>())
-        shadow.clearStartedServices()
+        val started = java.util.concurrent.CopyOnWriteArrayList<String>()
+        app.moveController.startJobService = { _, job -> started += job }
         // Opening the Backup screen while the battery is still low and not charging: it keeps waiting.
         t.viewModel(MoveViewModel::class.java)
         TestApp.settle(500)
-        assertEquals(null, shadow.peekNextStartedService())
+        assertEquals(emptyList<String>(), started.toList())
         // The charger goes in; the next time the screen opens, the backup goes on.
         app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = true) }
         t.viewModel(MoveViewModel::class.java, t.newStore())
-        TestApp.awaitMain("started") { shadow.peekNextStartedService() != null }
-        assertEquals(id, shadow.nextStartedService.getStringExtra(MoveService.EXTRA_JOB))
+        TestApp.awaitMain("started") { started.isNotEmpty() }
+        assertEquals(listOf(id), started.toList())
     }
 
     @Test

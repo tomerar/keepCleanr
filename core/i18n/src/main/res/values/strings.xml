@@ -649,8 +649,8 @@
     <!-- Design QA item 3: Trash. -->
     <string name="trash_from_gallery_bin">From the gallery\'s bin</string>
     <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
-    <string name="move_issue_battery_warning">Better to charge first; the backup pauses by itself at 10% and goes on later.</string>
-    <string name="move_paused_battery">The backup paused by itself because the battery reached 10%. It goes on once the phone charges.</string>
+    <string name="move_issue_battery_warning" formatted="false">Better to charge first; the backup pauses by itself at 10% and goes on later.</string>
+    <string name="move_paused_battery" formatted="false">The backup paused by itself because the battery reached 10%. It goes on once the phone charges.</string>
     <string name="move_free_confirm_for_good">The originals will be deleted from the phone. The copy stays on %1$s, checked file by file, and you can bring files back from it at any time.</string>
     <string name="free_where_for_good">Deleted from the phone; the copy stays on %1$s</string>
     <string name="free_keep_favourites">Keep favourites on the phone</string>

@@ -173,10 +173,13 @@ class MoveController(private val app: KeepClearApplication) {
         }
     }
 
-    fun start(context: Context, jobId: String) {
+    /** Starts the service for a copy job; tests replace it (Robolectric runs no services). */
+    internal var startJobService: (Context, String) -> Unit = { context, jobId ->
         val intent = Intent(context, MoveService::class.java).putExtra(MoveService.EXTRA_JOB, jobId)
         ContextCompat.startForegroundService(context, intent)
     }
+
+    fun start(context: Context, jobId: String) = startJobService(context, jobId)
 
     /** Set by the running service; same process, so no background service start is needed (Android 12+). */
     @Volatile internal var stopper: ((PauseReason) -> Unit)? = null
