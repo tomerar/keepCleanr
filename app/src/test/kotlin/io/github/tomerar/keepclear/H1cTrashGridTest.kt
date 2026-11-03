@@ -190,10 +190,12 @@ class H1cTrashGridTest {
     }
 
     @Test
-    @Config(sdk = [36], qualifiers = "iw", fontScale = 2.0f)
+    @Config(sdk = [36], qualifiers = "iw-w360dp-h800dp", fontScale = 2.0f)
     // Real text measuring (the default Robolectric graphics put any text on one line).
     @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
     fun `at 200 percent a month header wraps only between words, never inside one`() {
+        // Screenshot tests in the same run set the font scale for the whole sandbox; set it here, not inherited.
+        org.robolectric.RuntimeEnvironment.setFontScale(2.0f)
         show(TrashUi((1..12).map { m -> entry("m$m", "IMG_$m.jpg", at(2026, m, 3)) }))
         (1..12).forEach { m ->
             val tag = "monthHeader_2026-%02d".format(m)
