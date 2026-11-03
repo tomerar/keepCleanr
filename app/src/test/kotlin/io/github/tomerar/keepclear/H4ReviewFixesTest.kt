@@ -45,6 +45,20 @@ class H4ReviewFixesTest {
     }
 
     @Test
+    fun `on Android 12 going back to the system language undoes the language the process started with`() {
+        // The process started with Hebrew chosen (the application context carries it); the phone itself is English.
+        AppLanguage.store(context, "iw")
+        val startedInHebrew = AppLanguage.wrap(context)
+        assertEquals("התקדמות הגיבוי", startedInHebrew.getString(R.string.move_channel))
+        // The user picks "System language": the stored choice is removed.
+        AppLanguage.store(context, null)
+        assertEquals("Backup progress", AppLanguage.wrap(startedInHebrew).getString(R.string.move_channel))
+        val nm = context.getSystemService(NotificationManager::class.java)
+        NotificationChannels.registerAll(startedInHebrew)
+        assertEquals("Backup progress", nm.getNotificationChannel(NotificationChannels.BACKUP_PROGRESS).name)
+    }
+
+    @Test
     fun `every settings file is opened inside the main-thread settings allowance, or off the main thread`() {
         // StrictMode in test builds kills the app on a main-thread disk read; opening a SharedPreferences file is one.
         // Allowed without MainThreadPolicy.settings only where the open happens off the main thread or the value is
@@ -54,7 +68,8 @@ class H4ReviewFixesTest {
             "getSharedPreferences(CrashCheck.PREFS", // in moveController.scope (background)
             "getSharedPreferences(WhatsNew.PREFS", // in moveController.scope (background)
             "private val prefs get() = getSharedPreferences(\"move\"", // a getter, only called inside the allowance
-            "private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)", // SystemTrashClock: built inside it
+            // SystemTrashClock: constructed inside the allowance.
+            "private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)",
         )
         val offenders = File("src/main/kotlin").walkTopDown().filter { it.isFile && it.extension == "kt" }
             .flatMap { file ->
