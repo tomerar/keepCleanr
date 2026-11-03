@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +55,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
@@ -64,12 +67,14 @@ import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KcIcons
 import io.github.tomerar.keepclear.core.designsystem.KcShapes
 import io.github.tomerar.keepclear.core.designsystem.KeepClearTheme
+import io.github.tomerar.keepclear.core.designsystem.component.BalancedChipRow
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
 import io.github.tomerar.keepclear.core.designsystem.component.InfoChip
 import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.designsystem.component.KcCard
+import io.github.tomerar.keepclear.core.designsystem.component.KcSearchField
 import io.github.tomerar.keepclear.core.designsystem.component.ThumbStrip
 import io.github.tomerar.keepclear.core.i18n.R
 import io.github.tomerar.keepclear.core.model.Category
@@ -240,6 +245,16 @@ fun GroupScreen(
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
     var why by remember { mutableStateOf(false) }
     val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
+    // PR H5: sort, year and search (kept while the screen is in the stack); the default shows the group as before.
+    var sortName by rememberSaveable { mutableStateOf(GroupSort.NEWEST.name) }
+    var year by rememberSaveable { mutableStateOf<Int?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var toolsOpen by rememberSaveable { mutableStateOf(false) }
+    var askLargest by remember { mutableStateOf(false) }
+    val view = GroupView(GroupSort.valueOf(sortName), year, query)
+    val zone = remember { ZoneId.systemDefault() }
+    val sections = remember(group, view) { GroupTools.sections(group, view, zone) }
+    val visible = remember(sections) { GroupTools.visible(sections) }
     // Owner brief H4 item 2: with something selected, Back (predictive, it can be cancelled half-way) first leaves
     // the selection; the next Back leaves the group. Enabled only while there is a selection (never always on).
     androidx.activity.compose.PredictiveBackHandler(
@@ -254,20 +269,22 @@ fun GroupScreen(
         bottomBar = {
             // Review PR C: no action bar until something is selected; padded above the navigation bar.
             if (selectable && selectedItems.isNotEmpty()) {
+                val selectedTotal = selectedItems.fold(Total()) { t, i -> t + i }
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                    KcButton(
-                        stringResource(
-                            R.string.review_delete,
-                            totalText(
-                                selectedItems.fold(Total()) { t, i ->
-                                    t + i
-                                },
-                            ),
-                        ),
-                        onClick = { confirming = selectedItems },
-                        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)
-                            .testTag("deleteSelected"),
-                    )
+                    Column(Modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                        // PR H5: the selection count bar: count · size, how many of them a filter hides, and a way
+                        // out of the selection.
+                        SelectionBar(
+                            total = selectedTotal,
+                            hidden = selectedItems.size - visible.count { it.item.path in selected },
+                            onClear = { setSelected(emptySet()) },
+                        )
+                        KcButton(
+                            stringResource(R.string.review_delete, totalText(selectedTotal)),
+                            onClick = { confirming = selectedItems },
+                            modifier = Modifier.fillMaxWidth().testTag("deleteSelected"),
+                        )
+                    }
                 }
             }
         },
@@ -294,8 +311,34 @@ fun GroupScreen(
                     Text(totalText(group.total), style = KeepClearTheme.type.number)
                     // F2: "Why is this here?" opens a sheet; no wall of text above the pictures.
                     InfoChip(stringResource(R.string.label_why), onClick = { why = true }, Modifier.testTag("whyChip"))
+                    // PR H5: a non-intrusive way in; the tools stay folded until asked for (product principle 2).
+                    // Review of PR #61: while a year or a search is in use the tools stay, even with one file left,
+                    // so a filter that hides that file can always be cleared.
+                    if (group.items.size > 1 || view.filtered) {
+                        GroupToolsPanel(
+                            group = group,
+                            view = view,
+                            open = toolsOpen || view != GroupView(),
+                            onToggle = { toolsOpen = !toolsOpen },
+                            onSort = { sortName = it.name },
+                            onYear = { year = it },
+                            onQuery = { query = it },
+                            onClear = {
+                                year = null
+                                query = ""
+                            },
+                            shown = visible.size,
+                            zone = zone,
+                            onLargest = if (selectable && GroupTools.choices(visible.size).isNotEmpty()) {
+                                { askLargest = true }
+                            } else {
+                                null
+                            },
+                        )
+                    }
                     if (selectable) {
-                        val all = remember(group.items) { group.items.mapTo(HashSet()) { it.item.path } }
+                        // PR H5: with a year or a search, "select all" means what is shown (never hidden files).
+                        val all = remember(visible) { visible.mapTo(HashSet()) { it.item.path } }
                         val allSelected = all.isNotEmpty() && selected.containsAll(all)
                         // One row, so the pictures stay where they were on small screens.
                         FlowRow(
@@ -323,9 +366,13 @@ fun GroupScreen(
                             }
                             KcButton(
                                 stringResource(
-                                    if (allSelected) R.string.review_unselect_all else R.string.review_select_all,
+                                    when {
+                                        allSelected -> R.string.review_unselect_all
+                                        view.filtered -> R.string.group_select_shown
+                                        else -> R.string.review_select_all
+                                    },
                                 ),
-                                onClick = { setSelected(if (allSelected) emptySet() else all) },
+                                onClick = { setSelected(if (allSelected) selected - all else selected + all) },
                                 style = KcButtonStyle.Text,
                                 modifier = Modifier.testTag("selectAll"),
                             )
@@ -338,7 +385,9 @@ fun GroupScreen(
                     }
                 }
             }
-            for ((bucket, items) in group.buckets) {
+            for (section in sections) {
+                val bucket = section.bucket
+                val items = section.items
                 item(span = { GridItemSpan(maxLineSpan) }, key = "h_$bucket") {
                     // Owner brief H2 item 12: the month's name keeps its whole line when the button doesn't fit beside
                     // it (at 200% it went "אוקטוב/ר 2026"); the button then wraps below it.
@@ -348,12 +397,12 @@ fun GroupScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
                     ) {
                         Text(
-                            bucketTitle(bucket),
+                            if (section.byMonth) bucketTitle(bucket) else stringResource(R.string.group_sort_largest),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() }
                                 .testTag("bucket_$bucket"),
                         )
-                        if (selectable) {
+                        if (selectable && section.byMonth) {
                             val paths = items.map { it.item.path }.toSet()
                             val all = selected.containsAll(paths)
                             KcButton(
@@ -383,6 +432,17 @@ fun GroupScreen(
         }
     }
 
+    if (askLargest) {
+        LargestSheet(
+            visible = visible,
+            onPick = { n ->
+                askLargest = false
+                // Only on this explicit tap, and only from what is on screen (SAFETY rule 7).
+                setSelected(GroupTools.largest(visible, n))
+            },
+            onDismiss = { askLargest = false },
+        )
+    }
     if (why) {
         InfoSheet(
             title = stringResource(text.group),
@@ -442,6 +502,165 @@ fun GroupScreen(
             },
             onDismiss = { confirming = null },
         )
+    }
+}
+
+/**
+ * PR H5: "Sort and filter", folded by default: search (the Trash's [GridSearch]), newest/oldest/largest, a year,
+ * "how many are shown" with a way back to all, and "select the largest" ([onLargest], null when not offered).
+ */
+@Composable
+private fun GroupToolsPanel(
+    group: GroupSummary,
+    view: GroupView,
+    open: Boolean,
+    onToggle: () -> Unit,
+    onSort: (GroupSort) -> Unit,
+    onYear: (Int?) -> Unit,
+    onQuery: (String) -> Unit,
+    onClear: () -> Unit,
+    shown: Int,
+    zone: ZoneId,
+    onLargest: (() -> Unit)?,
+) {
+    val label = stringResource(R.string.group_tools_open)
+    KcButton(
+        label,
+        onClick = onToggle,
+        style = KcButtonStyle.Text,
+        icon = KcIcons.Search,
+        modifier = Modifier.testTag("groupTools"),
+    )
+    if (!open) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("groupToolsPanel")) {
+        KcSearchField(
+            view.query,
+            onQuery,
+            placeholder = stringResource(R.string.grid_search_hint),
+            clearLabel = stringResource(R.string.grid_search_clear),
+            modifier = Modifier.testTag("groupSearch"),
+        )
+        // Three orders in a wrapping row (two and one at a phone's width); a column of three looked like a list.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.testTag("groupSort"),
+        ) {
+            listOf(
+                GroupSort.NEWEST to R.string.group_sort_newest,
+                GroupSort.OLDEST to R.string.group_sort_oldest,
+                GroupSort.LARGEST to R.string.group_sort_largest,
+            ).forEach { (sort, text) ->
+                FilterChip(
+                    selected = view.sort == sort,
+                    onClick = { onSort(sort) },
+                    label = { Text(stringResource(text)) },
+                    modifier = Modifier.testTag("sort_${sort.name}"),
+                )
+            }
+        }
+        val years = remember(group.items) { GroupTools.years(group.items, zone) }
+        if (years.size > 1) {
+            BalancedChipRow(Modifier.testTag("groupYears")) {
+                FilterChip(
+                    selected = view.year == null,
+                    onClick = { onYear(null) },
+                    label = { Text(stringResource(R.string.group_year_all)) },
+                    modifier = Modifier.testTag("year_all"),
+                )
+                years.forEach { y ->
+                    FilterChip(
+                        selected = view.year == y,
+                        onClick = { onYear(if (view.year == y) null else y) },
+                        // A year is a number: isolated, never mirrored into the sentence around it.
+                        label = { Text(Bidi.isolate(y.toString())) },
+                        modifier = Modifier.testTag("year_$y"),
+                    )
+                }
+            }
+        }
+        if (view.filtered) {
+            Text(
+                stringResource(R.string.group_shown, countText(shown), countText(group.items.size)),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("groupShown"),
+            )
+            KcButton(
+                stringResource(R.string.group_clear_filter),
+                onClick = onClear,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("groupClearFilter"),
+            )
+        }
+        onLargest?.let { pick ->
+            KcButton(
+                stringResource(R.string.group_largest_button),
+                onClick = pick,
+                style = KcButtonStyle.Text,
+                modifier = Modifier.testTag("groupLargest"),
+            )
+        }
+    }
+}
+
+/** PR H5: the selection count bar: "Selected: 12 files · 3.1GB", the part a filter hides, and "Unselect". */
+@Composable
+private fun SelectionBar(total: Total, hidden: Int, onClear: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("selectionBar"),
+    ) {
+        Column(
+            Modifier.weight(1f).semantics(mergeDescendants = true) {
+                liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
+            },
+        ) {
+            Text(
+                selectionText(total, R.string.clean_selected),
+                style = KeepClearTheme.type.number,
+                modifier = Modifier.testTag("selectionCount"),
+            )
+            if (hidden > 0) {
+                Text(
+                    countSentence(R.plurals.group_selected_hidden, hidden),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("selectionHidden"),
+                )
+            }
+        }
+        KcButton(
+            stringResource(R.string.review_unselect_all),
+            onClick = onClear,
+            style = KcButtonStyle.Text,
+            modifier = Modifier.testTag("selectionClear"),
+        )
+    }
+}
+
+/** PR H5: "How many of the largest?": 10, 25, 50 or 100 of what is shown, each with its size. */
+@Composable
+private fun LargestSheet(visible: List<ClassifiedItem>, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+    InfoSheet(
+        title = stringResource(R.string.group_largest_title),
+        dismissText = stringResource(R.string.move_cancel),
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("largestSheet"),
+    ) {
+        Text(stringResource(R.string.group_largest_body), style = MaterialTheme.typography.bodyMedium)
+        val locale = LocalConfiguration.current.locales[0]
+        for (n in GroupTools.choices(visible.size)) {
+            val bytes = GroupTools.total(visible, GroupTools.largest(visible, n)).bytes
+            KcButton(
+                stringResource(
+                    R.string.group_largest_option,
+                    Bidi.isolate(NumberFormat.getIntegerInstance(locale).format(n)),
+                    Bidi.isolate(ByteSize.format(bytes, locale)),
+                ),
+                onClick = { onPick(n) },
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.fillMaxWidth().testTag("largest_$n"),
+            )
+        }
     }
 }
 
@@ -687,6 +906,10 @@ class PreviewActions(
     val onKeep: (String) -> Unit = {},
     /** "Always treat this folder as junk". */
     val onAlwaysJunk: (String) -> Unit = {},
+    /** PR H5: „חזרה” on the notice after „לא להציע את זה שוב” (cancels that rule only). */
+    val onUndoKeep: (String) -> Unit = {},
+    /** PR H5: the notice timed out. */
+    val onKeepNoticeDone: () -> Unit = {},
 )
 
 /** One item: preview, exact size and date, and the plain-language explanation (CLS-2). */

@@ -495,7 +495,6 @@
     <string name="choice_always_junk_confirm">להציע תמיד</string>
     <string name="choice_kept_label">לא להציע שוב</string>
     <string name="choice_junk_label">להציע תמיד לנקות</string>
-    <string name="choice_remove">להסיר</string>
     <string name="swipe_start">לעבור עליהם אחד-אחד</string>
     <string name="swipe_progress">%1$s מתוך %2$s</string>
     <string name="swipe_hint">שום דבר לא נמחק עד שמסיימים ומאשרים.</string>
@@ -878,4 +877,46 @@
     <string name="apps_archive">לארכב</string>
     <string name="apps_archive_note">ארכוב שומר את הנתונים ואת הסמל של האפליקציה ומפנה את האפליקציה עצמה. לוחצים על הסמל כדי לקבל אותה בחזרה.</string>
     <string name="apps_split">אפליקציה %1$s · נתונים %2$s · קבצים זמניים %3$s</string>
+
+    <!-- PR H5: power users (review group tools, rules, test-mode export, network drive fields). -->
+    <string name="group_tools_open">למיין ולסנן</string>
+    <string name="group_sort_newest">מהחדש לישן</string>
+    <string name="group_sort_oldest">מהישן לחדש</string>
+    <string name="group_sort_largest">מהגדול לקטן</string>
+    <string name="group_year_all">כל השנים</string>
+    <string name="group_shown">מוצגים %1$s מתוך %2$s</string>
+    <string name="group_clear_filter">להציג הכול</string>
+    <string name="group_largest_button">לבחור את הגדולים ביותר</string>
+    <string name="group_largest_title">כמה מהגדולים לבחור?</string>
+    <string name="group_largest_body">מתוך מה שמוצג עכשיו. שום דבר לא נמחק עד שבודקים את הרשימה ומאשרים.</string>
+    <string name="group_largest_option">לבחור את %1$s הגדולים · %2$s</string>
+    <string name="group_select_shown">לבחור את כל המוצגים</string>
+    <plurals name="group_selected_hidden">
+        <item quantity="one">אחד מהם לא מוצג עכשיו</item>
+        <item quantity="two">%1$s מהם לא מוצגים עכשיו</item>
+        <item quantity="other">%1$s מהם לא מוצגים עכשיו</item>
+    </plurals>
+    <string name="settings_rules_title">הכללים שלכם</string>
+    <string name="settings_rules_body">כללים משנים רק את מה ש-KeepClear מציע. ביטול של כלל לא מוחק ולא מזיז אף קובץ.</string>
+    <string name="rule_matches">בסריקה האחרונה: %1$s</string>
+    <string name="rule_matches_none">לא נמצא כלום בסריקה האחרונה</string>
+    <string name="rule_matches_unknown">יופיע אחרי הסריקה הבאה</string>
+    <string name="rule_cancel">לבטל את הבחירה</string>
+    <string name="keep_notice">KeepClear לא יציע שוב את %1$s.</string>
+    <string name="notice_undo">חזרה</string>
+    <string name="test_export_button">לייצא את הרשימה</string>
+    <string name="test_export_title">לייצא את מה שמצב הניסיון היה מוחק?</string>
+    <string name="test_export_body">הרשימה כוללת את השם, התיקייה והגודל של כל אחד מ-%1$s. היא נשמרת רק איפה שתבחרו; KeepClear לא שולח אותה לשום מקום.</string>
+    <string name="test_export_choose">לבחור איפה לשמור</string>
+    <string name="test_export_done">הרשימה נשמרה.</string>
+    <string name="test_export_failed">KeepClear לא הצליח לשמור את הרשימה. אפשר לנסות תיקייה אחרת.</string>
+    <string name="move_network_port">פורט</string>
+    <string name="move_network_port_hint">445</string>
+    <string name="move_network_port_bad">מספר מ-1 עד 65535</string>
+    <string name="move_network_domain">דומיין</string>
+    <string name="move_network_optional">אפשר להשאיר ריק</string>
+    <string name="move_network_domain_bad">רק אותיות באנגלית, ספרות, נקודות, מקפים וקווים תחתונים</string>
+    <string name="move_network_folder">תיקייה בתוך התיקייה המשותפת</string>
+    <string name="move_network_folder_hint">Backups/Phone</string>
+    <string name="move_network_folder_bad">תיקייה בתוך התיקייה המשותפת, למשל Backups/Phone, בלי .. ובלי / או \\ בהתחלה</string>
 </resources>

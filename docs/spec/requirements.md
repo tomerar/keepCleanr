@@ -286,7 +286,7 @@ Threats and rationale: [threat-model.md](threat-model.md).
 | ID | Pri | Requirement |
 |---|---|---|
 | SET-1 | MVP | THE SYSTEM SHALL let the user set trash retention, MOVE default age, language, and view granted permissions with a link to revoke each. |
-| SET-2 | v1 | THE SYSTEM SHALL let the user manage exclusions (paths never touched). |
+| SET-2 | v1 | THE SYSTEM SHALL let the user manage exclusions (paths never touched). PR H5: Settings' „הכללים שלכם” lists them with what each matched and „לבטל את הבחירה” (POW-4). |
 | SET-3 | v1 | THE SYSTEM MAY send an opt-in, local reminder ("2 GB left free. You can free 7.9 GB of files you don't need.", BigTextStyle, KeepClear's own icon) but SHALL NOT delete anything in the background. WHERE Android asks for notification permission, turning the reminder on SHALL explain first and SHALL leave it off when the permission is refused (F2, C88). | `F2ScreensTest` |
 
 ## 11a. Help, trust and finish (HELP, PR H3)
@@ -321,7 +321,20 @@ Owner brief H4 (2026-11-03), decisions C172–C186 in [progress.md](../progress.
 | PLAT-8 | v1 | ON Android 15+, WHERE the app's store supports it, THE SYSTEM SHALL offer „לארכב” through Android's own archive confirmation besides „להסיר” (both blocked in test mode), and show app / data / temporary-files sizes. | `H4bAccessibilityTest` |
 | PLAT-9 | v1 | THE SYSTEM SHALL not call Java 21 `List` methods missing before API 35, not listen for `BOOT_COMPLETED` (WorkManager's own receiver aside), and ship only 16 KB-aligned native libraries (today only Compose's graphics-path). | `ForbiddenApisTest`, `ManifestPolicyTest`, `scripts/check-16kb-pages.py` (CI) |
 
-## 12. Non-functional (NFR)
+## 11c. Power users (POW, PR H5)
+
+Owner brief H5 (2026-11-03), decisions C187–C193 in [progress.md](../progress.md). Non-intrusive: everything here is folded, under Advanced, or appears only after the user acts (product principle 2).
+
+| ID | Pri | Requirement | Tests |
+|---|---|---|---|
+| POW-1 | v1 | THE SYSTEM SHALL offer in every review group a folded „למיין ולסנן” panel: search by name or date (the Trash's `GridSearch`), order „מהחדש לישן” (the month sections as before, the default) / „מהישן לחדש” / „מהגדול לקטן” (one list), and a year filter („כל השנים” and each year the group has); with a filter it says „מוצגים N מתוך M” with „להציג הכול”, and „לבחור הכול” becomes „לבחור את כל המוצגים” (only shown files are added, C188). | `H5PowerUsersTest` (sections, years, search, screen) |
+| POW-2 | v1 | THE SYSTEM SHALL offer „לבחור את הגדולים ביותר” (10, 25, 50 or 100, each with its size, only choices smaller than what is shown) that selects exactly the N largest of what is shown, **only when the user taps it** (SAFETY-10 / rule 7); the plan still goes through `CleanPlanner` and the choke point, which keep a duplicate's last copy (SAFETY-8). | `H5PowerUsersTest` (largest of the visible list, no pre-selection, duplicates keep the witness) |
+| POW-3 | v1 | WHILE something is selected in a group, THE SYSTEM SHALL show a selection bar „נבחרו: N קבצים · X” (count first, `countAndSize`), how many of them a filter hides now, and „לבטל את הבחירה”, above the delete button. | `H5PowerUsersTest` |
+| POW-4 | v1 | THE SYSTEM SHALL list the user's rules in Settings („הכללים שלכם”: „לא להציע שוב”, „להציע תמיד לנקות”) with the place in plain words and what each matched in the latest scan (count · size, „לא נמצא כלום”, or „יופיע אחרי הסריקה הבאה”), and „לבטל את הבחירה” (not „להסיר”), which changes only the rule and never a file. | `H5PowerUsersTest` (matches table, button, real app: file and trash unchanged) |
+| POW-5 | v1 | AFTER „לא להציע את זה שוב”, THE SYSTEM SHALL show a short notice „KeepClear לא יציע שוב את <name>.” with „חזרה” (cancels that rule), for at least 10 s or Android's recommended accessibility timeout, whichever is longer (`NoticeBar`, `NoticeTimeout`). | `H5PowerUsersTest` |
+| POW-6 | v1 | IN test mode only, after a simulated clean, THE SYSTEM SHALL offer „לייצא את הרשימה”: a sheet first says the list has each file's name, folder and size and is saved only where the user chooses; then Android's create-document screen; the CSV (`path,size_bytes,would`, `trash` / `delete_for_good`) quotes and neutralises untrusted names (no spreadsheet formulas). Never automatic, never sent anywhere (PRIVACY.md "Exports"). | `H5PowerUsersTest` (content, escaping, offered only in test mode, warning before saving, the VM keeps the list only for a simulated run) |
+| POW-7 | v1 | THE SYSTEM SHALL let the network drive form set port („445”, empty = 445, 1–65535), domain (optional, a plain name) and a folder inside the shared folder (optional; no `..`, `.`, empty segment, `\`, `:` or leading `/`), each with a hint („אפשר להשאיר ריק”), checked by `SmbFields` in `backup:target-smb` and again by `SmbLocation`; the host rule stays `HostRule.NetworkOnly` (D3). Discovery of computers on the network is not offered (C192). | `SmbFieldsTest`, `H5PowerUsersTest` |
+
 
 | ID | Pri | Requirement |
 |---|---|---|

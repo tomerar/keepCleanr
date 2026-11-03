@@ -139,6 +139,18 @@ Decisions C172–C186 in [progress.md](../progress.md).
 - **Accessibility:** Android 14+'s contrast setting gives medium/high-contrast ink; main buttons are 56 dp; app rows are one TalkBack item each; Trash rows have Restore and „לפנות עכשיו” in the actions menu.
 - **Help:** two more topics: „המקום של KeepClear והסרת ההתקנה” and „מרחב פרטי”; „הגיבוי נעצר — מה לעשות” ends with this phone's steps.
 
+### H5 (2026-11-03): power users (owner brief H5; POW-1…7)
+
+Decisions C187–C193 in [progress.md](../progress.md). Nothing here is on the default path until asked for.
+
+- **Review group:** under „למה זה כאן?” a text button `[🔍 למיין ולסנן]`. Open: a search field („חיפוש לפי שם או תאריך, למשל יולי 2021”), chips „מהחדש לישן” (default, month sections) · „מהישן לחדש” · „מהגדול לקטן” (one list, header „מהגדול לקטן”), chips „כל השנים” · 2026 · 2025 · …, then `[לבחור את הגדולים ביותר]`. With a filter: „מוצגים 312 מתוך 2,324” `[להציג הכול]`; „לבחור הכול” reads „לבחור את כל המוצגים”.
+- **„כמה מהגדולים לבחור?”** sheet: „מתוך מה שמוצג עכשיו. שום דבר לא נמחק עד שבודקים את הרשימה ומאשרים.” `[לבחור את 10 הגדולים · 1.2GB]` `[לבחור את 25 הגדולים · …]` … `[ביטול]`. Picking selects exactly those (replacing the selection, C189).
+- **Selection bar** (bottom, above „למחוק …”): „נבחרו: 25 קבצים · 3.1GB” · „4 מהם לא מוצגים עכשיו” when a filter hides some · `[לבטל את הבחירה]`.
+- **Settings › „הכללים שלכם”:** „כללים משנים רק את מה ש-KeepClear מציע. ביטול של כלל לא מוחק ולא מזיז אף קובץ.” Each row: „לא להציע שוב” / „להציע תמיד לנקות” · the place („Pictures › Screenshots › Screenshot_….png”) · „בסריקה האחרונה: 1 קובץ · 1.2MB” / „לא נמצא כלום בסריקה האחרונה” / „יופיע אחרי הסריקה הבאה” · `[לבטל את הבחירה]`.
+- **After „לא להציע את זה שוב”:** back in the group, a notice at the bottom „KeepClear לא יציע שוב את IMG_….jpg.” `[חזרה]`, for 10 s or longer if Android's "time to take action" asks.
+- **Test mode:** the result „היה מתפנה … (מצב ניסיון)” has `[לייצא את הרשימה]` → sheet „לייצא את מה שמצב הניסיון היה מוחק?” · „הרשימה כוללת את השם, התיקייה והגודל של כל אחד מ-… היא נשמרת רק איפה שתבחרו; KeepClear לא שולח אותה לשום מקום.” `[לבחור איפה לשמור]` `[ביטול]` → Android's save screen → „הרשימה נשמרה.” in the result.
+- **Network drive form (Settings › Advanced):** address · פורט („445”, „אפשר להשאיר ריק”) · שם התיקייה המשותפת · תיקייה בתוך התיקייה המשותפת („Backups/Phone”, „אפשר להשאיר ריק”) · user · password · דומיין („אפשר להשאיר ריק”). A bad port, a folder with `..` or a leading `/`, or a domain with spaces says so under the field and keeps `[להתחבר]` off. No "searching for computers" (C192): the address is typed.
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)

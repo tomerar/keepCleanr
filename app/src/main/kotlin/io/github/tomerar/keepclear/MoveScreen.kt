@@ -22,6 +22,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +44,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.backup.saf.TargetKind
+import io.github.tomerar.keepclear.backup.smb.SmbFields
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KcIcons
@@ -1466,10 +1468,21 @@ internal fun NetworkDriveDialog(
     onConnect: (io.github.tomerar.keepclear.backup.smb.SmbLocation) -> Unit,
     onDismiss: () -> Unit,
     testAccountNotice: Boolean = TestKey.showNotice,
+    /** PR H5: false draws the same form on the screen instead of in a dialog (screenshots). */
+    asDialog: Boolean = true,
 ) {
     var host by rememberSaveable { mutableStateOf(saved?.host.orEmpty()) }
     var share by rememberSaveable { mutableStateOf(saved?.share.orEmpty()) }
     var user by rememberSaveable { mutableStateOf(saved?.user.orEmpty()) }
+    // PR H5: port, domain and a folder inside the share, each with a hint („445”, „אפשר להשאיר ריק”).
+    var portText by rememberSaveable {
+        mutableStateOf(saved?.port?.takeIf { it != SmbFields.DEFAULT_PORT }?.toString().orEmpty())
+    }
+    var domain by rememberSaveable { mutableStateOf(saved?.domain.orEmpty()) }
+    var folderText by rememberSaveable { mutableStateOf(saved?.folder.orEmpty()) }
+    val port = SmbFields.port(portText)
+    val domainOk = SmbFields.isDomain(domain.trim())
+    val folder = SmbFields.folder(folderText)
     // The password is never kept in saved instance state.
     var password by remember { mutableStateOf(saved?.password.orEmpty()) }
     val plainHost = io.github.tomerar.keepclear.backup.smb.SmbHosts.isPlainHost(host.trim())
@@ -1481,111 +1494,197 @@ internal fun NetworkDriveDialog(
     val shareBad = share.isNotBlank() && !shareOk
     // Anything else the drive refuses is shown as a plain line, never a crash.
     var refused by remember { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.move_network_title)) },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.testTag("networkDrive").verticalScroll(rememberScrollState()),
-            ) {
-                Text(stringResource(R.string.move_network_intro), style = MaterialTheme.typography.bodyMedium)
-                // L6: test builds signed with the public test key: anyone can make an update that reads this.
-                if (testAccountNotice) TestAccountNotice()
-                if (user.isBlank()) {
-                    // D3: without a name and password the session can't be signed: copies only.
-                    Text(
-                        stringResource(R.string.move_network_guest_copy_only),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.testTag("networkGuestNote"),
-                    )
-                }
-                androidx.compose.material3.OutlinedTextField(
-                    value = host,
-                    onValueChange = { host = it },
-                    label = { Text(stringResource(R.string.move_network_host)) },
-                    singleLine = true,
-                    isError = host.isNotBlank() && !hostOk,
-                    supportingText = when {
-                        thisPhone -> {
-                            { Text(stringResource(R.string.move_network_this_phone)) }
-                        }
-
-                        host.isNotBlank() && !hostOk -> {
-                            { Text(stringResource(R.string.move_network_bad_host)) }
-                        }
-
-                        else -> {
-                            null
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("networkHost"),
+    val textSlot: @Composable () -> Unit = {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.testTag("networkDrive").verticalScroll(rememberScrollState()),
+        ) {
+            Text(stringResource(R.string.move_network_intro), style = MaterialTheme.typography.bodyMedium)
+            // L6: test builds signed with the public test key: anyone can make an update that reads this.
+            if (testAccountNotice) TestAccountNotice()
+            if (user.isBlank()) {
+                // D3: without a name and password the session can't be signed: copies only.
+                Text(
+                    stringResource(R.string.move_network_guest_copy_only),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("networkGuestNote"),
                 )
-                androidx.compose.material3.OutlinedTextField(
-                    value = share,
-                    onValueChange = {
-                        share = it
-                        refused = false
-                    },
-                    label = { Text(stringResource(R.string.move_network_share)) },
-                    singleLine = true,
-                    isError = shareBad,
-                    supportingText = if (shareBad) {
-                        { Text(stringResource(R.string.move_network_bad_share)) }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("networkShare"),
-                )
-                androidx.compose.material3.OutlinedTextField(
-                    value = user,
-                    onValueChange = { user = it },
-                    label = { Text(stringResource(R.string.move_network_user)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("networkUser"),
-                )
-                androidx.compose.material3.OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.move_network_password)) },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("networkPassword"),
-                )
-                if (refused) {
-                    Text(
-                        stringResource(R.string.move_network_not_accepted),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("networkRefused"),
-                    )
-                }
             }
-        },
-        confirmButton = {
-            KcButton(
-                stringResource(R.string.move_network_connect),
-                onClick = {
-                    val location = try {
-                        io.github.tomerar.keepclear.backup.smb.SmbLocation(
-                            host = host.trim(),
-                            share = share.trim(),
-                            user = user.trim(),
-                            password = password,
-                        )
-                    } catch (_: IllegalArgumentException) {
+            androidx.compose.material3.OutlinedTextField(
+                value = host,
+                onValueChange = { host = it },
+                label = { Text(stringResource(R.string.move_network_host)) },
+                singleLine = true,
+                isError = host.isNotBlank() && !hostOk,
+                supportingText = when {
+                    thisPhone -> {
+                        { Text(stringResource(R.string.move_network_this_phone)) }
+                    }
+
+                    host.isNotBlank() && !hostOk -> {
+                        { Text(stringResource(R.string.move_network_bad_host)) }
+                    }
+
+                    else -> {
                         null
                     }
-                    if (location == null) refused = true else onConnect(location)
                 },
-                enabled = hostOk && shareOk,
-                modifier = Modifier.testTag("networkConnect"),
+                modifier = Modifier.fillMaxWidth().testTag("networkHost"),
             )
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) } },
-    )
+            androidx.compose.material3.OutlinedTextField(
+                value = portText,
+                onValueChange = {
+                    portText = it
+                    refused = false
+                },
+                label = { Text(stringResource(R.string.move_network_port)) },
+                placeholder = { Text(Bidi.isolateLtr(stringResource(R.string.move_network_port_hint))) },
+                singleLine = true,
+                isError = port == null,
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (port == null) R.string.move_network_port_bad else R.string.move_network_optional,
+                        ),
+                    )
+                },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                ),
+                modifier = Modifier.fillMaxWidth().testTag("networkPort"),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = share,
+                onValueChange = {
+                    share = it
+                    refused = false
+                },
+                label = { Text(stringResource(R.string.move_network_share)) },
+                singleLine = true,
+                isError = shareBad,
+                supportingText = if (shareBad) {
+                    { Text(stringResource(R.string.move_network_bad_share)) }
+                } else {
+                    null
+                },
+                modifier = Modifier.fillMaxWidth().testTag("networkShare"),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = folderText,
+                onValueChange = {
+                    folderText = it
+                    refused = false
+                },
+                label = { Text(stringResource(R.string.move_network_folder)) },
+                placeholder = { Text(Bidi.isolateLtr(stringResource(R.string.move_network_folder_hint))) },
+                singleLine = true,
+                isError = folder == null,
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (folder ==
+                                null
+                            ) {
+                                R.string.move_network_folder_bad
+                            } else {
+                                R.string.move_network_optional
+                            },
+                        ),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().testTag("networkFolder"),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = user,
+                onValueChange = { user = it },
+                label = { Text(stringResource(R.string.move_network_user)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("networkUser"),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(R.string.move_network_password)) },
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                ),
+                modifier = Modifier.fillMaxWidth().testTag("networkPassword"),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = domain,
+                onValueChange = {
+                    domain = it
+                    refused = false
+                },
+                label = { Text(stringResource(R.string.move_network_domain)) },
+                singleLine = true,
+                isError = !domainOk,
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (domainOk) R.string.move_network_optional else R.string.move_network_domain_bad,
+                        ),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().testTag("networkDomain"),
+            )
+            if (refused) {
+                Text(
+                    stringResource(R.string.move_network_not_accepted),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("networkRefused"),
+                )
+            }
+        }
+    }
+    val confirmSlot: @Composable () -> Unit = {
+        KcButton(
+            stringResource(R.string.move_network_connect),
+            onClick = {
+                val location = try {
+                    io.github.tomerar.keepclear.backup.smb.SmbLocation(
+                        host = host.trim(),
+                        share = share.trim(),
+                        folder = requireNotNull(folder),
+                        user = user.trim(),
+                        password = password,
+                        domain = domain.trim(),
+                        port = requireNotNull(port),
+                    )
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+                if (location == null) refused = true else onConnect(location)
+            },
+            enabled = hostOk && shareOk && port != null && domainOk && folder != null,
+            modifier = Modifier.testTag("networkConnect"),
+        )
+    }
+    val dismissSlot: @Composable () -> Unit = {
+        TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_cancel)) }
+    }
+    if (asDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.move_network_title)) },
+            text = textSlot,
+            confirmButton = confirmSlot,
+            dismissButton = dismissSlot,
+        )
+    } else {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxSize()) {
+            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.move_network_title), style = MaterialTheme.typography.headlineSmall)
+                Box(Modifier.weight(1f, fill = false)) { textSlot() }
+                Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    dismissSlot()
+                    confirmSlot()
+                }
+            }
+        }
+    }
 }
 
 /** E3: what runs in the background right now, and how far it got. */

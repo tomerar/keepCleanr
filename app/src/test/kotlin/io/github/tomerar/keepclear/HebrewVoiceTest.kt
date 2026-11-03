@@ -71,7 +71,7 @@ class HebrewVoiceTest {
             R.string.swipe_resume_restart,
             R.string.settings_swipe_swap,
             R.string.swipe_keep,
-            R.string.choice_remove,
+            R.string.rule_cancel,
             R.string.debug_device_check_button,
             R.string.details,
             R.string.settings_privacy,
