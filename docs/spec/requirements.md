@@ -319,7 +319,7 @@ Owner brief H4 (2026-11-03), decisions C172–C186 in [progress.md](../progress.
 | PLAT-6 | v1 | THE SYSTEM SHALL follow Android's contrast setting with medium and high schemes that never weaken a pair, make main actions 56 dp and every target ≥ 48 dp, give rows merged semantics and custom actions, sheets a pane title, and honour "Remove animations" in every animation. | `H4bAccessibilityTest`, `ContrastTest`, `AccessibilityChecksTest`, `H4ScreenshotTest` |
 | PLAT-7 | v1 | THE SYSTEM SHALL switch language in-app on Android 11–12 too, generate its locale config, link Android 13+'s per-app language page, compare Hebrew as `he` or `iw`, and give every Hebrew plural one/two/other. | `H4bAccessibilityTest` |
 | PLAT-8 | v1 | ON Android 15+, WHERE the app's store supports it, THE SYSTEM SHALL offer „לארכב” through Android's own archive confirmation besides „להסיר” (both blocked in test mode), and show app / data / temporary-files sizes. | `H4bAccessibilityTest` |
-| PLAT-9 | v1 | THE SYSTEM SHALL not call Java 21 `List` methods missing before API 35, not listen for `BOOT_COMPLETED` (WorkManager's own receiver aside), and ship only 16 KB-aligned native libraries (none today). | `ForbiddenApisTest`, `ManifestPolicyTest`, `scripts/check-16kb-pages.py` (CI) |
+| PLAT-9 | v1 | THE SYSTEM SHALL not call Java 21 `List` methods missing before API 35, not listen for `BOOT_COMPLETED` (WorkManager's own receiver aside), and ship only 16 KB-aligned native libraries (today only Compose's graphics-path). | `ForbiddenApisTest`, `ManifestPolicyTest`, `scripts/check-16kb-pages.py` (CI) |
 
 ## 12. Non-functional (NFR)
 

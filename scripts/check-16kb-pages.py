@@ -4,8 +4,8 @@
 
 Android 15+ phones may use 16 KB memory pages, and Google Play requires it for apps that ship native code. A .so
 passes when each of its LOAD segments is aligned to at least 16 KB and, when it is stored uncompressed, its data
-starts at a 16 KB boundary inside the APK. KeepClear has no native code of its own; this check makes sure no
-dependency brings some in unnoticed. With no .so at all it says so and passes.
+starts at a 16 KB boundary inside the APK. KeepClear has no native code of its own (Compose brings libandroidx.graphics.path.so, which is
+aligned); this check makes sure no dependency brings an unaligned one in unnoticed. With no .so at all it says so and passes.
 
 Usage: check-16kb-pages.py APK [APK ...]      (exit 1 on any failure)
        check-16kb-pages.py --self-test
