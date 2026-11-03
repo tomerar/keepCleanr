@@ -34,6 +34,7 @@ import io.github.tomerar.keepclear.core.common.ByteSize
 import io.github.tomerar.keepclear.core.designsystem.KcIcons
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmFact
 import io.github.tomerar.keepclear.core.designsystem.component.ConfirmSheet
+import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
 import io.github.tomerar.keepclear.core.designsystem.component.KcCard
@@ -70,6 +71,8 @@ data class CleanResult(
     val deletedForGood: Total = Total(),
     /** Free space measured before and after, when something was deleted for good (the trash part frees nothing yet). */
     val measured: Measured? = null,
+    /** PR H5: test mode only: what the run would have deleted, for „לייצא את הרשימה”; empty otherwise. */
+    val wouldDelete: List<WouldDelete> = emptyList(),
 ) {
     /** What went to a trash (KeepClear's or Android's) and can be put back. */
     val trashed: Total get() = Total(done.files - deletedForGood.files, done.bytes - deletedForGood.bytes)
@@ -434,6 +437,15 @@ fun CleanResultBanner(
     }.joinToString("\n").ifEmpty { null }
     // Undo and "Empty now" only for what is in KeepClear's trash; what was deleted for good can't come back.
     val undoable = ownTrash
+    // PR H5: in test mode, „לייצא את הרשימה” (after a line that says the list has file names; never automatic).
+    val exporter = LocalTestExporter.current
+    val exportable = exporter != null && TestExport.offered(r, exporter.testModeOn())
+    var askExport by remember { mutableStateOf(false) }
+    val exportDetail = when (exporter?.saved?.value.takeIf { exportable }) {
+        true -> stringResource(R.string.test_export_done)
+        false -> stringResource(R.string.test_export_failed)
+        null -> null
+    }
     val tag = when {
         r.simulated -> "simulatedResult"
         r.androidTrash || r.declined -> "androidTrashResult"
@@ -442,16 +454,56 @@ fun CleanResultBanner(
     Box(modifier.fillMaxWidth().testTag("cleanResult")) {
         ResultBanner(
             message = message,
-            detail = detail,
+            detail = listOfNotNull(detail, exportDetail).joinToString("\n").ifEmpty { null },
             undoText = stringResource(R.string.clean_undo).takeIf { undoable },
             onUndo = { onUndo(r, userConfirmed(r.trashedPaths)) }.takeIf { undoable },
             // "Need the space now? Empty now" opens the trash, where emptying is confirmed separately.
-            actionText = stringResource(R.string.clean_empty_now).takeIf { undoable },
-            onAction = onOpenTrash.takeIf { undoable },
+            actionText = when {
+                undoable -> stringResource(R.string.clean_empty_now)
+                exportable -> stringResource(R.string.test_export_button)
+                else -> null
+            },
+            onAction = when {
+                undoable -> {
+                    onOpenTrash
+                }
+
+                exportable -> {
+                    { askExport = true }
+                }
+
+                else -> {
+                    null
+                }
+            },
             undoModifier = Modifier.testTag("undo"),
-            actionModifier = Modifier.testTag("emptyNowLink"),
+            actionModifier = Modifier.testTag(if (undoable) "emptyNowLink" else "testExport"),
             modifier = Modifier.testTag(tag),
         )
+    }
+    if (askExport && exporter != null) {
+        // The list has file names and folders: said before anything is saved, and saved only where chosen.
+        InfoSheet(
+            title = stringResource(R.string.test_export_title),
+            dismissText = stringResource(R.string.move_cancel),
+            onDismiss = { askExport = false },
+            modifier = Modifier.testTag("testExportSheet"),
+            primaryButton = {
+                KcButton(
+                    stringResource(R.string.test_export_choose),
+                    onClick = {
+                        askExport = false
+                        exporter.export(r.wouldDelete)
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("testExportChoose"),
+                )
+            },
+        ) {
+            Text(
+                stringResource(R.string.test_export_body, totalText(r.done)),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
     }
 }
 

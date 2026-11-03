@@ -39,14 +39,21 @@ object HumanLocation {
      * memory card or another drive the folders follow [cardName] ("Memory card › DCIM"). A file at the root of the
      * phone's storage gives [phoneName].
      */
-    fun phoneFolder(path: String, phoneName: String, cardName: String): String {
+    fun phoneFolder(path: String, phoneName: String, cardName: String): String =
+        phonePlace(path, phoneName, cardName, keepName = false)
+
+    /**
+     * PR H5: a rule's place in plain words, its own name included ("Download › Tax › 2023.zip"): a rule may name a
+     * file or a folder, and both are what the user chose.
+     */
+    fun phonePlace(path: String, phoneName: String, cardName: String, keepName: Boolean = true): String {
         val (prefix, rest) = when {
             phoneRoot.containsMatchIn(path) -> null to path.replaceFirst(phoneRoot, "")
             sdcardLink.containsMatchIn(path) -> null to path.replaceFirst(sdcardLink, "")
             otherVolume.containsMatchIn(path) -> cardName to path.replaceFirst(otherVolume, "")
             else -> null to path
         }
-        val folders = segments(rest).dropLast(1)
+        val folders = segments(rest).let { if (keepName) it else it.dropLast(1) }
         val parts = listOfNotNull(prefix) + folders
         return if (parts.isEmpty()) phoneName else parts.joinToString(SEPARATOR)
     }
