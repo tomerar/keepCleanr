@@ -1,6 +1,6 @@
 First version.
 • Files you don't need cleared in one tap; everything else explained, and you decide.
 • Photos and videos backed up to your own USB drive or network folder: copied, checked, and space freed only when you say so.
-• 30-day trash: restore anything with one tap.
+• Most of what you clean waits 30 days in the trash: restore it with one tap.
 • Apps by size, duplicate review with a swipe, restore from a backup, an optional low-space reminder.
 • English and Hebrew.
