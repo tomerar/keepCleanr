@@ -320,6 +320,9 @@ class KeepClearApplication : Application() {
         io.github.tomerar.keepclear.core.storage.media.AndroidMediaRequests(contentResolver)
     }
 
+    /** Review of PR #61: test mode's export rows while Android's "create document" screen is open. */
+    val pendingExport = PendingExport()
+
     /** Test mode (SAFETY-9): on by default in debug/test builds; nothing changes on disk while it is on. */
     val testMode by lazy { MainThreadPolicy.settings { TestMode(this) } }
 
