@@ -11,7 +11,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-675 Hebrew strings; 258 new since the last review (182 new, 76 changed).
+682 Hebrew strings; 266 new since the last review (190 new, 76 changed).
 
 ## Contents
 
@@ -20,11 +20,11 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 - [Home](#home) (41, 22 new since last review)
 - [Clean now](#clean-now) (38, 18 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (33, 6 new since last review)
-- [Swipe review](#swipe-review) (17, 9 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (235, 123 new since last review)
+- [Swipe review](#swipe-review) (24, 17 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (234, 122 new since last review)
 - [Trash](#trash) (52, 20 new since last review)
 - [Apps](#apps) (31, 4 new since last review)
-- [Settings](#settings) (44, 17 new since last review)
+- [Settings](#settings) (45, 18 new since last review)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25, 10 new since last review)
 - [Notifications](#notifications) (4, 1 new since last review)
 - [Device check (test builds)](#device-check-test-builds) (9, 1 new since last review)
@@ -219,23 +219,30 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 
 | Key | English | עברית | Also | Status |
 |---|---|---|---|---|
+| `grid_details_line` | %1$s · %2$s | %1$s · %2$s | Move to backup and restore, Trash | **new** (new since last review) |
 | `swipe_close` | Close | לסגור |  | **changed** (new since last review) |
 | `swipe_delete` | Delete | למחוק |  | **changed** (new since last review) |
-| `swipe_exit_body` | Nothing was deleted. Leaving now forgets the choices made so far. | שום דבר לא נמחק. יציאה עכשיו תשכח את הבחירות שנעשו עד כאן. |  | **new** (new since last review) |
-| `swipe_exit_no` | Keep going | להמשיך |  | **new** (new since last review) |
-| `swipe_exit_title` | [one] Leave? 1 decision will be lost / [other] Leave? %s decisions will be lost | [one] לצאת? החלטה אחת תאבד / [two] לצאת? %s החלטות יאבדו / [other] לצאת? %s החלטות יאבדו |  | **new** (new since last review) |
-| `swipe_exit_yes` | Leave | לצאת |  | **new** (new since last review) |
-| `swipe_hint` | Swipe toward Delete or toward Keep, or use the buttons. Nothing is deleted until you confirm at the end. | אפשר להחליק לכיוון „למחוק” או לכיוון „להשאיר”, או להשתמש בכפתורים. שום דבר לא נמחק עד האישור בסוף. |  | **changed** (new since last review) |
+| `swipe_dir_left_deletes` | Swipe left to delete, right to keep. | החלקה שמאלה — למחוק, ימינה — להשאיר. | Settings | **new** (new since last review) |
+| `swipe_dir_right_deletes` | Swipe right to delete, left to keep. | החלקה ימינה — למחוק, שמאלה — להשאיר. | Settings | **new** (new since last review) |
+| `swipe_finish` | Finish and review · %1$s | לסיים ולבדוק · %1$s |  | **new** (new since last review) |
+| `swipe_finish_none` | Finish and review | לסיים ולבדוק |  | **new** (new since last review) |
+| `swipe_hint` | Nothing is deleted until you finish and confirm. | שום דבר לא נמחק עד שמסיימים ומאשרים. |  | **changed** (new since last review) |
 | `swipe_keep` | Keep | להשאיר |  | reviewed |
 | `swipe_kept` | [one] %1$s kept / [other] %1$s kept | [one] %1$s נשאר / [two] %1$s נשארו / [other] %1$s נשארו |  | reviewed |
 | `swipe_progress` | %1$s of %2$s | %1$s מתוך %2$s |  | reviewed |
-| `swipe_review` | Review and delete | לבדוק ולמחוק |  | reviewed |
+| `swipe_resume_continue` | Continue where you left off | להמשיך מאיפה שעצרתם | Review (categories, groups, item preview) | **new** (new since last review) |
+| `swipe_resume_dropped` | [one] %1$s file changed or is gone since, so its choice was dropped. / [other] %1$s files changed or are gone since, so their choices were dropped. | [one] קובץ אחד השתנה או נעלם מאז, אז הבחירה שלו לא נשמרה. / [two] %1$s קבצים השתנו או נעלמו מאז, אז הבחירות שלהם לא נשמרו. / [other] %1$s קבצים השתנו או נעלמו מאז, אז הבחירות שלהם לא נשמרו. | Review (categories, groups, item preview) | **new** (new since last review) |
+| `swipe_resume_marked` | [one] %1$s file is marked to delete. Nothing was deleted yet. / [other] %1$s files are marked to delete. Nothing was deleted yet. | [one] קובץ אחד מסומן למחיקה. שום דבר עוד לא נמחק. / [two] %1$s קבצים מסומנים למחיקה. שום דבר עוד לא נמחק. / [other] %1$s קבצים מסומנים למחיקה. שום דבר עוד לא נמחק. | Review (categories, groups, item preview) | **new** (new since last review) |
+| `swipe_resume_none_marked` | Nothing is marked to delete yet. Nothing was deleted. | עוד לא סימנתם כלום למחיקה. שום דבר לא נמחק. | Review (categories, groups, item preview) | **new** (new since last review) |
+| `swipe_resume_restart` | Start over | להתחיל מחדש | Review (categories, groups, item preview) | **new** (new since last review) |
+| `swipe_resume_title` | You went through %1$s of %2$s | עברתם על %1$s מתוך %2$s | Review (categories, groups, item preview) | **new** (new since last review) |
 | `swipe_skip` | Skip | לדלג |  | **changed** (new since last review) |
 | `swipe_skipped` | [one] %1$s skipped / [other] %1$s skipped | [one] %1$s דולג / [two] %1$s דולגו / [other] %1$s דולגו |  | reviewed |
 | `swipe_start` | Go through them one by one | לעבור עליהם אחד-אחד | Review (categories, groups, item preview) | reviewed |
 | `swipe_summary_delete` | To delete: %1$s | למחיקה: %1$s |  | reviewed |
+| `swipe_summary_none` | Nothing chosen to delete | לא נבחר כלום למחיקה |  | **new** (new since last review) |
 | `swipe_summary_note` | Next you see the list and can take items out. Deleted files go to the trash for 30 days. | בשלב הבא מוצגת הרשימה ואפשר להוציא ממנה פריטים. קבצים שנמחקים עוברים לסל המחזור ל-30 יום. |  | reviewed |
-| `swipe_undo` | Undo | לבטל |  | **changed** (new since last review) |
+| `swipe_undo` | Undo | חזרה |  | **changed** (new since last review) |
 
 ## Move to backup and restore
 
@@ -276,7 +283,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `free_progress_trash` | Moved to the trash: %1$s of %2$s | הועברו לסל %1$s מתוך %2$s |  | **new** (new since last review) |
 | `free_whatsapp` | In the chat the file will show as unavailable; the copy is kept in the backup. | בצ'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי |  | **new** (new since last review) |
 | `free_where_for_good` | Deleted from the phone; the copy stays on %1$s | יימחקו מהטלפון; העותק נשאר ב-%1$s |  | **new** (new since last review) |
-| `grid_details_line` | %1$s · %2$s | %1$s · %2$s | Trash | **new** (new since last review) |
 | `grid_no_match` | No file matches this search. | אין קובץ שמתאים לחיפוש. | Trash | **new** (new since last review) |
 | `grid_preview` | Preview | להציג | Trash | **new** (new since last review) |
 | `grid_search_clear` | Clear the search | לנקות את החיפוש | Trash | **new** (new since last review) |
@@ -604,6 +610,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `settings_nextcloud_only` | Network: only to %1$s (your Nextcloud) | רשת: רק אל %1$s (ה-Nextcloud) |  | reviewed |
 | `settings_privacy` | Read the privacy policy | לקרוא את מדיניות הפרטיות |  | **changed** (new since last review) |
 | `settings_replay_intro` | Show the introduction again | להציג שוב את ההיכרות |  | reviewed |
+| `settings_swipe_swap` | Swap the swipe directions | להחליף את כיווני ההחלקה |  | **new** (new since last review) |
 | `settings_title` | Settings | הגדרות | Top app bar and tabs | reviewed |
 | `settings_uninstall_title` | Before you uninstall | לפני שמסירים את האפליקציה |  | reviewed |
 | `test_mode_body` | While trial mode is on, KeepClear only shows what it would do. No file is deleted, moved to the trash, restored or cleared. | כשמצב ניסיון פועל, ‏KeepClear רק מראה מה היה עושה. שום קובץ לא נמחק, לא עובר לסל המחזור, לא משוחזר ולא מנוקה. |  | reviewed |
