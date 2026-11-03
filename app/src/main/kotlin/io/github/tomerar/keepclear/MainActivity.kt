@@ -640,7 +640,7 @@ class MainActivity : ComponentActivity() {
      * KeepClear keeps it itself and shows its screens again in it ([AppLanguage]).
      */
     private fun setLanguage(tag: String?) {
-        if (AppLanguage.systemKeeps()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val locales = if (tag == null) {
                 android.os.LocaleList.getEmptyLocaleList()
             } else {
@@ -654,7 +654,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun currentLanguage(): String? = if (AppLanguage.systemKeeps()) {
+    private fun currentLanguage(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Languages.chipTag(getSystemService(android.app.LocaleManager::class.java).applicationLocales.get(0)?.language)
     } else {
         Languages.chipTag(AppLanguage.stored(this))
@@ -662,7 +662,9 @@ class MainActivity : ComponentActivity() {
 
     /** Owner brief H4 item 7: Android 13+'s own per-app language page. */
     private fun openSystemLanguage() {
-        if (AppLanguage.systemKeeps()) runCatching { startActivity(AppLanguage.systemSettingsIntent(this)) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { startActivity(AppLanguage.systemSettingsIntent(this)) }
+        }
     }
 
     override fun attachBaseContext(newBase: android.content.Context) {
