@@ -111,7 +111,7 @@ class H1cRestoreSheetTest {
             RestoreStep.Done(
                 RestoreReport(restored = listOf("/a")),
             ) to (INFO_SHEET_BODY_TAG to "Restore from a backup"),
-            catalog to (PANEL_SHEET_BODY_TAG to "What to bring back"),
+            catalog to (PANEL_SHEET_BODY_TAG to "What to restore"),
         )
         val state = androidx.compose.runtime.mutableStateOf<RestoreStep>(steps.first().first)
         compose.setContent { KeepClearTheme { RestoreDialogs(state.value, RestoreActions()) } }

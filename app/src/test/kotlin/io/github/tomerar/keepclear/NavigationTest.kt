@@ -217,7 +217,7 @@ class NavigationTest {
             .assert(
                 SemanticsMatcher("says the bin is empty, never 0B") {
                     val d = it.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }.orEmpty()
-                    d == listOf("Recycle bin, empty")
+                    d == listOf("Trash, empty")
                 },
             )
         compose.onNodeWithTag("trashChip").performClick()
