@@ -291,6 +291,32 @@ class ViewModelStabilityTest {
     }
 
     @Test
+    fun `a backup paused for the battery goes on when the charger goes in while the screen stays open (P3)`() {
+        setUp()
+        val (id, _) = backedUp(confirmed = false)
+        runBlocking {
+            val store = app.moveController.store
+            store.putJob(store.job(id)!!.copy(state = JobState.PAUSED, pauseReason = PauseReason.BATTERY_LOW))
+        }
+        val before = batteryPollMillis
+        batteryPollMillis = 50
+        try {
+            app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = false) }
+            val started = java.util.concurrent.CopyOnWriteArrayList<String>()
+            app.moveController.startJobService = { _, job -> started += job }
+            t.viewModel(MoveViewModel::class.java)
+            TestApp.settle(500)
+            assertEquals(emptyList<String>(), started.toList())
+            // Same screen, still open: the charger goes in.
+            app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = true) }
+            TestApp.awaitMain("started") { started.isNotEmpty() }
+            assertEquals(listOf(id), started.toList())
+        } finally {
+            batteryPollMillis = before
+        }
+    }
+
+    @Test
     fun `check backup keeps running after leaving the screen (E3)`() {
         setUp()
         val (id, _) = backedUp(confirmed = false)
