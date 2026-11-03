@@ -257,8 +257,8 @@ class SecondPassTest {
         }
 
     @Test
-    fun `a re-check after the app restarted in the same boot asks for a fresh read of confirmed copies (PR 54 review)`():
-        Unit = runBlocking {
+    fun `a re-check after an app restart in the same boot needs a fresh read of confirmed copies (PR 54)`(): Unit =
+        runBlocking {
             val drive = FakeCapacityDrive(realBytes = 1_000_000)
             val id = job(drive)
             engine(drive).run(id).state shouldBe JobState.DONE
