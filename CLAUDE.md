@@ -55,6 +55,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - RTL: use start/end only, auto-mirrored icons, and bidi-isolate filenames, paths and numbers. Hebrew is gender-neutral (plural/infinitive).
 - All strings live in resources; en/he parity is checked in CI.
 - Help, trust and finish (PR H3, HELP-1…7): Help's long texts live in `core/i18n/.../values*/help.xml` (parity, `TerminologyTest` and `hebrew-review.py` read it) and must stay true to the code (`H3HelpTest` pins the facts): change a topic in the same PR as the behaviour. "Report a problem" and the crash card are KeepClear's own code, user-initiated, never automatic, and never carry a path or a file name (`ReportFacts`, `CrashText`). The activity history records only what really happened, never in test mode, and its total counts only space really freed. Launcher shortcuts only navigate (`ShortcutNavigator`).
+- Platform (PR H4, PLAT-1…9): Android's "Manage space" opens `ManageSpaceActivity`, which never clears data or the trash index; the manifest's platform attributes, the no-boot-start rule and fully qualified names are checked on the merged manifest (`ManifestPolicy`). A backup is "stopped by the phone" only when `ApplicationExitInfo` says the system ended it (`KillReasons`). Battery help opens `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, never the restricted request. The notification permission is asked only from the action that needs it; channels live in `NotificationChannels` (ids never renamed). Hebrew is compared as `he` or `iw` (`Languages`); on Android 11–12 the in-app language is applied in `attachBaseContext` (`AppLanguage`). Never call Java 21 `List` methods (`removeFirst()`, `removeLast()`, …): `checkForbiddenApis` refuses them. The one mutable PendingIntent is the archive status (explicit, to a non-exported receiver, C178).
 
 ## Design rules ("Paper & Ink", ADR 0013, `docs/design/design-system.md`)
 
@@ -62,7 +63,8 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 - One ink colour (`primary`) for actions. Red (`error`, `KcButtonStyle.Destructive` / `OutlinedDestructive`, `ConfirmSheet(permanent = true)`) **only** for permanent, unrecoverable actions; going to the 30-day trash is not permanent. No parentheses in button labels (`ButtonLabelsTest`).
 - Lanes (SAFE sage, REVIEW slate, MOVE amber) are always icon + label, never colour alone. Dynamic colour stays off by default.
 - Sizes and counts: `ByteSize` (decimal) in Rubik with tabular figures (`KeepClearTheme.type.number` / `hero`).
-- Stable Material 3 only (no Expressive beta, no new `@ExperimentalMaterial3Api` use). Motion respects `KeepClearTheme.reducedMotion`.
+- Stable Material 3 only (no Expressive beta, no new `@ExperimentalMaterial3Api` use); the main tabs use the stable `NavigationSuite` (material3-adaptive-navigation-suite). Motion respects `KeepClearTheme.reducedMotion` (a test scans every animation).
+- Main actions (filled buttons, the confirm button) are 56 dp, every touch target ≥ 48 dp. Android 14+'s contrast setting picks `KeepClearContrastSchemes` (medium/high only ever stronger; `ContrastTest`).
 - Contrast is tested (`ContrastTest`): text ≥ 4.5:1, large numbers/icons/outlines ≥ 3:1 in light and dark. Never lower a token to pass a test silently.
 - No neon, rockets, brooms, shields, lightning, gauges or "boost".
 

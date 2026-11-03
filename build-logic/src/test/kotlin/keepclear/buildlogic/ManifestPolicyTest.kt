@@ -17,9 +17,14 @@ class ManifestPolicyTest {
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="$appId">
           ${permissions.joinToString("\n") { "<uses-permission android:name=\"$it\"/>" }}
           <uses-permission android:name="$appId.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
-          <application>$components</application>
+          <application $platform>$components$manageSpace</application>
         </manifest>
         """.trimIndent()
+
+    private val platform = """android:manageSpaceActivity="$appId.ManageSpaceActivity" android:hasFragileUserData="true"
+        | android:enableOnBackInvokedCallback="true" android:localeConfig="@xml/_generated_res_locale_config"
+    """.trimMargin()
+    private val manageSpace = """<activity android:name="$appId.ManageSpaceActivity" android:exported="false"/>"""
 
     private val launcher = """
         <activity android:name=".MainActivity" android:exported="true">
@@ -146,5 +151,56 @@ class ManifestPolicyTest {
         val extra = """<service android:name="androidx.work.impl.background.systemjob.SystemJobService"
             android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE"/>"""
         assertEquals(emptyList<String>(), check(manifest(components = launcher + extra)))
+    }
+
+    // ------------------------------------------------------------------ owner brief H4 items 1, 2 and 9
+
+    private fun withApplication(attributes: String, extra: String = manageSpace) = """
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="$appId">
+          <uses-permission android:name="$appId.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+          <application $attributes>$launcher$extra</application>
+        </manifest>
+        """.trimIndent()
+
+    @Test
+    fun `manage space, fragile user data and predictive back are required (H4 items 1 and 2)`() {
+        val manageAttribute = "android:manageSpaceActivity=\"$appId.ManageSpaceActivity\""
+        val noManage = check(withApplication(platform.replace(manageAttribute, "")))
+        assertTrue(noManage.any { "manageSpaceActivity is missing" in it }, noManage.toString())
+        val noFragile = check(withApplication(platform.replace("android:hasFragileUserData=\"true\"", "")))
+        assertTrue(noFragile.any { "hasFragileUserData" in it }, noFragile.toString())
+        val noBack = check(withApplication(platform.replace("android:enableOnBackInvokedCallback=\"true\"", "")))
+        assertTrue(noBack.any { "enableOnBackInvokedCallback" in it }, noBack.toString())
+        val noLocales = check(withApplication(platform.replace("android:localeConfig=", "android:other=")))
+        assertTrue(noLocales.any { "localeConfig" in it }, noLocales.toString())
+        val relative = check(withApplication(platform.replace("$appId.ManageSpaceActivity", ".ManageSpaceActivity")))
+        assertTrue(relative.any { "fully qualified" in it }, relative.toString())
+        val undeclared = check(withApplication(platform, extra = ""))
+        assertTrue(undeclared.any { "names no declared activity" in it }, undeclared.toString())
+        val exported = check(
+            withApplication(
+                platform,
+                """<activity android:name="$appId.ManageSpaceActivity" android:exported="true"/>""",
+            ),
+        )
+        assertTrue(exported.any { "must not be exported" in it }, exported.toString())
+    }
+
+    @Test
+    fun `nothing of ours starts at boot, WorkManager's rescheduling may (H4 item 9)`() {
+        fun boot(name: String) = """
+            <receiver android:name="$name" android:exported="false">
+              <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter>
+            </receiver>
+        """
+        val ours = check(withApplication(platform, manageSpace + boot(".BootReceiver")))
+        assertTrue(ours.any { "BootReceiver listens for BOOT_COMPLETED" in it }, ours.toString())
+        val work = check(
+            withApplication(
+                platform,
+                manageSpace + boot("androidx.work.impl.background.systemalarm.RescheduleReceiver"),
+            ),
+        )
+        assertEquals(emptyList<String>(), work)
     }
 }

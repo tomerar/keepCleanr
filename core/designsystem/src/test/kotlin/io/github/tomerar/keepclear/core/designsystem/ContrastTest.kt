@@ -140,6 +140,72 @@ class ContrastTest {
         }
     }
 
+    /** Owner brief H4 item 6: every contrast level, light and dark. */
+    private val levels = listOf(KcContrast.MEDIUM, KcContrast.HIGH).flatMap { level ->
+        listOf(false, true).map { dark ->
+            Triple(
+                "${level.name.lowercase()} ${if (dark) "dark" else "light"}",
+                KeepClearContrastSchemes.of(dark, level),
+                if (dark) KeepClearColors.Dark else KeepClearColors.Light,
+            ) to (if (dark) KeepClearSchemes.Dark else KeepClearSchemes.Light)
+        }
+    }
+
+    @Test
+    fun `medium and high contrast pass every pair and never make one weaker than standard (H4 item 6)`() {
+        for ((theme, standard) in levels) {
+            val (name, scheme, lanes) = theme
+            val text = textPairs(scheme, lanes)
+            val graphic = graphicPairs(scheme, lanes)
+            assertEquals(
+                "$name: text below 4.5:1",
+                emptyMap<String, String>(),
+                text.filterValues { (fg, bg) ->
+                    ratio(fg, bg) < 4.5
+                }.mapValues { (_, p) -> "%.2f".format(ratio(p.first, p.second)) },
+            )
+            assertEquals(
+                "$name: non-text below 3:1",
+                emptyMap<String, String>(),
+                graphic.filterValues { (fg, bg) ->
+                    ratio(fg, bg) < 3.0
+                }.mapValues { (_, p) -> "%.2f".format(ratio(p.first, p.second)) },
+            )
+            val before = textPairs(standard, lanes) + graphicPairs(standard, lanes)
+            val weaker = (text + graphic).filter { (key, p) ->
+                val old = before.getValue(key)
+                ratio(p.first, p.second) < ratio(old.first, old.second) - 0.001
+            }.keys
+            assertEquals("$name: a pair got weaker than the standard scheme", emptySet<String>(), weaker)
+        }
+    }
+
+    @Test
+    fun `high contrast reaches 7 to 1 for body text and secondary text (H4 item 6)`() {
+        for ((theme, _) in levels.filter { it.first.first.startsWith("high") }) {
+            val (name, c, _) = theme
+            for ((label, pair) in mapOf(
+                "onSurface/surface" to (c.onSurface to c.surface),
+                "onSurfaceVariant/surface" to (c.onSurfaceVariant to c.surface),
+                "onSurfaceVariant/background" to (c.onSurfaceVariant to c.background),
+                "primary/background" to (c.primary to c.background),
+            )) {
+                assert(ratio(pair.first, pair.second) >= 7.0) {
+                    "$name $label: %.2f".format(ratio(pair.first, pair.second))
+                }
+            }
+            assert(ratio(c.outline, c.surface) >= 4.5) { "$name outline/surface" }
+        }
+    }
+
+    @Test
+    fun `Android's contrast value picks the level`() {
+        assertEquals(KcContrast.STANDARD, KcContrast.of(0f))
+        assertEquals(KcContrast.STANDARD, KcContrast.of(-1f))
+        assertEquals(KcContrast.MEDIUM, KcContrast.of(0.5f))
+        assertEquals(KcContrast.HIGH, KcContrast.of(1f))
+    }
+
     @Test
     fun `the contrast formula matches WCAG reference values`() {
         assertEquals(21.0, ratio(Color.Black, Color.White), 0.01)

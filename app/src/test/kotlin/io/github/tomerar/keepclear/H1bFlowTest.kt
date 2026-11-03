@@ -215,6 +215,8 @@ class H1bFlowTest {
     fun `item 8 a job found running with no service and no user stop was stopped by the phone`() {
         val t = setUp()
         val store = t.app.moveController.store
+        // PR H4 item 5: Android recorded that the system ended the process (C125's guess replaced).
+        t.app.moveController.processExits = ProcessExitSource { listOf(ProcessExit(2, KillReasons.LOW_MEMORY)) }
         runBlocking { store.putJob(MoveJob("killed", "d", "Drive", "KeepClear/P", 1, JobState.RUNNING)) }
         t.viewModel(MoveViewModel::class.java)
         TestApp.awaitMain("marked") { runBlocking { store.job("killed") }?.state == JobState.PAUSED }

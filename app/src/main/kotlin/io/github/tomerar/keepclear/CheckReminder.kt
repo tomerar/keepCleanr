@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -81,7 +80,7 @@ class CheckReminderWorker(context: Context, params: WorkerParameters) : Coroutin
 }
 
 object CheckReminder {
-    private const val CHANNEL = "check-reminder"
+    private const val CHANNEL = NotificationChannels.CHECK_REMINDER
     private const val ID = 78
     private const val WORK = "check-reminder"
 
@@ -103,14 +102,12 @@ object CheckReminder {
     }
 
     fun show(context: Context, jobId: String) {
+        // Review of PR #60: the reminder's text in the language chosen in KeepClear (Android 11–12, AppLanguage).
+        @Suppress("NAME_SHADOWING")
+        val context = AppLanguage.wrap(context)
         val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL,
-                context.getString(R.string.check_reminder_channel),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
+        // Owner brief H4 item 4: every channel, named in the app's language.
+        NotificationChannels.registerAll(context)
         nm.notify(ID, build(context, jobId))
     }
 

@@ -123,7 +123,7 @@ fun SafeConfirmButton(
                 colors = buttonColors,
                 shape = KcShapes.pill,
                 contentPadding = KcButtonDefaults.ContentPadding,
-                modifier = modifier.heightIn(min = KcButtonDefaults.MinHeight)
+                modifier = modifier.heightIn(min = KcButtonDefaults.PrimaryMinHeight)
                     .semantics { this[PermanentAction] = permanent }
                     .pointerInteropFilter { event ->
                         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -155,14 +155,14 @@ private fun ConfirmFill(text: String, progress: () -> Float, colors: ButtonColor
     val track = colors.containerColor.copy(alpha = KcButtonDefaults.ProgressTrackAlpha)
     val label: @Composable (androidx.compose.ui.graphics.Color) -> Unit = { color ->
         Box(
-            Modifier.fillMaxWidth().heightIn(min = KcButtonDefaults.MinHeight)
+            Modifier.fillMaxWidth().heightIn(min = KcButtonDefaults.PrimaryMinHeight)
                 .padding(KcButtonDefaults.ContentPadding),
             contentAlignment = Alignment.Center,
         ) { Text(text, style = MaterialTheme.typography.labelLarge, color = color) }
     }
     Box(
         modifier
-            .heightIn(min = KcButtonDefaults.MinHeight)
+            .heightIn(min = KcButtonDefaults.PrimaryMinHeight)
             .clip(KcShapes.pill)
             .background(track)
             .semantics(mergeDescendants = true) {

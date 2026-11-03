@@ -3,7 +3,6 @@ package io.github.tomerar.keepclear
 
 import android.Manifest
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -91,8 +90,19 @@ class MoveController(private val app: KeepClearApplication) {
     val ticks = MutableStateFlow(0L)
 
     internal fun setRunning(id: String?) {
+        // Owner brief H4 item 5: Settings › Troubleshooting shows when a backup last ran (its start and its end).
+        if (id != null || _running.value != null) runCatching { runLog.ran(System.currentTimeMillis()) }
         _running.value = id
     }
+
+    /** Owner brief H4 item 5: when a backup last ran. */
+    val runLog by lazy {
+        // Review of PR #60: opening a new preferences file reads the disk, so it goes inside the settings allowance.
+        MainThreadPolicy.settings { BackupRunLog(app.getSharedPreferences(BackupRunLog.PREFS, Context.MODE_PRIVATE)) }
+    }
+
+    /** Owner brief H4 item 5: Android's record of how KeepClear's process ended; tests replace it. */
+    internal var processExits: ProcessExitSource = AndroidProcessExitSource(app)
 
     private val _task = MutableStateFlow<TaskProgress?>(null)
 
@@ -163,6 +173,20 @@ class MoveController(private val app: KeepClearApplication) {
     }
 
     /**
+     * Owner brief H4 item 5: jobs found still running with no service get the reason Android recorded for the
+     * process's end ([KillReasons]): stopped by the system → STOPPED_BY_PHONE; a crash, an update, anything else or
+     * no record → INTERRUPTED (a crash also gets Home's crash card). Replaces C125's guess.
+     */
+    suspend fun markFoundStopped(): List<MoveJob> {
+        if (_running.value != null) return emptyList()
+        val exits = runCatching { processExits.exits() }.getOrDefault(emptyList())
+        return store.jobs().filter { it.state == JobState.RUNNING }.map { job ->
+            job.copy(state = JobState.PAUSED, pauseReason = KillReasons.pauseReason(exits, job.createdAt))
+                .also { store.putJob(it) }
+        }
+    }
+
+    /**
      * MIG-4: a job left RUNNING while no service runs was interrupted (app update, crash, reboot). It is shown
      * as paused; copying resumes only when the user taps Continue. Deleting originals always needs a new
      * confirmation (MIG-5): confirmed plans live only in memory, bound to the session.
@@ -212,6 +236,11 @@ class MoveController(private val app: KeepClearApplication) {
  * The service never deletes anything itself: freeing goes through the executor (SAFETY-1).
  */
 class MoveService : Service() {
+    // Owner brief H4 item 7: the notifications in the in-app language on Android 11–12 too.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     companion object {
         const val EXTRA_JOB = "job"
         const val EXTRA_TASK = "task"
@@ -506,23 +535,16 @@ object BackupSegments {
 }
 
 object MoveNotifications {
-    private const val CHANNEL = "backup"
+    private const val CHANNEL = NotificationChannels.BACKUP_PROGRESS
+    private const val RESULTS = NotificationChannels.BACKUP_RESULTS
     private const val RESULT_ID = 42
 
     fun allowed(context: Context): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED
 
-    fun ensureChannel(context: Context) {
-        val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL,
-                context.getString(R.string.move_channel),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
-    }
+    /** Owner brief H4 item 4: all of KeepClear's channels, named in the app's language ([NotificationChannels]). */
+    fun ensureChannel(context: Context) = NotificationChannels.registerAll(context)
 
     private fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
         context,
@@ -706,7 +728,7 @@ object MoveNotifications {
         }
         context.getSystemService(NotificationManager::class.java).notify(
             RESULT_ID,
-            NotificationCompat.Builder(context, CHANNEL)
+            NotificationCompat.Builder(context, RESULTS)
                 .setSmallIcon(android.R.drawable.stat_sys_upload_done)
                 .setContentTitle(context.getString(R.string.move_notification_title))
                 .setContentText(text)
@@ -721,7 +743,7 @@ object MoveNotifications {
         ensureChannel(context)
         context.getSystemService(NotificationManager::class.java).notify(
             RESULT_ID,
-            NotificationCompat.Builder(context, CHANNEL)
+            NotificationCompat.Builder(context, RESULTS)
                 .setSmallIcon(android.R.drawable.stat_sys_upload_done)
                 .setContentTitle(context.getString(R.string.move_notification_title))
                 .setContentText(context.getString(R.string.move_notification_updated))

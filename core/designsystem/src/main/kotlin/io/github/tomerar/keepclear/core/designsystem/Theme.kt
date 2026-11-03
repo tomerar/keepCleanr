@@ -22,20 +22,19 @@ fun KeepClearTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     reducedMotion: Boolean? = null,
+    /** Owner brief H4 item 6: null reads Android 14+'s contrast setting; tests pass it. */
+    contrast: KcContrast? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val level = contrast ?: remember(context) { systemContrast(context) }
     val scheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> {
-            KeepClearSchemes.Dark
-        }
-
         else -> {
-            KeepClearSchemes.Light
+            KeepClearContrastSchemes.of(darkTheme, level)
         }
     }
     val systemReduced = remember(context) { KcMotion.systemReducedMotion(context) }
@@ -52,6 +51,15 @@ fun KeepClearTheme(
         )
     }
 }
+
+/** Android 14+'s contrast setting; standard before Android 14 (no such setting). */
+fun systemContrast(context: android.content.Context): KcContrast =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val ui = context.getSystemService(android.app.UiModeManager::class.java)
+        KcContrast.of(runCatching { ui?.contrast ?: 0f }.getOrDefault(0f))
+    } else {
+        KcContrast.STANDARD
+    }
 
 /** KeepClear's additions to [MaterialTheme]: `KeepClearTheme.colors.safe.accent`, `KeepClearTheme.type.hero`, … */
 object KeepClearTheme {

@@ -44,6 +44,10 @@ jobs:
         run: scripts/nextcloud-test-server.sh | sed 's/^export //' >> "$GITHUB_ENV"
       - name: ciCheck (format, string parity, unit + screenshot tests, Konsist, lint, manifest + dependency policies, both flavors)
         run: ./gradlew ciCheck :app:assembleFossRelease :app:assemblePlayRelease
+      - name: Native libraries fit 16 KB pages (owner brief H4 item 9)
+        run: |
+          python3 -I scripts/check-16kb-pages.py --self-test
+          python3 -I scripts/check-16kb-pages.py app/build/outputs/apk/*/release/*.apk
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0

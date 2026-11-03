@@ -35,11 +35,13 @@ data class HelpTopic(
     @StringRes val title: Int,
     @StringRes val body: Int,
     val links: List<HelpLink> = emptyList(),
+    /** Owner brief H4 item 5: the topic ends with this phone maker's steps to keep the backup running. */
+    val batterySteps: Boolean = false,
 )
 
 /**
  * Owner brief H3 item 1: the offline Help, as data (string resources per language, I18N-1 parity). The order is the
- * brief's. PR H4 adds its topics ("Manage space / keep data on uninstall", "Private space") to [all]; nothing else
+ * brief's; PR H4 added "Manage space / keep data on uninstall" and "Private space" at the end. Nothing else
  * needs to change for a new topic.
  */
 object HelpTopics {
@@ -60,13 +62,21 @@ object HelpTopics {
             HelpTopic("access", R.string.help_access_title_play, R.string.help_access_body_play)
         },
         HelpTopic("whatsapp", R.string.help_whatsapp_title, R.string.help_whatsapp_body),
-        HelpTopic("stopped", R.string.help_stopped_title, R.string.help_stopped_body),
+        HelpTopic("stopped", R.string.help_stopped_title, R.string.help_stopped_body, batterySteps = true),
         HelpTopic(
             "new_phone",
             R.string.help_new_phone_title,
             R.string.help_new_phone_body,
             listOf(HelpLink.RESTORE_FROM_BACKUP),
         ),
+        // PR H4 (owner brief H4 items 1 and 9).
+        HelpTopic(
+            MANAGE_SPACE,
+            R.string.help_manage_space_title,
+            R.string.help_manage_space_body,
+            listOf(HelpLink.TRASH),
+        ),
+        HelpTopic("private_space", R.string.help_private_space_title, R.string.help_private_space_body),
     )
 
     fun byId(id: String, foss: Boolean = BuildConfig.FLAVOR == "foss"): HelpTopic? = all(foss).firstOrNull {
@@ -75,6 +85,9 @@ object HelpTopics {
 
     /** "How to restore a file", which Settings' card also opens. */
     const val GET_BACK = "get_back"
+
+    /** PR H4: "KeepClear's storage and uninstalling" (Android's "Manage space" and keeping data on uninstall). */
+    const val MANAGE_SPACE = "manage_space"
 }
 
 /** A topic's body as its paragraphs. */
@@ -113,7 +126,12 @@ fun HelpScreen(topics: List<HelpTopic>, onOpenTopic: (String) -> Unit, onBack: (
 
 /** One Help topic, with buttons to the screens it talks about. */
 @Composable
-fun HelpTopicScreen(topic: HelpTopic, onLink: (HelpLink) -> Unit, onBack: () -> Unit) {
+fun HelpTopicScreen(
+    topic: HelpTopic,
+    onLink: (HelpLink) -> Unit,
+    onBack: () -> Unit,
+    battery: BatteryActions = BatteryActions(),
+) {
     Scaffold(topBar = { SubScreenTopBar(stringResource(topic.title), onBack) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
@@ -135,6 +153,10 @@ fun HelpTopicScreen(topic: HelpTopic, onLink: (HelpLink) -> Unit, onBack: () -> 
                     modifier = Modifier.fillMaxWidth().testTag("helpLink_${link.name}"),
                     style = KcButtonStyle.Tonal,
                 )
+            }
+            if (topic.batterySteps) {
+                Text(stringResource(R.string.help_battery_steps), style = MaterialTheme.typography.bodyLarge)
+                BatteryHelp(battery, Modifier.testTag("helpBattery"))
             }
         }
     }

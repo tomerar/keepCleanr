@@ -16,7 +16,7 @@ KeepClear works only on your phone. It does not collect, send, sell or share any
 | Folders you pick (Storage Access Framework) | To read a folder you chose (e.g. WhatsApp media) or write backups to a drive you chose. | Only to the drive or folder you picked |
 | Usage access (`PACKAGE_USAGE_STATS`) | To show how much space each app uses and when it was last opened. | No |
 | List of apps (`QUERY_ALL_PACKAGES` in `foss`; launcher apps only in `play`) | To match folders and caches to the apps that own them. | No |
-| Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps. Android asks you to confirm; KeepClear never removes an app by itself. | No |
+| Uninstalling an app (`REQUEST_DELETE_PACKAGES`) | To open Android's own uninstall window when you tap Uninstall in Apps, and on Android 15+ to ask Android to archive an app when you tap Archive (the app goes, its data stays). Android asks you to confirm either way; KeepClear never removes an app by itself. | No |
 | Network (`INTERNET`) | Only to back up to a network drive or a Nextcloud you set up, at the address you typed. | Only the files you back up, to that address (for Nextcloud also the sign-in, to that server) |
 | Notifications (`POST_NOTIFICATIONS`) | To show backup progress. | No |
 | Promoted notifications (`POST_PROMOTED_NOTIFICATIONS`, Android 16) | To show backup progress as a Live Update (status-bar chip, lock screen); a normal permission. | No |

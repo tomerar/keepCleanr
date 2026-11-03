@@ -260,7 +260,7 @@
     <string name="move_notif_body">כדי לראות את התקדמות הגיבוי ולקבל הודעה כשהוא מסתיים או צריך אתכם.</string>
     <string name="move_notif_allow">לאשר התראות</string>
     <string name="move_notif_skip">לא עכשיו</string>
-    <string name="move_channel">גיבוי</string>
+    <string name="move_channel">התקדמות הגיבוי</string>
     <string name="move_notification_title">גיבוי KeepClear</string>
     <string name="move_notification_paused">הגיבוי הושהה. אפשר לפתוח את KeepClear כדי להמשיך.</string>
     <string name="move_notification_updated">הגיבוי הושהה בגלל עדכון של האפליקציה. אפשר להקיש כדי להמשיך.</string>
@@ -539,7 +539,7 @@
     <string name="settings_swipe_swap">להחליף את כיווני ההחלקה</string>
     <string name="reminder_setting">להזכיר לי כשהמקום מתמלא</string>
     <string name="reminder_setting_body">לכל היותר פעם בשבוע, כשנשאר פחות מ-10%% (או %1$s) פנוי. רק תזכורת; שום דבר לא נמחק ברקע.</string>
-    <string name="reminder_channel">תזכורות מקום</string>
+    <string name="reminder_channel">תזכורות על מקום</string>
     <string name="reminder_title">המקום בטלפון מתמלא</string>
     <string name="reminder_text">%1$s פנויים. אפשר לפתוח את KeepClear כדי לראות מה אפשר לפנות.</string>
     <string name="reminder_text_junk">נשארו %1$s פנויים. אפשר לפנות %2$s של קבצים מיותרים.</string>
@@ -846,4 +846,36 @@
     <string name="shortcut_trash_long">לפתוח את סל המחזור</string>
     <string name="shortcut_backup_short">לגבות</string>
     <string name="shortcut_backup_long">לגבות תמונות</string>
+
+    <!-- PR H4 (owner brief H4): platform and accessibility. -->
+    <string name="manage_space_title">המקום של KeepClear</string>
+    <string name="manage_space_reading">בודקים את סל המחזור…</string>
+    <string name="manage_space_trash">בסל המחזור: %1$s</string>
+    <string name="manage_space_trash_empty">סל המחזור ריק.</string>
+    <string name="manage_space_trash_note">קבצים בסל נמחקים לצמיתות אחרי 30 יום, או מיד כשמרוקנים אותו.</string>
+    <string name="manage_space_body">KeepClear שומר רשימה של מה שבסל המחזור, כדי לשחזר כל קובץ למקום שלו. „ניקוי האחסון” של אנדרואיד היה מוחק את הרשימה ומשאיר את הקבצים בלי דרך לשחזר אותם, ולכן KeepClear מציג את המסך הזה במקומו.\n\nכדי לפנות את המקום שהסל תופס, פותחים אותו ולוחצים „לרוקן את הסל”. KeepClear שואל קודם.\n\nכשמסירים את KeepClear, אנדרואיד שואל אם לשמור את הנתונים שלו. כדאי לשמור אם אולי תתקינו את KeepClear שוב: רשימת הסל וההגדרות נשארות.</string>
+    <string name="manage_space_open_trash">לפתוח את סל המחזור</string>
+    <string name="manage_space_close">לסגור</string>
+    <string name="backup_results_channel">תוצאות גיבוי</string>
+    <string name="settings_notifications">התראות</string>
+    <string name="settings_notifications_body">אפשר לשנות כל סוג התראה בהגדרות של אנדרואיד.</string>
+    <string name="settings_language_system_screen">לבחור בהגדרות של אנדרואיד</string>
+    <string name="pause_phone_stopped_next">אנדרואיד סוגר אפליקציות ברקע כדי לחסוך סוללה. אם מאפשרים לגיבוי לרוץ ברקע, זה קורה פחות.</string>
+    <string name="battery_allow_background">לאפשר לגיבוי לרוץ ברקע</string>
+    <string name="battery_maker_title">בטלפון הזה</string>
+    <string name="battery_maker_guide">לפתוח את המדריך המלא לטלפון הזה</string>
+    <string name="battery_steps_oneplus">הגדרות › סוללה › הגדרות מתקדמות: לכבות את „אופטימיזציה עמוקה” ואת „אופטימיזציה במצב שינה”.\nהגדרות › אפליקציות › KeepClear › שימוש בסוללה: להפעיל את „לאפשר פעילות ברקע”.\nבמסך האפליקציות האחרונות: לנעול את הכרטיס של KeepClear כדי שלא ייסגר.</string>
+    <string name="battery_steps_samsung">הגדרות › אפליקציות › KeepClear › סוללה: לבחור „ללא הגבלה”.\nהגדרות › סוללה › הגבלות שימוש ברקע: להוציא את KeepClear מ„אפליקציות במצב שינה” ומ„אפליקציות במצב שינה עמוקה”.</string>
+    <string name="battery_steps_xiaomi">הגדרות › אפליקציות › ניהול אפליקציות › KeepClear › חיסכון בסוללה: לבחור „ללא הגבלות”.\nבאותו מקום: להפעיל את „הפעלה אוטומטית”.\nבמסך האפליקציות האחרונות: לנעול את הכרטיס של KeepClear כדי שלא ייסגר.</string>
+    <string name="battery_steps_huawei">הגדרות › סוללה › הפעלת אפליקציות › KeepClear: לבחור ניהול ידני ולהפעיל את שלושת המתגים.</string>
+    <string name="battery_steps_oppo">הגדרות › סוללה › KeepClear: להפעיל את „לאפשר פעילות ברקע”.\nבמסך האפליקציות האחרונות: לנעול את הכרטיס של KeepClear כדי שלא ייסגר.</string>
+    <string name="battery_steps_vivo">הגדרות › סוללה › ניהול צריכת חשמל ברקע › KeepClear: לבחור „לאפשר”.\nבמסך האפליקציות האחרונות: לנעול את הכרטיס של KeepClear כדי שלא ייסגר.</string>
+    <string name="battery_steps_generic">הגדרות › אפליקציות › KeepClear › סוללה: לבחור „ללא הגבלה”.\nבזמן הגיבוי כדאי שהטלפון יהיה בטעינה.</string>
+    <string name="settings_troubleshooting">פתרון בעיות</string>
+    <string name="troubleshooting_last_run">הגיבוי רץ לאחרונה: %1$s</string>
+    <string name="troubleshooting_never">עוד לא רץ גיבוי.</string>
+    <string name="troubleshooting_stopped">בפעם האחרונה הטלפון עצר אותו כדי לחסוך סוללה.</string>
+    <string name="apps_archive">לארכב</string>
+    <string name="apps_archive_note">ארכוב שומר את הנתונים ואת הסמל של האפליקציה ומפנה את האפליקציה עצמה. לוחצים על הסמל כדי לקבל אותה בחזרה.</string>
+    <string name="apps_split">אפליקציה %1$s · נתונים %2$s · קבצים זמניים %3$s</string>
 </resources>

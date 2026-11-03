@@ -94,6 +94,66 @@ object KeepClearSchemes {
     )
 }
 
+/**
+ * Owner brief H4 item 6: Android 14+'s contrast setting (Settings › Accessibility › Colour and motion › Contrast,
+ * `UiModeManager.getContrast()`: 0 standard, 0.5 medium, 1 high). Medium and high only ever make text, outlines and
+ * the ink colour stronger than the standard scheme (`ContrastTest` checks that no role gets weaker).
+ */
+enum class KcContrast {
+    STANDARD,
+    MEDIUM,
+    HIGH,
+    ;
+
+    companion object {
+        fun of(value: Float): KcContrast = when {
+            value >= 0.75f -> HIGH
+            value >= 0.25f -> MEDIUM
+            else -> STANDARD
+        }
+    }
+}
+
+/** The "Paper & Ink" schemes at each contrast level (paper and lane colours stay; ink gets darker or lighter). */
+object KeepClearContrastSchemes {
+    val LightMedium: ColorScheme = KeepClearSchemes.Light.copy(
+        primary = Color(0xFF253D66),
+        onSurfaceVariant = Color(0xFF45413A),
+        outline = Color(0xFF6E685E),
+        outlineVariant = Color(0xFF8A8378),
+        error = Color(0xFF9C2019),
+    )
+    val LightHigh: ColorScheme = KeepClearSchemes.Light.copy(
+        primary = Color(0xFF13284A),
+        onSurfaceVariant = Color(0xFF1E1C19),
+        secondary = Color(0xFF3A3732),
+        outline = Color(0xFF45413A),
+        outlineVariant = Color(0xFF5A554D),
+        error = Color(0xFF8C1D18),
+    )
+    val DarkMedium: ColorScheme = KeepClearSchemes.Dark.copy(
+        primary = Color(0xFFC3D4F4),
+        onSurfaceVariant = Color(0xFFD6CEC2),
+        outline = Color(0xFFAAA296),
+        outlineVariant = Color(0xFF5A554D),
+        error = Color(0xFFF6CBC8),
+    )
+    val DarkHigh: ColorScheme = KeepClearSchemes.Dark.copy(
+        primary = Color(0xFFDCE4F5),
+        onSurfaceVariant = Color(0xFFECE6DC),
+        secondary = Color(0xFFE4DCCF),
+        outline = Color(0xFFCFC7BA),
+        outlineVariant = Color(0xFF8F887D),
+        error = Color(0xFFF9DEDC),
+    )
+
+    fun of(dark: Boolean, contrast: KcContrast): ColorScheme = when (contrast) {
+        KcContrast.STANDARD -> if (dark) KeepClearSchemes.Dark else KeepClearSchemes.Light
+        KcContrast.MEDIUM -> if (dark) DarkMedium else LightMedium
+        KcContrast.HIGH -> if (dark) DarkHigh else LightHigh
+    }
+}
+
 /** The three lanes of the app (requirements: SAFE, REVIEW, MOVE). Always shown as icon + label, never colour alone. */
 enum class KcLane { SAFE, REVIEW, MOVE }
 

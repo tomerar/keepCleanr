@@ -51,6 +51,9 @@ class H3HelpTest {
                 "מה קורה לוואטסאפ",
                 "הגיבוי נעצר — מה לעשות",
                 "טלפון חדש",
+                // PR H4: its two topics come after the brief's eight.
+                "המקום של KeepClear והסרת ההתקנה",
+                "מרחב פרטי",
             ),
             HelpTopics.all(foss = true).map { he.getString(it.title) },
         )
@@ -60,7 +63,7 @@ class H3HelpTest {
     fun `every topic has a body of paragraphs in English and Hebrew, and the ids are unique`() {
         for (foss in listOf(true, false)) {
             val topics = HelpTopics.all(foss)
-            assertEquals(8, topics.size)
+            assertEquals(10, topics.size) // the brief's eight and PR H4's two
             assertEquals(topics.size, topics.map { it.id }.toSet().size)
             for (lang in listOf("en", "iw")) {
                 val c = inLanguage(lang)

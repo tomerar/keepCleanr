@@ -84,6 +84,38 @@ object ForbiddenApis {
         ),
     )
 
+    /**
+     * Owner brief H4 item 9: methods that Java 21 added to `List` (`SequencedCollection`). Kotlin compiles
+     * `mutableList.removeFirst()` to them when it compiles against JDK 21, and Android before API 35 has none of
+     * them: the call crashes with NoSuchMethodError on Android 11–14. Kotlin's own `removeAt(0)`, `first()`,
+     * `last()`, `removeFirstOrNull()` and `kotlin.collections.ArrayDeque` are fine.
+     */
+    val forbiddenCalls: Set<String> = listOf("java/util/List", "java/util/ArrayList", "java/util/SequencedCollection")
+        .flatMap { owner ->
+            listOf("removeFirst", "removeLast", "getFirst", "getLast", "addFirst", "addLast", "reversed")
+                .map { "$owner.$it" }
+        }.toSet()
+
+    private const val SEQUENCED = "a Java 21 List method, missing before Android 15 (API 35): use removeAt(0), " +
+        "removeAt(lastIndex), first(), last() or kotlin.collections.ArrayDeque (owner brief H4 item 9)"
+
+    /** Every method call in this class file, as `owner.name` (internal owner name). */
+    fun calledMethods(classFile: ByteArray): Set<String> {
+        val found = sortedSetOf<String>()
+        val method = object : MethodVisitor(Opcodes.ASM9) {
+            override fun visitMethodInsn(opcode: Int, owner: String, name: String, d: String, itf: Boolean) {
+                found += "$owner.$name"
+            }
+        }
+        ClassReader(classFile).accept(
+            object : ClassVisitor(Opcodes.ASM9) {
+                override fun visitMethod(a: Int, n: String, d: String, s: String?, ex: Array<String>?) = method
+            },
+            ClassReader.SKIP_FRAMES,
+        )
+        return found
+    }
+
     /** Every class this class file refers to: supertypes, fields, methods, instructions, constants, signatures. */
     fun referencedTypes(classFile: ByteArray): Set<String> {
         val found = sortedSetOf<String>()
@@ -209,7 +241,8 @@ object ForbiddenApis {
             referencedTypes(bytes).flatMap { ref ->
                 rules.filter { it.matches(ref) && projectPath !in it.allowedIn && !it.matches(self) }
                     .map { "$projectPath: $file refers to ${ref.replace('/', '.')}: ${it.why}" }
-            }
+            } + calledMethods(bytes).filter { it in forbiddenCalls }
+                .map { "$projectPath: $file calls ${it.replace('/', '.')}: $SEQUENCED" }
         }
 
     /** Reads every `.class` file under [dirs] and inside [jars]. */
@@ -276,7 +309,8 @@ internal fun Project.registerForbiddenApis() {
     val modulePath = path
     val all = tasks.register("checkForbiddenApis") {
         group = "verification"
-        description = "Fails if compiled main classes use a network API outside backup:net (ADR 0008/0011, D6)."
+        description = "Fails if compiled main classes use a network API outside backup:net (ADR 0008/0011, D6) " +
+            "or a Java 21 List method missing before API 35 (owner brief H4 item 9)."
     }
     pluginManager.withPlugin("base") { tasks.named("check") { dependsOn(all) } }
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {

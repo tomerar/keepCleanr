@@ -56,7 +56,7 @@ private fun LinkCard(title: String, body: String, tag: String, onClick: () -> Un
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(body, style = MaterialTheme.typography.bodySmall)
+                if (body.isNotEmpty()) Text(body, style = MaterialTheme.typography.bodySmall)
             }
             androidx.compose.material3.Icon(
                 io.github.tomerar.keepclear.core.designsystem.KcIcons.Chevron,
@@ -134,6 +134,20 @@ class SettingsActions(
     val onOpenDeviceCheck: () -> Unit = {},
     /** PR H3 (owner brief H3 item 2): opens the "Report a problem" sheet. */
     val onReport: () -> Unit = {},
+    /** Owner brief H4 item 7: Android 13+'s own per-app language page; null below Android 13. */
+    val onSystemLanguage: (() -> Unit)? = null,
+    /** Owner brief H4 item 4: opens one notification channel's page in Android's settings; null hides the rows. */
+    val onOpenChannel: ((String) -> Unit)? = null,
+    /** Owner brief H4 item 5: Settings › Troubleshooting; null hides it. */
+    val troubleshooting: TroubleshootingUi? = null,
+)
+
+/** Owner brief H4 item 5: "Troubleshooting": when a backup last ran, and how to keep the phone from stopping it. */
+class TroubleshootingUi(
+    val lastRunAt: Long?,
+    /** The newest backup was stopped by the phone. */
+    val stoppedByPhone: Boolean = false,
+    val battery: BatteryActions = BatteryActions(),
 )
 
 /** PR H3: the screens Settings links to (screens only; nothing here acts on files). */
@@ -179,6 +193,14 @@ fun SettingsScreen(
                             modifier = Modifier.testTag("lang_${tag ?: "system"}"),
                         )
                     }
+            }
+            actions.onSystemLanguage?.let { open ->
+                KcButton(
+                    stringResource(R.string.settings_language_system_screen),
+                    open,
+                    Modifier.testTag("systemLanguage"),
+                    style = KcButtonStyle.Text,
+                )
             }
             // Owner brief H3 item 1: Help, one tap from Settings (and from the top bar's "?").
             LinkCard(
@@ -338,6 +360,8 @@ fun SettingsScreen(
                     )
                 }
             }
+            actions.onOpenChannel?.let { open -> NotificationRows(open) }
+            actions.troubleshooting?.let { TroubleshootingSection(it) }
             KcButton(
                 stringResource(R.string.settings_replay_intro),
                 actions.onReplayIntro,
@@ -713,3 +737,46 @@ internal fun reminderBody(): String {
         io.github.tomerar.keepclear.core.common.ByteSize.format(ReminderPolicy.MIN_FREE_BYTES, locale),
     )
 }
+
+/** Owner brief H4 item 4: one row per notification channel, each opening its page in Android's settings. */
+@Composable
+private fun NotificationRows(open: (String) -> Unit) {
+    SectionHeading(stringResource(R.string.settings_notifications))
+    Text(stringResource(R.string.settings_notifications_body), style = MaterialTheme.typography.bodyMedium)
+    NotificationChannels.all.forEach { channel ->
+        LinkCard(stringResource(channel.name), "", "channel_${channel.id}") { open(channel.id) }
+    }
+}
+
+/** Owner brief H4 item 5: „פתרון בעיות”. */
+@Composable
+private fun TroubleshootingSection(ui: TroubleshootingUi) {
+    SectionHeading(stringResource(R.string.settings_troubleshooting), Modifier.testTag("troubleshooting"))
+    KcCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                ui.lastRunAt?.let { at ->
+                    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+                    stringResource(
+                        R.string.troubleshooting_last_run,
+                        io.github.tomerar.keepclear.core.common.Bidi.isolate(lastRunText(at, locale)),
+                    )
+                } ?: stringResource(R.string.troubleshooting_never),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.testTag("lastBackupRun"),
+            )
+            if (ui.stoppedByPhone) {
+                Text(stringResource(R.string.troubleshooting_stopped), style = MaterialTheme.typography.bodyMedium)
+            }
+            BatteryHelp(ui.battery)
+        }
+    }
+}
+
+/** "3 Nov 2026, 14:05" in the app's language and the phone's time zone. */
+internal fun lastRunText(at: Long, locale: java.util.Locale): String =
+    java.time.format.DateTimeFormatter.ofLocalizedDateTime(
+        java.time.format.FormatStyle.MEDIUM,
+        java.time.format.FormatStyle.SHORT,
+    ).withLocale(locale)
+        .format(java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()))

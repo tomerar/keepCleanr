@@ -240,6 +240,15 @@ fun GroupScreen(
     var confirming by remember { mutableStateOf<List<ClassifiedItem>?>(null) }
     var why by remember { mutableStateOf(false) }
     val selectedItems = remember(group.items, selected) { group.items.filter { it.item.path in selected } }
+    // Owner brief H4 item 2: with something selected, Back (predictive, it can be cancelled half-way) first leaves
+    // the selection; the next Back leaves the group. Enabled only while there is a selection (never always on).
+    androidx.activity.compose.PredictiveBackHandler(
+        enabled = selectable && selected.isNotEmpty() && swipe == null,
+    ) { progress ->
+        // A cancelled gesture ends the collection with a CancellationException: the selection stays.
+        progress.collect { }
+        setSelected(emptySet())
+    }
     Scaffold(
         topBar = { SubScreenTopBar(stringResource(text.group), onBack) },
         bottomBar = {

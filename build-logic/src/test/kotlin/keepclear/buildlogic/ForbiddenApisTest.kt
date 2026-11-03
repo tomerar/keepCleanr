@@ -108,4 +108,30 @@ class ForbiddenApisTest {
         cw.visitEnd()
         return cw.toByteArray()
     }
+
+    @Test
+    fun `Java 21 List methods are caught, Deque and LinkedList's own are not (owner brief H4 item 9)`() {
+        val code = """
+            import java.util.*;
+            class Lists {
+                Object a(List<String> l) { return l.removeFirst(); }
+                Object b(ArrayList<String> l) { return l.removeLast(); }
+                Object c(List<String> l) { return l.getLast(); }
+                Object ok1(ArrayDeque<String> d) { return d.removeLast(); }
+                Object ok2(LinkedList<String> l) { return l.removeFirst(); }
+                Object ok3(List<String> l) { return l.remove(0); }
+            }
+        """.trimIndent()
+        val violations = ForbiddenApis.check(":app", compile("Lists" to code))
+        assertEquals(3, violations.size, violations.toString())
+        assertTrue(violations.any { "java.util.List.removeFirst" in it }, violations.toString())
+        assertTrue(violations.any { "java.util.ArrayList.removeLast" in it }, violations.toString())
+        assertTrue(violations.any { "java.util.List.getLast" in it }, violations.toString())
+        assertTrue(
+            violations.none {
+                "java.util.ArrayDeque" in it || "java.util.LinkedList" in it
+            },
+            violations.toString(),
+        )
+    }
 }

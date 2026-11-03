@@ -219,9 +219,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     // Declared before init: init's first reload runs at once on the main thread (Main.immediate).
     init {
         viewModelScope.launch {
-            // Owner brief H1 item 8: found still running with no service and no user stop: Android ended it (an app
-            // update is marked by PackageReplacedReceiver first, as INTERRUPTED).
-            withContext(Dispatchers.IO) { controller.markInterrupted(PauseReason.STOPPED_BY_PHONE) }
+            // Owner brief H4 item 5: found still running with no service and no user stop: Android's record of the
+            // process's end says whether the phone stopped it (an app update is marked by PackageReplacedReceiver
+            // first, as INTERRUPTED).
+            withContext(Dispatchers.IO) { controller.markFoundStopped() }
             // E7: progress reloads at most every RELOAD_MILLIS, and only the running job is read again.
             combine(controller.running, controller.ticks) { running, _ -> running }
                 .conflate()

@@ -33,4 +33,11 @@
 
     <string name="help_new_phone_title">New phone</string>
     <string name="help_new_phone_body">Install KeepClear on the new phone and connect the USB drive with your backup.\n\nOn the first screen tap \"New phone? Restore from a backup\", or later open the Backup tab and tap \"Restore from a backup\".\n\nChoose the backup and the months you want. KeepClear checks each file before it writes it and restores it to the folder it was in. If the new phone doesn\'t have enough free space, KeepClear says so before it starts.\n\nThe old phone\'s trash doesn\'t move with you: restore what you need from it before you switch.</string>
+
+    <!-- PR H4 (owner brief H4): platform and accessibility. -->
+    <string name="help_manage_space_title">KeepClear\'s storage and uninstalling</string>
+    <string name="help_manage_space_body">In Android\'s settings, KeepClear\'s storage page shows \"Manage space\" instead of \"Clear storage\". Clearing KeepClear\'s data would erase the list of what is in the trash, and the files in it could not be restored. \"Manage space\" opens a KeepClear screen that shows what the trash holds and opens the trash, where you can empty it.\n\nWhen you uninstall KeepClear, Android asks whether to keep its data. Keep it if you may install KeepClear again: the trash list and your settings stay. Without it, files left in the trash stay on the phone and KeepClear can\'t restore them.\n\nBefore uninstalling for good, restore what you need from the trash, then empty it.</string>
+    <string name="help_private_space_title">Private space</string>
+    <string name="help_private_space_body">Android 15 and later can keep apps in a private space, locked separately from the rest of the phone.\n\nKeepClear can\'t see the apps and files inside the private space: they are not scanned, cleaned or backed up, and they are not counted in the sizes KeepClear shows.\n\nTo clean or back up inside the private space, install KeepClear there too. Each copy sees only its own side.</string>
+    <string name="help_battery_steps">If the phone keeps stopping the backup, allow it to run in the background. On this phone:</string>
 </resources>
