@@ -493,4 +493,46 @@ class RestoreEngineTest {
     private companion object {
         const val LIMIT = 16L * 1024 * 1024
     }
+
+    // ------------------------------------------------------------ H1c: one file back from the restore grid
+
+    @Test
+    fun `one file of a backup is restored alone and the others are not written (H1c)`(): Unit = runBlocking {
+        val rootRel = backUpAndLoseOriginals()
+        val catalog = engine().catalog(rootRel)!!
+        val one = catalog.single { it.line.src == items[1].path }
+        val report = engine().restore(listOf(one))
+        report.restored shouldContainExactly listOf(items[1].path)
+        fake.readAllBytes(items[1].path).toList() shouldBe originals.getValue(items[1].path)
+        items.filter { it != items[1] }.forEach { fake.exists(it.path) shouldBe false }
+    }
+
+    @Test
+    fun `in test mode one file is only simulated and nothing is written (H1c, SAFETY-9)`(): Unit = runBlocking {
+        val rootRel = backUpAndLoseOriginals()
+        val one = engine().catalog(rootRel)!!.first()
+        val before = fake.files(phone).toSet()
+        val report = engine(dryRun = true).restore(listOf(one))
+        report.simulated!!.files shouldBe 1
+        report.restored.shouldBeEmpty()
+        fake.files(phone).toSet() shouldBe before
+    }
+
+    @Test
+    fun `a single file whose place changed since the catalog is never overwritten (H1c, SAFETY-6)`(): Unit =
+        runBlocking {
+            val rootRel = backUpAndLoseOriginals()
+            val catalog = engine().catalog(rootRel)!!
+            val one = catalog.single { it.line.src == items[2].path }
+            engine().plan(listOf(one)).single().where shouldBe Where.ORIGINAL
+            // After the catalog was shown, another file took the original place.
+            val other = ByteArray(77) { 7 }
+            fake.addFile(items[2].path, other)
+            val report = engine().restore(listOf(one))
+            report.redirected shouldBe 1
+            fake.readAllBytes(items[2].path).toList() shouldBe other.toList()
+            report.restored.single() shouldStartWith "$phone/${RestoreEngine.RESTORE_DIR}/"
+            // And restoring it again finds it already there: nothing written twice.
+            engine().restore(listOf(one)).alreadyThere shouldBe 1
+        }
 }
