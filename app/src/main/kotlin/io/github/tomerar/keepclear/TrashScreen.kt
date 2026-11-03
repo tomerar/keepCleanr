@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -124,8 +125,39 @@ private fun TrashRow(
     onPending: (Pending) -> Unit,
     now: Long,
 ) {
+    val changedNow = entry.id in trash.changed
+    val restoreLabel = stringResource(if (changedNow) R.string.trash_restore_changed else R.string.trash_restore)
+    val releaseLabel = stringResource(R.string.trash_release_now)
+    val canRelease = entry.verifiedCopy != null && entry.id in trash.releasable
+    // Owner brief H4 item 6: TalkBack offers the row's actions in its actions menu too (each button stays its own
+    // item, so the row isn't merged).
+    val rowActions = if (busy) {
+        emptyList()
+    } else {
+        buildList {
+            add(
+                CustomAccessibilityAction(restoreLabel) {
+                    if (changedNow) {
+                        onPending(Pending.RestoreChanged(entry))
+                    } else {
+                        onRestore(listOf(entry), trashConfirmed(listOf(entry)))
+                    }
+                    true
+                },
+            )
+            if (canRelease) {
+                add(
+                    CustomAccessibilityAction(releaseLabel) {
+                        onPending(Pending.Release(entry))
+                        true
+                    },
+                )
+            }
+        }
+    }
     Column(
-        modifier = Modifier.fillMaxWidth().testTag("entry_${entry.id}"),
+        modifier = Modifier.fillMaxWidth().testTag("entry_${entry.id}")
+            .semantics { customActions = rowActions },
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         val stored = entry.originalPath.substringAfterLast('/')

@@ -100,6 +100,8 @@ class MoveActions(
     val restore: RestoreActions = RestoreActions(),
     /** Owner brief H2 item 11: a next step that is on the "Free up space" tab (phone full, nothing to back up). */
     val onOpenFreeTab: () -> Unit = {},
+    /** Owner brief H4 item 5: the phone stopped the backup: Android's battery list, and this phone maker's steps. */
+    val battery: BatteryActions = BatteryActions(),
 ) {
     /** The same actions with [open] for "Show group": nothing else can be lost on the way. */
     fun withOpenGroup(open: (String) -> Unit, openFreeTab: () -> Unit = onOpenFreeTab) = MoveActions(
@@ -123,6 +125,7 @@ class MoveActions(
         onOpenTrash = onOpenTrash,
         restore = restore,
         onOpenFreeTab = openFreeTab,
+        battery = battery,
     )
 }
 
@@ -845,6 +848,9 @@ private fun JobCard(
                             modifier = Modifier.testTag("resume"),
                         )
                     }
+                    if (view.job.pauseReason == PauseReason.STOPPED_BY_PHONE) {
+                        BatteryHelp(actions.battery, Modifier.testTag("killCard"))
+                    }
                     if (view.job.pauseReason == PauseReason.PHONE_LOW_SPACE) {
                         KcButton(
                             stringResource(R.string.pause_free_phone),
@@ -864,6 +870,7 @@ internal fun pauseNextStep(reason: PauseReason?): Int? = when (reason) {
     PauseReason.TARGET_FULL -> R.string.pause_next_full
     PauseReason.PHONE_LOW_SPACE -> R.string.pause_next_phone_space
     PauseReason.UNEXPECTED_ERROR -> R.string.pause_next_unexpected
+    PauseReason.STOPPED_BY_PHONE -> R.string.pause_phone_stopped_next
     else -> null
 }
 

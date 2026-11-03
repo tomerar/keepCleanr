@@ -114,6 +114,14 @@ class MainActivity : ComponentActivity() {
                 val networkSetup by remember {
                     moveVm.state.map { it.networkSetup }.distinctUntilChanged()
                 }.collectAsStateWithLifecycle(null)
+                // Owner brief H4 item 5: the newest backup was stopped by the phone (Settings › Troubleshooting).
+                val stoppedByPhone by remember {
+                    moveVm.state.map { st ->
+                        st.jobs.maxByOrNull { it.job.createdAt }?.job?.pauseReason ==
+                            io.github.tomerar.keepclear.engine.move.PauseReason.STOPPED_BY_PHONE
+                    }.distinctUntilChanged()
+                }.collectAsStateWithLifecycle(false)
+                val battery = remember { batteryActions() }
                 val notificationLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                         // ONB-10: the backup runs either way; without the permission progress shows only in the app.
@@ -288,7 +296,18 @@ class MainActivity : ComponentActivity() {
                                 vm.open(Screen.Nextcloud)
                             },
                             currentLanguage = currentLanguage(),
+                            onOpenChannel = { id ->
+                                runCatching {
+                                    startActivity(NotificationChannels.settingsIntent(this@MainActivity, id))
+                                }
+                            },
+                            troubleshooting = TroubleshootingUi(
+                                lastRunAt = app.moveController.runLog.lastRunAt,
+                                stoppedByPhone = stoppedByPhone,
+                                battery = battery,
+                            ),
                             onLanguage = ::setLanguage,
+                            onSystemLanguage = if (AppLanguage.systemKeeps()) ::openSystemLanguage else null,
                             onReplayIntro = { showIntro = true },
                             onOpenPrivacy = ::openPrivacy,
                             version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
@@ -337,6 +356,15 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenAppInfo = ::openAppInfo,
                             testModeOn = testModeOn,
+                            // Owner brief H4 item 8: Android 15+ archive, where the app's store supports it.
+                            canArchive = { pkg -> AppArchive.canArchive(this@MainActivity, pkg) },
+                            onArchive = { pkg ->
+                                // SAFETY-9: never in trial mode (the screen explains; this is the backstop).
+                                val archives = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                                if (!app.testMode.isOn && archives) {
+                                    runCatching { AppArchive.request(this@MainActivity, pkg) }
+                                }
+                            },
                         ),
                         appActions = AppActions(
                             labelOf = ::appLabel,
@@ -461,6 +489,7 @@ class MainActivity : ComponentActivity() {
                                 moveVm.state.value.jobs.firstOrNull { it.job.id == id }?.let(::shareReceipt)
                             },
                             onOpenGooglePhotos = ::openGooglePhotos,
+                            battery = battery,
                             onOpenTrash = {
                                 vm.loadTrash()
                                 vm.open(Screen.Trash)
@@ -545,6 +574,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Owner brief H4 item 5: Android's battery list and this phone maker's steps (screens only). */
+    private fun batteryActions(): BatteryActions {
+        val steps = BatterySteps.forMaker(Build.MANUFACTURER)
+        return BatteryActions(
+            steps = steps,
+            onAllowBackground = { runCatching { startActivity(BatterySteps.settingsIntent()) } },
+            onOpenGuide = { runCatching { startActivity(BatterySteps.guideIntent(steps)) } },
+        )
+    }
+
     private val prefs get() = getSharedPreferences("move", MODE_PRIVATE)
 
     private fun askedNotifications() = MainThreadPolicy.settings { prefs.getBoolean("askedNotifications", false) }
@@ -596,9 +635,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Per-app language (Android 13+); older phones open the system language settings. */
+    /**
+     * Owner brief H4 item 7: the in-app language. Android 13+ keeps it per app (LocaleManager); on Android 11–12
+     * KeepClear keeps it itself and shows its screens again in it ([AppLanguage]).
+     */
     private fun setLanguage(tag: String?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (AppLanguage.systemKeeps()) {
             val locales = if (tag == null) {
                 android.os.LocaleList.getEmptyLocaleList()
             } else {
@@ -606,17 +648,26 @@ class MainActivity : ComponentActivity() {
             }
             getSystemService(android.app.LocaleManager::class.java).applicationLocales = locales
         } else {
-            runCatching { startActivity(Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)) }
+            AppLanguage.store(this, tag)
+            NotificationChannels.registerAll(AppLanguage.wrap(applicationContext))
+            recreate()
         }
     }
 
-    private fun currentLanguage(): String? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getSystemService(android.app.LocaleManager::class.java).applicationLocales.get(0)?.language
-                ?.let { if (it == "he") "iw" else it }
-        } else {
-            null
-        }
+    private fun currentLanguage(): String? = if (AppLanguage.systemKeeps()) {
+        Languages.chipTag(getSystemService(android.app.LocaleManager::class.java).applicationLocales.get(0)?.language)
+    } else {
+        Languages.chipTag(AppLanguage.stored(this))
+    }
+
+    /** Owner brief H4 item 7: Android 13+'s own per-app language page. */
+    private fun openSystemLanguage() {
+        if (AppLanguage.systemKeeps()) runCatching { startActivity(AppLanguage.systemSettingsIntent(this)) }
+    }
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
 
     /**
      * M17b: the Nextcloud sign-in page in the browser. The engine already checked it is on the server the user

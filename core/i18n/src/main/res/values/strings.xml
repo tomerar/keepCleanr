@@ -245,7 +245,7 @@
     <string name="move_notif_body">So you can see backup progress and get told when it\'s done or needs you.</string>
     <string name="move_notif_allow">Allow notifications</string>
     <string name="move_notif_skip">Not now</string>
-    <string name="move_channel">Backup</string>
+    <string name="move_channel">Backup progress</string>
     <string name="move_notification_title">KeepClear backup</string>
     <string name="move_notification_paused">The backup is paused. Open KeepClear to continue.</string>
     <string name="move_notification_updated">Backup paused by an app update. Tap to continue.</string>
@@ -807,4 +807,36 @@
     <string name="shortcut_trash_long">Open the trash</string>
     <string name="shortcut_backup_short">Back up</string>
     <string name="shortcut_backup_long">Back up photos</string>
+
+    <!-- PR H4 (owner brief H4): platform and accessibility. -->
+    <string name="manage_space_title">KeepClear\'s space</string>
+    <string name="manage_space_reading">Checking the trash…</string>
+    <string name="manage_space_trash">In the trash: %1$s</string>
+    <string name="manage_space_trash_empty">The trash is empty.</string>
+    <string name="manage_space_trash_note">Files in the trash are deleted for good after 30 days, or right away when you empty it.</string>
+    <string name="manage_space_body">KeepClear keeps a list of what is in the trash, so it can restore each file to its place. Android\'s \"Clear storage\" would erase that list and leave the files with no way back, so KeepClear shows this screen instead.\n\nTo free up the trash\'s space, open it and tap \"Empty the trash\". KeepClear asks first.\n\nIf you uninstall KeepClear, Android asks whether to keep its data. Keep it if you may install KeepClear again: the trash list and your settings stay.</string>
+    <string name="manage_space_open_trash">Open the trash</string>
+    <string name="manage_space_close">Close</string>
+    <string name="backup_results_channel">Backup results</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_body">Each kind of notification can be changed in Android\'s settings.</string>
+    <string name="settings_language_system_screen">Choose in Android\'s settings</string>
+    <string name="pause_phone_stopped_next">Android closes apps in the background to save battery. Allowing the backup to run in the background makes this happen less.</string>
+    <string name="battery_allow_background">Allow the backup to run in the background</string>
+    <string name="battery_maker_title">On this phone</string>
+    <string name="battery_maker_guide">Open the full guide for this phone</string>
+    <string name="battery_steps_oneplus">Settings › Battery › Advanced settings: turn off \"Deep optimization\" and \"Sleep standby optimization\".\nSettings › Apps › KeepClear › Battery usage: turn on \"Allow background activity\".\nIn Recents, lock KeepClear\'s card so it isn\'t closed.</string>
+    <string name="battery_steps_samsung">Settings › Apps › KeepClear › Battery: choose \"Unrestricted\".\nSettings › Battery › Background usage limits: take KeepClear off \"Sleeping apps\" and \"Deep sleeping apps\".</string>
+    <string name="battery_steps_xiaomi">Settings › Apps › Manage apps › KeepClear › Battery saver: choose \"No restrictions\".\nIn the same place, turn on \"Autostart\".\nIn Recents, lock KeepClear\'s card so it isn\'t closed.</string>
+    <string name="battery_steps_huawei">Settings › Battery › App launch › KeepClear: choose to manage it manually and turn on all three switches.</string>
+    <string name="battery_steps_oppo">Settings › Battery › KeepClear: turn on \"Allow background activity\".\nIn Recents, lock KeepClear\'s card so it isn\'t closed.</string>
+    <string name="battery_steps_vivo">Settings › Battery › Background power consumption management › KeepClear: choose \"Allow\".\nIn Recents, lock KeepClear\'s card so it isn\'t closed.</string>
+    <string name="battery_steps_generic">Settings › Apps › KeepClear › Battery: choose \"Unrestricted\" or \"No restrictions\".\nWhile the backup runs, keep the phone charging.</string>
+    <string name="settings_troubleshooting">Troubleshooting</string>
+    <string name="troubleshooting_last_run">The backup last ran: %1$s</string>
+    <string name="troubleshooting_never">No backup has run yet.</string>
+    <string name="troubleshooting_stopped">Last time the phone stopped it to save battery.</string>
+    <string name="apps_archive">Archive</string>
+    <string name="apps_archive_note">Archiving keeps the app\'s data and icon and frees the app itself. Tap the icon to get it back.</string>
+    <string name="apps_split">App %1$s · Data %2$s · Temporary files %3$s</string>
 </resources>

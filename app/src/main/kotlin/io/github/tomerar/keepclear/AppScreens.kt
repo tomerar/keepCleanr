@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.tomerar.keepclear.devcheck.DeviceCheckScreen
@@ -112,7 +114,7 @@ fun AppScreens(
             if (state.screens.size == 1 && Tab.rootOf(current) != null) {
                 MainTabs(state.tab, state.trash, tabs, content)
             } else {
-                content()
+                SubScreenFrame(content)
             }
         }
     }
@@ -429,6 +431,7 @@ private fun CurrentScreen(
                         }
                     },
                     onBack = onBack,
+                    battery = moveActions.battery,
                 )
             }
         }
@@ -518,3 +521,17 @@ class SafeActions(
         ) -> Unit
     )? = null,
 )
+
+/**
+ * Owner brief H4 item 3: a sub-screen (Settings, the Trash's search, the network forms …) moves up above the
+ * keyboard. Edge-to-edge windows don't resize for it by themselves; the system bars' padding inside is then not
+ * added again (the keyboard's inset covers the navigation bar's).
+ */
+@Composable
+internal fun SubScreenFrame(content: @Composable () -> Unit) {
+    androidx.compose.foundation.layout.Box(
+        Modifier.fillMaxSize().imePadding().testTag(SUB_SCREEN_FRAME_TAG),
+    ) { content() }
+}
+
+internal const val SUB_SCREEN_FRAME_TAG = "subScreenFrame"

@@ -24,6 +24,9 @@ android {
     }
     androidResources {
         localeFilters += listOf("en", "iw")
+        // Owner brief H4 item 7: Android 13+'s per-app language list comes from the resources themselves
+        // (res/resources.properties names English as the default), so a new language can't be forgotten there.
+        generateLocaleConfig = true
     }
     // PR H1b: README.html on the backup drive is written in Hebrew and English whatever the phone's language, and the
     // in-app language switch needs both too: a Play bundle keeps every language in the base APK (two languages only).
@@ -100,6 +103,8 @@ dependencies {
     // PR H3: the paper splash screen on every Android version (no green or white flash on API 30).
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
+    // PR H4 (owner brief H4 item 3): NavigationSuiteScaffold's layout for the main tabs (stable, Compose BOM).
+    implementation(libs.androidx.compose.material3.navigation.suite)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     testImplementation(libs.junit4)

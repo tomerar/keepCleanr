@@ -438,8 +438,21 @@ class KeepClearApplication : Application() {
     /** D4: drives' unmount → mount events in this process (the proof "Check backup" needs). */
     val volumeEvents = VolumeEvents(epoch = sessionId)
 
+    // Owner brief H4 item 7: on Android 11–12 the in-app language is KeepClear's own (Android 13+ applies it itself).
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(base))
+    }
+
+    // Owner brief H4 item 4: the channels' names follow the language (Android 13+ per-app or the phone's).
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        runCatching { NotificationChannels.registerAll(this) }
+    }
+
     override fun onCreate() {
         super.onCreate()
+        // Owner brief H4 item 4: every channel exists from the start, named in the app's language.
+        runCatching { NotificationChannels.registerAll(this) }
         // E1: in test builds a disk read or write on the main thread crashes at once (NFR-1).
         if (BuildConfig.DEBUG) MainThreadPolicy.enable()
         // Owner brief H3 item 3: a Java crash's trace is kept (redacted, private storage) for the next launch's card.

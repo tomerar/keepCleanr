@@ -48,10 +48,12 @@
         android:name=".KeepClearApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
+        android:hasFragileUserData="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/launcher_name"
-        android:localeConfig="@xml/locales_config"
+        android:manageSpaceActivity="io.github.tomerar.keepclear.ManageSpaceActivity"
         android:supportsRtl="true"
         android:theme="@style/Theme.KeepClear"
         tools:targetApi="33">
@@ -59,7 +61,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.KeepClear.Starting">
+            android:theme="@style/Theme.KeepClear.Starting"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -69,6 +72,13 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Owner brief H4 item 1: Android's Settings › Storage shows "Manage space" (this screen) instead of "Clear
+             storage", which would wipe the trash's list. Not exported: only Settings (a system app) opens it. -->
+        <activity
+            android:name=".ManageSpaceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.KeepClear" />
 
         <!-- PR H3 (owner brief H3 item 2): shares only the diagnostics file KeepClear writes in its own cache, read-only,
              to the email app the user picks (res/xml/report_paths.xml). Not exported. -->
@@ -90,6 +100,11 @@
         <!-- Notification pause/stop actions: explicit, immutable PendingIntents only (SEC-5). -->
         <receiver
             android:name=".MoveControlReceiver"
+            android:exported="false" />
+
+        <!-- Owner brief H4 item 8: Android's answer to "Archive" (its own confirmation); only our PendingIntent. -->
+        <receiver
+            android:name=".ArchiveStatusReceiver"
             android:exported="false" />
 
         <!-- MIG-4: after an update, an unfinished backup waits for the user. -->

@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import io.github.tomerar.keepclear.core.common.Bidi
@@ -43,7 +44,23 @@ class AppsActions(
     val onOpenAppInfo: (String) -> Unit = {},
     /** SAFETY-9: in trial mode Uninstall explains instead of opening Android's uninstall window. */
     val testModeOn: Boolean = false,
+    /** Owner brief H4 item 8: Android 15+ and the app's store can bring it back ([AppArchive]). */
+    val canArchive: (String) -> Boolean = { false },
+    /** Asks Android to archive the app; Android confirms. Never in trial mode (like Uninstall). */
+    val onArchive: (String) -> Unit = {},
 )
+
+/** Owner brief H4 item 8: the app itself, its data without the temporary files, and the temporary files. */
+data class AppSizes(val app: Long, val data: Long, val cache: Long) {
+    companion object {
+        /** Android's data size includes the temporary files; they are shown apart. */
+        fun of(info: AppInfo) = AppSizes(
+            app = info.appBytes.coerceAtLeast(0),
+            data = (info.dataBytes - info.cacheBytes).coerceAtLeast(0),
+            cache = info.cacheBytes.coerceAtLeast(0),
+        )
+    }
+}
 
 /**
  * M13 (ux-flows §7): apps by size, last opened, and the "not opened in about 6 months" bucket with Android's own
@@ -122,6 +139,13 @@ fun AppsScreen(
                         modifier = Modifier.testTag("unusedTotal"),
                     )
                     Text(stringResource(R.string.apps_unused_body), style = MaterialTheme.typography.bodySmall)
+                    if (unused.any { actions.canArchive(it.pkg) }) {
+                        Text(
+                            stringResource(R.string.apps_archive_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag("archiveNote"),
+                        )
+                    }
                 }
                 items(unused, key = { "unused_${it.pkg}" }) { app -> AppRow(app, now, actions, uninstall = true) }
             }
@@ -250,8 +274,10 @@ private fun AppRowContent(
                 .testTag("uninstallTrial_${app.pkg}"),
         )
     }
+    // Owner brief H4 item 6: TalkBack reads an app's name, size and last use as one item (its button stays its own).
     Row(
-        Modifier.fillMaxWidth().testTag(if (uninstall) "unused_${app.pkg}" else "app_${app.pkg}"),
+        Modifier.fillMaxWidth().testTag(if (uninstall) "unused_${app.pkg}" else "app_${app.pkg}")
+            .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // F2: the app's own icon (decorative: its name is next to it).
@@ -259,18 +285,41 @@ private fun AppRowContent(
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(Bidi.isolate(app.label), style = MaterialTheme.typography.titleSmall)
             Text(Bidi.isolate(ByteSize.format(app.totalBytes, locale)), style = MaterialTheme.typography.bodyMedium)
+            val sizes = AppSizes.of(app)
+            Text(
+                stringResource(
+                    R.string.apps_split,
+                    Bidi.isolate(ByteSize.format(sizes.app, locale)),
+                    Bidi.isolate(ByteSize.format(sizes.data, locale)),
+                    Bidi.isolate(ByteSize.format(sizes.cache, locale)),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("split_${app.pkg}"),
+            )
             Text(lastUsedText(app, now), style = MaterialTheme.typography.bodySmall)
         }
         if (uninstall) {
-            KcButton(
-                stringResource(R.string.apps_uninstall),
-                onClick = {
-                    // SAFETY-9: removing an app deletes its data; trial mode never hands that to Android.
-                    if (actions.testModeOn) onBlocked() else actions.onUninstall(app.pkg)
-                },
-                style = KcButtonStyle.Tonal,
-                modifier = Modifier.testTag("uninstall_${app.pkg}"),
-            )
+            val archive = androidx.compose.runtime.remember(app.pkg) { actions.canArchive(app.pkg) }
+            Column(horizontalAlignment = Alignment.End) {
+                if (archive) {
+                    // Owner brief H4 item 8: archiving keeps the data; Android asks first.
+                    KcButton(
+                        stringResource(R.string.apps_archive),
+                        onClick = { if (actions.testModeOn) onBlocked() else actions.onArchive(app.pkg) },
+                        style = KcButtonStyle.Tonal,
+                        modifier = Modifier.testTag("archive_${app.pkg}"),
+                    )
+                }
+                KcButton(
+                    stringResource(R.string.apps_uninstall),
+                    onClick = {
+                        // SAFETY-9: removing an app deletes its data; trial mode never hands that to Android.
+                        if (actions.testModeOn) onBlocked() else actions.onUninstall(app.pkg)
+                    },
+                    style = if (archive) KcButtonStyle.Text else KcButtonStyle.Tonal,
+                    modifier = Modifier.testTag("uninstall_${app.pkg}"),
+                )
+            }
         } else {
             KcButton(
                 stringResource(R.string.app_info),

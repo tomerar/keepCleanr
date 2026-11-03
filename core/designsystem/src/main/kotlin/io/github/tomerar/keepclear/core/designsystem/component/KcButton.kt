@@ -34,7 +34,11 @@ import io.github.tomerar.keepclear.core.designsystem.KcShapes
 enum class KcButtonStyle { Primary, Tonal, Text, Destructive, OutlinedDestructive }
 
 object KcButtonDefaults {
+    /** Every button is at least this tall to touch (WCAG 2.5.8, Android's 48 dp). */
     val MinHeight = 48.dp
+
+    /** Owner brief H4 item 6: a screen's main action (filled: Primary, Destructive, the confirm button) is 56 dp. */
+    val PrimaryMinHeight = 56.dp
     val ContentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
 
     /** PR H2b: two buttons side by side at a large font size (swipe's Keep / Delete) keep whole words. */
@@ -79,7 +83,7 @@ fun KcButton(
     when (style) {
         KcButtonStyle.Primary, KcButtonStyle.Destructive -> Button(
             onClick = onClick,
-            modifier = m,
+            modifier = modifier.heightIn(min = KcButtonDefaults.PrimaryMinHeight),
             enabled = enabled,
             shape = KcShapes.pill,
             colors = KcButtonDefaults.filledColors(permanent = style == KcButtonStyle.Destructive),

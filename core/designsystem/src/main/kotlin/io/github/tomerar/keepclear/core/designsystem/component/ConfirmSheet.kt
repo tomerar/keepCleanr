@@ -84,7 +84,8 @@ fun ConfirmSheet(
     risk: String? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
-    SheetFrame(onDismiss = onDismiss, modifier = modifier) {
+    // Owner brief H4 item 6: TalkBack announces the sheet by its title when it opens.
+    SheetFrame(onDismiss = onDismiss, modifier = modifier.semantics { paneTitle = title }) {
         val scroll = rememberScrollState()
         Box(Modifier.weight(1f, fill = false)) {
             Column(
@@ -177,11 +178,15 @@ internal fun SheetFrame(
 ) {
     val window = LocalWindowInfo.current.containerSize
     val maxHeight = with(LocalDensity.current) { (window.height * 0.9f).toDp() }
+    val reduced = KeepClearTheme.reducedMotion
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         val view = LocalView.current
         SideEffect {
             val provider = view as? DialogWindowProvider ?: view.parent as? DialogWindowProvider
             provider?.window?.setGravity(Gravity.BOTTOM)
+            // Owner brief H4 item 2: the sheet slides up from the bottom and back down (also with the predictive
+            // Back gesture); none when "Remove animations" is on.
+            provider?.window?.setWindowAnimations(if (reduced) 0 else SHEET_ANIMATION)
         }
         Surface(
             modifier = modifier.fillMaxWidth().heightIn(max = if (maxHeight > 0.dp) maxHeight else 640.dp),
@@ -243,3 +248,6 @@ fun InfoSheet(
         KcButton(dismissText, dismissAction ?: onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
 }
+
+/** Owner brief H4 item 2: Android's own slide-from-the-bottom window animation (the keyboard's). */
+const val SHEET_ANIMATION: Int = android.R.style.Animation_InputMethod

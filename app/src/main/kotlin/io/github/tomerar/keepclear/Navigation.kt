@@ -23,12 +23,12 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuite
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -155,52 +155,54 @@ class TabsUi(
 @Composable
 fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        if (maxWidth >= RAIL_MIN_WIDTH) {
-            Row(Modifier.fillMaxSize()) {
-                NavigationRail(
-                    modifier = Modifier.testTag(NAV_RAIL_TAG),
-                    containerColor = MaterialTheme.colorScheme.surface,
+        val rail = maxWidth >= RAIL_MIN_WIDTH
+        val type = navigationSuiteType(maxWidth)
+        // Owner brief H4 item 3: Material's NavigationSuiteScaffold layout (bottom bar on phones, rail from 600 dp),
+        // with KeepClear's own threshold and labels; it also hands the bar's or rail's insets to the content.
+        NavigationSuiteScaffoldLayout(
+            navigationSuite = {
+                NavigationSuite(
+                    modifier = Modifier.testTag(if (rail) NAV_RAIL_TAG else BOTTOM_NAV_TAG),
+                    layoutType = type,
+                    colors = NavigationSuiteDefaults.colors(
+                        navigationBarContainerColor = MaterialTheme.colorScheme.surface,
+                        navigationRailContainerColor = MaterialTheme.colorScheme.surface,
+                    ),
                 ) {
                     Tab.entries.forEach { t ->
-                        NavigationRailItem(
+                        item(
                             selected = t == tab,
                             onClick = { ui.onSelectTab(t) },
                             icon = { Icon(tabIcon(t), contentDescription = null) },
-                            label = { RailLabel(stringResource(tabLabel(t)), Modifier.testTag("tabLabel_${t.name}")) },
+                            label = {
+                                val label = stringResource(tabLabel(t))
+                                if (rail) {
+                                    RailLabel(label, Modifier.testTag("tabLabel_${t.name}"))
+                                } else {
+                                    TabLabel(label, Modifier.testTag("tabLabel_${t.name}"))
+                                }
+                            },
                             modifier = Modifier.testTag("tab_${t.name}"),
                         )
                     }
                 }
-                Column(Modifier.weight(1f)) {
-                    // Owner brief H2 item 12: the bar lines up with the content's centred column.
-                    ReadableWidthBar { MainTopBar(trash, ui) }
-                    Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) { content() }
-                }
-            }
-        } else {
+            },
+            layoutType = type,
+        ) {
             Column(Modifier.fillMaxSize()) {
-                MainTopBar(trash, ui)
+                // Owner brief H2 item 12: next to the rail the bar lines up with the content's centred column.
+                if (rail) ReadableWidthBar { MainTopBar(trash, ui) } else MainTopBar(trash, ui)
                 // The top bar pads for the status bar and the tabs for the navigation bar; the screen between pads
                 // for neither again.
-                Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.systemBars)) { content() }
-                NavigationBar(
-                    modifier = Modifier.testTag(BOTTOM_NAV_TAG),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) {
-                    Tab.entries.forEach { t ->
-                        NavigationBarItem(
-                            selected = t == tab,
-                            onClick = { ui.onSelectTab(t) },
-                            icon = { Icon(tabIcon(t), contentDescription = null) },
-                            label = { TabLabel(stringResource(tabLabel(t)), Modifier.testTag("tabLabel_${t.name}")) },
-                            modifier = Modifier.testTag("tab_${t.name}"),
-                        )
-                    }
-                }
+                Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) { content() }
             }
         }
     }
 }
+
+/** Owner brief H4 item 3: the bottom bar below [RAIL_MIN_WIDTH], the rail from it on. */
+internal fun navigationSuiteType(width: Dp): NavigationSuiteType =
+    if (width >= RAIL_MIN_WIDTH) NavigationSuiteType.NavigationRail else NavigationSuiteType.NavigationBar
 
 /**
  * F3: a bottom tab's label on one line; at large font sizes it shrinks just enough to fit its tab ("Free up space"

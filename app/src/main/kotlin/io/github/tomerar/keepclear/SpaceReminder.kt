@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -76,7 +75,7 @@ class SpaceReminderWorker(context: Context, params: WorkerParameters) : Coroutin
 }
 
 object SpaceReminder {
-    private const val CHANNEL = "space"
+    private const val CHANNEL = NotificationChannels.SPACE
     private const val ID = 77
     private const val WORK = "space-reminder"
 
@@ -106,13 +105,8 @@ object SpaceReminder {
 
     fun show(context: Context, freeBytes: Long, junkBytes: Long) {
         val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL,
-                context.getString(R.string.reminder_channel),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
+        // Owner brief H4 item 4: every channel, named in the app's language.
+        NotificationChannels.registerAll(context)
         val open = PendingIntent.getActivity(
             context,
             0,
