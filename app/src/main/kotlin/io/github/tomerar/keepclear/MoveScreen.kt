@@ -98,9 +98,11 @@ class MoveActions(
     val onOpenTrash: () -> Unit = {},
     /** MOVE-17: "Restore from a backup". */
     val restore: RestoreActions = RestoreActions(),
+    /** Owner brief H2 item 11: a next step that is on the "Free up space" tab (phone full, nothing to back up). */
+    val onOpenFreeTab: () -> Unit = {},
 ) {
     /** The same actions with [open] for "Show group": nothing else can be lost on the way. */
-    fun withOpenGroup(open: (String) -> Unit) = MoveActions(
+    fun withOpenGroup(open: (String) -> Unit, openFreeTab: () -> Unit = onOpenFreeTab) = MoveActions(
         onPickTarget = onPickTarget,
         onNetworkDrive = onNetworkDrive,
         savedNetworkDrive = savedNetworkDrive,
@@ -120,6 +122,7 @@ class MoveActions(
         onOpenGroup = open,
         onOpenTrash = onOpenTrash,
         restore = restore,
+        onOpenFreeTab = openFreeTab,
     )
 }
 
@@ -242,6 +245,9 @@ fun MoveScreen(
                         modifier = Modifier.testTag("movePending"),
                     )
                 }
+            } else if (!jobActive && groups.isEmpty()) {
+                // Owner brief H2 item 11: nothing to back up says so, with one next step.
+                item { EmptyNext(R.string.move_nothing, R.string.tab_free, "moveNothing", actions.onOpenFreeTab) }
             } else if (!jobActive) {
                 moveSources(summary, groups, selected, { selected = it }, age, { chosenAge = it }, now, actions)
                 item { PhotosNote(actions.onOpenGooglePhotos) }
@@ -414,7 +420,7 @@ internal fun FreeConfirmSheet(
         io.github.tomerar.keepclear.engine.move.FreePlan.of(view.freeCandidates, options, now)
     }
     val freeing = Total(plan.count, plan.bytes)
-    val drive = Bidi.isolate(view.job.targetLabel)
+    val drive = Bidi.name(view.job.targetLabel)
     val locale = LocalConfiguration.current.locales[0]
     ConfirmSheet(
         title = stringResource(R.string.move_free_confirm_title),
@@ -514,7 +520,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.moveSources(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SectionHeading(stringResource(R.string.move_what))
             // F2 (a11y): the chips wrap at large font sizes instead of running off the screen.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Owner brief H2 item 12: never "הכול" alone on its line.
+            io.github.tomerar.keepclear.core.designsystem.component.BalancedChipRow {
                 MoveAge.entries.forEach { a ->
                     FilterChip(
                         selected = age == a,
@@ -656,10 +663,10 @@ private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit, onRestore: ()
         if (trashed) add(stringResource(R.string.clean_done_space, trashDate()))
         if (r.skipped > 0) add(countSentence(R.plurals.move_free_skipped, r.skipped))
         if (r.failed > 0) add(countSentence(R.plurals.move_free_failed, r.failed))
-        if (r.interrupted) add(stringResource(R.string.move_free_interrupted, Bidi.isolate(r.targetLabel)))
+        if (r.interrupted) add(stringResource(R.string.move_free_interrupted, Bidi.name(r.targetLabel)))
         // With the measured headline, where the copy is goes to the detail line.
         if (r.measuredFreed != null && r.forGood) {
-            add(stringResource(R.string.move_free_done_for_good, totalText(total), Bidi.isolate(r.targetLabel)))
+            add(stringResource(R.string.move_free_done_for_good, totalText(total), Bidi.name(r.targetLabel)))
         }
     }.joinToString("\n").ifEmpty { null }
     // Owner decision P1: deleted for good, the undo is the checked copy ("Restore from a backup");
@@ -686,7 +693,7 @@ private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit, onRestore: ()
                     stringResource(
                         R.string.move_free_done_for_good,
                         totalText(total),
-                        Bidi.isolate(r.targetLabel),
+                        Bidi.name(r.targetLabel),
                     )
                 }
 
@@ -739,7 +746,7 @@ private fun JobCard(
             KcCard(Modifier.testTag("jobRunning")) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        stringResource(R.string.backup_running_to, Bidi.isolate(view.job.targetLabel)),
+                        stringResource(R.string.backup_running_to, Bidi.name(view.job.targetLabel)),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.semantics { heading() },
                     )
@@ -814,6 +821,14 @@ private fun JobCard(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Owner brief H1 item 8: a specific message and one button (Signal's pattern).
                     Text(pauseText(view), modifier = Modifier.testTag("pauseText"))
+                    // Owner brief H2 item 11: every error says what to do next.
+                    pauseNextStep(view.job.pauseReason)?.let { next ->
+                        Text(
+                            stringResource(next),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("pauseNext"),
+                        )
+                    }
                     Text(totalText(Total(r.verified, r.verifiedBytes)), style = KeepClearTheme.type.number)
                     if (pauseHasButton(view.job.pauseReason)) {
                         KcButton(
@@ -823,9 +838,39 @@ private fun JobCard(
                             modifier = Modifier.testTag("resume"),
                         )
                     }
+                    if (view.job.pauseReason == PauseReason.PHONE_LOW_SPACE) {
+                        KcButton(
+                            stringResource(R.string.pause_free_phone),
+                            onClick = actions.onOpenFreeTab,
+                            style = KcButtonStyle.Text,
+                            modifier = Modifier.testTag("pauseFreePhone"),
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/** Owner brief H2 item 11: what to do about a pause whose message alone isn't enough; null when it is. */
+internal fun pauseNextStep(reason: PauseReason?): Int? = when (reason) {
+    PauseReason.TARGET_FULL -> R.string.pause_next_full
+    PauseReason.PHONE_LOW_SPACE -> R.string.pause_next_phone_space
+    PauseReason.UNEXPECTED_ERROR -> R.string.pause_next_unexpected
+    else -> null
+}
+
+/** Owner brief H2 item 11: an empty list's one line and its one next step. */
+@Composable
+internal fun EmptyNext(text: Int, button: Int, tag: String, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().testTag(tag), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(text), style = MaterialTheme.typography.bodyLarge)
+        KcButton(
+            stringResource(button),
+            onClick = onClick,
+            style = KcButtonStyle.Tonal,
+            modifier = Modifier.testTag("${tag}Next"),
+        )
     }
 }
 
@@ -867,7 +912,7 @@ private fun pauseText(reason: PauseReason?, label: String, network: Boolean): St
 
     PauseReason.INTERRUPTED -> stringResource(R.string.move_paused_interrupted)
 
-    PauseReason.WRONG_TARGET -> stringResource(R.string.move_paused_wrong, Bidi.isolate(label))
+    PauseReason.WRONG_TARGET -> stringResource(R.string.move_paused_wrong, Bidi.name(label))
 
     PauseReason.UNEXPECTED_ERROR -> stringResource(R.string.move_paused_unexpected)
 
@@ -884,9 +929,9 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
     PaperSlip(Modifier.testTag("receipt")) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                stringResource(R.string.move_receipt_title, Bidi.isolate(r.targetLabel)),
+                stringResource(R.string.move_receipt_title, Bidi.name(r.targetLabel)),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier.semantics { heading() }.testTag("receiptTitle"),
             )
             Text(
                 totalText(Total(r.verified, r.verifiedBytes)),
@@ -965,7 +1010,7 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
             if (r.pending > 0) Text(countSentence(R.plurals.move_receipt_pending, r.pending))
             if (r.namesChanged > 0) Text(countSentence(R.plurals.move_receipt_names, r.namesChanged))
             Text(
-                stringResource(R.string.move_receipt_how_back, Bidi.isolate(r.targetLabel), Bidi.isolateLtr(r.rootRel)),
+                stringResource(R.string.move_receipt_how_back, Bidi.name(r.targetLabel), Bidi.isolateLtr(r.rootRel)),
                 modifier = Modifier.testTag("howBack"),
             )
             // P-2: developer checks live under Details, not on the default path.
@@ -1094,7 +1139,7 @@ private fun ProgressAnnouncer(doneBytes: Long, totalBytes: Long) {
 /** H1 / MOVE-15: the steps of "Check backup". */
 @Composable
 private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
-    val drive = Bidi.isolate(label)
+    val drive = Bidi.name(label)
     KcCard(Modifier.testTag("checkCard")) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             when (check) {

@@ -61,6 +61,21 @@ Rebuilt on the design system (ADR 0013). Decisions C79–C95 in [progress.md](..
 - **Apps:** app icons; each app once (unused apps, then the others); "KeepClear קורא את רשימת האפליקציות…" while loading (C87). One app at a time offers "להפעיל גישה לנתוני שימוש".
 - **Hebrew:** the owner's voice rules (CLAUDE.md) applied to every string: KeepClear masculine, plural address, infinitive buttons, „curly quotes”, "יימחקו"; the store listing uses the app's lane names (C91).
 
+### H2a (2026-11-03): Home, clean, intro (owner brief H2 items 1–7, 11, 12; UI-6)
+
+Decisions C141–C147 in [progress.md](../progress.md). Replaces the parts of §1.1, §1.2, §2, §3.2 and §9 it names.
+
+- **Intro (§1.1):** a picture per page (our own line drawings in theme colours: the strip getting shorter; a finger choosing photos; photos going into a USB stick with the check stamp), dots under it that TalkBack reads „1 מתוך 3”, and on every page the text button „טלפון חדש? לשחזר מגיבוי”, which closes the intro and opens the restore flow on the Backup tab. Page 2: „את רוב הדברים אפשר לשחזר” / „רוב מה שמנקים מחכה 30 יום בסל המחזור. קבצים שנבנים מחדש לבד נמחקים מיד.”
+- **First-run Home (§1.2):** the free space and strip, ONE access card „לראות מה תופס מקום”; the hero and the REVIEW and MOVE cards say „יופיע אחרי האישור” (no more „צריך גישה” four times); no trim card, no collapsed "more files" card.
+- **After the first scan:** one card right under the scan line, „למצוא גם תמונות ומסמכים מוואטסאפ?”: on `foss` „לאשר גישה לכל הקבצים” (explainer first), on `play` it says this version doesn't ask for All files access and offers „לבחור את התיקייה של וואטסאפ”; „לא עכשיו” hides it for the visit (C143).
+- **Top bar:** the Trash chip always shows a word: „סל · 258MB”; with an empty trash „סל”, muted (variant outline and text), still opening the Trash (TalkBack: „סל המחזור ריק”). At 200 % the icon gives way to the words, which shrink rather than being cut (never below their size at 100 %). On tablets the bar sits at the content's readable width.
+- **Strip legend:** nouns, „קבצים מיותרים · לבחירה · לגיבוי · אחר · פנוי”; an empty lane isn't listed.
+- **One clean button on Home:** „לנקות 7.9GB”; „לנקות קבצים זמניים” and „לנקות אפליקציה אחת בכל פעם” are under „לראות פירוט” (Clean now) and on the Apps tab; when the phone is nearly full (under 100 MB) the banner's button is „לנקות קבצים זמניים” (C144).
+- **Clean confirm (§3.2):** title „לנקות 7.9GB?”; first, in red, only when there are any: „3.0GB · 96 קבצים מסלים של אפליקציות אחרות יימחקו לצמיתות. הם כבר נמחקו פעם אחת, ואי אפשר יהיה לשחזר אותם.”; then „כמה”, „כמה מקום”, „מה יקרה”: „נמחקים עכשיו; הטלפון יוצר אותם מחדש לבד” and/or „לסל המחזור של KeepClear, ל-30 יום” (each with its part's size when there is more than one part); then always „התמונות, הסרטונים והצ'אטים שלכם לא נמחקים.” The body scrolls; while more is below, a fade sits above the sticky buttons (C141, C142).
+- **After a clean:** the cleaned items leave every total at once and the hero shows the free space just measured; the next scan confirms. With nothing left to clean the hero says „הכול נקי ✓” and points to the biggest win: „הכי הרבה מקום יתפנה מגיבוי התמונות: 31.9GB” `[לגבות תמונות]` (or, with nothing to back up, „…ממה שתבחרו למחוק” `[לבחור מה למחוק]`); never „0B” (C145).
+- **REVIEW lane:** „לבחור מה למחוק” with „שום דבר לא נמחק בלי שתבחרו” on the card and at the top of its list.
+- **Layout (UI-2, A11Y-1):** the review month header wraps below its button instead of breaking the month's name; rail labels wrap only between words and fit the rail; bottom tab labels keep a margin at 200%; the age chips never leave „הכול” alone on a line (one per line instead); a short drive name („SanDisk USB”) stays on one line; the review grid has columns of at least 80 dp (4 on a phone, more on tablets) (C146).
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)
@@ -417,3 +432,9 @@ Not enough room … There is room for 2 of 3 files.  [Restore these now]
 | Empty trash (H1c) | The trash is empty. Files you clean stay here for 30 days. `[Restore from a backup]` | סל המחזור ריק. קבצים שמנקים נשארים כאן 30 יום. `[לשחזר מגיבוי]` |
 | No backup found (H1c) | No KeepClear backup was found there. `[Choose another place]` | לא נמצא שם גיבוי של KeepClear. `[לבחור מקום אחר]` |
 | Search finds nothing (H1c) | No file matches this search. | אין קובץ שמתאים לחיפוש. |
+| Nothing to choose (H2a) | Nothing to choose from right now. New screenshots and big videos show up here after the next scan. `[Back up photos]` | אין כרגע מה לבחור. צילומי מסך וסרטונים גדולים חדשים יופיעו כאן אחרי הסריקה הבאה. `[לגבות תמונות]` |
+| Nothing to back up (H2a) | No photos or videos to back up right now. `[Free up space]` | אין כרגע תמונות או סרטונים לגבות. `[לפנות מקום]` |
+| Empty lane on Home (H2a) | Nothing here right now | אין כאן כלום כרגע |
+| Backup paused, drive full (H2a) | …then: Delete what you don't need from the USB drive, or choose fewer photos this time, then tap Continue. `[Continue]` | …ואז: אפשר למחוק מהדיסק און קי דברים שלא צריך, או לבחור פחות תמונות הפעם, ואז ללחוץ על „להמשיך”. `[להמשיך]` |
+| Backup paused, phone full (H2a) | Free some space on the phone first, then tap Continue. `[Continue]` `[Free up space on the phone]` | כדאי קודם לפנות קצת מקום בטלפון, ואז ללחוץ על „להמשיך”. `[להמשיך]` `[לפנות מקום בטלפון]` |
+| Backup paused, unexpected error (H2a) | Tap Continue. If it happens again, unplug the USB drive and plug it back in, or restart the phone. `[Continue]` | אפשר ללחוץ על „להמשיך”. אם זה קורה שוב, לנתק את הדיסק און קי ולחבר שוב, או להפעיל מחדש את הטלפון. `[להמשיך]` |

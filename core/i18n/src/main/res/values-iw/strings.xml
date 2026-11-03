@@ -3,7 +3,7 @@
 <!-- Hebrew. Gender-neutral (plural/infinitive), see docs/TRANSLATING.md. -->
 <resources>
     <string name="home_card_safe_title">לנקות עכשיו</string>
-    <string name="home_card_review_title">לבחור מה להשאיר</string>
+    <string name="home_card_review_title">לבחור מה למחוק</string>
     <string name="home_card_move_title">להעביר לגיבוי</string>
     <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
     <string name="debug_toggle_rtl">דיבאג: להפוך את כיוון המסך</string>
@@ -24,8 +24,6 @@
     <string name="explainer_label_without">בלי זה</string>
     <string name="explainer_continue">להמשיך למסך של אנדרואיד</string>
     <string name="explainer_not_now">לא עכשיו</string>
-    <string name="allfiles_card_title">לראות את כל הקבצים</string>
-    <string name="allfiles_card_body">לא חובה. מאפשר ל-KeepClear למצוא מדיה של וואטסאפ, תיקיות מהטלפון הקודם וסלי מחזור.</string>
     <string name="allfiles_card_button">לאשר גישה לכל הקבצים</string>
     <string name="partial_banner">KeepClear רואה רק את התמונות שבחרתם. כדי לקבל מספרים מלאים, אפשר לתת גישה לכולן.</string>
     <string name="partial_change">לשנות</string>
@@ -45,7 +43,7 @@
         <item quantity="two">%s קבצים</item>
         <item quantity="other">%s קבצים</item>
     </plurals>
-    <string name="home_total_review_body">צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. ההחלטה שלכם.</string>
+    <string name="home_total_review_body">צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. שום דבר לא נמחק בלי שתבחרו.</string>
     <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">להציג</string>
@@ -292,15 +290,14 @@
     <string name="debug_device_check_share">לשתף</string>
     <string name="debug_device_check_running">בודקים… זה יכול לקחת כדקה.</string>
     <string name="home_card_counting">סופרים…</string>
-    <string name="home_card_needs_access">צריך גישה</string>
+    <string name="home_card_needs_access">יופיע אחרי האישור</string>
     <string name="home_clean_button">לנקות %1$s</string>
-    <string name="home_clean_nothing">אין מה לנקות כרגע</string>
     <string name="scan_status_running">סופרים קבצים… %1$s עד עכשיו</string>
     <string name="scan_status_done">נסרקו %1$s · %2$s</string>
     <string name="intro_1_title">שומרים את מה שחשוב</string>
     <string name="intro_1_body">‏KeepClear מוצא מה תופס מקום בטלפון ומסביר כל דבר במילים פשוטות. שום דבר לא נמחק בלי לשאול.</string>
-    <string name="intro_2_title">הכול אפשר להחזיר</string>
-    <string name="intro_2_body">מה שמנקים מחכה 30 יום בסל המחזור של KeepClear. אפשר להחזיר בלחיצה אחת.</string>
+    <string name="intro_2_title">את רוב הדברים אפשר לשחזר</string>
+    <string name="intro_2_body">רוב מה שמנקים מחכה 30 יום בסל המחזור. קבצים שנבנים מחדש לבד נמחקים מיד.</string>
     <string name="intro_3_title">זיכרונות מועברים, לא נמחקים</string>
     <string name="intro_3_body">תמונות וסרטונים מועתקים לכונן שלכם ונבדקים. מקום מתפנה רק כשאתם מחליטים.</string>
     <string name="intro_next">להמשיך</string>
@@ -423,8 +420,6 @@
         <item quantity="other">%1$s אפליקציות</item>
     </plurals>
     <string name="test_mode_uninstall_blocked">מצב ניסיון: שום אפליקציה לא מוסרת. כדי להסיר את האפליקציה הזאת, אפשר לכבות את מצב הניסיון בהגדרות › מתקדם, או להשתמש בהגדרות › אפליקציות של אנדרואיד.</string>
-    <string name="whatsapp_card_title">תמונות וקבצים מוואטסאפ</string>
-    <string name="whatsapp_card_body">תמונות שנשלחו, הודעות קוליות ומסמכים מוואטסאפ.</string>
     <string name="whatsapp_card_button">לבחור את התיקייה של וואטסאפ</string>
     <string name="explainer_whatsapp_title">גישה לתיקייה של וואטסאפ</string>
     <string name="explainer_whatsapp_why">כדי למצוא תמונות שנשלחו, הודעות קוליות ומסמכים שוואטסאפ לא מציג בגלריה.</string>
@@ -605,7 +600,6 @@
     <string name="home_free_label">פנויים</string>
     <string name="home_hero_safe">אפשר לפנות בבטחה %1$s</string>
     <string name="home_see_details">לראות פירוט</string>
-    <string name="home_more_files">לראות עוד קבצים</string>
     <string name="home_notice_dismiss">לסגור</string>
     <string name="backup_places_title">מקומות לגיבוי</string>
     <string name="backup_places_drive">כונן USB או כרטיס זיכרון: בוחרים אותו כשמתחילים לגבות.</string>
@@ -656,22 +650,17 @@
     </plurals>
     <string name="apps_open_app_content">לראות קבצים בתוך התיקיות של אפליקציות</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
-    <string name="confirm_fact_for_good">יימחקו לצמיתות עכשיו</string>
-    <string name="confirm_fact_to_trash">לסל המחזור של KeepClear, ל-30 יום</string>
-    <string name="confirm_where_for_good">יימחקו לצמיתות, עכשיו</string>
     <string name="clean_confirm_yes_now">לנקות עכשיו</string>
     <string name="confirm_part_value">%1$s · %2$s</string>
-    <string name="clean_confirm_for_good_rebuilds">תמונות ממוזערות, קבצים זמניים וסטטוסים ישנים יימחקו לצמיתות: הם נבנים מחדש לבד.</string>
-    <string name="clean_confirm_for_good_bins">קבצים מסלי מחזור של אפליקציות אחרות יימחקו לצמיתות: הם כבר נמחקו פעם אחת, אי אפשר יהיה להחזיר אותם.</string>
     <string name="clean_confirm_note_rest">את כל השאר אפשר להחזיר מסל המחזור במשך 30 יום.</string>
     <string name="result_freed_now">פונו %1$s · עכשיו פנויים %2$s</string>
     <string name="clean_in_trash">%1$s בסל, יתפנו ב-%2$s</string>
     <string name="clean_deleted_for_good">%1$s נמחקו לצמיתות.</string>
     <string name="test_mode_would_delete_for_good">מתוכם %1$s היו נמחקים לצמיתות.</string>
     <!-- Design QA item 2: the storage strip's legend, in the strip's order. -->
-    <string name="strip_legend_safe">לנקות</string>
-    <string name="strip_legend_review">לבחור</string>
-    <string name="strip_legend_move">לגבות</string>
+    <string name="strip_legend_safe">קבצים מיותרים</string>
+    <string name="strip_legend_review">לבחירה</string>
+    <string name="strip_legend_move">לגיבוי</string>
     <string name="strip_legend_other">אחר</string>
     <string name="strip_legend_free">פנוי</string>
     <!-- Design QA item 3: Trash. -->
@@ -757,4 +746,31 @@
     </plurals>
     <string name="restore_partial_run">לשחזר את אלה עכשיו</string>
     <string name="restore_this_file">לשחזר את הקובץ הזה</string>
+    <string name="review_nothing_without_you">שום דבר לא נמחק בלי שתבחרו.</string>
+    <string name="trash_chip_label">סל · %1$s</string>
+    <string name="trash_chip_empty_label">סל</string>
+    <string name="trash_chip_empty_description">סל המחזור ריק</string>
+    <string name="intro_page">%1$d מתוך %2$d</string>
+    <string name="intro_restore">טלפון חדש? לשחזר מגיבוי</string>
+    <string name="confirm_fact_what_happens">מה יקרה</string>
+    <string name="clean_happens_rebuilds">נמחקים עכשיו; הטלפון יוצר אותם מחדש לבד</string>
+    <string name="clean_happens_part">%1$s: %2$s</string>
+    <string name="clean_risk_bins">%1$s מסלים של אפליקציות אחרות יימחקו לצמיתות. הם כבר נמחקו פעם אחת, ואי אפשר יהיה לשחזר אותם.</string>
+    <string name="clean_reassurance">התמונות, הסרטונים והצ\'אטים שלכם לא נמחקים.</string>
+    <string name="home_all_clean">הכול נקי ✓</string>
+    <string name="home_big_win_backup">הכי הרבה מקום יתפנה מגיבוי התמונות: %1$s</string>
+    <string name="home_big_win_backup_button">לגבות תמונות</string>
+    <string name="home_big_win_review">הכי הרבה מקום יתפנה ממה שתבחרו למחוק: %1$s</string>
+    <string name="home_lane_empty">אין כאן כלום כרגע</string>
+    <string name="access_folder_only">לבחור רק את התיקייה של וואטסאפ</string>
+    <string name="home_lane_elsewhere">אין בטלפון. יש בכרטיס הזיכרון או בכונן אחר</string>
+    <string name="whatsapp_offer_title">למצוא גם תמונות ומסמכים מוואטסאפ?</string>
+    <string name="whatsapp_offer_body_allfiles">כרגע KeepClear רואה רק את הגלריה. עם גישה לכל הקבצים הוא ימצא גם קבצים מוואטסאפ, תיקיות מהטלפון הקודם וסלים של אפליקציות אחרות.</string>
+    <string name="whatsapp_offer_body_folder">בגרסה הזו KeepClear לא מבקש גישה לכל הקבצים. אפשר לבחור את התיקייה של וואטסאפ, ו-KeepClear יסתכל רק בה.</string>
+    <string name="pause_next_full">אפשר למחוק מהדיסק און קי דברים שלא צריך, או לבחור פחות תמונות הפעם, ואז ללחוץ על „להמשיך”.</string>
+    <string name="pause_next_phone_space">כדאי קודם לפנות קצת מקום בטלפון, ואז ללחוץ על „להמשיך”.</string>
+    <string name="pause_free_phone">לפנות מקום בטלפון</string>
+    <string name="pause_next_unexpected">אפשר ללחוץ על „להמשיך”. אם זה קורה שוב, לנתק את הדיסק און קי ולחבר שוב, או להפעיל מחדש את הטלפון.</string>
+    <string name="review_list_empty">אין כרגע מה לבחור. צילומי מסך וסרטונים גדולים חדשים יופיעו כאן אחרי הסריקה הבאה.</string>
+    <string name="move_nothing">אין כרגע תמונות או סרטונים לגבות.</string>
 </resources>

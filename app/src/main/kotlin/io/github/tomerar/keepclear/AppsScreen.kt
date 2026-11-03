@@ -147,11 +147,56 @@ class AppsTabLinks(
     val onAppContent: (() -> Unit)? = null,
     /** MSG-3: cloned apps' storage exists but KeepClear can't see it. */
     val clonedHidden: Boolean = false,
+    /** Owner brief H2 item 4 (SAFE-5): "Clear apps' temporary files" moved here from Home; null hides it. */
+    val onTrim: (() -> Unit)? = null,
+    /** The last trim's measured result, shown here when it was started here. */
+    val trimResult: Long? = null,
+    val busy: Boolean = false,
 )
 
 @Composable
 private fun AppsLinks(links: AppsTabLinks) {
+    var confirmTrim by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        links.onTrim?.let { trim ->
+            Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
+            KcButton(
+                stringResource(R.string.trim_button),
+                onClick = { confirmTrim = true },
+                enabled = !links.busy,
+                style = KcButtonStyle.Tonal,
+                modifier = Modifier.testTag("appsTrim"),
+            )
+            links.trimResult?.let { result ->
+                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+                Text(
+                    when {
+                        result == TestMode.TRIM_SKIPPED -> stringResource(R.string.test_mode_caches_not_cleared)
+
+                        result <= 0L -> stringResource(R.string.trim_result_zero)
+
+                        else -> stringResource(
+                            R.string.trim_result,
+                            io.github.tomerar.keepclear.core.common.Bidi.isolate(
+                                io.github.tomerar.keepclear.core.common.ByteSize.format(result, locale),
+                            ),
+                        )
+                    },
+                    modifier = Modifier.testTag("appsTrimResult"),
+                )
+            }
+            if (confirmTrim) {
+                TrimConfirmSheet(
+                    onTrim = {
+                        confirmTrim = false
+                        trim()
+                    },
+                    onDismiss = { confirmTrim = false },
+                    tag = "confirmAppsTrim",
+                    bodyTag = "appsTrimLabel",
+                )
+            }
+        }
         KcButton(
             stringResource(R.string.one_by_one_button),
             onClick = links.onOneByOne,

@@ -131,10 +131,30 @@ fun HomeScreen(
                 }
                 // F2: a running action shows progress, not just disabled buttons.
                 if (state.busy) BusyLine()
+                var confirmTrim by rememberSaveable { mutableStateOf(false) }
                 when (state.spaceMode) {
                     SpaceMode.LIGHT -> Banner(stringResource(R.string.low_space_light))
-                    SpaceMode.MINIMAL -> Banner(stringResource(R.string.low_space_minimal))
+
+                    // Owner brief H2 items 4 and 11: the trim moved off Home, so the nearly-full banner carries it as
+                    // its next step.
+                    SpaceMode.MINIMAL -> Banner(
+                        stringResource(R.string.low_space_minimal),
+                        stringResource(R.string.trim_button).takeIf { !state.busy },
+                    ) { confirmTrim = true }
+
                     SpaceMode.NORMAL -> Unit
+                }
+                state.trimResult?.takeIf { state.screens.last() == Screen.Home }?.let { TrimResultLine(it) }
+                if (confirmTrim) {
+                    TrimConfirmSheet(
+                        onTrim = {
+                            confirmTrim = false
+                            actions.onTrim()
+                        },
+                        onDismiss = { confirmTrim = false },
+                        tag = "confirmHomeTrim",
+                        bodyTag = "homeTrimLabel",
+                    )
                 }
                 val pending = if (state.mediaAccess == MediaAccess.NONE) {
                     R.string.home_card_needs_access
@@ -155,10 +175,13 @@ fun HomeScreen(
                         bytes = state.freeBytes,
                         label = stringResource(R.string.home_free_label),
                         sentence = summary?.let {
-                            stringResource(
-                                R.string.home_hero_safe,
-                                Bidi.isolate(size(it.phoneTotal(Category.SAFE).bytes)),
-                            )
+                            val safe = it.phoneTotal(Category.SAFE).bytes
+                            // Owner brief H2 item 6: never "can free 0B"; a calm "All clean ✓" instead.
+                            if (safe > 0) {
+                                stringResource(R.string.home_hero_safe, Bidi.isolate(size(safe)))
+                            } else {
+                                stringResource(R.string.home_all_clean)
+                            }
                         },
                         strip = {
                             val usage = StorageUsage(
@@ -177,7 +200,7 @@ fun HomeScreen(
                             // a colour dot, the lane's name and its size (TalkBack hears the strip's description).
                             StorageLegend(
                                 usage = usage,
-                                labels = stripLabels(summary != null),
+                                labels = stripLabels(summary),
                                 sizeText = { Bidi.isolate(size(it)) },
                                 modifier = Modifier.padding(top = 8.dp).testTag("areas").clearAndSetSemantics { },
                             )
@@ -199,6 +222,14 @@ fun HomeScreen(
                         button = stringResource(R.string.access_allow),
                         tag = "allowAccess",
                         onClick = { explainer = Explainer.MEDIA },
+                        // Review of PR #56 (play, ADR 0005): the same one card also lets someone who doesn't want
+                        // to give the gallery choose WhatsApp's folder alone; no scan starts without one of the two.
+                        secondary = if (state.allFiles == null && state.grantedFolders.isEmpty()) {
+                            stringResource(R.string.access_folder_only) to { explainer = Explainer.WHATSAPP }
+                        } else {
+                            null
+                        },
+                        secondaryTag = "accessFolderOnly",
                     )
                 } else {
                     if (state.mediaAccess == MediaAccess.PARTIAL) {
@@ -207,6 +238,8 @@ fun HomeScreen(
                         }
                     }
                     ScanLine(state, actions, ::size)
+                    // Owner brief H2 item 2: after the first scan, the next step for WhatsApp's files, in context.
+                    MoreFilesOffer(state, onExplain = { explainer = it })
                 }
                 // M12b, ONB-6: the folder picked wasn't WhatsApp's (feedback on what was just tapped).
                 if (state.wrongFolder) {
@@ -223,14 +256,8 @@ fun HomeScreen(
                     actions.onOpenCategory(Category.REVIEW)
                 }
                 LaneTotal(Category.MOVE, summary, pending, R.string.home_total_move_body, actions.onOpenBackup)
-                // ONB-3 / SAFE-5: always available, even with no permission at all.
-                TrimCard(
-                    result = state.trimResult.takeIf { state.screens.last() == Screen.Home },
-                    enabled = !state.busy,
-                    onTrim = actions.onTrim,
-                    onOneByOne = actions.onOneByOne,
-                )
-                MoreFilesCard(state, onExplain = { explainer = it })
+                // Owner brief H2 item 4: one clean button on Home; apps' temporary files and "one app at a time" are
+                // under "See details" (Clean now) and on the Apps tab.
                 // Notices at the bottom; closing one hides it for this visit (C75).
                 var clonedDismissed by rememberSaveable { mutableStateOf(false) }
                 if (state.cloned.hidden && !clonedDismissed) {
@@ -310,7 +337,7 @@ private fun SafeAction(
             }
 
             else -> {
-                Text(stringResource(R.string.home_clean_nothing), modifier = Modifier.testTag("nothingToClean"))
+                AllClean(summary, actions)
             }
         }
         if (summary != null && summary.total(Category.SAFE).files > 0) {
@@ -341,6 +368,17 @@ private fun LaneTotal(
     Box(Modifier.testTag(if (summary == null) "pending_$category" else "total_$category")) {
         if (summary == null) {
             LaneCard(lane = lane, title = categoryTitle(category), supporting = stringResource(pending))
+        } else if (summary.phoneTotal(category).files == 0) {
+            // Owner brief H2 items 6 and 11: an empty lane says so in words, never "0 files · 0B". Review of PR #56:
+            // items only on an SD card (D5 counts the phone alone) keep the lane open, with a line that says where.
+            val elsewhere = summary.groups(category).isNotEmpty()
+            LaneCard(
+                lane = lane,
+                title = categoryTitle(category),
+                supporting = stringResource(if (elsewhere) R.string.home_lane_elsewhere else R.string.home_lane_empty),
+                onClick = if (elsewhere) onOpen else null,
+                modifier = Modifier.testTag(if (elsewhere) "open_$category" else "empty_$category"),
+            )
         } else {
             val total = summary.phoneTotal(category)
             val count = NumberFormat.getIntegerInstance(locale).format(total.files)
@@ -385,53 +423,104 @@ internal fun laneThumbItems(summary: ClassificationSummary, category: Category, 
 
 private const val THUMB_GROUPS = 4
 
-/** F1b: the permission steps beyond photos (All files access, WhatsApp's folder), in one collapsed card. */
+/**
+ * Owner brief H2 item 2: after the first scan, ONE card offers the step for WhatsApp's files where it matters (no
+ * longer hidden in a collapsed card at the bottom). `foss`: All files access, explained first (ONB-2). `play` (no All
+ * files access there, ADR 0005): says what is possible without it, choosing WhatsApp's own folder. "Not now" hides it
+ * for this visit.
+ */
 @Composable
-private fun MoreFilesCard(state: HomeUiState, onExplain: (Explainer) -> Unit) {
-    val allFiles = state.mediaAccess != MediaAccess.NONE && state.allFiles == false
-    // M12b, ONB-6 (play): WhatsApp's folder through the system picker, explained first.
-    val whatsApp = !state.wrongFolder && state.allFiles == null && state.grantedFolders.isEmpty()
-    if (!allFiles && !whatsApp) return
-    var open by rememberSaveable { mutableStateOf(false) }
-    KcCard(Modifier.testTag("moreFiles")) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .toggleable(value = open, role = Role.Button, onValueChange = { open = it })
-                .testTag("moreFilesToggle"),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
+private fun MoreFilesOffer(state: HomeUiState, onExplain: (Explainer) -> Unit) {
+    if (state.scan !is ScanState.Done) return
+    val allFiles = state.allFiles == false
+    // M12b, ONB-6 (play): WhatsApp's folder through the system picker.
+    val folder = state.allFiles == null && !state.wrongFolder && state.grantedFolders.isEmpty()
+    if (!allFiles && !folder) return
+    var dismissed by rememberSaveable { mutableStateOf(false) }
+    if (dismissed) return
+    KcCard(Modifier.testTag("moreFilesOffer")) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                stringResource(R.string.home_more_files),
+                stringResource(R.string.whatsapp_offer_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f).semantics { heading() },
+                modifier = Modifier.semantics { heading() },
             )
-            Icon(KcIcons.ExpandMore, contentDescription = null, modifier = Modifier.rotate(if (open) 180f else 0f))
-        }
-        if (open) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
+            Text(
+                stringResource(
+                    if (allFiles) R.string.whatsapp_offer_body_allfiles else R.string.whatsapp_offer_body_folder,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (allFiles) {
-                    ActionCard(
-                        title = stringResource(R.string.allfiles_card_title),
-                        body = stringResource(R.string.allfiles_card_body),
-                        button = stringResource(R.string.allfiles_card_button),
-                        tag = "allowAllFiles",
-                        onClick = { onExplain(Explainer.ALL_FILES) },
-                        primary = false,
+                    KcButton(
+                        stringResource(R.string.allfiles_card_button),
+                        { onExplain(Explainer.ALL_FILES) },
+                        Modifier.testTag("allowAllFiles"),
+                        style = KcButtonStyle.Tonal,
+                    )
+                } else {
+                    KcButton(
+                        stringResource(R.string.whatsapp_card_button),
+                        { onExplain(Explainer.WHATSAPP) },
+                        Modifier.testTag("pickWhatsApp"),
+                        style = KcButtonStyle.Tonal,
                     )
                 }
-                if (whatsApp) {
-                    ActionCard(
-                        title = stringResource(R.string.whatsapp_card_title),
-                        body = stringResource(R.string.whatsapp_card_body),
-                        button = stringResource(R.string.whatsapp_card_button),
-                        tag = "pickWhatsApp",
-                        onClick = { onExplain(Explainer.WHATSAPP) },
-                        primary = false,
-                    )
-                }
+                KcButton(
+                    stringResource(R.string.explainer_not_now),
+                    { dismissed = true },
+                    Modifier.testTag("moreFilesNotNow"),
+                    style = KcButtonStyle.Text,
+                )
             }
+        }
+    }
+}
+
+/**
+ * Owner brief H2 item 6: nothing left to clean on the phone. A calm line that points to the biggest win left: the
+ * backup (the MOVE lane's size), else choosing what to delete (REVIEW); never "can free 0B".
+ */
+@Composable
+private fun AllClean(summary: ClassificationSummary, actions: HomeActions) {
+    val locale = LocalConfiguration.current.locales[0]
+    val move = summary.phoneTotal(Category.MOVE).bytes
+    val review = summary.phoneTotal(Category.REVIEW).bytes
+    Column(Modifier.testTag("allClean"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        when {
+            move > 0 && move >= review -> {
+                Text(
+                    stringResource(R.string.home_big_win_backup, Bidi.isolate(ByteSize.format(move, locale))),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.testTag("bigWin"),
+                )
+                KcButton(
+                    stringResource(R.string.home_big_win_backup_button),
+                    onClick = actions.onOpenBackup,
+                    icon = KcIcons.Move,
+                    style = KcButtonStyle.Tonal,
+                    modifier = Modifier.fillMaxWidth().testTag("bigWinButton"),
+                )
+            }
+
+            review > 0 -> {
+                Text(
+                    stringResource(R.string.home_big_win_review, Bidi.isolate(ByteSize.format(review, locale))),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.testTag("bigWin"),
+                )
+                KcButton(
+                    stringResource(R.string.home_card_review_title),
+                    onClick = { actions.onOpenCategory(Category.REVIEW) },
+                    icon = KcIcons.Review,
+                    style = KcButtonStyle.Tonal,
+                    modifier = Modifier.fillMaxWidth().testTag("bigWinButton"),
+                )
+            }
+
+            // Nothing to back up or choose either: „הכול נקי ✓” in the hero says it all.
+            else -> {}
         }
     }
 }
@@ -574,56 +663,18 @@ internal fun BusyLine(modifier: Modifier = Modifier) {
     }
 }
 
-/** ONB-3 / SAFE-5: "Clear apps' temporary files", on Home always. */
+/** The measured result of the last trim (SAFE-5), started from the nearly-full banner. */
 @Composable
-private fun TrimCard(result: Long?, enabled: Boolean, onTrim: () -> Unit, onOneByOne: () -> Unit) {
-    var confirm by rememberSaveable { mutableStateOf(false) }
+private fun TrimResultLine(result: Long) {
     val locale = LocalConfiguration.current.locales[0]
-    KcCard(Modifier.testTag("trimCard")) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                stringResource(R.string.trim_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(stringResource(R.string.trim_body), style = MaterialTheme.typography.bodyMedium)
-            result?.let {
-                Text(
-                    when {
-                        it == TestMode.TRIM_SKIPPED -> stringResource(R.string.test_mode_caches_not_cleared)
-                        it <= 0L -> stringResource(R.string.trim_result_zero)
-                        else -> stringResource(R.string.trim_result, Bidi.isolate(ByteSize.format(it, locale)))
-                    },
-                    modifier = Modifier.testTag("homeTrimResult"),
-                )
-            }
-            KcButton(
-                stringResource(R.string.trim_button),
-                onClick = { confirm = true },
-                enabled = enabled,
-                style = KcButtonStyle.Tonal,
-                modifier = Modifier.testTag("homeTrim"),
-            )
-            // SAFE-5 → SAFE-10: when Android trims little, the guided per-app list is the next step.
-            KcButton(
-                stringResource(R.string.one_by_one_button),
-                onClick = onOneByOne,
-                style = KcButtonStyle.Text,
-                modifier = Modifier.testTag("oneByOneLink"),
-            )
-        }
-    }
-    if (confirm) {
-        TrimConfirmSheet(
-            onTrim = {
-                confirm = false
-                onTrim()
-            },
-            onDismiss = { confirm = false },
-            tag = "confirmHomeTrim",
-            bodyTag = "homeTrimLabel",
-        )
-    }
+    Text(
+        when {
+            result == TestMode.TRIM_SKIPPED -> stringResource(R.string.test_mode_caches_not_cleared)
+            result <= 0L -> stringResource(R.string.trim_result_zero)
+            else -> stringResource(R.string.trim_result, Bidi.isolate(ByteSize.format(result, locale)))
+        },
+        modifier = Modifier.testTag("homeTrimResult"),
+    )
 }
 
 @Composable
@@ -642,6 +693,8 @@ private fun ActionCard(
     tag: String,
     onClick: () -> Unit,
     primary: Boolean = true,
+    secondary: Pair<String, () -> Unit>? = null,
+    secondaryTag: String = "${tag}Secondary",
 ) {
     KcCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -653,6 +706,9 @@ private fun ActionCard(
                 Modifier.testTag(tag),
                 style = if (primary) KcButtonStyle.Primary else KcButtonStyle.Tonal,
             )
+            secondary?.let { (label, action) ->
+                KcButton(label, action, Modifier.testTag(secondaryTag), style = KcButtonStyle.Text)
+            }
         }
     }
 }
@@ -667,13 +723,20 @@ private fun Banner(text: String, action: String? = null, onAction: () -> Unit = 
     }
 }
 
-/** Design QA item 2: the legend's names, „לנקות”, „לבחור”, „לגבות”, „אחר”, „פנוי”; the lanes only after a scan. */
+/**
+ * Design QA item 2, owner brief H2 item 4: the legend's names are nouns, „קבצים מיותרים · לבחירה · לגיבוי · אחר ·
+ * פנוי”; the lanes only after a scan.
+ */
 @Composable
-private fun stripLabels(scanned: Boolean): Map<StripSegment, String> = buildMap {
-    if (scanned) {
-        put(StripSegment.SAFE, stringResource(R.string.strip_legend_safe))
-        put(StripSegment.REVIEW, stringResource(R.string.strip_legend_review))
-        put(StripSegment.MOVE, stringResource(R.string.strip_legend_move))
+private fun stripLabels(summary: ClassificationSummary?): Map<StripSegment, String> = buildMap {
+    // Owner brief H2 item 6: an empty lane isn't listed (never "0B").
+    val lanes = listOf(
+        Triple(StripSegment.SAFE, Category.SAFE, stringResource(R.string.strip_legend_safe)),
+        Triple(StripSegment.REVIEW, Category.REVIEW, stringResource(R.string.strip_legend_review)),
+        Triple(StripSegment.MOVE, Category.MOVE, stringResource(R.string.strip_legend_move)),
+    )
+    for ((segment, category, label) in lanes) {
+        if (summary != null && summary.phoneTotal(category).bytes > 0) put(segment, label)
     }
     put(StripSegment.OTHER, stringResource(R.string.strip_legend_other))
     put(StripSegment.FREE, stringResource(R.string.strip_legend_free))
@@ -687,7 +750,8 @@ private fun stripDescription(state: HomeUiState, summary: ClassificationSummary?
     if (summary == null) return base
     val lanes = mutableListOf(base)
     for (category in listOf(Category.SAFE, Category.REVIEW, Category.MOVE)) {
-        lanes += stringResource(R.string.area_value, categoryTitle(category), size(summary.phoneTotal(category).bytes))
+        val bytes = summary.phoneTotal(category).bytes
+        if (bytes > 0) lanes += stringResource(R.string.area_value, categoryTitle(category), size(bytes))
     }
     return lanes.joinToString(" · ")
 }

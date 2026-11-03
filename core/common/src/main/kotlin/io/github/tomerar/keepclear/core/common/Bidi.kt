@@ -78,6 +78,21 @@ object Bidi {
         Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
     )
 
+    /** No-break space: keeps the words of a short name on one line. */
+    const val NBSP = '\u00A0'
+
+    /** Names up to this long are kept on one line by [name]; longer ones may still wrap between words. */
+    const val KEEP_TOGETHER_MAX = 24
+
+    /**
+     * Owner brief H2 item 12: a short device or drive name („SanDisk USB”) as one unit inside a sentence: isolated
+     * like [isolate], and its spaces made non-breaking so it never splits over two lines ("SanDisk / USB").
+     */
+    fun name(value: String): String {
+        val clean = strip(value).trim()
+        return isolate(if (clean.length <= KEEP_TOGETHER_MAX) clean.replace(' ', NBSP) else clean)
+    }
+
     /** Removes bidi control characters (also used before PROTECTED-path matching, SEC-6). */
     fun strip(value: String): String = value.filterNot { it in controlCharacters }
 }

@@ -149,14 +149,14 @@ class M11Test {
     }
 
     @Test
-    fun `Home's temporary-files card leads to the per-app list (SAFE-5 to SAFE-10)`() {
+    fun `the Apps tab leads to the per-app list (SAFE-5 to SAFE-10, owner brief H2 item 4)`() {
         var oneByOne = 0
         compose.setContent {
             KeepClearTheme {
-                HomeScreen(HomeUiState(), showDebugTools = false, actions = HomeActions(onOneByOne = { oneByOne++ }))
+                AppsScreen(null, 0L, AppsActions(), links = AppsTabLinks(onOneByOne = { oneByOne++ }))
             }
         }
-        compose.onNodeWithTag("oneByOneLink").performScrollTo().performClick()
+        compose.onNodeWithTag("appsOneByOne").performScrollTo().performClick()
         assertEquals(1, oneByOne)
     }
 }

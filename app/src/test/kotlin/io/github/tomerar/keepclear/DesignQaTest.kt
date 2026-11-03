@@ -75,16 +75,19 @@ class DesignQaTest {
     fun `a mixed clean says which part is deleted for good and which goes to the trash, and why`() {
         listOf(thumb, bin, lost).forEach { assertEquals(Category.SAFE, it.category) }
         confirm(listOf(thumb, bin, lost))
-        compose.onNodeWithText(s(R.string.confirm_fact_for_good)).assertExists()
-        compose.onNodeWithText(s(R.string.confirm_fact_to_trash)).assertExists()
-        compose.onNodeWithText(s(R.string.clean_confirm_for_good_rebuilds), substring = true).assertExists()
-        compose.onNodeWithText(s(R.string.clean_confirm_for_good_bins), substring = true).assertExists()
+        // Owner brief H2 item 5: "What happens" with each part's size; the bins part is the red line.
+        compose.onNodeWithText(s(R.string.confirm_fact_what_happens)).assertExists()
+        compose.onNodeWithText(s(R.string.clean_happens_rebuilds), substring = true).assertExists()
+        compose.onNodeWithText(s(R.string.confirm_where_trash), substring = true).assertExists()
+        compose.onNodeWithTag(io.github.tomerar.keepclear.core.designsystem.component.CONFIRM_SHEET_RISK_TAG)
+            .assertExists()
         compose.onNodeWithText(s(R.string.clean_confirm_note_rest), substring = true).assertExists()
         // Not "Move to trash": part of it doesn't go there.
         compose.onNodeWithText(s(R.string.clean_confirm_yes_now)).assertExists()
         compose.onAllNodesWithText(s(R.string.clean_confirm_yes)).assertCountEquals(0)
-        // The rows carry the parts' sizes: 6 MB for good, 3 MB to the trash.
-        compose.onNodeWithText(size(6_000_000), substring = true).assertExists()
+        // The parts' sizes: 4 MB rebuild themselves, 2 MB from the bin, 3 MB to the trash.
+        compose.onNodeWithText(size(4_000_000), substring = true).assertExists()
+        compose.onNodeWithText(size(2_000_000), substring = true).assertExists()
         compose.onNodeWithText(size(3_000_000), substring = true).assertExists()
     }
 
@@ -92,16 +95,16 @@ class DesignQaTest {
     fun `a clean of trash-only items reads as before`() {
         confirm(listOf(lost))
         compose.onNodeWithText(s(R.string.confirm_where_trash)).assertExists()
-        compose.onNodeWithText(s(R.string.clean_confirm_note)).assertExists()
+        compose.onNodeWithText(s(R.string.clean_confirm_note), substring = true).assertExists()
         compose.onNodeWithText(s(R.string.clean_confirm_yes)).assertExists()
-        compose.onAllNodesWithText(s(R.string.confirm_fact_for_good)).assertCountEquals(0)
+        compose.onAllNodesWithText(s(R.string.clean_happens_rebuilds), substring = true).assertCountEquals(0)
     }
 
     @Test
     fun `a clean of permanent items only says deleted for good, now`() {
         confirm(listOf(thumb))
-        compose.onNodeWithText(s(R.string.confirm_where_for_good)).assertExists()
-        compose.onAllNodesWithText(s(R.string.confirm_where_trash)).assertCountEquals(0)
+        compose.onNodeWithText(s(R.string.clean_happens_rebuilds)).assertExists()
+        compose.onAllNodesWithText(s(R.string.confirm_where_trash), substring = true).assertCountEquals(0)
         compose.onAllNodesWithText(s(R.string.clean_confirm_note_rest), substring = true).assertCountEquals(0)
     }
 

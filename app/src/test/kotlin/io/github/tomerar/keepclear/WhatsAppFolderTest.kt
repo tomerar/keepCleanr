@@ -31,14 +31,13 @@ class WhatsAppFolderTest {
         }
     }
 
-    private val play = HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = null)
+    private val play = HomeUiState(mediaAccess = MediaAccess.FULL, allFiles = null, scan = ScanState.Done(1, 1, true))
 
     @Test
     fun `the picker opens only after the explainer`() {
         var picked = 0
         show(play, onPick = { picked++ })
-        // F1b: the step sits in the collapsed "See more files" card.
-        compose.onNodeWithTag("moreFilesToggle").performScrollTo().performClick()
+        // Owner brief H2 item 2: the step is offered after the scan, in context.
         compose.onNodeWithTag("pickWhatsApp").performScrollTo().performClick()
         assertEquals(0, picked)
         compose.onNodeWithTag("explainerContinue").performClick()
