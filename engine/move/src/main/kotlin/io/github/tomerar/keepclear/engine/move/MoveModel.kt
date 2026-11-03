@@ -47,6 +47,13 @@ enum class PauseReason {
      * once the phone charges (or the battery is back above [BatteryPolicy.RESUME_AT]).
      */
     BATTERY_LOW,
+
+    /**
+     * Owner brief H1 item 8: the job was found still marked running with no service running, no user stop recorded and
+     * no app update (that one is [INTERRUPTED]): Android ended KeepClear in the background. PR H4 adds the real exit
+     * reason; until then this is the calm "the phone stopped the backup" state. Resumes like any pause.
+     */
+    STOPPED_BY_PHONE,
 }
 
 /**

@@ -49,6 +49,11 @@ class MoveEngine(
      * checkpoint kept, so a resume never redoes a verified file.
      */
     private val battery: () -> BatteryLevel? = { null },
+    /**
+     * Owner brief H1 item 10: the texts of the `README.html` written next to the manifest ([BackupReadme]); empty
+     * writes none. It is not user data: never in the manifest, never verified, never counted.
+     */
+    private val readme: List<BackupReadme.Texts> = emptyList(),
 ) {
     suspend fun run(jobId: String): MoveJob {
         var job = store.job(jobId) ?: error("unknown job $jobId")
@@ -63,6 +68,7 @@ class MoveEngine(
                 process(file)
             }
             writeManifest(job)
+            writeReadme(job)
         } catch (e: Pause) {
             return job.copy(state = JobState.PAUSED, pauseReason = e.reason).also { store.putJob(it) }
         } catch (e: StorageException) {
@@ -327,6 +333,29 @@ class MoveEngine(
         if (verified.isEmpty()) return
         writeMerged(job, Manifest.SUMS) { existing -> Manifest.mergeSums(existing, verified, job.rootRel) }
         writeMerged(job, Manifest.JSONL) { existing -> Manifest.mergeJsonl(existing, verified, job.rootRel) }
+    }
+
+    /**
+     * Owner brief H1 item 10: (re)writes `README.html` next to the manifest, through the same crash-safe replace. Only
+     * after a manifest exists. A failure here never pauses or fails the backup: the page is a courtesy, not a copy.
+     */
+    private suspend fun writeReadme(job: MoveJob) {
+        if (readme.isEmpty()) return
+        val manifest = try {
+            target.stat("${job.rootRel}/${Manifest.JSONL}")
+        } catch (e: StorageException) {
+            null
+        } ?: return
+        if (!manifest.isFile) return
+        try {
+            replace("${job.rootRel}/${BackupReadme.NAME}", BackupReadme.html(job.rootRel.substringAfterLast('/'), readme))
+        } catch (e: Pause) {
+            // The drive went away right after the manifest: the backup itself is complete.
+        } catch (e: StorageException) {
+            // Never a reason to pause: the copies and the manifest are already in place.
+        } catch (e: java.io.IOException) {
+            // Same.
+        }
     }
 
     /**

@@ -29,6 +29,21 @@ class ByteSizeTest {
     }
 
     @Test
+    fun `progress shows the done part in the unit of the total (H1 item 4)`() {
+        fun he(d: Long, t: Long) = ByteSize.progress(d, t, Locale.forLanguageTag("he-IL")).let {
+            Bidi.strip(it.first) to Bidi.strip(it.second)
+        }
+        he(12_900_000_000, 31_000_000_000) shouldBe ("12.9" to "31.0GB")
+        // 900 MB of 31 GB is 0.9 (GB), not "900".
+        he(900_000_000, 31_000_000_000) shouldBe ("0.9" to "31.0GB")
+        he(450_000_000, 900_000_000) shouldBe ("450" to "900MB")
+        // Clamped: never more than the total, never negative.
+        he(40_000_000_000, 31_000_000_000) shouldBe ("31.0" to "31.0GB")
+        he(-5, 31_000_000_000) shouldBe ("0.0" to "31.0GB")
+        ByteSize.progress(1, 2, Locale.US).first.first() shouldBe Bidi.LRI
+    }
+
+    @Test
     fun `hebrew writes the unit without a space`() {
         he(16_800_000_000) shouldBe "16.8GB"
         he(412_000_000) shouldBe "412MB"
