@@ -7,8 +7,7 @@
     <string name="launcher_name" translatable="false">KeepClear</string>
     <string name="home_card_safe_title">Clean now</string>
     <string name="home_card_review_title">Choose what to delete</string>
-    <string name="home_card_move_title">Move to backup</string>
-    <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
+    <string name="home_card_move_title">Back up</string>
     <string name="debug_toggle_rtl">Debug: flip layout direction</string>
     <string name="home_storage_line">%1$s used · %2$s free</string>
     <string name="access_card_title">See what\'s taking space</string>
@@ -16,10 +15,10 @@
     <string name="access_allow">Allow access</string>
     <string name="explainer_media_title">See your photos and videos</string>
     <string name="explainer_media_why">To find screenshots, big videos and what can be backed up.</string>
-    <string name="explainer_media_never">Nothing leaves your phone unless you move it to a drive you choose.</string>
+    <string name="explainer_media_never">Nothing leaves your phone unless you back it up to a place you choose.</string>
     <string name="explainer_media_without">Without it: you can only clear apps\' temporary files.</string>
     <string name="explainer_allfiles_title">See all your files</string>
-    <string name="explainer_allfiles_why">Finds WhatsApp media, folders left from your old phone, and other apps\' recycle bins.</string>
+    <string name="explainer_allfiles_why">Finds WhatsApp media, folders left from your old phone, and other apps\' bins.</string>
     <string name="explainer_allfiles_never">Android still keeps other apps\' private data closed. KeepClear never deletes anything without asking you.</string>
     <string name="explainer_allfiles_without">Without it: photos, videos and audio only.</string>
     <string name="explainer_label_why">Why</string>
@@ -46,6 +45,7 @@
     </plurals>
     <string name="home_total_review_body">Screenshots, big videos, old-phone folders. Nothing is deleted unless you choose it.</string>
     <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
+    <!-- PR H2c (owner brief H2 item 10): a count with its size is always "2,324 files · 2.9GB": %1$s the count, %2$s the size (CountSize.text). -->
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">Show</string>
     <string name="label_why">Why is this here?</string>
@@ -69,7 +69,7 @@
     <string name="trash_changed">Changed since it was deleted</string>
     <string name="trash_restore_changed">Restore to a separate folder</string>
     <string name="trash_restore_changed_title">Restore a changed file?</string>
-    <string name="trash_restore_changed_body">This file is not the same as when it was deleted. It goes to the folder KeepClear/Restored-changed, never in place of another file.</string>
+    <string name="trash_restore_changed_body">This file is not the same as when it was deleted. It is restored to a separate folder, KeepClear › Restored-changed, never in place of another file.</string>
     <string name="last_copy_title">This is the last copy</string>
     <string name="last_copy_confirm">Delete the last copy too</string>
     <string name="last_copy_keep">Keep it</string>
@@ -79,18 +79,22 @@
         <item quantity="one">%1$s file stayed in the trash: KeepClear couldn\'t confirm just now that its backup copy is intact. Connect the backup place and try again.</item>
         <item quantity="other">%1$s files stayed in the trash: KeepClear couldn\'t confirm just now that their backup copies are intact. Connect the backup place and try again.</item>
     </plurals>
-    <string name="trash_release_now">Free now</string>
+    <string name="trash_release_now">Free up now</string>
     <string name="trash_verified_copy">Checked copy on %1$s</string>
-    <string name="trash_restore_to">Will be restored to %1$s</string>
-    <string name="trash_confirm_empty_title">Delete %1$s permanently?</string>
+    <string name="trash_restore_to">Will be restored to the folder %1$s</string>
+    <string name="location_phone">The phone</string>
+    <string name="location_memory_card">Memory card</string>
+    <string name="trash_confirm_empty_title">Delete %1$s for good?</string>
     <string name="trash_confirm_empty_body">%1$s. This can\'t be undone. Items with a checked copy on a drive are still safe there; the rest has no other copy.</string>
-    <string name="trash_confirm_release_title">Free %1$s now?</string>
-    <string name="trash_confirm_release_body">A checked copy is on %1$s. The file on the phone is deleted permanently.</string>
-    <string name="trash_confirm_delete">Delete permanently</string>
+    <string name="trash_confirm_release_title">Free up %1$s now?</string>
+    <string name="trash_confirm_release_body">A checked copy is on %1$s. The file on the phone is deleted for good.</string>
+    <string name="trash_confirm_delete">Delete for good</string>
     <string name="trash_cancel">Cancel</string>
     <string name="clean_title">Clean now</string>
     <string name="clean_selected">Selected: %1$s</string>
+    <string name="nothing_selected">Nothing selected</string>
     <string name="clean_button">Clean %1$s</string>
+    <string name="clean_button_empty">Clean</string>
     <string name="clean_confirm_title">Clean %1$s?</string>
     <string name="clean_confirm_yes">Move to trash</string>
     <string name="clean_done">Done. %1$s moved to the trash.</string>
@@ -103,7 +107,7 @@
         <item quantity="one">%1$s file is protected (chats, a backup, or something you kept), so we left it alone.</item>
         <item quantity="other">%1$s files are protected (chats, a backup, or something you kept), so we left them alone.</item>
     </plurals>
-    <string name="clean_undo">Put it all back</string>
+    <string name="clean_undo">Undo</string>
     <string name="trim_title">Clear apps\' temporary files</string>
     <string name="trim_body">Android deletes temporary files that apps download again by themselves.</string>
     <string name="trim_button">Clear temporary files</string>
@@ -126,7 +130,7 @@
     <string name="move_view">Show</string>
     <string name="move_selected">Selected: %1$s</string>
     <string name="move_pick_target">Choose where to back up</string>
-    <string name="move_target_title">Copy to %1$s</string>
+    <string name="move_target_title">Back up to %1$s</string>
     <string name="move_target_cloud">This is a cloud folder. KeepClear can copy to it but can\'t check the copy, so the originals stay on the phone.</string>
     <string name="move_target_unknown">KeepClear can\'t check copies in this place, so it copies only and the originals stay on the phone.</string>
     <string name="move_issue_space">Not enough space on the drive: %1$s needed, %2$s free.</string>
@@ -148,7 +152,7 @@
     <string name="move_cancel">Cancel</string>
     <string name="move_problem_phone">This folder is on the phone itself. Choose a USB drive or memory card.</string>
     <string name="move_problem_marker">This folder has a backup KeepClear doesn\'t recognise. Pick another folder.</string>
-    <string name="move_problem_selection_lost">KeepClear was closed while you were choosing the drive, so the selection was lost. Select what to move again.</string>
+    <string name="move_problem_selection_lost">KeepClear was closed while you were choosing the drive, so the selection was lost. Choose what to back up again.</string>
     <string name="move_problem_unavailable">KeepClear can\'t open this drive. Check that it\'s plugged in and try again.</string>
     <string name="move_pause">Pause</string>
     <string name="move_stop">Stop</string>
@@ -184,8 +188,8 @@
     <string name="move_paused_user">Paused.</string>
     <string name="move_receipt_title">Your backup on %1$s is ready ✓</string>
     <plurals name="move_receipt_verified">
-        <item quantity="one">%1$s file (%2$s) copied. We checked it: it was read again from the drive and matches the original.</item>
-        <item quantity="other">%1$s files (%2$s) copied. We checked each file: it was read again from the drive and matches the original.</item>
+        <item quantity="one">Copied %1$s file · %2$s. We checked it: it was read again from the drive and matches the original.</item>
+        <item quantity="other">Copied %1$s files · %2$s. We checked each file: it was read again from the drive and matches the original.</item>
     </plurals>
     <plurals name="move_receipt_failed_missing">
         <item quantity="one">%1$s file was no longer on the phone and was skipped.</item>
@@ -223,12 +227,14 @@
         <item quantity="one">%1$s file got a different name on the drive (kept in the backup\'s list).</item>
         <item quantity="other">%1$s files got a different name on the drive (kept in the backup\'s list).</item>
     </plurals>
-    <string name="move_receipt_how_back">Your files are on %1$s, in the folder %2$s. To bring them back to the phone: \"Restore from a backup\" on the Backup tab.</string>
+    <string name="move_receipt_how_back">Your files are on %1$s, in the folder %2$s. To restore them to the phone: \"Restore from a backup\" on the Backup tab.</string>
     <string name="move_free_button">Free up %1$s from the phone</string>
+    <string name="move_free_button_trash">Move %1$s to the trash</string>
     <string name="move_free_unavailable">The originals stay on the phone: this place can\'t be checked.</string>
-    <string name="move_free_confirm_title">Free space on the phone?</string>
-    <string name="move_free_confirm_body">%1$s will move to KeepClear\'s trash. Each one is checked against its copy on the drive first. You can restore them for 30 days.</string>
-    <string name="move_free_confirm_yes">Move to the trash</string>
+    <string name="move_free_confirm_title">Free up space on the phone?</string>
+    <string name="move_free_confirm_title_trash">Move the originals to the trash?</string>
+    <string name="move_free_confirm_body">%1$s will move to the trash. Each one is checked against its copy on the drive first. You can restore them for 30 days; the space comes back only when the trash is emptied.</string>
+    <string name="move_free_confirm_yes">Move to trash</string>
     <string name="move_share">Share the backup summary</string>
     <string name="move_history">Earlier backups</string>
     <string name="move_notif_warning">Notifications are off, so you won\'t see progress outside KeepClear.</string>
@@ -248,17 +254,17 @@
         <item quantity="one">%1$d of %2$d file</item>
         <item quantity="other">%1$d of %2$d files</item>
     </plurals>
-    <string name="move_receipt_text">KeepClear backup summary\nDrive: %1$s\nFolder: %2$s\nFiles copied and checked: %3$d (%4$s)\nFiles skipped or not copied: %5$d\nThe copy is not encrypted.</string>
+    <string name="move_receipt_text">KeepClear backup summary\nDrive: %1$s\nFolder: %2$s\nFiles copied and checked: %3$d · %4$s\nFiles skipped or not copied: %5$d\nThe copy is not encrypted.</string>
     <string name="test_mode_banner">Trial mode – no file will be deleted or moved</string>
     <string name="test_mode_would_free">Would have freed %1$s (trial mode). Nothing was deleted or moved.</string>
     <string name="test_mode_caches_not_cleared">Trial mode: Android was not asked to clear apps\' temporary files.</string>
     <string name="test_mode_title">Trial mode</string>
     <string name="test_mode_body">While trial mode is on, KeepClear only shows what it would do. No file is deleted, moved to the trash, restored or cleared.</string>
     <string name="test_mode_off_title">Turn off trial mode?</string>
-    <string name="test_mode_off_body">From now on, cleaning, deleting and freeing space change real files on the phone. Everything still goes to KeepClear\'s trash for 30 days first.</string>
+    <string name="test_mode_off_body">From now on, cleaning, deleting and freeing space change real files on the phone. Most of what you clean still waits in the trash for 30 days first.</string>
     <string name="test_mode_off_continue">Continue</string>
     <string name="test_mode_off_title2">Really turn off trial mode?</string>
-    <string name="test_mode_off_body2">Files will really move to the trash from now on. You can turn trial mode on again at any time.</string>
+    <string name="test_mode_off_body2">From now on, files really change. You can turn trial mode on again at any time.</string>
     <string name="test_mode_off_confirm">Turn off trial mode</string>
     <string name="settings_title">Settings</string>
     <string name="settings_advanced">Advanced</string>
@@ -273,15 +279,15 @@
     <string name="debug_device_check_running">Checking… this can take a minute.</string>
     <string name="home_card_counting">Counting…</string>
     <string name="home_card_needs_access">Shows after you allow access</string>
-    <string name="home_clean_button">Clean %1$s</string>
+    <string name="home_clean_button">Free up %1$s</string>
     <string name="scan_status_running">Counting files… %1$s so far</string>
     <string name="scan_status_done">Scanned %1$s · %2$s</string>
     <string name="intro_1_title">Keep what matters</string>
     <string name="intro_1_body">KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you.</string>
     <string name="intro_2_title">Most of it can come back</string>
-    <string name="intro_2_body">Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted right away.</string>
-    <string name="intro_3_title">Memories are moved, not deleted</string>
-    <string name="intro_3_body">Photos and videos are copied to your own drive and checked. Space is freed only when you say so.</string>
+    <string name="intro_2_body">Most of what you clean waits 30 days in the trash. Files that rebuild themselves are deleted right away.</string>
+    <string name="intro_3_title">Back up first, then free up space</string>
+    <string name="intro_3_body">Photos and videos are backed up to your own USB drive, and every file is checked. Space is freed only when you say so.</string>
     <string name="intro_next">Next</string>
     <string name="intro_start">Start</string>
     <string name="intro_skip">Skip</string>
@@ -297,12 +303,12 @@
     <string name="review_long_press_hint">Long-press a picture to see it large.</string>
     <string name="trash_restore_all_title">Restore %1$s?</string>
     <string name="trash_restore_all_body">They go back where they were. This uses no extra space: the files are already on the phone.</string>
-    <string name="trash_release_all">Free what has a checked copy</string>
-    <string name="trash_confirm_release_yes">Free now</string>
+    <string name="trash_release_all">Free up what has a checked copy</string>
+    <string name="trash_confirm_release_yes">Free up now</string>
     <string name="trash_confirm_empty_body_split">%1$s have a checked copy on your drive. %2$s have no other copy and will be gone for good.</string>
     <string name="trash_group_clean">Cleaned junk</string>
     <string name="trash_group_review">Chosen by you</string>
-    <string name="trash_group_move">Backed up and freed</string>
+    <string name="trash_group_move">Backed up, then moved to the trash</string>
     <string name="trash_group_other">Other</string>
     <string name="trash_restore_group">Restore this group</string>
     <string name="trash_show_files">Show the list</string>
@@ -337,7 +343,7 @@
     <string name="settings_about_body">Free and open source (GPL-3.0). No ads, no tracking. It connects to the network only to reach a backup place you set up, at the address you typed. Version %1$s.</string>
     <string name="settings_privacy">Read the privacy policy</string>
     <string name="settings_replay_intro">Show the introduction again</string>
-    <string name="settings_get_back_title">How to get files back</string>
+    <string name="settings_get_back_title">How to restore files</string>
     <string name="settings_get_back_body">Cleaned: in the trash, for 30 days. Backed up: on the Backup tab › \"Restore from a backup\".</string>
     <plurals name="duration_minutes">
         <item quantity="one">%1$s minute</item>
@@ -369,11 +375,11 @@
     <string name="one_by_one_sizes_later">To see how much space each app takes, you can turn on usage access.</string>
     <string name="trash_uninstall_note">If you uninstall KeepClear, what is in the trash (%1$s) stays on the phone and takes space. Empty or restore it first.</string>
     <string name="settings_uninstall_title">Before you uninstall</string>
-    <string name="android_trash_done">%1$s moved to Android\'s trash. Android deletes them after 30 days; until then you can put them back from KeepClear\'s trash.</string>
+    <string name="android_trash_done">%1$s moved to the gallery\'s bin. Android deletes them after 30 days; until then you can restore them from KeepClear\'s Trash.</string>
     <string name="android_trash_declined">Nothing changed: the request was declined in Android\'s window.</string>
-    <string name="trash_group_android">In Android\'s trash (photos and videos)</string>
+    <string name="trash_group_android">In the gallery\'s bin</string>
     <string name="trash_android_note">Android deletes these by itself 30 days after they were deleted. Android asks you to confirm each restore or delete.</string>
-    <string name="trash_android_empty">Delete these now</string>
+    <string name="trash_android_empty">Delete these for good</string>
     <string name="apps_title">Apps</string>
     <string name="apps_total">Apps take %1$s.</string>
     <string name="apps_access_title">See app sizes and when you last used them</string>
@@ -420,10 +426,10 @@
     <string name="restore_title">Restore from a backup</string>
     <string name="restore_pick_body">Choose the drive or folder that holds the backup (the folder named KeepClear, or the drive itself).</string>
     <string name="restore_pick_folder">Choose a drive or folder</string>
-    <string name="restore_needs_all_files">To put every file back where it was, KeepClear needs All files access.</string>
+    <string name="restore_needs_all_files">To restore every file where it was, KeepClear needs All files access.</string>
     <string name="restore_no_backup">No KeepClear backup was found there.</string>
     <string name="restore_which_phone">Which phone\'s backup?</string>
-    <string name="restore_choose">What to bring back</string>
+    <string name="restore_choose">What to restore</string>
     <string name="restore_run">Restore</string>
     <string name="restore_running">Restoring…</string>
     <string name="restore_interrupted">The drive was disconnected. What was restored stays; restore again to finish.</string>
@@ -497,7 +503,7 @@
     <string name="swipe_resume_restart">Start over</string>
     <string name="settings_swipe_swap">Swap the swipe directions</string>
     <string name="reminder_setting">Remind me when space is low</string>
-    <string name="reminder_setting_body" formatted="false">At most once a week, when less than 10% (or 2 GB) is free. It only reminds; nothing is deleted in the background.</string>
+    <string name="reminder_setting_body">At most once a week, when less than 10%% (or %1$s) is free. It only reminds; nothing is deleted in the background.</string>
     <string name="reminder_channel">Space reminders</string>
     <string name="reminder_title">Space is getting low</string>
     <string name="reminder_text">%1$s free. Open KeepClear to see what can go.</string>
@@ -519,7 +525,7 @@
     <string name="nextcloud_working">Connecting to your Nextcloud…</string>
     <string name="nextcloud_browser">Sign in on the page that opened in the browser and allow access, then come back here. KeepClear waits up to 20 minutes.</string>
     <string name="nextcloud_open_again">Open the sign-in page again</string>
-    <string name="nextcloud_done">Your Nextcloud %1$s is ready. To back up to it: on the Backup tab, choose what to move, tap \"Choose where to back up\" and then \"Use your Nextcloud\".</string>
+    <string name="nextcloud_done">Your Nextcloud %1$s is ready. To back up to it: on the Backup tab, choose what to back up, tap \"Choose where to back up\" and then \"Use your Nextcloud\".</string>
     <string name="nextcloud_bad_address">Type the address you open your Nextcloud with, for example https://cloud.example.com, without a name, password or anything after a question mark.</string>
     <string name="nextcloud_needs_https">Use an address that starts with https://. KeepClear never sends a password unencrypted.</string>
     <string name="nextcloud_problem_unreachable">Nothing answered at this address. Check the address and the internet connection, and try again.</string>
@@ -528,7 +534,7 @@
     <string name="nextcloud_problem_other_address">The server tried to send KeepClear to another address, so KeepClear stopped. Use your Nextcloud\'s own address.</string>
     <string name="nextcloud_problem_refused">Your Nextcloud refused the user name or app password. Check them and try again.</string>
     <string name="nextcloud_problem_expired">The sign-in wasn\'t finished in time. Try again.</string>
-    <string name="nextcloud_settings_body">For people who have their own Nextcloud. Sign in once; then it can be chosen when you move files to a backup. Your Nextcloud checks every copy it stores.</string>
+    <string name="nextcloud_settings_body">For people who have their own Nextcloud. Sign in once; then it can be chosen when you back up. Your Nextcloud checks every copy it stores.</string>
     <string name="nextcloud_settings_button">Set up Nextcloud</string>
     <string name="settings_nextcloud_only">Network: only to %1$s (your Nextcloud)</string>
     <string name="settings_nextcloud_forget">Forget your Nextcloud</string>
@@ -544,6 +550,7 @@
         <item quantity="other">%1$s items are not restored (hidden files or apps)</item>
     </plurals>
     <string name="restore_space">Free on the phone: %1$s. Chosen: %2$s.</string>
+    <string name="restore_space_none">Free on the phone: %1$s. Nothing selected.</string>
     <string name="restore_space_unknown">KeepClear couldn\'t check the free space on the phone, so it won\'t restore now. Try again in a moment.</string>
     <string name="restore_too_big">There isn\'t enough room for all of this. KeepClear always leaves %1$s free so the phone keeps working. Choose fewer months.</string>
     <plurals name="restore_already_on_phone">
@@ -554,8 +561,8 @@
     <string name="restore_stopped_low_space">Stopped because the phone is almost full. What was restored stays; make room, then restore again to finish.</string>
     <string name="restore_simulated">Would have restored %1$s (trial mode): %2$s back to where they were, %3$s to Pictures › KeepClear Restored. Nothing was written to the phone.</string>
     <plurals name="move_receipt_verified_nextcloud">
-        <item quantity="one">%1$s file (%2$s) copied. Your Nextcloud checked it: what it stored matches the original.</item>
-        <item quantity="other">%1$s files (%2$s) copied. Your Nextcloud checked each file: what it stored matches the original.</item>
+        <item quantity="one">Copied %1$s file · %2$s. Your Nextcloud checked it: what it stored matches the original.</item>
+        <item quantity="other">Copied %1$s files · %2$s. Your Nextcloud checked each file: what it stored matches the original.</item>
     </plurals>
     <plurals name="move_receipt_nextcloud">
         <item quantity="one">%1$s of them was checked by your Nextcloud.</item>
@@ -590,11 +597,11 @@
     <string name="confirm_fact_how_many">How many</string>
     <string name="confirm_fact_how_much">How much space</string>
     <string name="confirm_fact_where">Where it goes</string>
-    <string name="confirm_where_trash">To KeepClear\'s trash, for 30 days</string>
+    <string name="confirm_where_trash">To the trash, for 30 days</string>
     <string name="confirm_where_trim">Android deletes them; apps download them again when needed</string>
-    <string name="confirm_where_gone">Deleted permanently from the phone</string>
+    <string name="confirm_where_gone">Deleted from the phone for good</string>
     <string name="confirm_permanent_note">This can\'t be undone.</string>
-    <string name="clean_confirm_note">For 30 days you can put everything back from the trash.</string>
+    <string name="clean_confirm_note">For 30 days you can restore everything from the trash.</string>
     <string name="area_value">%1$s %2$s</string>
     <string name="home_busy">Working on it…</string>
     <string name="confirm_where_back">Back where they were</string>
@@ -623,8 +630,7 @@
     <string name="apps_open_app_content">See files inside apps\' own folders</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
     <string name="clean_confirm_yes_now">Clean now</string>
-    <string name="confirm_part_value">%1$s · %2$s</string>
-    <string name="clean_confirm_note_rest">Everything else can be put back from the trash for 30 days.</string>
+    <string name="clean_confirm_note_rest">Everything else can be restored from the trash for 30 days.</string>
     <string name="result_freed_now">Freed %1$s · now %2$s free</string>
     <string name="clean_in_trash">%1$s in the trash, freed on %2$s</string>
     <string name="clean_deleted_for_good">%1$s deleted for good.</string>
@@ -640,7 +646,7 @@
     <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
     <string name="move_issue_battery_warning" formatted="false">Better to charge first; the backup pauses by itself at 10% and goes on later.</string>
     <string name="move_paused_battery" formatted="false">The backup paused by itself because the battery reached 10%. It goes on once the phone charges.</string>
-    <string name="move_free_confirm_for_good">The originals will be deleted from the phone. The copy stays on %1$s, checked file by file, and you can bring files back from it at any time.</string>
+    <string name="move_free_confirm_for_good">The originals will be deleted from the phone. The copy stays on %1$s, checked file by file, and you can restore files from it at any time.</string>
     <string name="free_where_for_good">Deleted from the phone; the copy stays on %1$s</string>
     <string name="free_keep_favourites">Keep favourites on the phone</string>
     <string name="free_keep_recent">Keep the last 30 days on the phone</string>
@@ -656,7 +662,7 @@
     <string name="move_free_done_for_good">Freed %1$s from the phone. The copy stays on %2$s.</string>
     <string name="move_free_interrupted">Freeing stopped: %1$s couldn\'t be read. What wasn\'t deleted yet stays on the phone.</string>
     <string name="settings_keep_originals">Keep the original in the 30-day trash too (frees no space)</string>
-    <string name="settings_keep_originals_body">After a checked backup, freeing space then moves each original to KeepClear\'s trash for 30 days instead of deleting it. The space comes back only when the trash is emptied.</string>
+    <string name="settings_keep_originals_body">After a checked backup, each original then moves to the trash for 30 days instead of being deleted. The space comes back only when the trash is emptied.</string>
     <!-- PR H1b: backup screens (owner brief H1 items 1-8, 10, 11). -->
     <string name="backup_only_copies">At this step KeepClear only copies. No photo is deleted.</string>
     <string name="backup_button">Back up %1$s</string>
@@ -692,7 +698,7 @@
     <string name="readme_title">KeepClear backup</string>
     <string name="readme_what">This folder holds copies of photos and videos from the phone named above, made by the KeepClear app. Each copy was checked against its original, file by file.</string>
     <string name="readme_open">On a computer: connect the drive and open the folders inside (Camera, WhatsApp, Pictures). They are ordinary photos and videos and open in any viewer. Please don\'t change or delete files here: this is the backup.</string>
-    <string name="readme_restore">To put them back on a phone: install KeepClear, open the Backup tab and tap \"Restore from a backup\", then choose this drive.</string>
+    <string name="readme_restore">To restore them to a phone: install KeepClear, open the Backup tab and tap \"Restore from a backup\", then choose this drive.</string>
     <string name="backup_running_to">Backing up to %1$s</string>
     <!-- H1c: trash and restore grid (owner brief H1 item 9) -->
     <string name="grid_show_list">Show as a list</string>
@@ -718,7 +724,7 @@
     <string name="review_nothing_without_you">Nothing is deleted unless you choose it.</string>
     <string name="trash_chip_label">Trash · %1$s</string>
     <string name="trash_chip_empty_label">Trash</string>
-    <string name="trash_chip_empty_description">Recycle bin, empty</string>
+    <string name="trash_chip_empty_description">Trash, empty</string>
     <string name="intro_page">%1$d of %2$d</string>
     <string name="intro_restore">New phone? Restore from a backup</string>
     <string name="confirm_fact_what_happens">What happens</string>

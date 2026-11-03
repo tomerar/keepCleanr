@@ -40,7 +40,7 @@ Replaces the single Home feed. Decisions C72–C78 in [progress.md](../progress.
 - **Three tabs**, a bottom bar on phones and a NavigationRail at the start side from 600 dp: **"לפנות מקום" / Free up space**, **"גיבוי" / Backup**, **"אפליקציות" / Apps**. Each tab keeps its own stack and its place (scroll, choices); tapping the shown tab again goes back to its root. The tabs show only on a tab's root; sub-screens are full screen (C72).
 - **Top app bar on every tab:** small wordmark "KeepClear" (a heading), the **Trash chip** (bin + size, whenever KeepClear's or Android's trash isn't empty; TalkBack: "Trash · 3.1 GB") and the Settings gear. The chip is the trash's only entry point, besides the links in results ("Empty now", the free-up result) (C73).
 - **Sub-screens:** a pinned top app bar with the auto-mirrored back arrow and the title (a heading); no "לחזור" text link. Back pops the tab's stack; at the root of Backup or Apps, Back goes to Free up space; there Android closes the app.
-- **Free up space:** the free space (hero) with the storage strip, then the SAFE main button `[לנקות 7.9GB]`, which opens the usual confirmation directly (phone storage only, C74), and `לראות פירוט` (Clean now). Then the REVIEW card, the MOVE card (jumps to Backup), "Clear apps' temporary files", ONE collapsed **"לראות עוד קבצים"** card with the permission steps (All files access, WhatsApp's folder), "where your space is", and dismissible notices (cloned apps, C75) at the bottom.
+- **Free up space:** the free space (hero) with the storage strip, then the SAFE main button `[לפנות 7.9GB]` (PR H2c: the hero sentence's verb; it was `[לנקות 7.9GB]`), which opens the usual confirmation directly (phone storage only, C74), and `לראות פרטים` (Clean now). Then the REVIEW card, the MOVE card (jumps to Backup), "Clear apps' temporary files", ONE collapsed **"לראות עוד קבצים"** card with the permission steps (All files access, WhatsApp's folder), "where your space is", and dismissible notices (cloned apps, C75) at the bottom.
 - **Backup:** move memories (sources, age), **"לשחזר מגיבוי" works without a scan** (before a scan the sources say "סופרים…" / "צריך גישה"), the backup places (a drive is chosen when a backup starts; the computer at home and the Nextcloud set up in Settings › Advanced, C76), and the history of backups.
 - **Apps:** clear one app at a time, apps' own folders (when the scan found any), the cloned-apps note, then the apps by size and the unused ones.
 - **Settings:** language, how to get files back, the uninstall note while the trash isn't empty, kept by you, the reminder, the intro again, About + privacy. **מתקדם:** test mode, backup places (Nextcloud set-up; the saved addresses with "Forget"), device check (test builds).
@@ -70,7 +70,7 @@ Decisions C141–C147 in [progress.md](../progress.md). Replaces the parts of §
 - **After the first scan:** one card right under the scan line, „למצוא גם תמונות ומסמכים מוואטסאפ?”: on `foss` „לאשר גישה לכל הקבצים” (explainer first), on `play` it says this version doesn't ask for All files access and offers „לבחור את התיקייה של וואטסאפ”; „לא עכשיו” hides it for the visit (C143).
 - **Top bar:** the Trash chip always shows a word: „סל · 258MB”; with an empty trash „סל”, muted (variant outline and text), still opening the Trash (TalkBack: „סל המחזור ריק”). At 200 % the icon gives way to the words, which shrink rather than being cut (never below their size at 100 %). On tablets the bar sits at the content's readable width.
 - **Strip legend:** nouns, „קבצים מיותרים · לבחירה · לגיבוי · אחר · פנוי”; an empty lane isn't listed.
-- **One clean button on Home:** „לנקות 7.9GB”; „לנקות קבצים זמניים” and „לנקות אפליקציה אחת בכל פעם” are under „לראות פירוט” (Clean now) and on the Apps tab; when the phone is nearly full (under 100 MB) the banner's button is „לנקות קבצים זמניים” (C144).
+- **One clean button on Home:** „לפנות 7.9GB” (H2c; „לנקות 7.9GB” in H2a); „לנקות קבצים זמניים” and „לנקות אפליקציה אחת בכל פעם” are under „לראות פרטים” (Clean now) and on the Apps tab; when the phone is nearly full (under 100 MB) the banner's button is „לנקות קבצים זמניים” (C144).
 - **Clean confirm (§3.2):** title „לנקות 7.9GB?”; first, in red, only when there are any: „3.0GB · 96 קבצים מסלים של אפליקציות אחרות יימחקו לצמיתות. הם כבר נמחקו פעם אחת, ואי אפשר יהיה לשחזר אותם.”; then „כמה”, „כמה מקום”, „מה יקרה”: „נמחקים עכשיו; הטלפון יוצר אותם מחדש לבד” and/or „לסל המחזור של KeepClear, ל-30 יום” (each with its part's size when there is more than one part); then always „התמונות, הסרטונים והצ'אטים שלכם לא נמחקים.” The body scrolls; while more is below, a fade sits above the sticky buttons (C141, C142).
 - **After a clean:** the cleaned items leave every total at once and the hero shows the free space just measured; the next scan confirms. With nothing left to clean the hero says „הכול נקי ✓” and points to the biggest win: „הכי הרבה מקום יתפנה מגיבוי התמונות: 31.9GB” `[לגבות תמונות]` (or, with nothing to back up, „…ממה שתבחרו למחוק” `[לבחור מה למחוק]`); never „0B” (C145).
 - **REVIEW lane:** „לבחור מה למחוק” with „שום דבר לא נמחק בלי שתבחרו” on the card and at the top of its list.
@@ -87,6 +87,28 @@ Decisions C148–C153 in [progress.md](../progress.md). Replaces F2's swipe bull
 - **„לסיים ולבדוק · N”** (N = marked Delete so far; disabled, without a number, while N is 0) ends the session and opens the usual editable confirmation (§4.3) with exactly those N; the rest stay untouched (nothing pre-selected). Deletion happens only from that confirmation, to the 30-day trash, and test mode applies. At the end of the list the summary shows above the same button.
 - **Resume (C149, C150):** closing (✕, Back) keeps the session; the next „לעבור עליהם אחד-אחד” asks „עברתם על 38 מתוך 2,324” · „13 קבצים מסומנים למחיקה. שום דבר עוד לא נמחק.” · (if any) „2 קבצים השתנו או נעלמו מאז, אז הבחירות שלהם לא נשמרו.” `[להמשיך מאיפה שעצרתם]` `להתחיל מחדש`. A file that changed (size or date) or went away since loses its decision and comes up again. Finishing or starting over forgets the session.
 - **TalkBack:** the picture, name and date are one item with the actions „להשאיר”, „למחוק” and (after a decision) „חזרה”.
+
+### H2c (2026-11-03): terminology and formatting (owner brief H2 items 9 and 10)
+
+Decisions C154–C160 in [progress.md](../progress.md); the full list of changed strings is in the PR description. One term per concept, in every string, the store listing and this spec (table in CLAUDE.md, checked by `TerminologyTest`):
+
+| Concept | עברית | English |
+|---|---|---|
+| Bytes really come back | לפנות מקום, „לפנות 7.9GB” on Home | Free up space, "Free up 7.9 GB" |
+| Move to KeepClear's trash | להעביר לסל | Move to trash |
+| Permanent | למחוק לצמיתות | Delete for good |
+| Copying memories (the MOVE lane too) | לגבות | Back up |
+| Bring back / undo | לשחזר / „חזרה ↶” on every undo (swipe, result banner) | Restore / Undo |
+| KeepClear's trash / other bins | סל המחזור (chip „סל · 258MB”) / סל הגלריה, סל של אפליקציה אחרת | Trash / the gallery's bin, another app's bin |
+| Thumbnails | תמונות ממוזערות | Thumbnails |
+| USB drive (default path) | דיסק און קי | USB drive |
+| Details link | לראות פרטים | See details |
+
+- **Count first:** every count with its size reads „2,324 קבצים · 2.9GB” (lists, totals, the clean sheet's parts, the Trash header and groups, the apps not opened in 6 months, the receipt „הועתקו 2,324 קבצים · 2.9GB.” and the shared summary).
+- **Empty selection:** „נבחרו: לא נבחר כלום” never appears; Clean now and the Backup bar say „לא נבחר כלום” and the disabled buttons read „לנקות” / „לגבות”; restore says „פנוי בטלפון: 41.2GB. לא נבחר כלום.”.
+- **Reminder setting:** „…כשנשאר פחות מ-10% (או 2.0GB) פנוי.” The size is the reminder's own threshold, formatted and isolated like every size (it read „(או GB 2)”).
+- **Places in plain words:** the receipt „…בתיקייה KeepClear › Pixel 8”; a trash row „עותק שנבדק נמצא ב-SanDisk” (its details sheet: „SanDisk › KeepClear › Pixel 8 › Camera”); „ישוחזר לתיקייה KeepClear › Restored-changed › DCIM”. Never "USB:KeepClear/Phone/IMG" or "/storage/emulated/0/…".
+- **About:** the "no ads, no tracking" sentence appears once (the second line under the privacy link is gone).
 
 ## 1. First launch & onboarding (ONB-1…3)
 
@@ -121,7 +143,7 @@ Every permission request is preceded by a bottom sheet with the same structure:
 | Permission | en | he |
 |---|---|---|
 | Photos & videos (READ_MEDIA_*) | **See your photos and videos.** To find screenshots, big videos and what can be backed up. Nothing leaves your phone unless you move it to a drive you choose. Without it: only junk and app caches. | **לראות תמונות וסרטונים.** כדי למצוא צילומי מסך, סרטונים גדולים ומה אפשר לגבות. שום דבר לא יוצא מהטלפון, אלא אם מעבירים אותו לכונן שבוחרים. בלי זה: רק קבצים זמניים ומטמון של אפליקציות. |
-| All files (foss) | **See all your files.** Finds WhatsApp media, folders left from your old phone, and other apps' recycle bins. Android still keeps other apps' private data closed. Without it: you can give access folder by folder. | **לראות את כל הקבצים.** כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות. גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. בלי זה: אפשר לתת גישה תיקייה אחרי תיקייה. |
+| All files (foss) | **See all your files.** Finds WhatsApp media, folders left from your old phone, and other apps' bins. Android still keeps other apps' private data closed. Without it: you can give access folder by folder. | **לראות את כל הקבצים.** כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות. גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. בלי זה: אפשר לתת גישה תיקייה אחרי תיקייה. |
 | WhatsApp folder (SAF, play) | **Let KeepClear see WhatsApp's media folder.** On the next screen, tap **Use this folder** at the bottom. We only read photos, videos and voice notes. Your chats and backups are never touched. | **לתת ל-KeepClear לראות את תיקיית המדיה של וואטסאפ.** במסך הבא, הקישו על **שימוש בתיקייה הזו** למטה. אנחנו קוראים רק תמונות, סרטונים והודעות קוליות. הצ'אטים והגיבויים לא נוגעים בהם אף פעם. |
 | Notifications (API 33+, at first MOVE) | **Get told about your backup.** Progress while it runs, and a note when it's done or needs you (e.g. the drive was unplugged). Without it: the backup still runs; you'll see progress only inside KeepClear. | **לקבל עדכונים על הגיבוי.** התקדמות בזמן שהוא רץ, והודעה כשהוא מסתיים או כשצריך אתכם (למשל כשהכונן נותק). בלי זה: הגיבוי עדיין רץ, ואת ההתקדמות רואים רק בתוך KeepClear. |
 | Usage access | **See app sizes and when you last used them.** To show apps you haven't opened in months. Read on this phone only. | **לראות כמה מקום כל אפליקציה תופסת ומתי השתמשו בה.** כדי להראות אפליקציות שלא נפתחו כבר חודשים. המידע נקרא רק בטלפון. |
@@ -159,7 +181,7 @@ Returning from system settings re-checks state on `onResume` and shows a ✓ toa
 - While scanning: cards fill progressively with a subtle "Still counting…" line; `[Cancel]`.
 - Trash chip top-end shows trash size; tap › Trash. (F1b: the chip, wordmark and Settings are in the top app bar of every tab; the layout above is now the "Free up space" tab, see "F1b" in §0.)
 
-Hebrew card titles: **לנקות עכשיו** / **לבדוק** / **להעביר לגיבוי**. Buttons: `[לנקות 7.9GB]`, `[לבדוק ›]`, `[להתחיל ›]`.
+Hebrew card titles: **לנקות עכשיו** / **לבחור מה למחוק** (H2a) / **לגבות** (H2c; was **להעביר לגיבוי**). Buttons: `[לפנות 7.9GB]` (H2c), `[לבדוק ›]`, `[להתחיל ›]`.
 
 ---
 
@@ -170,11 +192,11 @@ List of groups, each pre-selected, each with count, bytes, risk chip and expanda
 
 | Group | Chip | Why (en) | למה (he) |
 |---|---|---|---|
-| Other apps' recycle bins (3.8 GB) | Already deleted | Files you already deleted in another app. They're waiting in that app's bin. | קבצים שכבר מחקתם באפליקציה אחרת, והם מחכים בסל המחזור שלה. |
+| Other apps' recycle bins (3.8 GB) | Already deleted | Files you already deleted in another app. They're waiting in that app's bin. | כבר מחקתם את אלה באפליקציה אחרת, והם מחכים בסל של אותה אפליקציה. |
 | WhatsApp: copies of photos you sent (x GB) | Copy exists | Exact copies of photos that are still in your Camera folder. We checked: same content, byte for byte. | עותקים מדויקים של תמונות שעדיין נמצאות בתיקיית המצלמה. בדקנו: התוכן זהה לגמרי. |
 | Unpacked zip files (x GB) | Copy exists | The folder next to each zip already has all of its files. | בתיקייה שליד כל קובץ zip כבר נמצאים כל הקבצים שבתוכו. |
 | Viewed WhatsApp statuses | Rebuilt automatically | Statuses you watched. They expire after 24 hours anyway. | סטטוסים שכבר צפיתם בהם. הם פגים אחרי 24 שעות בכל מקרה. |
-| Thumbnails, temp files, empty folders | Rebuilt automatically | Small preview images and leftovers that apps recreate if needed. | תמונות תצוגה מקדימה וקבצים זמניים שאפליקציות יוצרות מחדש לפי הצורך. |
+| Thumbnails, temp files, empty folders | Rebuilt automatically | Small preview images and leftovers that apps recreate if needed. | תמונות ממוזערות וקבצים זמניים שאפליקציות יוצרות מחדש לפי הצורך. |
 | App caches (trimmed by Android) | Can't be restored | Android removes temporary app data; apps rebuild it. This one can't go to the trash. | אנדרואיד מוחק נתונים זמניים של אפליקציות, והן בונות אותם מחדש. את זה אי אפשר להעביר לסל המחזור. |
 
 Tap a group › item list (thumbnails/paths) where items can be unticked.
@@ -311,7 +333,7 @@ Decided (Q1): "Move to trash" is the default action; "Free the space now" is the
 **Owner decisions P1, P2, P4 (2026-11-03) replace the sheet above.** Shown only after "Check backup" passed:
 > **לפנות מקום בטלפון?**
 > כמה: ‏6,830 קבצים · 24.1GB · מה יקרה: יימחקו מהטלפון; העותק נשאר ב-SanDisk
-> המקור יימחק מהטלפון. העותק נשאר ב-SanDisk, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.
+> המקור יימחק מהטלפון. העותק נשאר ב-SanDisk, נבדק קובץ-קובץ, ואפשר לשחזר ממנו בכל זמן. (H2c: „לשחזר”, the terminology table's "bring back")
 > (only when WhatsApp media is freed) בצ'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי
 > ☑ להשאיר בטלפון מועדפים · ‏412 קבצים נשארים בטלפון
 > ☑ להשאיר בטלפון את 30 הימים האחרונים · ‏96 קבצים נשארים בטלפון
@@ -321,7 +343,7 @@ Decided (Q1): "Move to trash" is the default action; "Free the space now" is the
 - The button is ink, not red (C118): the checked copy is the undo.
 - Progress: "נמחקו 400 מתוך 6,830" (trial mode: "נבדקו 400 מתוך 6,830 · מצב ניסיון, שום דבר לא נמחק").
 - Result: "פונו 24.1GB · 6,830 קבצים מהטלפון. העותק נשאר ב-SanDisk." `[לשחזר מגיבוי]`; skipped files are counted and stay on the phone; if the drive goes away: "הפינוי נעצר: …".
-- With Settings' "לשמור את המקור גם בסל 30 יום (לא מפנה מקום)" on, the sheet and result are the trash version above ("להעביר לסל המחזור", Empty now).
+- With Settings' "לשמור את המקור גם בסל 30 יום (לא מפנה מקום)" on, the sheet and result are the trash version above (H2c: title „להעביר את המקור לסל?”, the receipt's button „להעביר לסל 24.1GB” and the confirm „להעביר לסל”, never „לפנות”: nothing is freed until the trash is emptied; Empty now).
 
 ### 5.8 Backup screens after PR H1b (owner brief H1, 2026-11-03; replaces §5.1, §5.2, §5.4 and the receipt's stamp)
 
@@ -435,7 +457,7 @@ Not enough room … There is room for 2 of 3 files.  [Restore these now]
 
 | State | en | he |
 |---|---|---|
-| Tiny junk | Only 120 MB of real junk. Most of your space is photos and videos — Move to backup can help. | רק 120MB של קבצים מיותרים באמת. רוב המקום תפוס בתמונות ובסרטונים, ושם "העברה לגיבוי" יכולה לעזור. |
+| Tiny junk | Only 120 MB of real junk. Most of your space is photos and videos — backing them up can help. | רק 120MB של קבצים מיותרים באמת. רוב המקום תפוס בתמונות ובסרטונים, ושם גיבוי יכול לעזור. |
 | Partial media access | KeepClear sees only 40 photos you picked. Allow all to get real numbers. `[Change]` | KeepClear רואה רק 40 תמונות שבחרתם. כדי לקבל מספרים אמיתיים, אפשר לתת גישה לכולן. `[לשנות]` |
 | Permission removed mid-job | Paused: access to your photos was removed. Nothing was deleted. `[Allow again]` | הושהה: הגישה לתמונות הוסרה. שום דבר לא נמחק. `[לאשר שוב]` |
 | Almost full (light mode) | Your phone is almost full. KeepClear is using as little space as possible. | הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום. |

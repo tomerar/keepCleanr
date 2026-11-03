@@ -4,8 +4,7 @@
 <resources>
     <string name="home_card_safe_title">לנקות עכשיו</string>
     <string name="home_card_review_title">לבחור מה למחוק</string>
-    <string name="home_card_move_title">להעביר לגיבוי</string>
-    <string name="home_privacy">בלי פרסומות. בלי מעקב. חיבור לרשת רק למקום גיבוי שהוגדר.</string>
+    <string name="home_card_move_title">לגבות</string>
     <string name="debug_toggle_rtl">דיבאג: להפוך את כיוון המסך</string>
     <string name="home_storage_line">%1$s בשימוש · %2$s פנויים</string>
     <string name="access_card_title">לראות מה תופס מקום</string>
@@ -13,10 +12,10 @@
     <string name="access_allow">לאשר גישה</string>
     <string name="explainer_media_title">לראות תמונות וסרטונים</string>
     <string name="explainer_media_why">כדי למצוא צילומי מסך, סרטונים גדולים ומה אפשר לגבות.</string>
-    <string name="explainer_media_never">שום דבר לא יוצא מהטלפון, אלא אם מעבירים אותו לכונן שבוחרים.</string>
+    <string name="explainer_media_never">שום דבר לא יוצא מהטלפון, אלא אם מגבים אותו למקום שבוחרים.</string>
     <string name="explainer_media_without">בלי זה: אפשר רק לנקות קבצים זמניים של אפליקציות.</string>
     <string name="explainer_allfiles_title">לראות את כל הקבצים</string>
-    <string name="explainer_allfiles_why">כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלי מחזור של אפליקציות אחרות.</string>
+    <string name="explainer_allfiles_why">כדי למצוא מדיה של וואטסאפ, תיקיות שנשארו מהטלפון הקודם וסלים של אפליקציות אחרות.</string>
     <string name="explainer_allfiles_never">גם עם ההרשאה הזו, אנדרואיד לא חושף נתונים פרטיים של אפליקציות אחרות. KeepClear אף פעם לא מוחק בלי לשאול.</string>
     <string name="explainer_allfiles_without">בלי זה: רק תמונות, סרטונים ושמע.</string>
     <string name="explainer_label_why">למה</string>
@@ -45,6 +44,7 @@
     </plurals>
     <string name="home_total_review_body">צילומי מסך, סרטונים גדולים, תיקיות מהטלפון הקודם. שום דבר לא נמחק בלי שתבחרו.</string>
     <string name="home_total_move_body">תמונות וסרטונים לגבות, לבדוק ואז לפנות.</string>
+    <!-- PR H2c (owner brief H2 item 10): a count with its size is always "2,324 files · 2.9GB": %1$s the count, %2$s the size (CountSize.text). -->
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">להציג</string>
     <string name="label_why">למה זה כאן?</string>
@@ -66,7 +66,7 @@
     <string name="trash_changed">השתנה מאז שנמחק</string>
     <string name="trash_restore_changed">לשחזר לתיקייה נפרדת</string>
     <string name="trash_restore_changed_title">לשחזר קובץ שהשתנה?</string>
-    <string name="trash_restore_changed_body">הקובץ הזה לא זהה למה שנמחק. הוא יוחזר לתיקייה KeepClear/Restored-changed, ואף פעם לא במקום קובץ אחר.</string>
+    <string name="trash_restore_changed_body">הקובץ הזה לא זהה למה שנמחק. הוא ישוחזר לתיקייה נפרדת, KeepClear › Restored-changed, ואף פעם לא במקום קובץ אחר.</string>
     <string name="last_copy_title">זה העותק האחרון</string>
     <string name="last_copy_confirm">למחוק גם את העותק האחרון</string>
     <string name="last_copy_keep">להשאיר</string>
@@ -81,7 +81,9 @@
     </plurals>
     <string name="trash_release_now">לפנות עכשיו</string>
     <string name="trash_verified_copy">עותק שנבדק נמצא ב-%1$s</string>
-    <string name="trash_restore_to">ישוחזר אל %1$s</string>
+    <string name="trash_restore_to">ישוחזר לתיקייה %1$s</string>
+    <string name="location_phone">הטלפון</string>
+    <string name="location_memory_card">כרטיס הזיכרון</string>
     <string name="trash_confirm_empty_title">למחוק לצמיתות %1$s?</string>
     <string name="trash_confirm_empty_body">%1$s. אי אפשר לבטל את זה. פריטים שיש להם עותק שנבדק בכונן עדיין שמורים שם; לשאר אין עותק נוסף.</string>
     <string name="trash_confirm_release_title">לפנות עכשיו %1$s?</string>
@@ -90,10 +92,12 @@
     <string name="trash_cancel">לבטל</string>
     <string name="clean_title">לנקות עכשיו</string>
     <string name="clean_selected">נבחרו: %1$s</string>
+    <string name="nothing_selected">לא נבחר כלום</string>
     <string name="clean_button">לנקות %1$s</string>
+    <string name="clean_button_empty">לנקות</string>
     <string name="clean_confirm_title">לנקות %1$s?</string>
-    <string name="clean_confirm_yes">להעביר לסל המחזור</string>
-    <string name="clean_done">בוצע. %1$s הועברו לסל המחזור.</string>
+    <string name="clean_confirm_yes">להעביר לסל</string>
+    <string name="clean_done">בוצע. %1$s הועברו לסל.</string>
     <string name="clean_done_space">המקום יחזור לטלפון ב-%1$s. צריך אותו עכשיו?</string>
     <plurals name="clean_skipped">
         <item quantity="one">קובץ אחד השתנה מאז הסריקה, ולכן לא נגענו בו.</item>
@@ -105,7 +109,7 @@
         <item quantity="two">שני קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
         <item quantity="other">%1$s קבצים מוגנים (צ\'אטים, גיבוי או משהו שבחרתם לשמור), ולכן לא נגענו בהם.</item>
     </plurals>
-    <string name="clean_undo">להחזיר הכול</string>
+    <string name="clean_undo">חזרה</string>
     <string name="trim_title">לנקות קבצים זמניים של אפליקציות</string>
     <string name="trim_body">אנדרואיד מוחק קבצים זמניים שהאפליקציות יורידו שוב בעצמן.</string>
     <string name="trim_button">לנקות קבצים זמניים</string>
@@ -128,7 +132,7 @@
     <string name="move_view">להציג</string>
     <string name="move_selected">נבחרו: %1$s</string>
     <string name="move_pick_target">לבחור לאן לגבות</string>
-    <string name="move_target_title">העתקה אל %1$s</string>
+    <string name="move_target_title">לגבות אל %1$s</string>
     <string name="move_target_cloud">זו תיקייה בענן. אפשר להעתיק אליה, אבל KeepClear לא יכול לבדוק את העותק, ולכן המקור נשאר בטלפון.</string>
     <string name="move_target_unknown">‏KeepClear לא יכול לבדוק עותקים במקום הזה, ולכן הוא רק מעתיק והמקור נשאר בטלפון.</string>
     <string name="move_issue_space">אין מספיק מקום בכונן: צריך %1$s, פנויים %2$s.</string>
@@ -153,7 +157,7 @@
     <string name="move_cancel">לבטל</string>
     <string name="move_problem_phone">התיקייה הזו נמצאת בטלפון עצמו. צריך לבחור דיסק און קי או כרטיס זיכרון.</string>
     <string name="move_problem_marker">בתיקייה הזו יש גיבוי ש-KeepClear לא מזהה. כדאי לבחור תיקייה אחרת.</string>
-    <string name="move_problem_selection_lost">‏KeepClear נסגר בזמן בחירת הכונן, ולכן הבחירה אבדה. צריך לבחור שוב מה להעביר.</string>
+    <string name="move_problem_selection_lost">‏KeepClear נסגר בזמן בחירת הכונן, ולכן הבחירה אבדה. צריך לבחור שוב מה לגבות.</string>
     <string name="move_problem_unavailable">‏KeepClear לא מצליח לפתוח את הכונן. כדאי לבדוק שהוא מחובר ולנסות שוב.</string>
     <string name="move_pause">להשהות</string>
     <string name="move_stop">לעצור</string>
@@ -192,9 +196,9 @@
     <string name="move_paused_user">הושהה.</string>
     <string name="move_receipt_title">הגיבוי ב-%1$s מוכן ✓</string>
     <plurals name="move_receipt_verified">
-        <item quantity="one">קובץ אחד (%2$s) הועתק. בדקנו אותו: הוא נקרא שוב מהכונן וזהה למקור.</item>
-        <item quantity="two">שני קבצים (%2$s) הועתקו. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור.</item>
-        <item quantity="other">%1$s קבצים (%2$s) הועתקו. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור.</item>
+        <item quantity="one">הועתק קובץ אחד · %2$s. בדקנו אותו: הוא נקרא שוב מהכונן וזהה למקור.</item>
+        <item quantity="two">הועתקו שני קבצים · %2$s. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור.</item>
+        <item quantity="other">הועתקו %1$s קבצים · %2$s. בדקנו כל קובץ: הוא נקרא שוב מהכונן וזהה למקור.</item>
     </plurals>
     <plurals name="move_receipt_failed_missing">
         <item quantity="one">קובץ אחד כבר לא היה בטלפון ודולג.</item>
@@ -241,12 +245,14 @@
         <item quantity="two">שני קבצים קיבלו שם אחר בכונן (שמור ברשימת הגיבוי).</item>
         <item quantity="other">%1$s קבצים קיבלו שם אחר בכונן (שמור ברשימת הגיבוי).</item>
     </plurals>
-    <string name="move_receipt_how_back">הקבצים נמצאים ב-%1$s, בתיקייה %2$s. כדי להחזיר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.</string>
+    <string name="move_receipt_how_back">הקבצים נמצאים ב-%1$s, בתיקייה %2$s. כדי לשחזר אותם לטלפון: „לשחזר מגיבוי” בלשונית גיבוי.</string>
     <string name="move_free_button">לפנות %1$s מהטלפון</string>
+    <string name="move_free_button_trash">להעביר לסל %1$s</string>
     <string name="move_free_unavailable">המקור נשאר בטלפון: אי אפשר לבדוק את המקום הזה.</string>
     <string name="move_free_confirm_title">לפנות מקום בטלפון?</string>
-    <string name="move_free_confirm_body">%1$s יעברו לסל המחזור של KeepClear. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום.</string>
-    <string name="move_free_confirm_yes">להעביר לסל המחזור</string>
+    <string name="move_free_confirm_title_trash">להעביר את המקור לסל?</string>
+    <string name="move_free_confirm_body">%1$s יעברו לסל המחזור. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום; המקום יתפנה רק כשהסל יתרוקן.</string>
+    <string name="move_free_confirm_yes">להעביר לסל</string>
     <string name="move_share">לשתף את סיכום הגיבוי</string>
     <string name="move_history">גיבויים קודמים</string>
     <string name="move_notif_warning">ההתראות כבויות, ולכן לא תראו את ההתקדמות מחוץ ל-KeepClear.</string>
@@ -266,17 +272,17 @@
         <item quantity="two">%1$d מתוך %2$d קבצים</item>
         <item quantity="other">%1$d מתוך %2$d קבצים</item>
     </plurals>
-    <string name="move_receipt_text">סיכום הגיבוי של KeepClear\nכונן: %1$s\nתיקייה: %2$s\nקבצים שהועתקו ונבדקו: %3$d (%4$s)\nקבצים שדולגו או לא הועתקו: %5$d\nהעותק לא מוצפן.</string>
+    <string name="move_receipt_text">סיכום הגיבוי של KeepClear\nכונן: %1$s\nתיקייה: %2$s\nקבצים שהועתקו ונבדקו: %3$d · %4$s\nקבצים שדולגו או לא הועתקו: %5$d\nהעותק לא מוצפן.</string>
     <string name="test_mode_banner">מצב ניסיון – שום קובץ לא יימחק או יועבר</string>
     <string name="test_mode_would_free">היה מתפנה %1$s (מצב ניסיון). שום דבר לא נמחק ולא הועבר.</string>
     <string name="test_mode_caches_not_cleared">מצב ניסיון: לא ביקשנו מאנדרואיד לנקות קבצים זמניים של אפליקציות.</string>
     <string name="test_mode_title">מצב ניסיון</string>
     <string name="test_mode_body">כשמצב ניסיון פועל, ‏KeepClear רק מראה מה היה עושה. שום קובץ לא נמחק, לא עובר לסל המחזור, לא משוחזר ולא מנוקה.</string>
     <string name="test_mode_off_title">לכבות את מצב הניסיון?</string>
-    <string name="test_mode_off_body">מעכשיו ניקוי, מחיקה ופינוי מקום ישנו באמת קבצים בטלפון. הכול עדיין עובר קודם לסל המחזור של KeepClear ל-30 יום.</string>
+    <string name="test_mode_off_body">מעכשיו ניקוי, מחיקה ופינוי מקום ישנו באמת קבצים בטלפון. רוב מה שמנקים עדיין מחכה קודם 30 יום בסל המחזור.</string>
     <string name="test_mode_off_continue">להמשיך</string>
     <string name="test_mode_off_title2">לכבות את מצב הניסיון?</string>
-    <string name="test_mode_off_body2">מעכשיו קבצים יעברו באמת לסל המחזור. אפשר להפעיל שוב את מצב הניסיון בכל זמן.</string>
+    <string name="test_mode_off_body2">מעכשיו הקבצים משתנים באמת. אפשר להפעיל שוב את מצב הניסיון בכל זמן.</string>
     <string name="test_mode_off_confirm">לכבות את מצב הניסיון</string>
     <string name="settings_title">הגדרות</string>
     <string name="settings_advanced">מתקדם</string>
@@ -291,15 +297,15 @@
     <string name="debug_device_check_running">בודקים… זה יכול לקחת כדקה.</string>
     <string name="home_card_counting">סופרים…</string>
     <string name="home_card_needs_access">יופיע אחרי האישור</string>
-    <string name="home_clean_button">לנקות %1$s</string>
+    <string name="home_clean_button">לפנות %1$s</string>
     <string name="scan_status_running">סופרים קבצים… %1$s עד עכשיו</string>
     <string name="scan_status_done">נסרקו %1$s · %2$s</string>
     <string name="intro_1_title">שומרים את מה שחשוב</string>
     <string name="intro_1_body">‏KeepClear מוצא מה תופס מקום בטלפון ומסביר כל דבר במילים פשוטות. שום דבר לא נמחק בלי לשאול.</string>
     <string name="intro_2_title">את רוב הדברים אפשר לשחזר</string>
     <string name="intro_2_body">רוב מה שמנקים מחכה 30 יום בסל המחזור. קבצים שנבנים מחדש לבד נמחקים מיד.</string>
-    <string name="intro_3_title">זיכרונות מועברים, לא נמחקים</string>
-    <string name="intro_3_body">תמונות וסרטונים מועתקים לכונן שלכם ונבדקים. מקום מתפנה רק כשאתם מחליטים.</string>
+    <string name="intro_3_title">קודם מגבים, אחר כך מפנים מקום</string>
+    <string name="intro_3_body">תמונות וסרטונים מגובים לדיסק און קי שלכם, וכל קובץ נבדק. מקום מתפנה רק כשאתם מחליטים.</string>
     <string name="intro_next">להמשיך</string>
     <string name="intro_start">להתחיל</string>
     <string name="intro_skip">לדלג</string>
@@ -320,7 +326,7 @@
     <string name="trash_confirm_empty_body_split">ל-%1$s יש עותק שנבדק בכונן שלכם. ל-%2$s אין עותק נוסף, והם יימחקו לצמיתות.</string>
     <string name="trash_group_clean">קבצים מיותרים שנוקו</string>
     <string name="trash_group_review">קבצים שבחרתם למחוק</string>
-    <string name="trash_group_move">גובו ופונו מהטלפון</string>
+    <string name="trash_group_move">גובו והועברו לסל</string>
     <string name="trash_group_other">אחר</string>
     <string name="trash_restore_group">לשחזר את הקבוצה</string>
     <string name="trash_show_files">להציג את הרשימה</string>
@@ -340,7 +346,7 @@
     <string name="move_preflight_note">לשים לב</string>
     <string name="details">לראות פרטים</string>
     <string name="details_check_pc">בדיקה למפתחים במחשב: sha256sum -c SHA256SUMS בתיקיית הגיבוי. ה-SHA-256 של כל קובץ נמצא ב-keepclear-manifest.jsonl.</string>
-    <string name="move_free_done">%1$s הועברו לסל המחזור.</string>
+    <string name="move_free_done">%1$s הועברו לסל.</string>
     <plurals name="move_free_skipped">
         <item quantity="one">קובץ אחד דולג ונשאר בטלפון (השתנה, או שהעותק שלו לא נמצא תקין).</item>
         <item quantity="two">שני קבצים דולגו ונשארו בטלפון (השתנו, או שהעותק שלהם לא נמצא תקין).</item>
@@ -357,7 +363,7 @@
     <string name="settings_about_body">חינמי וקוד פתוח (GPL-3.0). בלי פרסומות, בלי מעקב. חיבור לרשת רק כדי להגיע למקום גיבוי שהוגדר, בכתובת שהוקלדה. גרסה %1$s.</string>
     <string name="settings_privacy">לקרוא את מדיניות הפרטיות</string>
     <string name="settings_replay_intro">להציג שוב את ההיכרות</string>
-    <string name="settings_get_back_title">איך מחזירים קבצים</string>
+    <string name="settings_get_back_title">איך משחזרים קבצים</string>
     <string name="settings_get_back_body">מה שנוקה: בסל המחזור, במשך 30 יום. מה שגובה: בלשונית גיבוי › „לשחזר מגיבוי”.</string>
     <plurals name="duration_minutes">
         <item quantity="one">דקה אחת</item>
@@ -392,11 +398,11 @@
     <string name="one_by_one_sizes_later">כדי לראות כמה מקום כל אפליקציה תופסת, אפשר להפעיל גישה לנתוני שימוש.</string>
     <string name="trash_uninstall_note">אם מסירים את KeepClear, מה שבסל (%1$s) נשאר בטלפון ותופס מקום. כדאי לרוקן או לשחזר קודם.</string>
     <string name="settings_uninstall_title">לפני שמסירים את האפליקציה</string>
-    <string name="android_trash_done">%1$s הועברו לסל המחזור של אנדרואיד. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר להחזיר אותם מסל המחזור של KeepClear.</string>
+    <string name="android_trash_done">%1$s הועברו לסל הגלריה. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר לשחזר אותם מסל המחזור.</string>
     <string name="android_trash_declined">שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד.</string>
-    <string name="trash_group_android">בסל המחזור של אנדרואיד (תמונות וסרטונים)</string>
+    <string name="trash_group_android">בסל הגלריה</string>
     <string name="trash_android_note">אנדרואיד מוחק אותם בעצמו 30 יום אחרי שנמחקו. אנדרואיד מבקש אישור לכל שחזור או מחיקה.</string>
-    <string name="trash_android_empty">למחוק אותם עכשיו</string>
+    <string name="trash_android_empty">למחוק אותם לצמיתות</string>
     <string name="apps_title">אפליקציות</string>
     <string name="apps_total">אפליקציות תופסות %1$s.</string>
     <string name="apps_access_title">לראות כמה מקום כל אפליקציה תופסת ומתי השתמשו בה</string>
@@ -445,10 +451,10 @@
     <string name="restore_title">שחזור מגיבוי</string>
     <string name="restore_pick_body">יש לבחור את הכונן או את התיקייה שבהם נמצא הגיבוי (התיקייה בשם KeepClear, או הכונן עצמו).</string>
     <string name="restore_pick_folder">לבחור כונן או תיקייה</string>
-    <string name="restore_needs_all_files">כדי להחזיר כל קובץ למקום שלו, KeepClear צריך גישה לכל הקבצים.</string>
+    <string name="restore_needs_all_files">כדי לשחזר כל קובץ למקום שלו, KeepClear צריך גישה לכל הקבצים.</string>
     <string name="restore_no_backup">לא נמצא שם גיבוי של KeepClear.</string>
     <string name="restore_which_phone">הגיבוי של איזה טלפון?</string>
-    <string name="restore_choose">מה להחזיר</string>
+    <string name="restore_choose">מה לשחזר</string>
     <string name="restore_run">לשחזר</string>
     <string name="restore_running">משחזרים…</string>
     <string name="restore_interrupted">הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים.</string>
@@ -532,7 +538,7 @@
     <string name="swipe_resume_restart">להתחיל מחדש</string>
     <string name="settings_swipe_swap">להחליף את כיווני ההחלקה</string>
     <string name="reminder_setting">להזכיר לי כשהמקום מתמלא</string>
-    <string name="reminder_setting_body" formatted="false">לכל היותר פעם בשבוע, כשנשאר פחות מ-10% (או 2 GB) פנוי. רק תזכורת; שום דבר לא נמחק ברקע.</string>
+    <string name="reminder_setting_body">לכל היותר פעם בשבוע, כשנשאר פחות מ-10%% (או %1$s) פנוי. רק תזכורת; שום דבר לא נמחק ברקע.</string>
     <string name="reminder_channel">תזכורות מקום</string>
     <string name="reminder_title">המקום בטלפון מתמלא</string>
     <string name="reminder_text">%1$s פנויים. אפשר לפתוח את KeepClear כדי לראות מה אפשר לפנות.</string>
@@ -554,7 +560,7 @@
     <string name="nextcloud_working">מתחברים ל-Nextcloud…</string>
     <string name="nextcloud_browser">יש להיכנס בדף שנפתח בדפדפן, לאשר גישה ולחזור לכאן. KeepClear ממתין עד 20 דקות.</string>
     <string name="nextcloud_open_again">לפתוח שוב את דף הכניסה</string>
-    <string name="nextcloud_done">ה-Nextcloud %1$s מוכן. כדי לגבות אליו: בלשונית גיבוי לבחור מה להעביר, להקיש על „לבחור לאן לגבות” ואז על „להשתמש ב-Nextcloud”.</string>
+    <string name="nextcloud_done">ה-Nextcloud %1$s מוכן. כדי לגבות אליו: בלשונית גיבוי לבחור מה לגבות, להקיש על „לבחור לאן לגבות” ואז על „להשתמש ב-Nextcloud”.</string>
     <string name="nextcloud_bad_address">יש להקליד את הכתובת שבה ה-Nextcloud נפתח, למשל https://cloud.example.com, בלי שם, בלי סיסמה ובלי שום דבר אחרי סימן שאלה.</string>
     <string name="nextcloud_needs_https">יש להשתמש בכתובת שמתחילה ב-https://. ‏KeepClear אף פעם לא שולח סיסמה בלי הצפנה.</string>
     <string name="nextcloud_problem_unreachable">אף שרת לא ענה בכתובת הזו. כדאי לבדוק את הכתובת ואת החיבור לאינטרנט ולנסות שוב.</string>
@@ -563,7 +569,7 @@
     <string name="nextcloud_problem_other_address">השרת ניסה להפנות את KeepClear לכתובת אחרת, ולכן KeepClear עצר. יש להשתמש בכתובת של ה-Nextcloud עצמו.</string>
     <string name="nextcloud_problem_refused">ה-Nextcloud דחה את שם המשתמש או את סיסמת האפליקציה. כדאי לבדוק אותם ולנסות שוב.</string>
     <string name="nextcloud_problem_expired">הכניסה לא הושלמה בזמן. אפשר לנסות שוב.</string>
-    <string name="nextcloud_settings_body">למי שיש Nextcloud משלו. נכנסים פעם אחת, ואז אפשר לבחור בו בהעברת קבצים לגיבוי. ה-Nextcloud בודק כל עותק שהוא שומר.</string>
+    <string name="nextcloud_settings_body">למי שיש Nextcloud משלו. נכנסים פעם אחת, ואז אפשר לבחור בו כשמגבים. ה-Nextcloud בודק כל עותק שהוא שומר.</string>
     <string name="nextcloud_settings_button">להגדיר Nextcloud</string>
     <string name="settings_nextcloud_only">רשת: רק אל %1$s (ה-Nextcloud)</string>
     <string name="settings_nextcloud_forget">לשכוח את ה-Nextcloud</string>
@@ -580,6 +586,7 @@
         <item quantity="other">%1$s פריטים לא ישוחזרו (קבצים מוסתרים או אפליקציות)</item>
     </plurals>
     <string name="restore_space">פנוי בטלפון: %1$s. נבחרו: %2$s.</string>
+    <string name="restore_space_none">פנוי בטלפון: %1$s. לא נבחר כלום.</string>
     <string name="restore_space_unknown">KeepClear לא הצליח לבדוק כמה מקום פנוי בטלפון, ולכן לא ישחזר עכשיו. אפשר לנסות שוב בעוד רגע.</string>
     <string name="restore_too_big">אין מספיק מקום לכל מה שבחרתם. KeepClear תמיד משאיר %1$s פנויים כדי שהטלפון ימשיך לעבוד. אפשר לבחור פחות חודשים.</string>
     <plurals name="restore_already_on_phone">
@@ -591,9 +598,9 @@
     <string name="restore_stopped_low_space">השחזור נעצר כי הטלפון כמעט מלא. מה שכבר שוחזר נשאר. אפשר לפנות מקום ולשחזר שוב כדי להשלים.</string>
     <string name="restore_simulated">היו משוחזרים %1$s (מצב ניסיון): %2$s למקום המקורי, %3$s לתמונות › KeepClear Restored. שום דבר לא נכתב לטלפון.</string>
     <plurals name="move_receipt_verified_nextcloud">
-        <item quantity="one">קובץ אחד (%2$s) הועתק. ה-Nextcloud בדק אותו: מה שנשמר זהה למקור.</item>
-        <item quantity="two">שני קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
-        <item quantity="other">%1$s קבצים (%2$s) הועתקו. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
+        <item quantity="one">הועתק קובץ אחד · %2$s. ה-Nextcloud בדק אותו: מה שנשמר זהה למקור.</item>
+        <item quantity="two">הועתקו שני קבצים · %2$s. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
+        <item quantity="other">הועתקו %1$s קבצים · %2$s. ה-Nextcloud בדק כל קובץ: מה שנשמר זהה למקור.</item>
     </plurals>
     <plurals name="move_receipt_nextcloud">
         <item quantity="one">אחד מהם נבדק על ידי ה-Nextcloud.</item>
@@ -619,21 +626,21 @@
     <string name="tab_apps">אפליקציות</string>
     <string name="home_free_label">פנויים</string>
     <string name="home_hero_safe">אפשר לפנות בבטחה %1$s</string>
-    <string name="home_see_details">לראות פירוט</string>
+    <string name="home_see_details">לראות פרטים</string>
     <string name="home_notice_dismiss">לסגור</string>
     <string name="backup_places_title">מקומות לגיבוי</string>
-    <string name="backup_places_drive">כונן USB או כרטיס זיכרון: בוחרים אותו כשמתחילים לגבות.</string>
+    <string name="backup_places_drive">דיסק און קי או כרטיס זיכרון: בוחרים אותו כשמתחילים לגבות.</string>
     <string name="backup_place_network">מחשב בבית: %1$s</string>
     <string name="backup_place_nextcloud">Nextcloud: %1$s</string>
     <string name="backup_places_setup">להגדיר מקום לגיבוי</string>
     <string name="confirm_fact_how_many">כמה</string>
     <string name="confirm_fact_how_much">כמה מקום</string>
     <string name="confirm_fact_where">לאן</string>
-    <string name="confirm_where_trash">לסל המחזור של KeepClear, ל-30 יום</string>
+    <string name="confirm_where_trash">לסל המחזור, ל-30 יום</string>
     <string name="confirm_where_trim">אנדרואיד מוחק אותם, והאפליקציות מורידות אותם שוב כשצריך</string>
     <string name="confirm_where_gone">יימחקו מהטלפון לצמיתות</string>
     <string name="confirm_permanent_note">אי אפשר לבטל את זה.</string>
-    <string name="clean_confirm_note">במשך 30 יום אפשר להחזיר הכול מסל המחזור.</string>
+    <string name="clean_confirm_note">במשך 30 יום אפשר לשחזר הכול מסל המחזור.</string>
     <string name="area_value">%1$s %2$s</string>
     <string name="home_busy">KeepClear עובד על זה…</string>
     <string name="confirm_where_back">בחזרה למקום שבו היו</string>
@@ -663,8 +670,7 @@
     <string name="apps_open_app_content">לראות קבצים בתוך התיקיות של אפליקציות</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
     <string name="clean_confirm_yes_now">לנקות עכשיו</string>
-    <string name="confirm_part_value">%1$s · %2$s</string>
-    <string name="clean_confirm_note_rest">את כל השאר אפשר להחזיר מסל המחזור במשך 30 יום.</string>
+    <string name="clean_confirm_note_rest">את כל השאר אפשר לשחזר מסל המחזור במשך 30 יום.</string>
     <string name="result_freed_now">פונו %1$s · עכשיו פנויים %2$s</string>
     <string name="clean_in_trash">%1$s בסל, יתפנו ב-%2$s</string>
     <string name="clean_deleted_for_good">%1$s נמחקו לצמיתות.</string>
@@ -680,7 +686,7 @@
     <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
     <string name="move_issue_battery_warning" formatted="false">כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך</string>
     <string name="move_paused_battery" formatted="false">הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען.</string>
-    <string name="move_free_confirm_for_good">המקור יימחק מהטלפון. העותק נשאר ב-%1$s, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.</string>
+    <string name="move_free_confirm_for_good">המקור יימחק מהטלפון. העותק נשאר ב-%1$s, נבדק קובץ-קובץ, ואפשר לשחזר ממנו בכל זמן.</string>
     <string name="free_where_for_good">יימחקו מהטלפון; העותק נשאר ב-%1$s</string>
     <string name="free_keep_favourites">להשאיר בטלפון מועדפים</string>
     <string name="free_keep_recent">להשאיר בטלפון את 30 הימים האחרונים</string>
@@ -697,7 +703,7 @@
     <string name="move_free_done_for_good">פונו %1$s מהטלפון. העותק נשאר ב-%2$s.</string>
     <string name="move_free_interrupted">הפינוי נעצר: אי אפשר היה לקרוא את %1$s. מה שעוד לא נמחק נשאר בטלפון.</string>
     <string name="settings_keep_originals">לשמור את המקור גם בסל 30 יום (לא מפנה מקום)</string>
-    <string name="settings_keep_originals_body">אחרי גיבוי שנבדק, פינוי מקום יעביר כל מקור לסל המחזור של KeepClear ל-30 יום במקום למחוק אותו. המקום יתפנה רק כשהסל יתרוקן.</string>
+    <string name="settings_keep_originals_body">אחרי גיבוי שנבדק, כל מקור יעבור לסל המחזור ל-30 יום במקום להימחק. המקום יתפנה רק כשהסל יתרוקן.</string>
     <!-- PR H1b: backup screens (owner brief H1 items 1-8, 10, 11). -->
     <string name="backup_only_copies">בשלב הזה רק מעתיקים. שום תמונה לא נמחקת.</string>
     <string name="backup_button">לגבות %1$s</string>
@@ -734,7 +740,7 @@
     <string name="readme_title">גיבוי של KeepClear</string>
     <string name="readme_what">בתיקייה הזו יש עותקים של תמונות וסרטונים מהטלפון ששמו מופיע למעלה. האפליקציה KeepClear יצרה אותם, וכל עותק נבדק מול המקור, קובץ-קובץ.</string>
     <string name="readme_open">במחשב: לחבר את הכונן ולפתוח את התיקיות שבתוכו (Camera, WhatsApp, Pictures). אלה תמונות וסרטונים רגילים, ואפשר לפתוח אותם בכל תוכנה. בבקשה לא לשנות ולא למחוק כאן קבצים: זה הגיבוי.</string>
-    <string name="readme_restore">כדי להחזיר אותם לטלפון: להתקין את KeepClear, לפתוח את הלשונית „גיבוי”, להקיש על „לשחזר מגיבוי” ולבחור את הכונן הזה.</string>
+    <string name="readme_restore">כדי לשחזר אותם לטלפון: להתקין את KeepClear, לפתוח את הלשונית „גיבוי”, להקיש על „לשחזר מגיבוי” ולבחור את הכונן הזה.</string>
     <string name="backup_running_to">מגבים אל %1$s</string>
     <!-- H1c: trash and restore grid (owner brief H1 item 9) -->
     <string name="grid_show_list">להציג כרשימה</string>

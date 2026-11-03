@@ -197,7 +197,11 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(reminderLabel, style = MaterialTheme.typography.titleSmall)
-                        Text(stringResource(R.string.reminder_setting_body), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            reminderBody(),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag("reminderBody"),
+                        )
                     }
                     Switch(
                         checked = actions.reminderOn,
@@ -307,7 +311,6 @@ fun SettingsScreen(
                         Modifier.testTag("privacy"),
                         style = KcButtonStyle.Text,
                     )
-                    Text(stringResource(R.string.home_privacy), style = MaterialTheme.typography.bodySmall)
                 }
             }
             SectionHeading(stringResource(R.string.settings_advanced))
@@ -626,4 +629,18 @@ object Onboarding {
             putBoolean(KEY, value)
         }
     }
+}
+
+/**
+ * „…פחות מ-10% (או 2GB) פנוי”: the size comes from the reminder's own threshold, formatted like every size and
+ * isolated, so it never reads "(או GB 2)" in Hebrew (owner brief H2 item 10).
+ */
+@Composable
+internal fun reminderBody(): String {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    // ByteSize.format is already a left-to-right isolate.
+    return stringResource(
+        R.string.reminder_setting_body,
+        io.github.tomerar.keepclear.core.common.ByteSize.format(ReminderPolicy.MIN_FREE_BYTES, locale),
+    )
 }

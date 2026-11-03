@@ -38,7 +38,14 @@ class ButtonLabelsTest {
     }
 
     /** Labels the code picks indirectly (e.g. `CleanSheetText.confirmLabel`), which the scan can't see. */
-    private val indirect = setOf("clean_confirm_yes", "clean_confirm_yes_now")
+    private val indirect = setOf(
+        "clean_confirm_yes",
+        "clean_confirm_yes_now",
+        // PR H2c (C156): the receipt's free button picks one of two by the keep-in-trash setting.
+        "move_free_button",
+        "move_free_button_trash",
+        "move_free_confirm_yes",
+    )
 
     @Test
     fun `no button label has parentheses, in English or Hebrew`() {

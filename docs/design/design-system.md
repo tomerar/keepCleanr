@@ -78,7 +78,7 @@ Every brief token passed the contrast test unchanged (§2.4); none was adjusted.
 |---|---|---|---|
 | safe / safeContainer / onSafeContainer | `#3D6B4F` / `#DCEBDF` / `#10291A` | `#9DCDAE` / `#24392C` / `#DCEBDF` | "Clean now" lane |
 | review / reviewContainer / onReviewContainer | `#4D5D73` / `#E1E6EE` / `#151E2B` | `#B7C4D8` / `#2C3440` / `#E1E6EE` | "Choose what to delete" lane (H2a) |
-| move / moveContainer / onMoveContainer | `#8A5A12` / `#F5E4C6` / `#2B1A00` | `#E7B970` / `#3D2E14` / `#F5E4C6` | "Move to backup" lane, memories |
+| move / moveContainer / onMoveContainer | `#8A5A12` / `#F5E4C6` / `#2B1A00` | `#E7B970` / `#3D2E14` / `#F5E4C6` | "Back up" lane („לגבות”, PR H2c), memories |
 | stripUsed | `#8A8378` | `#8F887D` | StorageStrip: used by everything else (= outline) |
 | stripFree | `#DDD6CA` | `#3A3732` | StorageStrip track: free space (= outlineVariant) |
 
@@ -139,7 +139,7 @@ Material Symbols **Rounded** (weight 400, fill 0, 24px), Apache-2.0, from `googl
 |---|---|---|
 | `eco` (leaf) | SAFE lane, "Clean now" | |
 | `photo_library` | REVIEW lane, "Choose what to delete" | |
-| `inventory_2` (box) | MOVE lane, memories, "Move to backup" | |
+| `inventory_2` (box) | MOVE lane, memories, "Back up" | |
 | `auto_delete` (bin with clock) | Trash: 30 days | |
 | `task_alt` | verified (VerifiedStamp) | |
 | `settings` | Settings | |

@@ -40,7 +40,7 @@ class HebrewPluralsTest {
     fun `trial mode and the owner's rewrites`() {
         assertEquals("מצב ניסיון – שום קובץ לא יימחק או יועבר", res.getString(R.string.test_mode_banner))
         assertEquals("לבחור מה למחוק", res.getString(R.string.home_card_review_title))
-        assertEquals("להחזיר הכול", res.getString(R.string.clean_undo))
+        assertEquals("חזרה", res.getString(R.string.clean_undo))
         assertEquals("להתחיל לגבות", res.getString(R.string.move_start))
         assertFalse(res.getString(R.string.test_mode_title).contains("בדיקה"))
     }

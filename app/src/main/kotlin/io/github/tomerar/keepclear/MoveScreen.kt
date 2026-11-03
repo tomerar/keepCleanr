@@ -234,6 +234,7 @@ fun MoveScreen(
                         actions = actions,
                         onFree = { confirmFree = latest },
                         onStop = { confirmStop = true },
+                        keepInTrash = state.keepInTrash,
                     )
                 }
             }
@@ -274,6 +275,7 @@ fun MoveScreen(
                         actions = actions,
                         onFree = { confirmFree = view },
                         onStop = { confirmStop = true },
+                        keepInTrash = state.keepInTrash,
                     )
                 }
             }
@@ -346,7 +348,7 @@ fun MoveScreen(
  * ("Back up 31.0 GB"). Always on screen, whatever the font size and however long the list.
  */
 @Composable
-private fun BackupBar(total: Total, enabled: Boolean, preparing: Boolean, onClick: () -> Unit) {
+internal fun BackupBar(total: Total, enabled: Boolean, preparing: Boolean, onClick: () -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     androidx.compose.material3.Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -358,7 +360,7 @@ private fun BackupBar(total: Total, enabled: Boolean, preparing: Boolean, onClic
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                stringResource(R.string.move_selected, totalText(total)),
+                selectionText(total, R.string.move_selected),
                 style = KeepClearTheme.type.number,
                 modifier = Modifier.testTag("moveSelected"),
             )
@@ -423,7 +425,10 @@ internal fun FreeConfirmSheet(
     val drive = Bidi.name(view.job.targetLabel)
     val locale = LocalConfiguration.current.locales[0]
     ConfirmSheet(
-        title = stringResource(R.string.move_free_confirm_title),
+        // With "keep the original in the trash" nothing is freed yet, so the title says what happens (H2c, C156).
+        title = stringResource(
+            if (keepInTrash) R.string.move_free_confirm_title_trash else R.string.move_free_confirm_title,
+        ),
         dismissText = stringResource(R.string.move_cancel),
         onDismiss = onDismiss,
         facts = confirmFacts(
@@ -739,6 +744,7 @@ private fun JobCard(
     actions: MoveActions,
     onFree: () -> Unit,
     onStop: () -> Unit = actions.onStop,
+    keepInTrash: Boolean = false,
 ) {
     val r = view.receipt
     when {
@@ -813,6 +819,7 @@ private fun JobCard(
                 onFree = onFree,
                 onShare = { actions.onShare(view.job.id) },
                 onCheck = { actions.onCheck(view.job.id) },
+                keepInTrash = keepInTrash,
             )
         }
 
@@ -923,7 +930,13 @@ private fun pauseText(reason: PauseReason?, label: String, network: Boolean): St
 
 /** MOVE-9 / MOVE-18 / Q12: what was copied and checked, what wasn't and why, and how to get files back. */
 @Composable
-fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck: () -> Unit = {}) {
+fun ReceiptCard(
+    view: JobView,
+    onFree: () -> Unit,
+    onShare: () -> Unit,
+    onCheck: () -> Unit = {},
+    keepInTrash: Boolean = false,
+) {
     val r = view.receipt
     // F2: the backup summary as a "paper slip" (design-system.md §8.5) with the VerifiedStamp as its proof.
     PaperSlip(Modifier.testTag("receipt")) {
@@ -1010,7 +1023,12 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
             if (r.pending > 0) Text(countSentence(R.plurals.move_receipt_pending, r.pending))
             if (r.namesChanged > 0) Text(countSentence(R.plurals.move_receipt_names, r.namesChanged))
             Text(
-                stringResource(R.string.move_receipt_how_back, Bidi.name(r.targetLabel), Bidi.isolateLtr(r.rootRel)),
+                stringResource(
+                    R.string.move_receipt_how_back,
+                    Bidi.name(r.targetLabel),
+                    // Owner brief H2 item 10: the folder in plain words ("KeepClear › Pixel 8"), not "KeepClear/Pixel 8".
+                    Bidi.isolate(HumanLocation.folder(r.rootRel)),
+                ),
                 modifier = Modifier.testTag("howBack"),
             )
             // P-2: developer checks live under Details, not on the default path.
@@ -1056,8 +1074,10 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 view.canFree -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val locale = LocalConfiguration.current.locales[0]
                     KcButton(
+                        // H2c (C156): "Free up" only when the bytes really come back; with the user's
+                        // keep-in-trash setting the originals go to the trash, and the button says so.
                         stringResource(
-                            R.string.move_free_button,
+                            if (keepInTrash) R.string.move_free_button_trash else R.string.move_free_button,
                             Bidi.isolate(
                                 io.github.tomerar.keepclear.core.common.ByteSize.format(r.confirmedBytes, locale),
                             ),

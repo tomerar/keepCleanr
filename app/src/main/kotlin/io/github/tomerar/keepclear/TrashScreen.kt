@@ -150,15 +150,17 @@ private fun TrashRow(
         }
         trash.restoreTo[entry.id]?.let {
             Text(
-                stringResource(R.string.trash_restore_to, Bidi.isolateLtr(it)),
+                stringResource(R.string.trash_restore_to, Bidi.isolate(restoreFolder(it))),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("restoreTo_${entry.id}"),
             )
         }
         entry.verifiedCopy?.let {
+            // Owner brief H2 item 10: the drive's name, never the raw "USB:KeepClear/Phone/IMG".
             Text(
-                stringResource(R.string.trash_verified_copy, Bidi.isolate(it)),
+                stringResource(R.string.trash_verified_copy, Bidi.isolate(HumanLocation.driveOf(it))),
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("verifiedCopy_${entry.id}"),
             )
         }
         val changed = entry.id in trash.changed
@@ -269,11 +271,7 @@ fun TrashScreen(
                     )
                 }
             } else {
-                val total = stringResource(
-                    R.string.total_value,
-                    Bidi.isolate(ByteSize.format(trash.bytes, locale)),
-                    Bidi.isolate(count(trash.entries.size)),
-                )
+                val total = countAndSize(count(trash.entries.size), ByteSize.format(trash.bytes, locale))
                 Text(stringResource(R.string.trash_summary, total), style = MaterialTheme.typography.bodyLarge)
                 // TRASH-7 (F2): an uninstall can't be intercepted, so the note shows on the first visit; Settings
                 // keeps it for later. No hidden folder name on the default path.
@@ -320,11 +318,7 @@ fun TrashScreen(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    stringResource(
-                        R.string.total_value,
-                        Bidi.isolate(ByteSize.format(trash.android.sumOf { it.size }, locale)),
-                        Bidi.isolate(count(trash.android.size)),
-                    ),
+                    countAndSize(count(trash.android.size), ByteSize.format(trash.android.sumOf { it.size }, locale)),
                 )
                 Text(
                     stringResource(R.string.trash_android_note),
@@ -461,10 +455,14 @@ fun TrashScreen(
                                     modifier = Modifier.semantics { heading() },
                                 )
                                 Text(
-                                    stringResource(
-                                        R.string.total_value,
-                                        Bidi.isolate(ByteSize.format(entries.sumOf { it.size }, locale)),
-                                        Bidi.isolate(count(entries.size)),
+                                    countAndSize(
+                                        count(entries.size),
+                                        ByteSize.format(
+                                            entries.sumOf {
+                                                it.size
+                                            },
+                                            locale,
+                                        ),
                                     ),
                                     style = KeepClearTheme.type.number,
                                 )
@@ -573,7 +571,7 @@ fun TrashScreen(
                 total = Total(1, p.entry.size),
                 body = stringResource(
                     R.string.trash_confirm_release_body,
-                    Bidi.isolate(p.entry.verifiedCopy.orEmpty()),
+                    Bidi.isolate(HumanLocation.driveOf(p.entry.verifiedCopy.orEmpty())),
                 ),
                 bodyTag = "releaseBody",
                 confirm = stringResource(R.string.trash_confirm_release_yes),
@@ -855,15 +853,17 @@ private fun TrashDetailsSheet(
         DaysLeft(entry.expiresAt, now, Modifier.testTag("daysLeft_${entry.id}"))
         trash.restoreTo[entry.id]?.let {
             Text(
-                stringResource(R.string.trash_restore_to, Bidi.isolateLtr(it)),
+                stringResource(R.string.trash_restore_to, Bidi.isolate(restoreFolder(it))),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("restoreTo_${entry.id}"),
             )
         }
         entry.verifiedCopy?.let {
+            // The details sheet: the drive and its folders in plain words ("SanDisk › KeepClear › Pixel 8 › Camera").
             Text(
-                stringResource(R.string.trash_verified_copy, Bidi.isolate(it)),
+                stringResource(R.string.trash_verified_copy, Bidi.isolate(HumanLocation.copyLocation(it))),
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("verifiedCopy_${entry.id}"),
             )
         }
         if (changed) {
@@ -959,3 +959,11 @@ fun LastCopyDialog(
 
 /** The Trash shows items by their original path, so that is what the user confirms (review PR B). */
 fun trashConfirmed(entries: List<TrashEntry>): Confirmation = userConfirmed(entries.map { it.originalPath })
+
+/** Where a trashed file goes back to, as folders in plain words (owner brief H2 item 10), never a raw path. */
+@Composable
+private fun restoreFolder(path: String): String = HumanLocation.phoneFolder(
+    path,
+    phoneName = stringResource(R.string.location_phone),
+    cardName = stringResource(R.string.location_memory_card),
+)

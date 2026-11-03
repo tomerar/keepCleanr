@@ -154,20 +154,20 @@ class H1cTrashGridTest {
 
     @Test
     @Config(sdk = [36], qualifiers = "w360dp-h1600dp")
-    fun `TalkBack reads name, date and size and offers Restore, Preview and only there Free now`() {
+    fun `TalkBack reads name, date and size and offers Restore, Preview and only there Free up now`() {
         show()
         scrollTo("tile_b")
         val config = node("tile_b").fetchSemanticsNode().config
         val description = config[SemanticsProperties.ContentDescription].single()
         listOf("VID_party.mp4", "2025", "3.0 MB").forEach { assertTrue("$it in $description", it in description) }
-        assertEquals(listOf("Restore", "Preview", "Free now"), actions("tile_b").map { it.label })
+        assertEquals(listOf("Restore", "Preview", "Free up now"), actions("tile_b").map { it.label })
         scrollTo("tile_a")
         // No checked backup copy: no permanent action on this tile, as in the list.
         assertEquals(listOf("Restore", "Preview"), actions("tile_a").map { it.label })
 
         actions("tile_a").single { it.label == "Restore" }.action()
         assertEquals(listOf(beach), restored)
-        actions("tile_b").single { it.label == "Free now" }.action()
+        actions("tile_b").single { it.label == "Free up now" }.action()
         compose.waitForIdle()
         // Permanent: it opens the red second confirmation, nothing is deleted yet.
         compose.onNodeWithTag("confirmPurge").assertExists()
