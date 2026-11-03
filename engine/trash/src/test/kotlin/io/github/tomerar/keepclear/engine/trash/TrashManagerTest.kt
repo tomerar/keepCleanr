@@ -546,4 +546,51 @@ class TrashManagerTest {
             val free = op(camera, OpKind.MOVE_DELETE_ORIGINAL).copy(expectedSha256 = sha, verifiedCopy = "USB: x")
             run(free).done shouldHaveSize 1
         }
+
+    // ------------------------------------------------------------ H1c: one file back from the trash grid
+
+    private suspend fun threeInTrash(): List<TrashEntry> {
+        val paths = (2..4).map { "$root/DCIM/Camera/IMG_$it.jpg" }
+        paths.forEach { fake.addFile(it, ByteArray(4_000 + it.length) { b -> (b % 89).toByte() }, mtime = 20) }
+        run(*paths.map { op(it) }.toTypedArray()).done shouldHaveSize 3
+        return paths.map { p -> index.all().single { it.originalPath == p } }
+    }
+
+    @Test
+    fun `restoring one trashed file puts back only that one (H1c single-item restore)`(): Unit = runBlocking {
+        val (a, b, c) = threeInTrash()
+        run(op(b.trashedPath, OpKind.RESTORE)).done shouldHaveSize 1
+        fake.exists(b.originalPath) shouldBe true
+        fake.exists(a.originalPath) shouldBe false
+        fake.exists(c.originalPath) shouldBe false
+        index.all().map { it.id }.toSet() shouldBe setOf(a.id, c.id)
+    }
+
+    @Test
+    fun `in test mode restoring one trashed file changes nothing (H1c, SAFETY-9)`(): Unit = runBlocking {
+        val (_, b, _) = threeInTrash()
+        val before = fake.files(root).toSet()
+        val dry = ActionExecutor(fake, SafetyGuard(protectedPaths), protectedPaths, trash, "s", dryRun = true)
+        val report = dry.run(
+            ActionPlan("p", listOf(op(b.trashedPath, OpKind.RESTORE)), "test").confirm(1, "s"),
+        ) as ExecutionReport.Ran
+        report.results.single().shouldBeInstanceOf<io.github.tomerar.keepclear.core.safety.OpResult.Simulated>()
+        fake.files(root).toSet() shouldBe before
+        index.all() shouldHaveSize 3
+    }
+
+    @Test
+    fun `a trashed file that changed after it was shown is refused, not restored (H1c, SAFETY-6)`(): Unit =
+        runBlocking {
+            val (_, b, _) = threeInTrash()
+            val planned = op(b.trashedPath, OpKind.RESTORE)
+            // The file in the trash changes between the tap and the restore.
+            fake.setMtime(b.trashedPath, 99_999)
+            val report = run(planned)
+            report.done.shouldBeEmpty()
+            // Refused by the re-check (the trash says "changed in the trash"); never put back in place.
+            (report.results.single() is io.github.tomerar.keepclear.core.safety.OpResult.Done) shouldBe false
+            fake.exists(b.originalPath) shouldBe false
+            fake.exists(b.trashedPath) shouldBe true
+        }
 }

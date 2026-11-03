@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -172,9 +173,13 @@ fun InfoSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     primaryButton: (@Composable () -> Unit)? = null,
+    /** Modifier of the dismiss button (e.g. a test tag). */
+    dismissModifier: Modifier = Modifier,
+    /** What the text button does; [onDismiss] when null (e.g. "Stop" while Back does nothing). */
+    dismissAction: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    SheetFrame(onDismiss = onDismiss, modifier = modifier) {
+    SheetFrame(onDismiss = onDismiss, modifier = modifier.semantics { paneTitle = title }) {
         Column(
             modifier = Modifier
                 .weight(1f, fill = false)
@@ -192,6 +197,6 @@ fun InfoSheet(
         }
         Spacer(Modifier.height(KcSpacing.l))
         if (primaryButton != null) Box(Modifier.fillMaxWidth()) { primaryButton() }
-        KcButton(dismissText, onDismiss, Modifier.fillMaxWidth(), style = KcButtonStyle.Text)
+        KcButton(dismissText, dismissAction ?: onDismiss, dismissModifier.fillMaxWidth(), style = KcButtonStyle.Text)
     }
 }

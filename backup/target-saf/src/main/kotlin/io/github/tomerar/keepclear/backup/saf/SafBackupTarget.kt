@@ -87,6 +87,20 @@ class SafBackupTarget(
         return current
     }
 
+    /**
+     * H1c: the document of [rel], for a read-only thumbnail in the restore grid, built without listing folders (a
+     * camera folder can hold thousands of files). Only Android's own file provider (SD card, USB drive) has ids of
+     * the form `<root>:<path>`; for any other provider, or a name that isn't a plain file name, this is null. The
+     * provider itself keeps the document inside the granted tree.
+     */
+    fun localDocumentUri(rel: String): Uri? {
+        if (treeUri.authority != SafTargets.EXTERNAL_STORAGE) return null
+        val parts = runCatching { segments(rel) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return null
+        val path = parts.joinToString("/")
+        val id = if (rootDocId.endsWith(':')) rootDocId + path else "$rootDocId/$path"
+        return docUri(id)
+    }
+
     private fun parentAndName(rel: String): Pair<String, String> {
         val parts = segments(rel)
         require(parts.isNotEmpty()) { "root has no parent" }

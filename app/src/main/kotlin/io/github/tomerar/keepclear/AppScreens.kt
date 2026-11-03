@@ -97,6 +97,7 @@ fun AppScreens(
                     nextcloud,
                     selectionActions,
                     moveFlow,
+                    tabs,
                 )
             }
         }
@@ -220,6 +221,7 @@ private fun CurrentScreen(
     nextcloud: NextcloudUi,
     selectionActions: SelectionActions?,
     moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
+    tabs: TabsUi,
 ) {
     val summary = state.summary
     val current = state.screens.last()
@@ -383,6 +385,12 @@ private fun CurrentScreen(
                 onRelease = safeActions.onRelease ?: onPurge,
                 showUninstallNote = !noteSeen,
                 onUninstallNoteShown = { TrashNotes.setUninstallNoteSeen(context) },
+                // H1c: the empty trash's next step: an older photo may be in a backup.
+                onRestoreFromBackup = {
+                    onBack()
+                    tabs.onSelectTab(Tab.BACKUP)
+                    moveActions.restore.onStart()
+                },
             )
         }
 

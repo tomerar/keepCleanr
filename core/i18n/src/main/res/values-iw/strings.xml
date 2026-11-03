@@ -64,7 +64,7 @@
     <string name="trash_title">סל המחזור</string>
     <string name="trash_chip">סל המחזור · %1$s</string>
     <string name="trash_summary">%1$s · נמחקים לצמיתות אחרי 30 יום</string>
-    <string name="trash_empty_state">סל המחזור ריק.</string>
+    <string name="trash_empty_state">סל המחזור ריק. קבצים שמנקים נשארים כאן 30 יום.</string>
     <string name="trash_changed">השתנה מאז שנמחק</string>
     <string name="trash_restore_changed">לשחזר לתיקייה נפרדת</string>
     <string name="trash_restore_changed_title">לשחזר קובץ שהשתנה?</string>
@@ -454,7 +454,6 @@
     <string name="restore_no_backup">לא נמצא שם גיבוי של KeepClear.</string>
     <string name="restore_which_phone">הגיבוי של איזה טלפון?</string>
     <string name="restore_choose">מה להחזיר</string>
-    <string name="restore_where">קבצים חוזרים למקום המקורי רק אם KeepClear העביר אותם משם בטלפון הזה. השאר נשמרים בתמונות › KeepClear Restored. קבצים מוסתרים ואפליקציות לא משוחזרים. שום קובץ בטלפון לא מוחלף.</string>
     <string name="restore_run">לשחזר</string>
     <string name="restore_running">משחזרים…</string>
     <string name="restore_interrupted">הכונן התנתק. מה שכבר שוחזר נשאר; אפשר לשחזר שוב כדי להשלים.</string>
@@ -573,7 +572,6 @@
         <item quantity="two">%1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק)</item>
         <item quantity="other">%1$s קבצים כבר נמצאים בטלפון (אין מה להעתיק)</item>
     </plurals>
-    <string name="restore_fit">לבחור רק מה שנכנס</string>
     <string name="restore_not_enough_room">שום דבר לא שוחזר: אין מספיק מקום בטלפון. KeepClear תמיד משאיר %1$s פנויים.</string>
     <string name="restore_stopped_low_space">השחזור נעצר כי הטלפון כמעט מלא. מה שכבר שוחזר נשאר. אפשר לפנות מקום ולשחזר שוב כדי להשלים.</string>
     <string name="restore_simulated">היו משוחזרים %1$s (מצב ניסיון): %2$s למקום המקורי, %3$s לתמונות › KeepClear Restored. שום דבר לא נכתב לטלפון.</string>
@@ -737,4 +735,26 @@
     <string name="readme_open">במחשב: לחבר את הכונן ולפתוח את התיקיות שבתוכו (Camera, WhatsApp, Pictures). אלה תמונות וסרטונים רגילים, ואפשר לפתוח אותם בכל תוכנה. בבקשה לא לשנות ולא למחוק כאן קבצים: זה הגיבוי.</string>
     <string name="readme_restore">כדי להחזיר אותם לטלפון: להתקין את KeepClear, לפתוח את הלשונית „גיבוי”, להקיש על „לשחזר מגיבוי” ולבחור את הכונן הזה.</string>
     <string name="backup_running_to">מגבים אל %1$s</string>
+    <!-- H1c: trash and restore grid (owner brief H1 item 9) -->
+    <string name="grid_show_list">להציג כרשימה</string>
+    <string name="grid_show_grid">להציג כתמונות</string>
+    <string name="grid_show_months">להציג לפי חודשים</string>
+    <string name="grid_search_hint">חיפוש לפי שם או תאריך, למשל יולי 2021</string>
+    <string name="grid_search_clear">לנקות את החיפוש</string>
+    <string name="grid_no_match">אין קובץ שמתאים לחיפוש.</string>
+    <string name="grid_preview">להציג</string>
+    <string name="grid_tile_description">%1$s, %2$s, %3$s</string>
+    <string name="grid_details_line">%1$s · %2$s</string>
+    <string name="trash_changed_short">השתנה</string>
+    <string name="restore_open_settings">לפתוח את ההגדרות</string>
+    <string name="restore_pick_other">לבחור מקום אחר</string>
+    <string name="restore_choose_again">לבחור מה שנכנס</string>
+    <string name="restore_destination">לאן: למקום שבו היו, אם KeepClear העביר אותם משם בטלפון הזה. כל השאר לתיקיית השחזורים, תמונות › KeepClear Restored. קבצים מוסתרים ואפליקציות לא משוחזרים. שום קובץ בטלפון לא מוחלף.</string>
+    <plurals name="restore_partial">
+        <item quantity="one">יש מקום ל-%2$s מתוך קובץ אחד.</item>
+        <item quantity="two">יש מקום ל-%2$s מתוך %1$s קבצים.</item>
+        <item quantity="other">יש מקום ל-%2$s מתוך %1$s קבצים.</item>
+    </plurals>
+    <string name="restore_partial_run">לשחזר את אלה עכשיו</string>
+    <string name="restore_this_file">לשחזר את הקובץ הזה</string>
 </resources>

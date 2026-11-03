@@ -23,7 +23,8 @@ import org.robolectric.annotation.Config
 
 /** MOVE-17: choosing what to restore (nothing pre-selected) and an honest result. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+// H1c: the catalog is a lazy grid in a sheet now; a tall window shows every month row without scrolling.
+@Config(sdk = [36], qualifiers = "w360dp-h1600dp")
 class RestoreUiTest {
     @get:Rule
     val compose = createComposeRule()
@@ -101,7 +102,7 @@ class RestoreUiTest {
     }
 
     @Test
-    @Config(qualifiers = "iw")
+    @Config(qualifiers = "iw-w360dp-h1600dp")
     fun `in Hebrew the catalog says original place or restore folder (D2)`() {
         compose.setContent { KeepClearTheme { RestoreDialogs(catalog, RestoreActions()) } }
         assertEquals("למקום המקורי", text("restoreWhere_Camera|2021-01"))
@@ -109,7 +110,7 @@ class RestoreUiTest {
     }
 
     @Test
-    fun `months that don't fit can't be restored, and choosing only what fits trims them (D1)`() {
+    fun `months that don't fit can't be restored, and what fits can be restored now (D1, H1c)`() {
         // Room for 20,000 bytes above the 1 GB reserve.
         val tight = catalog.copy(space = Space(allocatable = 1_000_020_000, total = 16_000_000_000))
         var chosen: Set<String>? = null
@@ -118,8 +119,9 @@ class RestoreUiTest {
         compose.onNodeWithTag("restore_WhatsApp Images|2021-02").performClick()
         compose.onNodeWithTag("restoreRun").assertIsNotEnabled()
         assert("1.0 GB" in text("restoreTooBig")) { text("restoreTooBig") }
+        // H1c (C136): the months that fit are offered as one tap that restores them now, not a dead end.
+        assert("room for" in text("restorePartial")) { text("restorePartial") }
         compose.onNodeWithTag("restoreFit").performScrollTo().performClick()
-        compose.onNodeWithTag("restoreRun").assertIsEnabled().performClick()
         assertEquals(setOf("WhatsApp Images|2021-02"), chosen)
     }
 

@@ -620,6 +620,8 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         if (controller.task.value?.kind == TaskKind.RESTORE) return
         restoreTarget?.let { t -> controller.scope.launch { t.useTarget { } } }
         restoreTarget = null
+        restoreThumbs = null
+        restoreRoot = null
         restoreEngine = null
         restoreEntries = emptyList()
         restoreLoads.end()
@@ -677,6 +679,9 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
         restoreTarget?.useTarget { }
         restoreEngine = engine
         restoreTarget = check.target
+        // H1c: pictures only from a drive on the phone (USB, SD card); never read over a network for a thumbnail.
+        restoreThumbs = (check.target as? io.github.tomerar.keepclear.backup.saf.SafBackupTarget)
+            ?.takeIf { check.kind == io.github.tomerar.keepclear.backup.saf.TargetKind.REMOVABLE }
         val roots = withContext(Dispatchers.IO) { engine.backups() }
         if (!restoreWaiting(load)) return
         when (roots.size) {
@@ -692,29 +697,64 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
     /** D1: free space on [phoneRoot]. */
     private val phoneSpace = io.github.tomerar.keepclear.engine.restore.SpaceProbe { measurePhoneSpace(app, phoneRoot) }
 
+    /** H1c: the drive whose documents can give a picture (a drive on the phone), or null: type icons only. */
+    private var restoreThumbs: io.github.tomerar.keepclear.backup.saf.SafBackupTarget? = null
+
+    /** H1c: the backup the catalog shows, to read it again after "not enough room". */
+    private var restoreRoot: String? = null
+
     fun chooseBackup(rootRel: String) {
         val engine = restoreEngine ?: return
         val load = restoreLoading()
+        restoreRoot = rootRel
         viewModelScope.launch {
-            val (entries, groups, space) = withContext(Dispatchers.IO) {
+            val catalog = withContext(Dispatchers.IO) {
                 val entries = engine.catalog(rootRel).orEmpty()
-                // D2: where each file would go, shown per month before anything is chosen.
-                Triple(entries, restoreGroups(engine.plan(entries)), phoneSpace.measure())
+                // D2: where each file would go, shown per month (and, H1c, file by file) before anything is chosen.
+                val placements = engine.plan(entries)
+                entries to RestoreStep.Catalog(
+                    rootRel,
+                    restoreGroups(placements),
+                    phoneSpace.measure(),
+                    files = restoreFiles(placements),
+                    thumbnails = restoreThumbs != null,
+                )
             }
             if (!restoreWaiting(load)) return@launch
+            val (entries, step) = catalog
             restoreEntries = entries
             if (entries.isEmpty()) {
                 restoreLoaded(load, RestoreStep.NoBackup)
                 return@launch
             }
-            restoreLoaded(load, RestoreStep.Catalog(rootRel, groups, space))
+            restoreLoaded(load, step)
         }
     }
 
-    /** MOVE-17, E3: restoring runs in the foreground service with progress; leaving KeepClear doesn't stop it. */
+    /** H1c: after "not enough room", the same backup again with the free space measured now (never a dead end). */
+    fun chooseAgain() {
+        val root = restoreRoot ?: return
+        if (controller.task.value?.kind == TaskKind.RESTORE) return
+        controller.results.update { it.copy(restore = null) }
+        chooseBackup(root)
+    }
+
+    /**
+     * H1c: a backed-up photo's picture for the restore grid, made by Android from the drive on the phone. Read-only;
+     * null for any other place (type icons there).
+     */
+    suspend fun restoreThumbnail(loader: ThumbnailLoader, rel: String, sizePx: Int): android.graphics.Bitmap? {
+        val uri = restoreThumbs?.localDocumentUri(rel) ?: return null
+        return loader.loadDocument(uri, sizePx)
+    }
+
+    /**
+     * MOVE-17, E3: restoring runs in the foreground service with progress; leaving KeepClear doesn't stop it. H1c:
+     * [keys] name whole months or single files; either way the engine checks each file (D1, D2, test mode).
+     */
     fun runRestore(keys: Set<String>) {
         val engine = restoreEngine ?: return
-        val chosen = restoreEntries.filter { "${it.group}|${it.month}" in keys }
+        val chosen = selectedEntries(restoreEntries, keys)
         if (chosen.isEmpty()) return
 
         fun step(s: RestoreStep) = controller.results.update { it.copy(restore = s) }

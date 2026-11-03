@@ -26,6 +26,16 @@ object KcIcons {
     val Close: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_close)
     val ExpandMore: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_expand_more)
 
+    // H1c: type icons for a grid tile without a picture, and the grid's own controls.
+    val Image: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_image)
+    val Video: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_movie)
+    val Audio: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_music_note)
+    val Document: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_description)
+    val File: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_draft)
+    val Search: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_search)
+    val Grid: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_grid_view)
+    val List: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.kc_ic_view_list)
+
     /** The lane's icon (SAFE leaf, REVIEW photos, MOVE box). */
     @Composable
     fun lane(lane: KcLane): ImageVector = when (lane) {

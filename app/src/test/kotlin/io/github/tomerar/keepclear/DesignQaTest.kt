@@ -257,7 +257,8 @@ class DesignQaTest {
         )
         compose.setContent {
             KeepClearTheme(reducedMotion = true) {
-                TrashScreen(TrashUi(entries, releasable = setOf("c")), { _, _ -> }, { _, _ -> }, {}, now = now)
+                TrashScreen(TrashUi(entries, releasable = setOf("c")), { _, _ ->
+                }, { _, _ -> }, {}, now = now, initialView = TrashView.LIST)
             }
         }
         // The original name, with where it came from.
@@ -281,7 +282,7 @@ class DesignQaTest {
         val entries = listOf(entry("g", "a.mp4"))
         compose.setContent {
             KeepClearTheme(reducedMotion = true) {
-                TrashScreen(TrashUi(entries), { _, _ -> }, { _, _ -> }, {}, now = now)
+                TrashScreen(TrashUi(entries), { _, _ -> }, { _, _ -> }, {}, now = now, initialView = TrashView.LIST)
             }
         }
         compose.onNodeWithText(s(R.string.trash_hide_files)).assertExists()

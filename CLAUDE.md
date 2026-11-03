@@ -57,7 +57,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 ## Design rules ("Paper & Ink", ADR 0013, `docs/design/design-system.md`)
 
-- New and rebuilt screens use only `core:designsystem` components (`KcButton`, `KcCard`, `LaneCard`, `StorageStrip`, `HeroNumber`, `ConfirmSheet`, `ResultBanner`, `DaysLeftChip`, `ThumbStrip`, `VerifiedStamp`, `InfoChip`) and theme tokens; no hard-coded colours, fonts or shapes in `app`.
+- New and rebuilt screens use only `core:designsystem` components (`KcButton`, `KcCard`, `LaneCard`, `StorageStrip`, `HeroNumber`, `ConfirmSheet`, `InfoSheet`, `PanelSheet`, `ResultBanner`, `DaysLeftChip`, `ThumbStrip`, `MediaTile`, `MonthHeader`, `KcSearchField`, `VerifiedStamp`, `InfoChip`) and theme tokens; no hard-coded colours, fonts or shapes in `app`.
 - One ink colour (`primary`) for actions. Red (`error`, `KcButtonStyle.Destructive` / `OutlinedDestructive`, `ConfirmSheet(permanent = true)`) **only** for permanent, unrecoverable actions; going to the 30-day trash is not permanent. No parentheses in button labels (`ButtonLabelsTest`).
 - Lanes (SAFE sage, REVIEW slate, MOVE amber) are always icon + label, never colour alone. Dynamic colour stays off by default.
 - Sizes and counts: `ByteSize` (decimal) in Rubik with tabular figures (`KeepClearTheme.type.number` / `hero`).

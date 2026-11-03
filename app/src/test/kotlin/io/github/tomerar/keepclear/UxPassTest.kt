@@ -324,7 +324,17 @@ class UxPassTest {
         val trash = TrashUi(listOf(entry("a", "thumbnails"), entry("b", "screenshots"), moved), releasable = setOf("m"))
         compose.setContent {
             KeepClearTheme {
-                TrashScreen(trash, onRestore = { e, _ -> restored = e }, onPurge = { e, _ -> purged = e }, onBack = {})
+                TrashScreen(trash, onRestore = {
+                    e,
+                    _,
+                    ->
+                    restored = e
+                }, onPurge = {
+                    e,
+                    _,
+                    ->
+                    purged = e
+                }, onBack = {}, initialView = TrashView.LIST)
             }
         }
         compose.onNodeWithTag("trashGroup_CLEAN").assertExists()
@@ -341,6 +351,8 @@ class UxPassTest {
         assertEquals(null, restored)
         compose.onNodeWithTag("confirmRestoreAll").performClick()
         assertEquals(3, restored!!.size)
+        // H1c: the header holds the grid/list switch now, so the bottom actions may need a scroll.
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("emptyNow"))
         compose.onNodeWithTag("emptyNow").performClick()
         compose.onNodeWithTag("emptyBody").assertExists()
     }
@@ -349,7 +361,13 @@ class UxPassTest {
     fun `opening a large trash group composes only the rows on screen`() {
         val many = (0 until 500).map { entry("e$it", "thumbnails") }
         compose.setContent {
-            KeepClearTheme { TrashScreen(TrashUi(many), onRestore = { _, _ -> }, onPurge = { _, _ -> }, onBack = {}) }
+            KeepClearTheme {
+                TrashScreen(TrashUi(many), onRestore = {
+                    _,
+                    _,
+                    ->
+                }, onPurge = { _, _ -> }, onBack = {}, initialView = TrashView.LIST)
+            }
         }
         compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("toggleGroup_CLEAN"))
         compose.onNodeWithTag("toggleGroup_CLEAN").performClick()

@@ -333,6 +333,47 @@ Space returns as items expire, or empty now.
 - Restore: "Restored 312 files to their folders." / "‏312 קבצים שוחזרו לתיקיות שלהם."
 - Uninstall note (TRASH-7, always visible while the trash holds items): "Files in KeepClear's trash are kept in a hidden folder, .KeepClearTrash, on this phone. If you uninstall KeepClear, they stay there and keep taking space (now 61.1 GB). Restore or empty the trash first." / "הקבצים בסל המחזור של KeepClear נשמרים בתיקייה מוסתרת, ‎.KeepClearTrash‎, בטלפון. אם מסירים את KeepClear, הם נשארים שם וממשיכים לתפוס מקום (כרגע 61.1GB). כדאי לשחזר או לרוקן את הסל לפני כן." `[Restore all]` `[Empty trash]`
 
+### 6.1 Trash and restore grid after PR H1c (owner brief H1 item 9, 2026-11-03)
+
+```
+Trash                                   ← back
+3.0 GB · 6 files
+[Show as a list]
+( Search by name or date, e.g. July 2021 )
+October 2026
+[pic][pic][pic]
+ 12 Oct 2026  1.2 MB …
+July 2021
+[pic][pic]
+[Restore all] [Free all …] [Empty trash now]
+```
+- Default is the grid (TRASH-8): month sections by the file's own date, newest first; 3 columns on a phone, more on tablets (adaptive, min 104 dp). A month header always spans the whole row, so at 200 % it wraps only between words („אוקטובר 2026”, never „אוקטוב/ר”).
+- Tap a tile → details sheet: picture, „12 ביולי 2021 · 4.5MB”, days left, where it goes back, `[לשחזר]` (or `[לשחזר לתיקייה נפרדת]` for a changed file) and `[לפנות עכשיו]` only with a checked copy.
+- TalkBack: „IMG_20210714.jpg, 14 ביולי 2021, 4.5MB”; actions „לשחזר” · „להציג” · („לפנות עכשיו” only with a checked copy).
+- `[להציג כרשימה]` shows the grouped list of §6 (Clean now / Review / Backup originals).
+- Empty: „סל המחזור ריק. קבצים שמנקים נשארים כאן 30 יום.” `[לשחזר מגיבוי]`.
+
+Restore from a backup (MOVE-17), as a sheet:
+```
+What to bring back
+Where they go: back where they were, if KeepClear moved them from there on this phone.
+Everything else goes to the restore folder, Pictures › KeepClear Restored. Nothing on the phone is replaced.
+[Show by month]
+( Search … )
+December 2022
+[✓pic][pic][▶]
+…
+2 files · 7.0 MB
+Free on the phone: 1.0 GB. Chosen: 907 MB.
+Not enough room … There is room for 2 of 3 files.  [Restore these now]
+[Restore]
+[Cancel]
+```
+- he: „לאן: למקום שבו היו, אם KeepClear העביר אותם משם בטלפון הזה. כל השאר לתיקיית השחזורים, תמונות › KeepClear Restored.” · „יש מקום ל-1,240 מתוך 6,830 קבצים.” `[לשחזר את אלה עכשיו]` (the newest that fit, C136).
+- Tap = choose; long press or the TalkBack action „להציג” = preview with `[לשחזר את הקובץ הזה]`; TalkBack action „לשחזר את הקובץ הזה” restores that file alone.
+- Pictures only from a drive on the phone (USB-C stick, SD card); a network drive or Nextcloud shows type icons (C139).
+- Needs All files access: text + `[לפתוח את ההגדרות]` (`foss`). No backup found: `[לבחור מקום אחר]`. Not enough room at start: `[לבחור מה שנכנס]`.
+
 ---
 
 ## 7. Apps (MVP: sizes + cache trim; v1: unused apps)
@@ -373,3 +414,6 @@ Space returns as items expire, or empty now.
 | Almost full (light mode) | Your phone is almost full. KeepClear is using as little space as possible. | הטלפון כמעט מלא. KeepClear משתמש בכמה שפחות מקום. |
 | Very full (minimal mode) | Less than 100 MB left. Start with these, they free space without needing any: | נשארו פחות מ-100MB. כדאי להתחיל מאלה, הם מפנים מקום בלי לצרוך מקום: |
 | Some items skipped | 3 files changed since the scan, so we left them alone. | ‏3 קבצים השתנו מאז הסריקה, אז לא נגענו בהם. |
+| Empty trash (H1c) | The trash is empty. Files you clean stay here for 30 days. `[Restore from a backup]` | סל המחזור ריק. קבצים שמנקים נשארים כאן 30 יום. `[לשחזר מגיבוי]` |
+| No backup found (H1c) | No KeepClear backup was found there. `[Choose another place]` | לא נמצא שם גיבוי של KeepClear. `[לבחור מקום אחר]` |
+| Search finds nothing (H1c) | No file matches this search. | אין קובץ שמתאים לחיפוש. |

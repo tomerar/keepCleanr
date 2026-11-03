@@ -32,6 +32,10 @@ object OwnerPhone {
      * this clock, so no screen shows a month that hasn't happened yet ([OwnerPhoneClockTest]).
      */
     const val NOW = 1_793_534_400_000L
+
+    /** H1c: 14 July 2021, 18:12 UTC and 4 March 2024, noon UTC (the trashed camera files' and video's own dates). */
+    const val JULY_2021 = 1_626_286_323_000L
+    const val MARCH_2024 = 1_709_553_600_000L
     const val DAY = 86_400_000L
     const val TOTAL_BYTES = 128_000_000_000L
     const val FREE_BYTES = 16_800_000_000L
@@ -107,7 +111,16 @@ object OwnerPhone {
     /** Home before any access: the phone's space only. */
     val beforeAccess = HomeUiState(totalBytes = TOTAL_BYTES, freeBytes = FREE_BYTES)
 
-    private fun trashEntry(id: String, rel: String, size: Long, ruleId: String?, daysAgo: Int, copy: String? = null) =
+    private fun trashEntry(
+        id: String,
+        rel: String,
+        size: Long,
+        ruleId: String?,
+        daysAgo: Int,
+        copy: String? = null,
+        // H1c: the file's own date, which the Trash grid sorts by month.
+        mtime: Long = NOW - 400 * DAY,
+    ) =
         TrashEntry(
             id = id,
             originalPath = "$ROOT/$rel",
@@ -115,7 +128,7 @@ object OwnerPhone {
                 rel.substringAfterLast('/'),
             volumeRoot = ROOT,
             size = size,
-            mtimeMillis = NOW - 400 * DAY,
+            mtimeMillis = mtime,
             ruleId = ruleId,
             reason = if (copy != null) "MOVE_DELETE_ORIGINAL" else "TRASH",
             deletedAt = NOW - daysAgo * DAY,
@@ -129,14 +142,22 @@ object OwnerPhone {
     /** The trash a week after cleaning: junk, a few screenshots, and camera originals with a checked copy. */
     val trash: TrashUi by lazy {
         val entries = listOf(
-            trashEntry("t1", "Download/update_3.tmp", 37_837_838, "temp_files", 2),
-            trashEntry("t2", "Pictures/.trashed-1735100004-VID_20240304.mp4", 31_250_000, "other_app_bin", 2),
+            trashEntry("t1", "Download/update_3.tmp", 37_837_838, "temp_files", 2, mtime = NOW - 20 * DAY),
+            trashEntry(
+                "t2",
+                "Pictures/.trashed-1735100004-VID_20240304.mp4",
+                31_250_000,
+                "other_app_bin",
+                2,
+                mtime = MARCH_2024,
+            ),
             trashEntry(
                 "s1",
                 "Pictures/Screenshots/Screenshot_${stamp(NOW - 9 * DAY)}.png",
                 1_250_000,
                 "screenshots",
                 7,
+                mtime = NOW - 9 * DAY,
             ),
             trashEntry(
                 "s2",
@@ -144,8 +165,17 @@ object OwnerPhone {
                 1_180_000,
                 "screenshots",
                 7,
+                mtime = NOW - 12 * DAY,
             ),
-            trashEntry("c1", "DCIM/Camera/IMG_20210714_181203.jpg", 4_480_000, "camera", 1, "USB:KeepClear/Phone/IMG"),
+            trashEntry(
+                "c1",
+                "DCIM/Camera/IMG_20210714_181203.jpg",
+                4_480_000,
+                "camera",
+                1,
+                "USB:KeepClear/Phone/IMG",
+                mtime = JULY_2021,
+            ),
             trashEntry(
                 "c2",
                 "DCIM/Camera/VID_20210714_181540.mp4",
@@ -153,6 +183,7 @@ object OwnerPhone {
                 "camera",
                 1,
                 "USB:KeepClear/Phone/VID",
+                mtime = JULY_2021 + 217_000,
             ),
         )
         TrashUi(entries, releasable = setOf("c1", "c2"))
@@ -183,8 +214,16 @@ object OwnerPhone {
             0xFFBFA5C9,
         ).map { it.toInt() }
 
-        override suspend fun load(item: ScanItem, sizePx: Int): Bitmap {
-            val h = item.path.hashCode().let { if (it < 0) -it else it }
+        override suspend fun load(item: ScanItem, sizePx: Int): Bitmap = gradient(item.path, sizePx)
+
+        // H1c: the Trash grid (files by path) and the restore grid (a drive's documents) get pictures too.
+        override suspend fun loadFile(path: String, mtimeMillis: Long, sizePx: Int): Bitmap? =
+            if (FileKinds.hasPicture(path.substringAfterLast('/'))) gradient(path, sizePx) else null
+
+        override suspend fun loadDocument(uri: android.net.Uri, sizePx: Int): Bitmap = gradient(uri.toString(), sizePx)
+
+        private fun gradient(path: String, sizePx: Int): Bitmap {
+            val h = path.hashCode().let { if (it < 0) -it else it }
             val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
             val paint = Paint().apply {
                 shader = LinearGradient(
@@ -200,5 +239,38 @@ object OwnerPhone {
             Canvas(bitmap).drawRect(0f, 0f, sizePx.toFloat(), sizePx.toFloat(), paint)
             return bitmap
         }
+    }
+
+    /**
+     * H1c: a backup on a USB drive as the restore grid shows it: camera photos and a few videos over three months,
+     * newest first, each with its own date (no real photos: the thumbnails are gradients).
+     */
+    val restoreCatalog: RestoreStep.Catalog by lazy {
+        val months = listOf(Triple(2022, 12, 14), Triple(2021, 8, 9), Triple(2021, 7, 12))
+        val files = months.flatMap { (y, m, n) ->
+            (1..n).map { d ->
+                val t = java.time.LocalDateTime.of(y, m, d, 10 + d % 8, 7 * d % 60).toInstant(java.time.ZoneOffset.UTC)
+                    .toEpochMilli()
+                val name = if (d % 5 == 0) "VID_${stamp(t)}.mp4" else "IMG_${stamp(t)}.jpg"
+                RestoreFile(
+                    "Camera/$name",
+                    "Camera",
+                    "%04d-%02d".format(y, m),
+                    t,
+                    if (d % 5 == 0) 180_000_000L + d * 1_000_000L else 4_000_000L + d * 37_000L,
+                    io.github.tomerar.keepclear.engine.restore.Where.ORIGINAL,
+                )
+            }
+        }
+        val groups = files.groupBy { it.month }.map { (month, list) ->
+            RestoreGroup("Camera", month, list.sumOf { it.size }, toOriginal = list.size, toRestoreFolder = 0)
+        }.sortedBy { it.month }
+        RestoreStep.Catalog(
+            "KeepClear/Phone",
+            groups,
+            io.github.tomerar.keepclear.engine.restore.Space(allocatable = 16_800_000_000, total = 128_000_000_000),
+            files = files,
+            thumbnails = true,
+        )
     }
 }

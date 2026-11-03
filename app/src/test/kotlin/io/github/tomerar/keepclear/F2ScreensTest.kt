@@ -112,6 +112,7 @@ class F2ScreensTest {
             KeepClearTheme {
                 TrashScreen(
                     TrashUi(entries = listOf(changed), changed = setOf("1")),
+                    initialView = TrashView.LIST,
                     onRestore = { _, _ -> },
                     onPurge = { _, _ -> },
                     onBack = {},
@@ -174,7 +175,8 @@ class F2ScreensTest {
     fun `every trashed item and group shows the days left, never a date to work out`() {
         compose.setContent {
             KeepClearTheme {
-                TrashScreen(TrashUi(entries = listOf(entry("1"))), { _, _ -> }, { _, _ -> }, {}, now = now)
+                TrashScreen(TrashUi(entries = listOf(entry("1"))), { _, _ ->
+                }, { _, _ -> }, {}, now = now, initialView = TrashView.LIST)
             }
         }
         compose.onNodeWithTag("daysLeft_1").assertTextContains("23 days left")

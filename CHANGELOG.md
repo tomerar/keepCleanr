@@ -8,6 +8,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 - Thumbnails, temp files, WhatsApp statuses older than 24 hours and OS junk now stay in "Clean now" even when they are recent (owner decision B1; rules v3). Favourites and everything else recent still go to Review.
 
 ### Added
+- Get one photo back (H1c): the Trash and "Restore from a backup" show pictures by month with search by name or date, restore a single file, open as sheets, say where files go, offer the newest files that fit when the phone is full, and give TalkBack actions on each picture.
 - Test mode: test builds start with a banner and change no files; actions show what they would have freed. Turning it off takes Settings › Advanced and two confirmations.
 - Backup drives: KeepClear reads the drive's format where Android shows it; on exFAT (and other non-FAT32) drives, files over 4 GB can be backed up. If the format can't be read, the 4 GB limit stays and the screen explains why.
 - Test builds: CI publishes a signed test APK from `main` for installing on a phone (no GitHub Release).
