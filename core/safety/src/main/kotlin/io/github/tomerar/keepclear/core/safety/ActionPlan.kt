@@ -14,7 +14,12 @@ enum class OpKind {
     /** Put a trashed item back. */
     RESTORE,
 
-    /** Trash a MOVE original after L3 verification (requires [PlannedOp.expectedSha256]). */
+    /**
+     * Free a MOVE original after L3 verification (requires [PlannedOp.expectedSha256]). Owner decision P1
+     * (2026-11-03): the executor deletes it for good ([PermanentReason.VERIFIED_BACKUP]) when its
+     * [PlannedOp.backupProof] holds; with the user's "keep the original in the trash too" setting it goes to the
+     * 30-day trash instead.
+     */
     MOVE_DELETE_ORIGINAL,
 
     /**
@@ -72,6 +77,8 @@ data class PlannedOp(
     val classifiedSafe: Boolean = false,
     /** Set only by the [ActionExecutor] on the op it hands over as [OpKind.DELETE_FOR_GOOD]; null in every plan. */
     val permanentReason: PermanentReason? = null,
+    /** Owner decision P1: the copy's check at free time, for [OpKind.MOVE_DELETE_ORIGINAL] only ([SafetyGuard]). */
+    val backupProof: BackupProof? = null,
 ) {
     /** The path the confirmation must contain for this op (review PR B). */
     val confirmKey: String get() = shownAs ?: displayPath

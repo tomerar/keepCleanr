@@ -113,8 +113,10 @@ class TrashManager(
      */
     override suspend fun veto(op: PlannedOp, gateway: StorageGateway): SkipReason? {
         if (op.lastCopyConfirmed) return null
-        // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy.
+        // MOVE originals are freed only with a checked copy on the drive, so they are never the last copy (also when
+        // they are deleted for good, owner decision P1).
         if (op.kind != OpKind.TRASH && op.kind != OpKind.DELETE_FOR_GOOD) return null
+        if (op.permanentReason == io.github.tomerar.keepclear.core.safety.PermanentReason.VERIFIED_BACKUP) return null
         val path = CanonicalPath.of(op.displayPath) ?: return null
         val holders = holdersOf(path)
         if (holders.isEmpty()) return null
@@ -198,7 +200,8 @@ class TrashManager(
 
     /**
      * Owner decision 2026-11-02: one file that rebuilds itself or is already in another app's bin, deleted for good
-     * (no trash entry). The executor has decided it ([io.github.tomerar.keepclear.core.safety.PermanentKinds]) and
+     * (no trash entry). Owner decision P1 (2026-11-03): also a MOVE original whose copy passed the second check and was
+     * hashed again at free time; its copy on the backup is the undo. The executor has decided it ([io.github.tomerar.keepclear.core.safety.PermanentKinds]) and
      * re-checked it (PROTECTED, kept, size/date/identity, witnesses) right before this. Only a plain file by path,
      * never a folder, a link or anything inside a KeepClear trash.
      */

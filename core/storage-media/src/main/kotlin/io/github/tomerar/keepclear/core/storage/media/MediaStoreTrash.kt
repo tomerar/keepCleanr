@@ -66,7 +66,12 @@ class MediaConsentHandler(
             OpKind.RESTORE_CHANGED -> false
 
             // Owner decision 2026-11-02: "already in another app's bin" must still be in Android's trash right now.
-            OpKind.DELETE_FOR_GOOD -> trashed || op.permanentReason == PermanentReason.REBUILDS_ITSELF
+            // Owner decision P1: a freed MOVE original must still be a live row (not in Android's trash).
+            OpKind.DELETE_FOR_GOOD -> when (op.permanentReason) {
+                PermanentReason.VERIFIED_BACKUP -> !trashed
+                PermanentReason.REBUILDS_ITSELF -> true
+                else -> trashed
+            }
         }
         return when {
             !stateOk -> SkipReason.CHANGED

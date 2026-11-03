@@ -91,4 +91,14 @@ class MediaConsentHandlerTest {
         val batches = handler.requestConsent(listOf(inBin, op(4))).map { it as MediaBatch }
         assertEquals(listOf(OpKind.DELETE_FOR_GOOD, OpKind.TRASH), batches.map { it.kind })
     }
+
+    @Test
+    fun `a freed MOVE original is deleted for good only while it is a live row (P1)`(): Unit = runBlocking {
+        val original = op(2, OpKind.DELETE_FOR_GOOD).copy(
+            permanentReason = io.github.tomerar.keepclear.core.safety.PermanentReason.VERIFIED_BACKUP,
+        )
+        assertNull(handler.veto(original, gatewayWith(trashed = false)))
+        assertEquals(SkipReason.CHANGED, handler.veto(original, gatewayWith(trashed = true)))
+        assertEquals(SkipReason.MISSING, handler.veto(original, gatewayWith(trashed = null)))
+    }
 }

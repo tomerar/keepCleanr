@@ -131,7 +131,8 @@ class PermanentDeleteTest {
         val report = run(permanent.map { (path, rule) -> op(path, rule) })
         report.done.size shouldBe permanent.size
         report.deletedForGood.size shouldBe permanent.size
-        report.deletedForGood.map { it.op.permanentReason }.toSet() shouldBe PermanentReason.entries.toSet()
+        report.deletedForGood.map { it.op.permanentReason }.toSet() shouldBe
+            setOf(PermanentReason.REBUILDS_ITSELF, PermanentReason.ALREADY_IN_A_BIN)
         permanent.keys.forEach { fake.exists(it) shouldBe false }
         index.all().shouldBeEmpty()
     }

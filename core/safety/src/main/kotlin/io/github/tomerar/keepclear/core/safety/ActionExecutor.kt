@@ -88,6 +88,12 @@ enum class SkipReason {
      * guard refuses it per item; the rest of the plan runs and the result says how many were left alone.
      */
     PROTECTED,
+
+    /**
+     * Owner decision P1: an original that would be deleted for good, but its copy's second check or its check at free
+     * time is missing, too old or doesn't match. Nothing happens to it; the result counts it.
+     */
+    COPY_NOT_CONFIRMED,
 }
 
 sealed interface ExecutionReport {
@@ -140,8 +146,14 @@ class ActionExecutor(
      * checked; purge and restore act on items already in the trash.
      */
     private val keptNow: (String) -> Boolean = { false },
-    /** Wall clock, for [PermanentKinds] (the 24 h age of a WhatsApp status). */
+    /** Wall clock, for [PermanentKinds] (the 24 h age of a WhatsApp status, the age of a [BackupProof]). */
     private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * Owner decision P1 (2026-11-03): true = a freed MOVE original is deleted for good once its [BackupProof] holds;
+     * false = it goes to the 30-day trash (the user's "keep the original in the trash too" setting, and the default
+     * for any caller that doesn't say). Asked again right before each operation.
+     */
+    private val freeOriginalsForGood: () -> Boolean = { false },
 ) {
     suspend fun run(plan: ActionPlan): ExecutionReport {
         when (val verdict = guard.check(plan, currentSession)) {
@@ -195,13 +207,15 @@ class ActionExecutor(
             val acting = PermanentKinds.reasonFor(op, clock())
                 ?.let { op.copy(kind = OpKind.DELETE_FOR_GOOD, permanentReason = it) } ?: op
             precheck(acting) ?: handler.veto(acting, gateway)?.let { OpResult.Skipped(acting, it) } ?: run {
+                // Owner decision P1: decided after every check above (incl. the strict re-hash of the original).
+                val final = freedOriginal(acting) ?: return@run OpResult.Skipped(acting, SkipReason.COPY_NOT_CONFIRMED)
                 if (isDryRun()) {
-                    OpResult.Simulated(acting)
-                } else if (handler.needsConsent(acting)) {
-                    OpResult.NeedsConsent(acting)
+                    OpResult.Simulated(final)
+                } else if (handler.needsConsent(final)) {
+                    OpResult.NeedsConsent(final)
                 } else {
-                    handler.perform(acting, gateway)
-                    OpResult.Done(acting)
+                    handler.perform(final, gateway)
+                    OpResult.Done(final)
                 }
             }
         }
@@ -212,6 +226,17 @@ class ActionExecutor(
     } catch (e: Exception) {
         // D6: e.g. SQLiteFullException from the trash index. Reported, never a crash; the run stops after it.
         OpResult.Failed(op, unexpected(op, e))
+    }
+
+    /**
+     * Owner decision P1 (2026-11-03): what happens to a freed MOVE original. With [freeOriginalsForGood] it is deleted
+     * for good only when [PermanentKinds.verifiedBackupReason] holds; otherwise null (skipped, never trashed
+     * instead, so the result is what the confirmation said). Without it, it goes to the trash as before. Any other op is unchanged.
+     */
+    private fun freedOriginal(op: PlannedOp): PlannedOp? {
+        if (op.kind != OpKind.MOVE_DELETE_ORIGINAL || !freeOriginalsForGood()) return op
+        val reason = PermanentKinds.verifiedBackupReason(op, clock(), strictRehash) ?: return null
+        return op.copy(kind = OpKind.DELETE_FOR_GOOD, permanentReason = reason)
     }
 
     /** Returns a skip result, or null when the op may proceed. */
