@@ -99,6 +99,9 @@ class SettingsActions(
     /** Owner decision P1: "Keep the original in the 30-day trash too (frees no space)", off by default. */
     val keepOriginalsInTrash: Boolean = false,
     val onKeepOriginalsInTrash: (Boolean) -> Unit = {},
+    /** PR H2b: „להחליף את כיווני ההחלקה” (off: a swipe to the left deletes, C148). */
+    val swipeSwapped: Boolean = false,
+    val onSwipeSwapped: (Boolean) -> Unit = {},
     /** SET-3: "Remind me when space is low" (off by default). */
     val reminderOn: Boolean = false,
     val onReminder: (Boolean) -> Unit = {},
@@ -253,6 +256,32 @@ fun SettingsScreen(
                         onCheckedChange = actions.onKeepOriginalsInTrash,
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("keepOriginalsSwitch").semantics { contentDescription = keepLabel },
+                    )
+                }
+            }
+            val swapLabel = stringResource(R.string.settings_swipe_swap)
+            KcCard(Modifier.testTag("swipeSwap")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(swapLabel, style = MaterialTheme.typography.titleSmall)
+                        // Says what the switch does now, in the words of the swipe screen's hint.
+                        Text(
+                            stringResource(
+                                if (SwipeSession.deleteOnLeft(actions.swipeSwapped)) {
+                                    R.string.swipe_dir_left_deletes
+                                } else {
+                                    R.string.swipe_dir_right_deletes
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag("swipeSwapNow"),
+                        )
+                    }
+                    Switch(
+                        checked = actions.swipeSwapped,
+                        onCheckedChange = actions.onSwipeSwapped,
+                        // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
+                        modifier = Modifier.testTag("swipeSwapSwitch").semantics { contentDescription = swapLabel },
                     )
                 }
             }

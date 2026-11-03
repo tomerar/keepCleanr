@@ -204,6 +204,8 @@ private fun BackupTab(
 class SelectionActions(
     val onSelect: (key: String, paths: Set<String>) -> Unit = { _, _ -> },
     val onSwipe: (key: String, decisions: List<SwipeDecision>?) -> Unit = { _, _ -> },
+    /** PR H2b: the group's one-by-one session ended; forget the saved one. */
+    val onSwipeEnd: (key: String) -> Unit = {},
 )
 
 @Composable
@@ -329,6 +331,8 @@ private fun CurrentScreen(
                             onSelect = { a.onSelect(key, it) },
                             swipe = state.swipes[key],
                             onSwipe = { a.onSwipe(key, it) },
+                            saved = state.savedSwipes[key],
+                            onSwipeEnd = { a.onSwipeEnd(key) },
                         )
                     },
                 )
