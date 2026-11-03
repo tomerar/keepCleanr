@@ -586,7 +586,7 @@ class MainActivity : ComponentActivity() {
         val text = getString(
             R.string.move_receipt_text,
             r.targetLabel,
-            r.rootRel,
+            HumanLocation.folder(r.rootRel),
             r.verified,
             ByteSize.format(r.verifiedBytes, resources.configuration.locales[0]),
             r.total - r.verified,

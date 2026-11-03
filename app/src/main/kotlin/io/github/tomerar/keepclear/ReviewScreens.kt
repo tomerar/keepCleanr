@@ -95,6 +95,7 @@ fun categoryTitle(category: Category): String = stringResource(
     },
 )
 
+/** "2,324 files · 2.9GB": a file count with its size, always count first (owner brief H2 item 10). */
 @Composable
 fun totalText(total: Total): String {
     val locale = LocalConfiguration.current.locales[0]
@@ -104,9 +105,25 @@ fun totalText(total: Total): String {
             total.files,
             NumberFormat.getIntegerInstance(locale).format(total.files),
         )
-    // Both parts isolated: a line that starts with "7.9 GB" still takes the UI's direction (review PR C).
-    return stringResource(R.string.total_value, Bidi.isolate(ByteSize.format(total.bytes, locale)), Bidi.isolate(count))
+    return countAndSize(count, ByteSize.format(total.bytes, locale))
 }
+
+/**
+ * The one way a count and a size are shown together (owner brief H2 item 10): "[count] · [size]", count first, each
+ * part isolated so a line still takes the UI's direction (review PR C). [count] is already a sentence part
+ * ("2,324 files", "3 apps").
+ */
+@Composable
+fun countAndSize(count: String, size: String): String =
+    stringResource(R.string.total_value, Bidi.isolate(count), Bidi.isolate(size))
+
+/**
+ * "Selected: 2,324 files · 2.9GB", or „לא נבחר כלום” / "Nothing selected" when nothing is: an empty selection never
+ * reads "0 files · 0B" (owner brief H2 item 10). [label] takes the total as its one argument.
+ */
+@Composable
+fun selectionText(total: Total, label: Int): String =
+    if (total.files == 0) stringResource(R.string.nothing_selected) else stringResource(label, totalText(total))
 
 @Composable
 private fun bucketTitle(bucket: String?): String {

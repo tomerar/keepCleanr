@@ -115,10 +115,9 @@ fun AppsScreen(
                 item {
                     SectionHeading(stringResource(R.string.apps_unused_title))
                     Text(
-                        stringResource(
-                            R.string.total_value,
-                            size(unused.sumOf { it.totalBytes }),
+                        countAndSize(
                             countSentence(R.plurals.app_count, unused.size),
+                            ByteSize.format(unused.sumOf { it.totalBytes }, locale),
                         ),
                         modifier = Modifier.testTag("unusedTotal"),
                     )
