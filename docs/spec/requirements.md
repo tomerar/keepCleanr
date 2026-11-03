@@ -305,6 +305,22 @@ Owner brief H3 (2026-11-03), decisions C161–C171 in [progress.md](../progress.
 
 ---
 
+## 11b. Platform and accessibility (PLAT, PR H4)
+
+Owner brief H4 (2026-11-03), decisions C172–C186 in [progress.md](../progress.md).
+
+| ID | Pri | Requirement | Tests |
+|---|---|---|---|
+| PLAT-1 | v1 | THE SYSTEM SHALL declare its own `manageSpaceActivity` (fully qualified, not exported) that shows the trash's count and size and opens the Trash, and never clears KeepClear's data or the trash index; and `hasFragileUserData="true"`. Help explains both. | `H4aPlatformTest`, `ManifestPolicyTest` (merged manifest) |
+| PLAT-2 | v1 | THE SYSTEM SHALL support predictive Back (`enableOnBackInvokedCallback`, no `onBackPressed`/`KEYCODE_BACK`), enable each Back handler only while it has something to do, leave a group's selection before the group, and animate sheets unless animations are off. | `H4aPlatformTest` |
+| PLAT-3 | v1 | THE SYSTEM SHALL draw edge to edge with the keyboard pushing sub-screens up (`adjustResize`, `imePadding`), use NavigationSuite (bottom bar < 600 dp, rail ≥ 600 dp), and keep scan results and selections across rotation (ViewModels). | `H4aPlatformTest`, `NavigationTest` |
+| PLAT-4 | v1 | THE SYSTEM SHALL ask for the notification permission only from an action that needs it (first backup start, a reminder switch), name its channels in the app's language (re-registered on a language change) and link each channel's Android page from Settings. | `H4aPlatformTest` |
+| PLAT-5 | v1 | WHEN a backup is found still running after KeepClear's process ended, THE SYSTEM SHALL read Android's exit record: only a system stop is „הטלפון עצר את הגיבוי כדי לחסוך סוללה” with „לאפשר לגיבוי לרוץ ברקע” (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, never the restricted request) and the phone maker's steps; Settings › „פתרון בעיות” shows when the backup last ran. | `H4aPlatformTest`, `H1bFlowTest` |
+| PLAT-6 | v1 | THE SYSTEM SHALL follow Android's contrast setting with medium and high schemes that never weaken a pair, make main actions 56 dp and every target ≥ 48 dp, give rows merged semantics and custom actions, sheets a pane title, and honour "Remove animations" in every animation. | `H4bAccessibilityTest`, `ContrastTest`, `AccessibilityChecksTest`, `H4ScreenshotTest` |
+| PLAT-7 | v1 | THE SYSTEM SHALL switch language in-app on Android 11–12 too, generate its locale config, link Android 13+'s per-app language page, compare Hebrew as `he` or `iw`, and give every Hebrew plural one/two/other. | `H4bAccessibilityTest` |
+| PLAT-8 | v1 | ON Android 15+, WHERE the app's store supports it, THE SYSTEM SHALL offer „לארכב” through Android's own archive confirmation besides „להסיר” (both blocked in test mode), and show app / data / temporary-files sizes. | `H4bAccessibilityTest` |
+| PLAT-9 | v1 | THE SYSTEM SHALL not call Java 21 `List` methods missing before API 35, not listen for `BOOT_COMPLETED` (WorkManager's own receiver aside), and ship only 16 KB-aligned native libraries (none today). | `ForbiddenApisTest`, `ManifestPolicyTest`, `scripts/check-16kb-pages.py` (CI) |
+
 ## 12. Non-functional (NFR)
 
 | ID | Pri | Requirement |

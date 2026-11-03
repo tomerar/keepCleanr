@@ -124,6 +124,21 @@ Decisions C161–C171 in [progress.md](../progress.md).
 - **App icon and splash:** paper background, option 1 (ink frame with three stacked bars in the lane colours), themed icon from its monochrome layer; the starting window is paper with the mark (light and dark), then the app. Options 1–3: [gallery](../design/gallery.md#app-icon-options-pr-h3).
 - **Launcher shortcuts** (long-press the icon): „לפנות מקום” (Home), „סל המחזור” (the Trash), „לגבות” (the Backup tab). They open the screen and do nothing else.
 
+### H4 (2026-11-03): platform and accessibility (owner brief H4 items 1–9; PLAT-1…9)
+
+Decisions C172–C186 in [progress.md](../progress.md).
+
+- **Android's Settings › Apps › KeepClear › Storage:** „ניהול מקום” (not „ניקוי האחסון”) opens „המקום של KeepClear”: „בסל המחזור: 1,284 קבצים · 3.4GB” · „קבצים בסל נמחקים לצמיתות אחרי 30 יום, או מיד כשמרוקנים אותו.” · why there is no "clear data" here · `[לפתוח את סל המחזור]` `[לסגור]`. Uninstalling asks whether to keep KeepClear's data (Android's own dialog).
+- **Back:** predictive everywhere; in a group with something selected, Back first clears the selection; sheets slide up and down (none with "Remove animations").
+- **Tabs:** a bottom bar on phones, a rail from 600 dp (NavigationSuite); sub-screens move above the keyboard.
+- **Notifications:** asked only from the first backup and the reminder switches. Four kinds: „התקדמות הגיבוי”, „תוצאות גיבוי”, „תזכורות על מקום”, „תזכורות גיבוי”; Settings › „התראות” lists them, each opens its Android page.
+- **The phone stopped the backup:** the paused card reads „הטלפון עצר את הגיבוי כדי לחסוך סוללה” · „אנדרואיד סוגר אפליקציות ברקע כדי לחסוך סוללה. אם מאפשרים לגיבוי לרוץ ברקע, זה קורה פחות.” · `[להמשיך]` · `[לאפשר לגיבוי לרוץ ברקע]` · „בטלפון הזה” with the maker's steps (OnePlus: „אופטימיזציה עמוקה”, „אופטימיזציה במצב שינה”, lock in Recents) · `[לפתוח את המדריך המלא לטלפון הזה]`. Only when Android recorded a system stop; a crash or an update reads „הגיבוי הופסק”.
+- **Settings › „פתרון בעיות”:** „הגיבוי רץ לאחרונה: 3 בנוב׳ 2026, 14:05”, „בפעם האחרונה הטלפון עצר אותו כדי לחסוך סוללה.” when so, and the same battery help.
+- **Language:** the chips work on Android 11–12 too; on 13+ also `[לבחור בהגדרות של אנדרואיד]`.
+- **Apps (Android 15+):** an unused app from a store that supports it: `[לארכב]` `[להסיר]` and „ארכוב שומר את הנתונים ואת הסמל של האפליקציה ומפנה את האפליקציה עצמה. לוחצים על הסמל כדי לקבל אותה בחזרה.”; every app row: „אפליקציה 2.0GB · נתונים 200MB · קבצים זמניים 100MB”.
+- **Accessibility:** Android 14+'s contrast setting gives medium/high-contrast ink; main buttons are 56 dp; app rows are one TalkBack item each; Trash rows have Restore and „לפנות עכשיו” in the actions menu.
+- **Help:** two more topics: „המקום של KeepClear והסרת ההתקנה” and „מרחב פרטי”; „הגיבוי נעצר — מה לעשות” ends with this phone's steps.
+
 ## 1. First launch & onboarding (ONB-1…3)
 
 ### 1.1 Intro (3 pages, skippable)
