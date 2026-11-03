@@ -234,6 +234,25 @@ class H5PowerUsersTest {
         compose.onAllNodesWithTag("tile", useUnmergedTree = true).assertCountEquals(1)
     }
 
+    @Test
+    fun `with a filter in use the tools stay, even when one hidden file is left, so the filter can be cleared`() {
+        // Review of PR #61: a year is chosen, its files are deleted, one file of another year is left.
+        val shown = androidx.compose.runtime.mutableStateOf(group)
+        compose.setContent {
+            KeepClearTheme { GroupScreen(shown.value, onOpenItem = {}, onBack = {}, onDelete = { _, _ -> }) }
+        }
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("groupTools"))
+        compose.onNodeWithTag("groupTools").performClick()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("year_2025"))
+        compose.onNodeWithTag("year_2025").performClick()
+        val left = items.first { java.time.Instant.ofEpochMilli(it.item.mtimeMillis).atZone(utc).year == 2024 }
+        shown.value = ClassificationSummary.of(listOf(left)).group("screenshots", Category.REVIEW)!!
+        compose.waitForIdle()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("groupClearFilter"))
+        compose.onNodeWithTag("groupClearFilter").performClick()
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("preview_Screenshot_${items.indexOf(left)}.png"))
+    }
+
     // ------------------------------------------------------------------------------------- rules
 
     @Test
@@ -406,6 +425,28 @@ class H5PowerUsersTest {
             listOf(WouldDelete("$root/a", 5, true), WouldDelete("$root/b", 6, false)),
             TestExport.rows(ops),
         )
+    }
+
+    @Test
+    fun `the export rows survive the activity being recreated, and lost rows write nothing`() {
+        // Review of PR #61: the rows waited in a `remember` of the activity, so a rotation while Android's
+        // "create document" screen was open wrote a CSV with only its header and said it was saved.
+        val main = File("src/main/kotlin/io/github/tomerar/keepclear/MainActivity.kt").readText()
+        assertFalse(
+            "export rows kept in the activity",
+            Regex("remember \\{ mutableStateOf<List<WouldDelete>>").containsMatchIn(main),
+        )
+        assertTrue(main.contains("app.pendingExport.put(rows)") && main.contains("app.pendingExport.take()"))
+        val app = KeepClearApplication()
+        val rows = listOf(WouldDelete("$root/a", 1, false))
+        app.pendingExport.put(rows)
+        // A recreated activity reads the same application.
+        assertEquals(rows, TestExport.toWrite(picked = true, testModeOn = true, rows = app.pendingExport.take()))
+        assertNull(app.pendingExport.take())
+        assertNull(TestExport.toWrite(picked = true, testModeOn = true, rows = null))
+        assertNull(TestExport.toWrite(picked = true, testModeOn = true, rows = emptyList()))
+        assertNull(TestExport.toWrite(picked = true, testModeOn = false, rows = rows))
+        assertNull(TestExport.toWrite(picked = false, testModeOn = true, rows = rows))
     }
 
     @Test

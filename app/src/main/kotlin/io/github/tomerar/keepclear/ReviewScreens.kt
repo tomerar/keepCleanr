@@ -312,7 +312,9 @@ fun GroupScreen(
                     // F2: "Why is this here?" opens a sheet; no wall of text above the pictures.
                     InfoChip(stringResource(R.string.label_why), onClick = { why = true }, Modifier.testTag("whyChip"))
                     // PR H5: a non-intrusive way in; the tools stay folded until asked for (product principle 2).
-                    if (group.items.size > 1) {
+                    // Review of PR #61: while a year or a search is in use the tools stay, even with one file left,
+                    // so a filter that hides that file can always be cleared.
+                    if (group.items.size > 1 || view.filtered) {
                         GroupToolsPanel(
                             group = group,
                             view = view,

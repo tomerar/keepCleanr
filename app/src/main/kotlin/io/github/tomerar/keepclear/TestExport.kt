@@ -59,6 +59,13 @@ object TestExport {
         return if (quote) "\"" + safe.replace("\"", "\"\"") + "\"" else safe
     }
 
+    /**
+     * Review of PR #61: what to write once Android returns a place: the waiting rows, only while test mode is on;
+     * null when nothing may be written (no place picked, test mode off, or the rows were lost).
+     */
+    fun toWrite(picked: Boolean, testModeOn: Boolean, rows: List<WouldDelete>?): List<WouldDelete>? =
+        rows?.takeIf { picked && testModeOn && it.isNotEmpty() }
+
     private val FORMULA_START = setOf('=', '+', '-', '@', '\t', '\r')
 }
 
@@ -72,5 +79,20 @@ class TestExporter(
     val saved: MutableState<Boolean?> = mutableStateOf(null),
     val export: (List<WouldDelete>) -> Unit,
 )
+
+/**
+ * Review of PR #61: the rows waiting for Android's "create document" screen. The application keeps them, so they
+ * survive the activity being recreated while that screen is open (a rotation). [take] hands them out once; after the
+ * process was ended they are gone, and [TestExport.toWrite] then writes nothing rather than an empty list.
+ */
+class PendingExport {
+    @Volatile private var rows: List<WouldDelete>? = null
+
+    fun put(rows: List<WouldDelete>) {
+        this.rows = rows
+    }
+
+    fun take(): List<WouldDelete>? = rows.also { rows = null }
+}
 
 val LocalTestExporter = staticCompositionLocalOf<TestExporter?> { null }

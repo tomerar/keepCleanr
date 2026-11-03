@@ -243,14 +243,16 @@ class MainActivity : ComponentActivity() {
                 whatsNew?.let { entry -> WhatsNewSheet(entry) { app.whatsNew.value = null } }
                 // PR H5: test mode's „לייצא את הרשימה”: Android's "create document" screen, then the CSV is written
                 // there (off the main thread); nothing else is written and nothing is read back.
-                var exportRows by remember { mutableStateOf<List<WouldDelete>>(emptyList()) }
+                // Review of PR #61: the rows wait in the application, so a rotation while Android's screen is open
+                // doesn't lose them; if they are gone (the process was ended), nothing is written and it says so.
                 val exportSaved = remember { mutableStateOf<Boolean?>(null) }
                 val exportLauncher =
                     rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TestExport.MIME)) { uri ->
-                        val rows = exportRows
-                        exportRows = emptyList()
+                        val pending = app.pendingExport.take()
                         // Written only while test mode is still on, only to the place the user just chose.
-                        if (uri != null && app.testMode.isOn) {
+                        val rows = TestExport.toWrite(uri != null, app.testMode.isOn, pending)
+                        if (uri != null && rows == null) exportSaved.value = false
+                        if (uri != null && rows != null) {
                             lifecycleScope.launch {
                                 exportSaved.value = withContext(kotlinx.coroutines.Dispatchers.IO) {
                                     runCatching {
@@ -264,7 +266,7 @@ class MainActivity : ComponentActivity() {
                     }
                 val testExporter = remember(exportLauncher) {
                     TestExporter(testModeOn = { app.testMode.isOn }, saved = exportSaved) { rows ->
-                        exportRows = rows
+                        app.pendingExport.put(rows)
                         exportSaved.value = null
                         runCatching { exportLauncher.launch(TestExport.fileName(System.currentTimeMillis())) }
                             .onFailure { exportSaved.value = false }
