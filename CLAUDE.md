@@ -69,11 +69,27 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 - KeepClear is grammatically masculine everywhere ("KeepClear מתחבר", never "מתחברת").
 - Address the user in plural ("לכם", "בחרתם"), never singular.
-- Buttons are infinitives (לשחזר, להתחבר, לבחור, למחוק, לדלג, לסגור, להחזיר), never nouns (שחזור, התחברות, בחירת…, מחיקה, דילוג, ביטול, סגירה). One owner exception (terminology 2026-11-03): undo is „חזרה” (with the auto-mirrored ↶ icon).
+- Buttons are infinitives (לשחזר, להתחבר, לבחור, למחוק, לדלג, לסגור), never nouns (שחזור, התחברות, בחירת…, מחיקה, דילוג, ביטול, סגירה). One owner exception (terminology 2026-11-03): every undo button (the swipe's, the result banner's) is „חזרה” / "Undo", with the auto-mirrored ↶ icon.
 - "לשמור/להשאיר" means only "this time"; the permanent choice is "לא להציע את זה שוב".
 - No jargon on the default path: NAS, smb://, .KeepClearTrash, F-Droid/GitHub, SHA-256 go to Details/Advanced.
 - Curly Hebrew quotes „”. "יימחקו" with double yod.
-- Store listing uses the same lane names as the app ("לנקות עכשיו" / "לבחור מה למחוק" / "להעביר לגיבוי"; owner brief H2 item 7: the REVIEW lane deletes, so it is "לבחור מה למחוק" with "שום דבר לא נמחק בלי שתבחרו").
+- Store listing uses the same lane names as the app ("לנקות עכשיו" / "לבחור מה למחוק" / "לגבות"; owner brief H2 item 7: the REVIEW lane deletes, so it is "לבחור מה למחוק" with "שום דבר לא נמחק בלי שתבחרו"; PR H2c: the MOVE lane copies first, so it is "לגבות").
+- One term per concept (owner brief H2 item 9, PR H2c; `TerminologyTest` checks every string and the store listing, table-driven, with an allow-list):
+
+  | Concept | Hebrew | English | Never |
+  |---|---|---|---|
+  | Bytes really come back (rebuild/bin kinds, P1 free after a checked backup, emptying the trash) | לפנות מקום / לפנות 7.9GB | Free up space / Free up 7.9 GB | "Free now"; "לפנות" for a move to the trash |
+  | Move to KeepClear's trash | להעביר לסל | Move to trash | להעביר לסל המחזור |
+  | Permanent | למחוק לצמיתות | Delete for good | סופית, לתמיד, "permanently" |
+  | Home's hero button (junk) | לפנות 7.9GB (the hero sentence's verb) | Free up 7.9 GB | לנקות 7.9GB on Home |
+  | Copying memories | לגבות | Back up | להעביר לגיבוי, "Move to backup" |
+  | Bring back / undo | לשחזר / חזרה | Restore / Undo | להחזיר, "put back" |
+  | KeepClear's trash only | סל המחזור (chip: סל) | Trash | סל המחזור של אנדרואיד/KeepClear, "recycle bin" |
+  | Other bins | סל הגלריה, סל של אפליקציה אחרת | the gallery's bin, another app's bin | סלי מחזור |
+  | Thumbnails | תמונות ממוזערות | Thumbnails | תמונות תצוגה מקדימה |
+  | USB drive (default path) | דיסק און קי | USB drive | כונן USB |
+  | Details link | לראות פרטים | See details | לראות פירוט |
+- A count with its size is always count first: „2,324 קבצים · 2.9GB” (`countAndSize` / `totalText`); an empty selection says „לא נבחר כלום”, never "0B". Places are shown in plain words (`HumanLocation`: drive label, folders joined with " › "), never raw paths.
 
 ## Code conventions
 
