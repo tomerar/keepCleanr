@@ -167,11 +167,12 @@ class SwipeReviewTest {
             }
         }
         compose.waitForIdle()
-        val firstPicture = compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes()
-        assertEquals(0, firstPicture.size) // the first item shows its picture, not its name
+
+        fun pictures() = compose.onAllNodesWithTag("thumbPicture", useUnmergedTree = true).fetchSemanticsNodes().size
+        assertEquals(1, pictures()) // the first item shows its picture
         compose.onNodeWithTag("swipeKeep").performClick()
         compose.waitForIdle()
-        // The second item is still loading: its name shows, never the first item's picture.
-        assertEquals(1, compose.onAllNodesWithTag("tileName", useUnmergedTree = true).fetchSemanticsNodes().size)
+        // The second item is still loading: no picture at all, never the first item's.
+        assertEquals(0, pictures())
     }
 }

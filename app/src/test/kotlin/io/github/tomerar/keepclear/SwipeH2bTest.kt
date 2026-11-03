@@ -498,6 +498,10 @@ class SwipeH2bTest {
         assertEquals(HapticFeedbackConstants.CLOCK_TICK, SwipeHaptics.constantFor(SwipeHaptic.THRESHOLD, 33))
         assertEquals(
             HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE,
+            SwipeHaptics.GESTURE_THRESHOLD_ACTIVATE,
+        )
+        assertEquals(
+            HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE,
             SwipeHaptics.constantFor(SwipeHaptic.THRESHOLD, 34),
         )
     }

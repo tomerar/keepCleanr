@@ -642,7 +642,7 @@ private fun ThumbContent(item: ClassifiedItem, sizeDp: Int, showName: Boolean) {
             image.asImageBitmap(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag("thumbPicture"),
         )
     } else if (showName) {
         Text(

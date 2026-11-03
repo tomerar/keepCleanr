@@ -309,7 +309,8 @@ fun SwipeReview(
                                 }
                                 .testTag("swipeCard"),
                         ) {
-                            Thumb(item, 360)
+                            // The name is under the picture, so none inside it (at 200 % the picture can get small).
+                            Thumb(item, 360, showName = false)
                             EdgeLabel(shownDrag, width / 4f, deleteOnLeft)
                         }
                         Text(

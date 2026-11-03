@@ -103,13 +103,9 @@ class SwipeSessionStore(private val backend: Backend) {
             (v as? String)?.let { k to it }
         }.toMap()
 
-        override fun put(key: String, value: String) {
-            prefs.edit().putString(key, value).commit()
-        }
+        override fun put(key: String, value: String) = prefs.edit(commit = true) { putString(key, value) }
 
-        override fun remove(key: String) {
-            prefs.edit().remove(key).commit()
-        }
+        override fun remove(key: String) = prefs.edit(commit = true) { remove(key) }
     }
 
     /** Tests: in memory. */
@@ -177,6 +173,9 @@ fun interface SwipeHaptics {
     fun perform(kind: SwipeHaptic)
 
     companion object {
+        /** `HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE` (API 34); used only from API 34 on. */
+        const val GESTURE_THRESHOLD_ACTIVATE = 23
+
         /**
          * Android's constant for [kind] on API [sdk]. CONFIRM and REJECT exist from API 30 (our minSdk);
          * GESTURE_THRESHOLD_ACTIVATE only from API 34, so older phones get the clock tick.
@@ -187,7 +186,7 @@ fun interface SwipeHaptics {
             SwipeHaptic.DELETE -> HapticFeedbackConstants.REJECT
 
             SwipeHaptic.THRESHOLD -> if (sdk >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
+                GESTURE_THRESHOLD_ACTIVATE
             } else {
                 HapticFeedbackConstants.CLOCK_TICK
             }
