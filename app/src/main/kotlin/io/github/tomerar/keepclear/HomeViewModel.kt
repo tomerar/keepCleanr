@@ -154,6 +154,18 @@ data class MediaConsent(
     }
 }
 
+/**
+ * Owner brief H2 item 6: Home right after a clean (optimistic update): the [result] on top, the [cleaned] items out
+ * of every total at once (the next scan confirms it), and the hero's free space as just measured ([nowFree], StatFs).
+ * In test mode nothing was cleaned, so nothing leaves the totals.
+ */
+internal fun HomeUiState.afterClean(result: CleanResult, cleaned: Set<String>, nowFree: Long?): HomeUiState = copy(
+    cleanResult = result,
+    summary = if (result.simulated) summary else summary?.without(cleaned),
+    freeBytes = nowFree?.takeIf { it > 0 } ?: freeBytes,
+    busy = false,
+)
+
 /** "Freed 7.9 GB · now 24.7 GB free (was 16.8 GB)", shown on the screen the action came from. */
 data class Measured(val freed: Long, val nowFree: Long, val wasFree: Long, val origin: Screen)
 
@@ -734,9 +746,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             val after = freeNow()
             trashDetails.clear()
+            // Owner brief H2 item 6: what was cleaned leaves Home's totals now, not after the next scan.
+            val cleaned = if (simulated) emptySet() else done.map { op -> op.displayPath }.toSet()
             _state.update {
-                it.copy(
-                    cleanResult = CleanResult(
+                it.afterClean(
+                    CleanResult(
                         done = Total(done.size, done.sumOf { op -> op.expectedSize }),
                         skipped = skipped,
                         failed = failed,
@@ -754,7 +768,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         origin = origin,
                         trashedIds = trashedIds,
                     ),
-                    busy = false,
+                    cleaned = cleaned,
+                    nowFree = after,
                 )
             }
             refreshNow()

@@ -128,17 +128,23 @@ class UxPassTest {
         assertEquals(safe.sorted(), cleaned?.sorted())
     }
 
-    // 3. ONB-3: temporary files card always, even with no permission
+    // 3. ONB-3: temporary files always reachable, even with no permission. Owner brief H2 item 4: on the Apps tab
+    // (Home keeps one clean button).
     @Test
-    fun `clear apps' temporary files is on Home even without any permission`() {
+    fun `clear apps' temporary files is on the Apps tab even without any permission`() {
         var trimmed = 0
-        home(HomeUiState(mediaAccess = MediaAccess.NONE), HomeActions(onTrim = { trimmed++ }))
-        compose.onNodeWithTag("homeTrim").performScrollTo().performClick()
+        val state = HomeUiState(mediaAccess = MediaAccess.NONE, tab = Tab.APPS, screens = listOf(Screen.Apps))
+        compose.setContent {
+            KeepClearTheme {
+                AppScreens(state, {}, {}, home = {}, safeActions = SafeActions(onTrim = { trimmed++ }))
+            }
+        }
+        compose.onNodeWithTag("appsTrim").performScrollTo().performClick()
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("confirmHomeTrim").fetchSemanticsNodes()
+            compose.onAllNodesWithTag("confirmAppsTrim").fetchSemanticsNodes()
                 .any { SemanticsProperties.Disabled !in it.config }
         }
-        compose.onNodeWithTag("confirmHomeTrim").performClick()
+        compose.onNodeWithTag("confirmAppsTrim").performClick()
         assertEquals(1, trimmed)
     }
 

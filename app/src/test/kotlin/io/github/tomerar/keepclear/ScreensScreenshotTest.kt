@@ -62,7 +62,13 @@ class ScreensScreenshotTest(private val locale: String, private val night: Boole
 
     @Test fun settingsAdvanced(): Unit = shots.settingsAdvanced()
 
-    @Test fun intro(): Unit = shots.intro()
+    @Test fun allClean(): Unit = shots.allClean()
+
+    @Test fun intro1(): Unit = shots.introPage(0)
+
+    @Test fun intro2(): Unit = shots.introPage(1)
+
+    @Test fun intro3(): Unit = shots.introPage(2)
 
     companion object {
         @JvmStatic

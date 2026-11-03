@@ -6,7 +6,7 @@
     <!-- Launcher and system label; test builds override it with "KeepClear test" (app/build.gradle.kts). -->
     <string name="launcher_name" translatable="false">KeepClear</string>
     <string name="home_card_safe_title">Clean now</string>
-    <string name="home_card_review_title">Choose what to keep</string>
+    <string name="home_card_review_title">Choose what to delete</string>
     <string name="home_card_move_title">Move to backup</string>
     <string name="home_privacy">No ads. No tracking. Connects only to a backup place you set up.</string>
     <string name="debug_toggle_rtl">Debug: flip layout direction</string>
@@ -27,8 +27,6 @@
     <string name="explainer_label_without">Without it</string>
     <string name="explainer_continue">Continue to Android\'s screen</string>
     <string name="explainer_not_now">Not now</string>
-    <string name="allfiles_card_title">See all your files</string>
-    <string name="allfiles_card_body">Optional. Lets KeepClear find WhatsApp media, old-phone folders and recycle bins.</string>
     <string name="allfiles_card_button">Allow all files</string>
     <string name="partial_banner">KeepClear sees only the photos you picked. Allow all to get full numbers.</string>
     <string name="partial_change">Change</string>
@@ -46,7 +44,7 @@
         <item quantity="one">%s file</item>
         <item quantity="other">%s files</item>
     </plurals>
-    <string name="home_total_review_body">Screenshots, big videos, old-phone folders. You decide.</string>
+    <string name="home_total_review_body">Screenshots, big videos, old-phone folders. Nothing is deleted unless you choose it.</string>
     <string name="home_total_move_body">Photos and videos to back up, check, then free.</string>
     <string name="total_value">%1$s · %2$s</string>
     <string name="action_look">Show</string>
@@ -274,15 +272,14 @@
     <string name="debug_device_check_share">Share</string>
     <string name="debug_device_check_running">Checking… this can take a minute.</string>
     <string name="home_card_counting">Counting…</string>
-    <string name="home_card_needs_access">Needs access</string>
+    <string name="home_card_needs_access">Shows after you allow access</string>
     <string name="home_clean_button">Clean %1$s</string>
-    <string name="home_clean_nothing">Nothing to clean right now</string>
     <string name="scan_status_running">Counting files… %1$s so far</string>
     <string name="scan_status_done">Scanned %1$s · %2$s</string>
     <string name="intro_1_title">Keep what matters</string>
     <string name="intro_1_body">KeepClear finds what takes space on your phone and explains each thing in plain words. Nothing is deleted without asking you.</string>
-    <string name="intro_2_title">Everything can come back</string>
-    <string name="intro_2_body">What you clean waits 30 days in KeepClear\'s trash. You can put it back with one tap.</string>
+    <string name="intro_2_title">Most of it can come back</string>
+    <string name="intro_2_body">Most of what you clean waits 30 days in the recycle bin. Files that rebuild themselves are deleted right away.</string>
     <string name="intro_3_title">Memories are moved, not deleted</string>
     <string name="intro_3_body">Photos and videos are copied to your own drive and checked. Space is freed only when you say so.</string>
     <string name="intro_next">Next</string>
@@ -398,8 +395,6 @@
         <item quantity="other">%1$s apps</item>
     </plurals>
     <string name="test_mode_uninstall_blocked">Trial mode: nothing is uninstalled. To uninstall this app, turn off trial mode in Settings › Advanced, or use Android\'s Settings › Apps.</string>
-    <string name="whatsapp_card_title">Photos and files from WhatsApp</string>
-    <string name="whatsapp_card_body">Photos you sent, voice messages and documents from WhatsApp.</string>
     <string name="whatsapp_card_button">Choose WhatsApp\'s folder</string>
     <string name="explainer_whatsapp_title">Show KeepClear WhatsApp\'s folder</string>
     <string name="explainer_whatsapp_why">To find photos you sent, voice notes and documents that WhatsApp keeps out of the gallery.</string>
@@ -568,7 +563,6 @@
     <string name="home_free_label">free</string>
     <string name="home_hero_safe">%1$s can be freed safely</string>
     <string name="home_see_details">See details</string>
-    <string name="home_more_files">See more files</string>
     <string name="home_notice_dismiss">Close</string>
     <string name="backup_places_title">Backup places</string>
     <string name="backup_places_drive">A USB drive or memory card: you choose it when you start a backup.</string>
@@ -617,22 +611,17 @@
     </plurals>
     <string name="apps_open_app_content">See files inside apps\' own folders</string>
     <!-- Design QA 2026-11-02, item 1: what is deleted for good right away (owner decision, Q2 amended). -->
-    <string name="confirm_fact_for_good">Deleted for good now</string>
-    <string name="confirm_fact_to_trash">To KeepClear\'s trash, for 30 days</string>
-    <string name="confirm_where_for_good">Deleted for good, now</string>
     <string name="clean_confirm_yes_now">Clean now</string>
     <string name="confirm_part_value">%1$s · %2$s</string>
-    <string name="clean_confirm_for_good_rebuilds">Thumbnails, temporary files and old statuses will be deleted for good: they rebuild themselves.</string>
-    <string name="clean_confirm_for_good_bins">Files from other apps\' bins will be deleted for good: they were already deleted once, so they can\'t be put back.</string>
     <string name="clean_confirm_note_rest">Everything else can be put back from the trash for 30 days.</string>
     <string name="result_freed_now">Freed %1$s · now %2$s free</string>
     <string name="clean_in_trash">%1$s in the trash, freed on %2$s</string>
     <string name="clean_deleted_for_good">%1$s deleted for good.</string>
     <string name="test_mode_would_delete_for_good">Of these, %1$s would have been deleted for good.</string>
     <!-- Design QA item 2: the storage strip's legend, in the strip's order. -->
-    <string name="strip_legend_safe">Clean</string>
-    <string name="strip_legend_review">Choose</string>
-    <string name="strip_legend_move">Back up</string>
+    <string name="strip_legend_safe">Junk files</string>
+    <string name="strip_legend_review">To choose</string>
+    <string name="strip_legend_move">To back up</string>
     <string name="strip_legend_other">Other</string>
     <string name="strip_legend_free">Free</string>
     <!-- Design QA item 3: Trash. -->
@@ -715,4 +704,29 @@
     </plurals>
     <string name="restore_partial_run">Restore these now</string>
     <string name="restore_this_file">Restore this file</string>
+    <string name="review_nothing_without_you">Nothing is deleted unless you choose it.</string>
+    <string name="trash_chip_label">Trash · %1$s</string>
+    <string name="trash_chip_empty_label">Trash</string>
+    <string name="trash_chip_empty_description">Recycle bin, empty</string>
+    <string name="intro_page">%1$d of %2$d</string>
+    <string name="intro_restore">New phone? Restore from a backup</string>
+    <string name="confirm_fact_what_happens">What happens</string>
+    <string name="clean_happens_rebuilds">Deleted now; the phone makes them again by itself</string>
+    <string name="clean_happens_part">%1$s: %2$s</string>
+    <string name="clean_risk_bins">%1$s from other apps\' bins will be deleted for good. They were already deleted once, so they can\'t be restored.</string>
+    <string name="clean_reassurance">Your photos, videos and chats are not deleted.</string>
+    <string name="home_all_clean">All clean ✓</string>
+    <string name="home_big_win_backup">The most space comes from backing up your photos: %1$s</string>
+    <string name="home_big_win_backup_button">Back up photos</string>
+    <string name="home_big_win_review">The most space comes from choosing what to delete: %1$s</string>
+    <string name="home_lane_empty">Nothing here right now</string>
+    <string name="whatsapp_offer_title">Find WhatsApp photos and documents too?</string>
+    <string name="whatsapp_offer_body_allfiles">Right now KeepClear sees your gallery only. With access to all files it also finds WhatsApp files, folders from your old phone and other apps\' bins.</string>
+    <string name="whatsapp_offer_body_folder">This version of KeepClear doesn\'t ask for access to all files. You can choose WhatsApp\'s folder, and KeepClear will look only there.</string>
+    <string name="pause_next_full">Delete what you don\'t need from the USB drive, or choose fewer photos this time, then tap Continue.</string>
+    <string name="pause_next_phone_space">Free some space on the phone first, then tap Continue.</string>
+    <string name="pause_free_phone">Free up space on the phone</string>
+    <string name="pause_next_unexpected">Tap Continue. If it happens again, unplug the USB drive and plug it back in, or restart the phone.</string>
+    <string name="review_list_empty">Nothing to choose from right now. New screenshots and big videos show up here after the next scan.</string>
+    <string name="move_nothing">No photos or videos to back up right now.</string>
 </resources>

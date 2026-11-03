@@ -77,7 +77,7 @@ Every brief token passed the contrast test unchanged (§2.4); none was adjusted.
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | safe / safeContainer / onSafeContainer | `#3D6B4F` / `#DCEBDF` / `#10291A` | `#9DCDAE` / `#24392C` / `#DCEBDF` | "Clean now" lane |
-| review / reviewContainer / onReviewContainer | `#4D5D73` / `#E1E6EE` / `#151E2B` | `#B7C4D8` / `#2C3440` / `#E1E6EE` | "Choose what to keep" lane |
+| review / reviewContainer / onReviewContainer | `#4D5D73` / `#E1E6EE` / `#151E2B` | `#B7C4D8` / `#2C3440` / `#E1E6EE` | "Choose what to delete" lane (H2a) |
 | move / moveContainer / onMoveContainer | `#8A5A12` / `#F5E4C6` / `#2B1A00` | `#E7B970` / `#3D2E14` / `#F5E4C6` | "Move to backup" lane, memories |
 | stripUsed | `#8A8378` | `#8F887D` | StorageStrip: used by everything else (= outline) |
 | stripFree | `#DDD6CA` | `#3A3732` | StorageStrip track: free space (= outlineVariant) |
@@ -138,7 +138,7 @@ Material Symbols **Rounded** (weight 400, fill 0, 24px), Apache-2.0, from `googl
 | Name | Meaning | Mirrored |
 |---|---|---|
 | `eco` (leaf) | SAFE lane, "Clean now" | |
-| `photo_library` | REVIEW lane, "Choose what to keep" | |
+| `photo_library` | REVIEW lane, "Choose what to delete" | |
 | `inventory_2` (box) | MOVE lane, memories, "Move to backup" | |
 | `auto_delete` (bin with clock) | Trash: 30 days | |
 | `task_alt` | verified (VerifiedStamp) | |
@@ -188,6 +188,10 @@ All components wrap stable Material 3 (1.4.x) so Expressive can be swapped in la
 | **ThumbStrip** | 3–4 real thumbnails on a REVIEW/MOVE card | row of up to 4 square 12dp-rounded thumbnails + "+N" tile | The app supplies `Painter`s (it owns thumbnail loading); decorative for TalkBack (the card's label carries the count) |
 | **VerifiedStamp** | Proof after a backup | ink outline stamp, slightly rotated (−4°), `task_alt` + "Checked file by file" | Appears once with a fade/scale (skipped under reduced motion); the paper-slip backup summary card hosts it |
 | **InfoChip** | "Why is this here?" | 12dp assist-style chip with `info` icon | Opens an explainer bottom sheet next to what was tapped; role Button |
+| **ConfirmSheet `risk`** (H2a) | The one line about what can't be undone | error-red bodyLarge line right under the title, before the rows; a fade in the sheet's colour above the sticky buttons while more of the body is below | Only for a permanent loss (other apps' bins); every other line stays neutral |
+| **BalancedChipRow** (H2a) | A wrapping row of choices (age chips) | one line when they fit; else an even split that leaves no choice alone; else one per line | Mirrors in RTL (`placeRelative`); pure split `BalancedLines` is unit-tested |
+| **WholeWordsAutoSize** (H2a) | Short labels in narrow places (rail) | a `TextAutoSize` that steps down until the text fits and wraps only between words | Never below the label's size at 100 % font |
+| **IntroIllustration** (H2a) | The intro's three pictures | line drawings on a 160 × 100 grid in theme tokens only: the strip getting shorter (SAFE ghost dashed), photos with check circles (REVIEW), photos into a USB stick with a ring stamp (MOVE) | Decorative for TalkBack; mirrored in RTL; lane colour always with a shape |
 
 ## 8. Signature elements
 

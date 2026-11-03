@@ -30,6 +30,10 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -160,13 +164,14 @@ fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Un
                             selected = t == tab,
                             onClick = { ui.onSelectTab(t) },
                             icon = { Icon(tabIcon(t), contentDescription = null) },
-                            label = { Text(stringResource(tabLabel(t))) },
+                            label = { RailLabel(stringResource(tabLabel(t)), Modifier.testTag("tabLabel_${t.name}")) },
                             modifier = Modifier.testTag("tab_${t.name}"),
                         )
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    MainTopBar(trash, ui)
+                    // Owner brief H2 item 12: the bar lines up with the content's centred column.
+                    ReadableWidthBar { MainTopBar(trash, ui) }
                     Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) { content() }
                 }
             }
@@ -185,7 +190,7 @@ fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Un
                             selected = t == tab,
                             onClick = { ui.onSelectTab(t) },
                             icon = { Icon(tabIcon(t), contentDescription = null) },
-                            label = { TabLabel(stringResource(tabLabel(t))) },
+                            label = { TabLabel(stringResource(tabLabel(t)), Modifier.testTag("tabLabel_${t.name}")) },
                             modifier = Modifier.testTag("tab_${t.name}"),
                         )
                     }
@@ -200,17 +205,39 @@ fun MainTabs(tab: Tab, trash: TrashUi, ui: TabsUi, content: @Composable () -> Un
  * was cut to "Free up" at 200%). It never gets smaller than the default size at 100%.
  */
 @Composable
-private fun TabLabel(text: String) {
+private fun TabLabel(text: String, modifier: Modifier = Modifier) {
     val style = MaterialTheme.typography.labelMedium
     val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
     Text(
         text,
+        // Owner brief H2 item 12: a margin from the tab's edges, also when the label shrinks at 200%.
+        modifier = Modifier.padding(horizontal = 4.dp).then(modifier),
         maxLines = 1,
         softWrap = false,
         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
             minFontSize = style.fontSize / fontScale.coerceAtLeast(1f),
             maxFontSize = style.fontSize,
             stepSize = 0.5.sp,
+        ),
+    )
+}
+
+/**
+ * Owner brief H2 item 12: a rail tab's label (tablets, foldables) on at most two lines, wrapping only between words
+ * and never wider than the rail; at large font sizes it shrinks just enough, never below the default size at 100%.
+ */
+@Composable
+private fun RailLabel(text: String, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.labelMedium
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    Text(
+        text,
+        modifier = modifier,
+        maxLines = 2,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        autoSize = io.github.tomerar.keepclear.core.designsystem.component.WholeWordsAutoSize(
+            min = style.fontSize / fontScale.coerceAtLeast(1f),
+            max = style.fontSize,
         ),
     )
 }
@@ -262,40 +289,7 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
                 modifier = Modifier.semantics { heading() }.testTag("wordmark"),
             )
             // The wordmark keeps its width; the chip takes what is left and shortens its label if it must.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                val bytes = trashChipBytes(trash)
-                if (bytes != null) {
-                    val locale = LocalConfiguration.current.locales[0]
-                    val size = Bidi.isolate(ByteSize.format(bytes, locale))
-                    // The chip shows the bin and the size; TalkBack reads "Trash · size" (C73).
-                    val label = stringResource(R.string.trash_chip, size)
-                    AssistChip(
-                        onClick = ui.onOpenTrash,
-                        label = {
-                            Text(
-                                size,
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontFamily = KeepClearTheme.type.number.fontFamily,
-                                    fontFeatureSettings = KeepClearTheme.type.number.fontFeatureSettings,
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        leadingIcon = { Icon(KcIcons.Trash, contentDescription = null, Modifier.size(18.dp)) },
-                        shape = io.github.tomerar.keepclear.core.designsystem.KcShapes.chip,
-                        modifier = Modifier.clearAndSetSemantics {
-                            testTag = "trashChip"
-                            contentDescription = label
-                            role = Role.Button
-                            onClick {
-                                ui.onOpenTrash()
-                                true
-                            }
-                        },
-                    )
-                }
-            }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { TrashChip(trash, ui.onOpenTrash) }
             IconButton(onClick = ui.onOpenSettings, modifier = Modifier.testTag("openSettings")) {
                 Icon(KcIcons.Settings, contentDescription = stringResource(R.string.settings_title))
             }
@@ -303,7 +297,98 @@ fun MainTopBar(trash: TrashUi, ui: TabsUi) {
     }
 }
 
-/** The Trash chip's size, or null when there is nothing in the trash (then the chip isn't shown). */
+/** Whether the Trash chip looks empty (muted); tests read it. */
+val TrashChipEmpty = androidx.compose.ui.semantics.SemanticsPropertyKey<Boolean>("TrashChipEmpty")
+
+/** Whether the Trash chip's words fit whole (never cut); tests read it. */
+val TrashChipFits = androidx.compose.ui.semantics.SemanticsPropertyKey<Boolean>("TrashChipFits")
+
+/** The Trash chip's visible words (TalkBack hears its description instead); tests read it. */
+val TrashChipLabel = androidx.compose.ui.semantics.SemanticsPropertyKey<String>("TrashChipLabel")
+
+/**
+ * Owner brief H2 item 3: the Trash chip with a word, „סל · 258MB” (TalkBack: „סל המחזור · 258MB”). It is always
+ * there, so the Trash is always one tap away; when the trash is empty it reads „סל” and looks muted (outline and
+ * text in the variant colour), but it still opens the Trash. Never "0B".
+ */
+@Composable
+private fun TrashChip(trash: TrashUi, onOpenTrash: () -> Unit) {
+    val bytes = trashChipBytes(trash)
+    val locale = LocalConfiguration.current.locales[0]
+    val empty = bytes == null
+    val size = bytes?.let { Bidi.isolate(ByteSize.format(it, locale)) }
+    val visible = if (size != null) {
+        stringResource(R.string.trash_chip_label, size)
+    } else {
+        stringResource(R.string.trash_chip_empty_label)
+    }
+    val spoken = if (size != null) {
+        stringResource(R.string.trash_chip, size)
+    } else {
+        stringResource(R.string.trash_chip_empty_description)
+    }
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    val large = fontScale >= 1.5f
+    val labelStyle = MaterialTheme.typography.labelLarge
+    var fits by remember { mutableStateOf(true) }
+    AssistChip(
+        onClick = onOpenTrash,
+        label = {
+            Text(
+                visible,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontFamily = KeepClearTheme.type.number.fontFamily,
+                    fontFeatureSettings = KeepClearTheme.type.number.fontFeatureSettings,
+                ),
+                maxLines = 1,
+                softWrap = false,
+                onTextLayout = { fits = !it.hasVisualOverflow },
+                // Shrinks rather than cutting the size, never below its size at 100% font.
+                autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                    minFontSize = labelStyle.fontSize / fontScale.coerceAtLeast(1f),
+                    maxFontSize = labelStyle.fontSize,
+                    stepSize = 0.5.sp,
+                ),
+            )
+        },
+        // At large font sizes the word „סל” says what the chip is; the icon gives its room to the size (F3: the
+        // whole size next to the wordmark at 200%).
+        leadingIcon = if (large) {
+            null
+        } else {
+            { Icon(KcIcons.Trash, contentDescription = null, Modifier.size(18.dp)) }
+        },
+        shape = io.github.tomerar.keepclear.core.designsystem.KcShapes.chip,
+        colors = if (empty) {
+            androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                labelColor = muted,
+                leadingIconContentColor = muted,
+            )
+        } else {
+            androidx.compose.material3.AssistChipDefaults.assistChipColors()
+        },
+        border = if (empty) {
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            androidx.compose.material3.AssistChipDefaults.assistChipBorder(enabled = true)
+        },
+        modifier = Modifier.clearAndSetSemantics {
+            testTag = "trashChip"
+            contentDescription = spoken
+            role = Role.Button
+            this[TrashChipEmpty] = empty
+            this[TrashChipLabel] = visible
+            this[TrashChipFits] = fits
+            onClick {
+                onOpenTrash()
+                true
+            }
+        },
+    )
+}
+
+/** The Trash chip's size, or null when there is nothing in the trash (the chip then reads „סל”, muted). */
 internal fun trashChipBytes(trash: TrashUi): Long? =
     if (trash.entries.isEmpty() && trash.android.isEmpty()) null else trash.bytes + trash.android.sumOf { it.size }
 

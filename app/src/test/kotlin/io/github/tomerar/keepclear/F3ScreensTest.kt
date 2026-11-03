@@ -133,8 +133,19 @@ class F3ScreensTest {
                 }
             }
         }
-        val (phone, wide) = compose.onAllNodesWithTag("trashChip").fetchSemanticsNodes().map { it.size.width }
-        assertEquals("the chip was shortened on the phone", wide.toFloat(), phone.toFloat(), 1f)
+        // Owner brief H2 item 3: the chip now also has the word „סל”; on the phone it may get a little smaller (never
+        // below its size at 100% font), but its words, and so the whole size, are never cut.
+        val (phone, wide) = compose.onAllNodesWithTag("trashChip").fetchSemanticsNodes()
+        listOf(phone, wide).forEach { chip ->
+            assertEquals("the chip's words were cut", true, chip.config[TrashChipFits])
+            val size = io.github.tomerar.keepclear.core.common.Bidi.strip(
+                io.github.tomerar.keepclear.core.common.ByteSize.format(
+                    trashChipBytes(OwnerPhone.trash)!!,
+                    java.util.Locale.forLanguageTag("iw"),
+                ),
+            )
+            assertTrue(io.github.tomerar.keepclear.core.common.Bidi.strip(chip.config[TrashChipLabel]).contains(size))
+        }
     }
 
     @Test

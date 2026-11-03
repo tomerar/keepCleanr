@@ -10,6 +10,14 @@ import org.junit.jupiter.api.Test
 
 class BidiTest {
     @Test
+    fun `a short drive name stays on one line, a long one may wrap (H2 item 12)`() {
+        Bidi.name("SanDisk USB") shouldBe "⁨SanDisk\u00A0USB⁩"
+        Bidi.name(" ‏Samsung T7 Shield ") shouldBe "⁨Samsung\u00A0T7\u00A0Shield⁩"
+        val long = "Very long network share name on the NAS"
+        Bidi.name(long) shouldBe "⁨$long⁩"
+    }
+
+    @Test
     fun `isolates a Hebrew file name`() {
         Bidi.isolate("תמונה של אמא 🎂.jpg") shouldBe "⁨תמונה של אמא 🎂.jpg⁩"
     }

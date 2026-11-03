@@ -132,6 +132,17 @@ fun ReadableWidth(content: @Composable () -> Unit) {
     }
 }
 
+/** Owner brief H2 item 12: the main top bar at the same readable width as the content below it, centred. */
+@Composable
+fun ReadableWidthBar(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Box(Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxWidth()) { content() }
+    }
+}
+
 /** UI-2: wider than this, content is centered (Material's "medium" width class ends at 840dp). */
 val MAX_CONTENT_WIDTH = 840.dp
 
@@ -175,9 +186,10 @@ private fun BackupTab(
         now = LocalClock.current(),
         notificationsOff = notificationsOff,
         // Every action is forwarded (a field-by-field copy once dropped "Check backup").
-        actions = moveActions.withOpenGroup {
-            onOpen(Screen.Group(it, io.github.tomerar.keepclear.core.model.Category.MOVE))
-        },
+        actions = moveActions.withOpenGroup(
+            open = { onOpen(Screen.Group(it, io.github.tomerar.keepclear.core.model.Category.MOVE)) },
+            openFreeTab = { onOpen(Screen.Home) },
+        ),
         onBack = onBack,
         pending = pending,
         places = BackupPlaces(
@@ -282,6 +294,7 @@ private fun CurrentScreen(
                         )
                     },
                     onBack = onBack,
+                    onBackUp = { onOpen(Screen.Backup) },
                 )
             }
         }
@@ -348,6 +361,9 @@ private fun CurrentScreen(
                         ?.takeIf { it }
                         ?.let { { onOpen(Screen.AppContent) } },
                     clonedHidden = state.cloned.hidden,
+                    onTrim = safeActions.onTrim,
+                    trimResult = state.trimResult,
+                    busy = state.busy,
                 ),
             )
         }

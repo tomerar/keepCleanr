@@ -120,6 +120,9 @@ private fun bucketTitle(bucket: String?): String {
     }
 }
 
+/** Owner brief H2 item 12: the smallest review tile; 4 columns on a 360 dp phone, more on wider screens. */
+internal val REVIEW_TILE_MIN = 80.dp
+
 /** All groups of one category, largest first (REV-1). Nothing is selected or selectable yet. */
 @Composable
 fun CategoryListScreen(
@@ -127,6 +130,8 @@ fun CategoryListScreen(
     category: Category,
     onOpenGroup: (String) -> Unit,
     onBack: () -> Unit,
+    /** Owner brief H2 item 11: the empty list's one next step (the Backup tab). */
+    onBackUp: () -> Unit = {},
 ) {
     Scaffold(topBar = { SubScreenTopBar(categoryTitle(category), onBack) }) { padding ->
         LazyColumn(
@@ -134,10 +139,28 @@ fun CategoryListScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val groups = summary.groups(category)
             item {
-                Text(totalText(summary.total(category)), style = KeepClearTheme.type.number)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (groups.isNotEmpty()) {
+                        Text(totalText(summary.total(category)), style = KeepClearTheme.type.number)
+                    }
+                    // Owner brief H2 item 7: the lane is about deleting, and nothing happens without the user.
+                    if (category == Category.REVIEW) {
+                        Text(
+                            stringResource(R.string.review_nothing_without_you),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("nothingWithoutYou"),
+                        )
+                    }
+                }
             }
-            items(summary.groups(category), key = { it.ruleId }) { group ->
+            if (groups.isEmpty()) {
+                item {
+                    EmptyNext(R.string.review_list_empty, R.string.home_big_win_backup_button, "reviewEmpty", onBackUp)
+                }
+            }
+            items(groups, key = { it.ruleId }) { group ->
                 val text = RuleText.of(group.ruleId)
                 // F2: a group is recognised by its pictures (ThumbStrip), not by a paragraph.
                 val thumbs = rememberThumbPainters(group.items)
@@ -216,8 +239,9 @@ fun GroupScreen(
         },
     ) { padding ->
         LazyVerticalGrid(
-            // F2: four columns of thumbnails (brief "Review group").
-            columns = GridCells.Fixed(4),
+            // F2: four columns of thumbnails on a phone (brief "Review group"); owner brief H2 item 12: more on
+            // tablets and foldables (at least 80 dp each).
+            columns = GridCells.Adaptive(minSize = REVIEW_TILE_MIN),
             modifier = Modifier.padding(padding).fillMaxSize().testTag("grid"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -272,14 +296,18 @@ fun GroupScreen(
             }
             for ((bucket, items) in group.buckets) {
                 item(span = { GridItemSpan(maxLineSpan) }, key = "h_$bucket") {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                    // Owner brief H2 item 12: the month's name keeps its whole line when the button doesn't fit beside
+                    // it (at 200% it went "אוקטוב/ר 2026"); the button then wraps below it.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
                     ) {
                         Text(
                             bucketTitle(bucket),
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f).semantics { heading() }.testTag("bucket_$bucket"),
+                            modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() }
+                                .testTag("bucket_$bucket"),
                         )
                         if (selectable) {
                             val paths = items.map { it.item.path }.toSet()
@@ -379,7 +407,7 @@ private fun EditableConfirm(
         onDismiss = onDismiss,
         facts = text.facts,
         note = if (text.anyForGood) text.note else stringResource(R.string.review_confirm_body),
-        permanent = text.permanentNote,
+        risk = text.risk,
         modifier = Modifier.testTag("reviewConfirm"),
         confirmButton = {
             SafeConfirmButton(

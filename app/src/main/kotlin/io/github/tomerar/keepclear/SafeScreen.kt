@@ -255,7 +255,7 @@ internal fun TrimConfirmSheet(onTrim: () -> Unit, onDismiss: () -> Unit, tag: St
 
 /** F2: what, how many, how much and where it goes, for a ConfirmSheet (brief "ConfirmSheet"). */
 @Composable
-internal fun confirmFacts(total: Total, where: String): List<ConfirmFact> {
+internal fun confirmFacts(total: Total, where: String?): List<ConfirmFact> {
     val locale = LocalConfiguration.current.locales[0]
     val count = pluralStringResource(
         R.plurals.file_count,
@@ -271,15 +271,18 @@ internal fun confirmFacts(total: Total, where: String): List<ConfirmFact> {
             stringResource(R.string.confirm_fact_how_much),
             io.github.tomerar.keepclear.core.common.Bidi.isolate(ByteSize.format(total.bytes, locale)),
         ),
-        ConfirmFact(stringResource(R.string.confirm_fact_where), where),
-    )
+    ) + listOfNotNull(where?.let { ConfirmFact(stringResource(R.string.confirm_fact_where), it) })
 }
 
-/** Owner decision 2026-11-02: what a clean confirmation shows, split into "deleted for good" and "to the trash". */
+/**
+ * Owner decision 2026-11-02: what a clean confirmation shows, split into "deleted for good" and "to the trash". Owner
+ * brief H2 item 5: the row "What happens" (not "Where"); the one red line is [risk] (other apps' bins, gone for
+ * good), shown first; [note] is never red.
+ */
 internal class CleanSheetText(
     val facts: List<ConfirmFact>,
     val note: String,
-    val permanentNote: Boolean,
+    val risk: String?,
     val anyForGood: Boolean,
 ) {
     /** "Move to trash" only when everything goes to the trash; "Clean now" when some of it is deleted for good. */
@@ -287,9 +290,11 @@ internal class CleanSheetText(
 }
 
 /**
- * The rows and note of a clean confirmation (SAFE-1, REV-3). When some of [items] are deleted for good (they rebuild
- * themselves or are already in another app's bin, [CleanPlanner.permanentReasons]), the rows say which part is
- * deleted for good now and which part goes to the trash for 30 days, and the note says why, in plain words.
+ * The rows and notes of a clean confirmation (SAFE-1, REV-3). How many and how much in all, then "What happens":
+ * what rebuilds itself is deleted now and the phone makes it again; the rest goes to the trash for 30 days (with
+ * each part's size when there is more than one). Items already in another app's bin are the red [CleanSheetText.risk]
+ * line instead. When every item is SAFE junk, the note always reassures that photos, videos and chats aren't deleted
+ * (owner brief H2 item 5, C141).
  */
 @Composable
 internal fun cleanSheetText(items: List<ClassifiedItem>): CleanSheetText {
@@ -297,35 +302,37 @@ internal fun cleanSheetText(items: List<ClassifiedItem>): CleanSheetText {
     val reasons = remember(items) {
         io.github.tomerar.keepclear.engine.enrich.CleanPlanner.permanentReasons(items, now)
     }
-    val (forGood, toTrash) = items.partition { it.item.path in reasons }
+    val bins = items.filter {
+        reasons[it.item.path] == io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN
+    }
+    val rebuilds = items.filter {
+        reasons[it.item.path] == io.github.tomerar.keepclear.core.safety.PermanentReason.REBUILDS_ITSELF
+    }
+    val toTrash = items.filter { it.item.path !in reasons }
     val total = items.fold(Total()) { t, i -> t + i }
-    if (forGood.isEmpty()) {
-        return CleanSheetText(
-            confirmFacts(total, stringResource(R.string.confirm_where_trash)),
-            stringResource(R.string.clean_confirm_note),
-            permanentNote = false,
-            anyForGood = false,
-        )
+    val parts = listOf(bins, rebuilds, toTrash).count { it.isNotEmpty() }
+    val happens = buildList {
+        if (rebuilds.isNotEmpty()) add(rebuilds to stringResource(R.string.clean_happens_rebuilds))
+        if (toTrash.isNotEmpty()) add(toTrash to stringResource(R.string.confirm_where_trash))
+    }.map { (part, sentence) ->
+        if (parts > 1) stringResource(R.string.clean_happens_part, partValue(part), sentence) else sentence
     }
-    val why = buildList {
-        if (io.github.tomerar.keepclear.core.safety.PermanentReason.REBUILDS_ITSELF in reasons.values) {
-            add(stringResource(R.string.clean_confirm_for_good_rebuilds))
+    val facts = confirmFacts(total, null) + listOfNotNull(
+        happens.takeIf { it.isNotEmpty() }?.let {
+            ConfirmFact(stringResource(R.string.confirm_fact_what_happens), it.joinToString("\n"))
+        },
+    )
+    val risk = bins.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.clean_risk_bins, partValue(it)) }
+    val note = buildList {
+        if (items.all { it.category == io.github.tomerar.keepclear.core.model.Category.SAFE }) {
+            add(stringResource(R.string.clean_reassurance))
         }
-        if (io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN in reasons.values) {
-            add(stringResource(R.string.clean_confirm_for_good_bins))
+        when {
+            toTrash.isNotEmpty() && toTrash.size == items.size -> add(stringResource(R.string.clean_confirm_note))
+            toTrash.isNotEmpty() -> add(stringResource(R.string.clean_confirm_note_rest))
         }
-        if (toTrash.isNotEmpty()) add(stringResource(R.string.clean_confirm_note_rest))
     }.joinToString("\n")
-    val facts = if (toTrash.isEmpty()) {
-        confirmFacts(total, stringResource(R.string.confirm_where_for_good))
-    } else {
-        listOf(
-            ConfirmFact(stringResource(R.string.confirm_fact_for_good), partValue(forGood)),
-            ConfirmFact(stringResource(R.string.confirm_fact_to_trash), partValue(toTrash)),
-        )
-    }
-    val bins = io.github.tomerar.keepclear.core.safety.PermanentReason.ALREADY_IN_A_BIN in reasons.values
-    return CleanSheetText(facts, why, permanentNote = bins, anyForGood = true)
+    return CleanSheetText(facts, note, risk, anyForGood = reasons.isNotEmpty())
 }
 
 /** "4.1GB · 1,234 files", each part isolated. */
@@ -371,7 +378,7 @@ fun CleanConfirmDialog(
         onDismiss = onDismiss,
         facts = text.facts,
         note = text.note,
-        permanent = text.permanentNote,
+        risk = text.risk,
         modifier = Modifier.testTag("cleanConfirm"),
         confirmButton = {
             SafeConfirmButton(
