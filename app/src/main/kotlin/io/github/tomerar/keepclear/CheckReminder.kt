@@ -102,6 +102,9 @@ object CheckReminder {
     }
 
     fun show(context: Context, jobId: String) {
+        // Review of PR #60: the reminder's text in the language chosen in KeepClear (Android 11–12, AppLanguage).
+        @Suppress("NAME_SHADOWING")
+        val context = AppLanguage.wrap(context)
         val nm = context.getSystemService(NotificationManager::class.java)
         // Owner brief H4 item 4: every channel, named in the app's language.
         NotificationChannels.registerAll(context)

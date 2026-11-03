@@ -44,8 +44,11 @@ object NotificationChannels {
     /** Creates the channels, or renames them in [context]'s language (Android keeps the user's settings). */
     fun registerAll(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
+        // Review of PR #60: on Android 11–12 the application context keeps the language of process start; the names
+        // come from the language the user chose now (AppLanguage), so a background worker never renames them back.
+        val named = AppLanguage.wrap(context)
         all.forEach { c ->
-            nm.createNotificationChannel(NotificationChannel(c.id, context.getString(c.name), c.importance))
+            nm.createNotificationChannel(NotificationChannel(c.id, named.getString(c.name), c.importance))
         }
     }
 
