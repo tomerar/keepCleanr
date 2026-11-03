@@ -12,6 +12,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     testImplementation(project(":testing:fixtures"))
     testImplementation(project(":core:storage-file"))
+    // Owner decision P1: freeing runs through the real executor and trash (one choke point) in the tests.
+    testImplementation(project(":engine:trash"))
+    testImplementation(testFixtures(project(":engine:trash")))
     testImplementation(testFixtures(project(":core:storage-api")))
     testFixturesApi(project(":backup:target-api"))
 }

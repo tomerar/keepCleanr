@@ -70,7 +70,8 @@ class MovePlannerTest {
                 override suspend fun freeBytes() = 10L
             },
             sourceVolumeIds = setOf("usb-1"),
-            batteryPercent = 10,
+            // Owner decision P3: below 10 % on battery it can't start (from 10 % with a warning, BatteryTest).
+            batteryPercent = 9,
             charging = false,
         )
         issues shouldContain MovePlanner.Issue.TargetIsSource

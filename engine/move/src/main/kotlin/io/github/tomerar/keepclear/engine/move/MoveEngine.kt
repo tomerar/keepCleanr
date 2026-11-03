@@ -5,6 +5,7 @@ import io.github.tomerar.keepclear.backup.BackupTarget
 import io.github.tomerar.keepclear.backup.DigestKind
 import io.github.tomerar.keepclear.core.hash.DropboxContentHash
 import io.github.tomerar.keepclear.core.hash.Sha256
+import io.github.tomerar.keepclear.core.safety.BackupProof
 import io.github.tomerar.keepclear.core.safety.OpKind
 import io.github.tomerar.keepclear.core.safety.PlannedOp
 import io.github.tomerar.keepclear.core.storage.StorageException
@@ -17,8 +18,9 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Copy → hash → place → read back → compare (ADR 0007, MOVE-6/8/11). **Never deletes or changes a
- * source file**: deleting originals is a separate, user-confirmed `ActionPlan` built by
- * [originalsPlan] and run through the executor (strict re-hash) into the trash.
+ * source file**: freeing originals is a separate, user-confirmed `ActionPlan` built by [freeOps] (batch by batch,
+ * [FreeOriginals]) and run through the executor (strict re-hash), which deletes them for good after a verified backup
+ * (owner decision P1) or, with the user's setting, moves them to the trash.
  *
  * Every state transition is checkpointed to [store] so a killed job resumes at the first unverified
  * file (MOVE-11); temp files from an interrupted copy are deleted on resume (E-MOVE-1).
@@ -41,6 +43,12 @@ class MoveEngine(
      * volume, a network target, events not watched). Recorded per file at the first check, compared at the second.
      */
     private val attachGeneration: () -> AttachGeneration? = { null },
+    /**
+     * Owner decision P3 (2026-11-03): the phone's battery right now, or null when unknown. Asked before each file;
+     * at [BatteryPolicy.PAUSE_AT] or below, not charging, the job pauses ([PauseReason.BATTERY_LOW]) with every
+     * checkpoint kept, so a resume never redoes a verified file.
+     */
+    private val battery: () -> BatteryLevel? = { null },
 ) {
     suspend fun run(jobId: String): MoveJob {
         var job = store.job(jobId) ?: error("unknown job $jobId")
@@ -51,6 +59,7 @@ class MoveEngine(
         try {
             for (file in normal + recent) {
                 currentCoroutineContext().ensureActive()
+                if (BatteryPolicy.mustPause(battery())) throw Pause(PauseReason.BATTERY_LOW)
                 process(file)
             }
             writeManifest(job)
@@ -390,24 +399,77 @@ class MoveEngine(
     /**
      * MOVE-9/10: the plan the receipt's "Free from phone" button confirms. Only L3-verified files whose
      * copy is still on the target with the right size; each op carries the verified SHA-256 so the
-     * executor re-hashes the original right before trashing it (SAFETY-5, strict mode). Never offered
+     * executor re-hashes the original right before freeing it (SAFETY-5, strict mode). Never offered
      * when the target can't be read back (MOVE-14), nor against a copy-only place (D3: an unsigned SMB guest share).
      */
-    suspend fun originalsPlan(jobId: String): List<PlannedOp> {
+    suspend fun originalsPlan(jobId: String): List<PlannedOp> = freeOps(jobId, freeCandidates(jobId)).ops
+
+    /**
+     * H1, owner decision P1: the files whose originals may be freed: verified twice (the second time with a read that
+     * couldn't come from the page cache). Reads only the job store. Empty for a target that can't be read back or a
+     * copy-only place.
+     */
+    suspend fun freeCandidates(jobId: String): List<MoveFile> {
         if (!target.caps.canReadBack || !target.caps.canFreeOriginals) return emptyList()
-        val job = store.job(jobId) ?: return emptyList()
+        store.job(jobId) ?: return emptyList()
         return store.files(jobId).filter {
-            // H1: verified twice, the second time with a read that couldn't come from the page cache.
             it.state == MoveFileState.VERIFIED && it.sourceSha256 != null && it.confirmedAt != null
-        }.mapNotNull { f ->
-            val copy = runCatching { target.stat(f.relTarget) }.getOrNull()
-            if (copy?.size != f.sourceSize) return@mapNotNull null
-            // Re-hash the copy at free time, not just its size (H1).
-            val copyHash = runCatching { readBackHash(f.relTarget) }.getOrNull()
-            if (copyHash != f.sourceSha256) return@mapNotNull null
-            val now = source.stat(f.source) ?: return@mapNotNull null
-            if (now.size != f.sourceSize || now.mtimeMillis != f.sourceMtime) return@mapNotNull null
-            PlannedOp(
+        }
+    }
+
+    /**
+     * Owner decision P1: the ops for [files] (a batch of [freeCandidates]), built **at free time**: each copy is read
+     * back from the target and hashed again now (H1), and each original is re-checked (present, same size and date).
+     * Each op carries a [BackupProof] of that check, so the executor can delete the original for good. Files that fail
+     * a check are left out and counted in [FreeOps.skipped]. The drive going away (or access lost) stops the batch:
+     * [FreeOps.interrupted], nothing more is planned.
+     */
+    suspend fun freeOps(jobId: String, files: List<MoveFile>): FreeOps {
+        val job = store.job(jobId) ?: return FreeOps(emptyList(), mapOf(FreeSkip.NOT_CONFIRMED to files.size))
+        val ops = mutableListOf<PlannedOp>()
+        val skipped = mutableMapOf<FreeSkip, Int>()
+
+        fun skip(why: FreeSkip) = skipped.merge(why, 1, Int::plus)
+        for ((i, f) in files.withIndex()) {
+            currentCoroutineContext().ensureActive()
+            val sha = f.sourceSha256
+            val second = f.confirmedAt
+            if (f.state != MoveFileState.VERIFIED || sha == null || second == null || f.jobId != jobId) {
+                skip(FreeSkip.NOT_CONFIRMED)
+                continue
+            }
+            val copyHash = try {
+                val copy = target.stat(f.relTarget)
+                if (copy?.size != f.sourceSize) {
+                    skip(if (copy == null) FreeSkip.COPY_MISSING else FreeSkip.COPY_DIFFERS)
+                    continue
+                }
+                // Re-hash the copy at free time, not just its size (H1, owner decision P1).
+                readBackHash(f.relTarget)
+            } catch (e: Pause) {
+                return FreeOps(ops, skipped, interrupted = true, notReached = files.size - i)
+            } catch (e: StorageException) {
+                if (pauseFor(e) != null) return FreeOps(ops, skipped, interrupted = true, notReached = files.size - i)
+                null
+            }
+            if (copyHash != sha) {
+                skip(FreeSkip.COPY_DIFFERS)
+                continue
+            }
+            val now = try {
+                source.stat(f.source)
+            } catch (e: StorageException) {
+                null
+            }
+            if (now == null) {
+                skip(FreeSkip.ORIGINAL_MISSING)
+                continue
+            }
+            if (now.size != f.sourceSize || now.mtimeMillis != f.sourceMtime) {
+                skip(FreeSkip.ORIGINAL_CHANGED)
+                continue
+            }
+            ops += PlannedOp(
                 ref = f.source,
                 displayPath = f.sourcePath,
                 kind = OpKind.MOVE_DELETE_ORIGINAL,
@@ -415,10 +477,18 @@ class MoveEngine(
                 expectedSize = f.sourceSize,
                 expectedMtime = f.sourceMtime,
                 expectedIdentity = f.sourceIdentity,
-                expectedSha256 = f.sourceSha256,
+                expectedSha256 = sha,
                 verifiedCopy = "${job.targetLabel}: ${f.relTarget}",
+                backupProof = BackupProof(
+                    targetId = target.id,
+                    copyRel = f.relTarget,
+                    copySha256 = copyHash,
+                    secondCheckAt = second,
+                    copyCheckedAt = clock(),
+                ),
             )
         }
+        return FreeOps(ops, skipped)
     }
 
     /**

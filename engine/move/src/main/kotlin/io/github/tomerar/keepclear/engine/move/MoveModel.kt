@@ -41,6 +41,12 @@ enum class PauseReason {
 
     /** An unexpected storage error; the job pauses instead of failing (low-severity review item). */
     UNEXPECTED_ERROR,
+
+    /**
+     * Owner decision P3: the battery reached [BatteryPolicy.PAUSE_AT] while not charging. The job continues by itself
+     * once the phone charges (or the battery is back above [BatteryPolicy.RESUME_AT]).
+     */
+    BATTERY_LOW,
 }
 
 /**
