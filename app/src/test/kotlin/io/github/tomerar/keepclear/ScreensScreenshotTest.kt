@@ -38,6 +38,12 @@ class ScreensScreenshotTest(private val locale: String, private val night: Boole
 
     @Test fun swipe(): Unit = shots.swipe()
 
+    @Test fun swipeHint(): Unit = shots.swipeHint()
+
+    @Test fun swipeDrag(): Unit = shots.swipeDrag()
+
+    @Test fun swipeResume(): Unit = shots.swipeResume()
+
     @Test fun trash(): Unit = shots.trash()
 
     @Test fun trashActions(): Unit = shots.trashActions()

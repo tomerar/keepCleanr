@@ -156,9 +156,50 @@ class Shots(
         capture("review_group")
     }
 
+    private val swipeItems get() = OwnerPhone.summary.group("screenshots", Category.REVIEW)!!.items
+
+    /** PR H2b: 40 of the screenshots decided, every third toward Delete (14 marked). */
+    private fun midSession(): List<SwipeDecision> = swipeItems.take(40).mapIndexed { i, item ->
+        SwipeDecision.of(item, if (i % 3 == 0) SwipeChoice.DELETE else SwipeChoice.KEEP)
+    }
+
+    /** PR H2b: in the middle of a session: „לסיים ולבדוק · 14” always on screen, „חזרה” apart from „לסגור”. */
     fun swipe() {
-        show { SwipeReview(OwnerPhone.summary.group("screenshots", Category.REVIEW)!!.items, {}, {}) }
+        show { SwipeReview(swipeItems, {}, {}, decisions = midSession()) }
         capture("swipe")
+    }
+
+    /** PR H2b: the first session ever: the one-time hint says which way deletes. */
+    fun swipeHint() {
+        show {
+            CompositionLocalProvider(LocalSwipePrefs provides SwipePrefs(hintSeen = false)) {
+                SwipeReview(swipeItems, {}, {})
+            }
+        }
+        capture("swipe_hint")
+    }
+
+    /** PR H2b: the card dragged to the left: its edge says „למחוק”. */
+    fun swipeDrag() {
+        show { SwipeReview(swipeItems, {}, {}, decisions = midSession(), previewDrag = -0.3f) }
+        capture("swipe_drag")
+    }
+
+    /** PR H2b: „להמשיך מאיפה שעצרתם”, with two files that changed since the session was left. */
+    fun swipeResume() {
+        val group = OwnerPhone.summary.group("screenshots", Category.REVIEW)!!
+        val saved = midSession().mapIndexed { i, d -> if (i == 5 || i == 6) d.copy(size = d.size + 1) else d }
+        show {
+            GroupScreen(
+                group,
+                {},
+                {},
+                selection = GroupSelection(emptySet(), {}, swipe = null, onSwipe = {}, saved = saved),
+            )
+        }
+        compose.onNodeWithTag("grid").performScrollToNode(hasTestTag("startSwipe"))
+        compose.onNodeWithTag("startSwipe").performClick()
+        capture("swipe_resume")
     }
 
     /** H1c: the Trash as a grid of pictures by month (its default). */

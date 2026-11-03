@@ -65,8 +65,11 @@ class HebrewVoiceTest {
             R.string.whatsapp_card_button,
             R.string.swipe_delete,
             R.string.swipe_skip,
-            R.string.swipe_undo,
             R.string.swipe_close,
+            R.string.swipe_finish_none,
+            R.string.swipe_resume_continue,
+            R.string.swipe_resume_restart,
+            R.string.settings_swipe_swap,
             R.string.swipe_keep,
             R.string.choice_remove,
             R.string.debug_device_check_button,
@@ -75,8 +78,6 @@ class HebrewVoiceTest {
             R.string.move_pick_target,
             R.string.apps_open_app_content,
             R.string.settings_network_button,
-            R.string.swipe_exit_yes,
-            R.string.swipe_exit_no,
             R.string.clean_confirm_yes,
             R.string.trash_cancel,
             R.string.move_cancel,
@@ -85,6 +86,15 @@ class HebrewVoiceTest {
             val text = context.getString(id)
             assertTrue(text, text.startsWith("ל"))
         }
+    }
+
+    @Test
+    fun `undo is chazara - the owner's one exception to infinitive buttons`() {
+        // Owner brief 2026-11-03, terminology: "bring back = לשחזר; undo = חזרה". Exactly this word, nothing else.
+        assertEquals("חזרה", context.getString(R.string.swipe_undo))
+        assertEquals("לסיים ולבדוק · %1\$s", context.getString(R.string.swipe_finish, "%1\$s"))
+        assertEquals("להמשיך מאיפה שעצרתם", context.getString(R.string.swipe_resume_continue))
+        assertEquals("להחליף את כיווני ההחלקה", context.getString(R.string.settings_swipe_swap))
     }
 
     @Test
