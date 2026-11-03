@@ -95,6 +95,9 @@ class SettingsActions(
     /** SET-3: "Remind me when space is low" (off by default). */
     val reminderOn: Boolean = false,
     val onReminder: (Boolean) -> Unit = {},
+    /** Owner brief H1 item 11: "Remind me to check the backup" (off by default). */
+    val checkReminderOn: Boolean = false,
+    val onCheckReminder: (Boolean) -> Unit = {},
     /** F2: Android 13+ asks before showing notifications; the reminder explains first, then asks. */
     val needsNotificationPermission: Boolean = false,
     /** Asks Android for the notification permission and reports whether it was granted. */
@@ -199,6 +202,32 @@ fun SettingsScreen(
                         },
                         // M18 / A11Y-1: TalkBack names the switch, not just "Switch, off".
                         modifier = Modifier.testTag("reminderSwitch").semantics { contentDescription = reminderLabel },
+                    )
+                }
+            }
+            val checkLabel = stringResource(R.string.check_reminder_setting)
+            KcCard(Modifier.testTag("checkReminder")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(checkLabel, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(R.string.check_reminder_setting_body),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Switch(
+                        checked = actions.checkReminderOn,
+                        // Asked in context: Android's notification question comes only when this is turned on.
+                        onCheckedChange = { on ->
+                            if (on && actions.needsNotificationPermission) {
+                                actions.onAskNotifications { granted -> if (granted) actions.onCheckReminder(true) }
+                            } else {
+                                actions.onCheckReminder(on)
+                            }
+                        },
+                        modifier = Modifier.testTag("checkReminderSwitch").semantics {
+                            contentDescription = checkLabel
+                        },
                     )
                 }
             }

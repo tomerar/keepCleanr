@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,7 +37,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.tomerar.keepclear.backup.saf.TargetKind
@@ -92,8 +95,6 @@ class MoveActions(
     val onShare: (String) -> Unit = {},
     val onOpenGooglePhotos: () -> Unit = {},
     val onOpenGroup: (String) -> Unit = {},
-    /** Whether a USB drive or memory card is mounted now (checked before Android's folder picker). */
-    val hasRemovableDrive: () -> Boolean = { true },
     val onOpenTrash: () -> Unit = {},
     /** MOVE-17: "Restore from a backup". */
     val restore: RestoreActions = RestoreActions(),
@@ -117,7 +118,6 @@ class MoveActions(
         onShare = onShare,
         onOpenGooglePhotos = onOpenGooglePhotos,
         onOpenGroup = open,
-        hasRemovableDrive = hasRemovableDrive,
         onOpenTrash = onOpenTrash,
         restore = restore,
     )
@@ -173,14 +173,39 @@ fun MoveScreen(
     val busy = state.running != null
     // E3: a free, check or restore runs in the background; nothing else starts meanwhile.
     val taskRunning = state.task != null
+    // Owner brief H1 item 2: while a job runs, the selection is hidden (nothing to change mid-copy).
+    val jobActive = busy || taskRunning
 
-    Scaffold(topBar = { if (onBack != null) SubScreenTopBar(stringResource(R.string.move_title), onBack) }) { padding ->
+    Scaffold(
+        topBar = { if (onBack != null) SubScreenTopBar(stringResource(R.string.move_title), onBack) },
+        // Owner brief H1 item 2: the primary button sits above the tabs, never below the fold.
+        bottomBar = {
+            if (summary != null && !jobActive) {
+                BackupBar(
+                    total = total,
+                    enabled = items.isNotEmpty() && !state.busy,
+                    preparing = state.busy,
+                    onClick = { guide = true },
+                )
+            }
+        },
+    ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize().testTag("moveScreen"),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (onBack == null) item { SectionHeading(stringResource(R.string.move_title)) }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (onBack == null) SectionHeading(stringResource(R.string.move_title))
+                    // Owner brief H1 item 1: it copies; nothing is deleted at this step.
+                    Text(
+                        stringResource(R.string.backup_only_copies),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag("onlyCopies"),
+                    )
+                }
+            }
             if (notificationsOff && busy) {
                 item { Text(stringResource(R.string.move_notif_warning), modifier = Modifier.testTag("notifWarning")) }
             }
@@ -193,12 +218,16 @@ fun MoveScreen(
                 val label = state.jobs.firstOrNull { it.job.id == check.jobId }?.job?.targetLabel.orEmpty()
                 item { CheckCard(check, label, actions) }
             }
+            // Owner brief H1 item 11: the reminder was tapped.
+            state.recheck?.takeIf { state.check == null }?.let { jobId ->
+                item { RecheckCard(enabled = !jobActive, onCheck = { actions.onCheck(jobId) }) }
+            }
             state.jobs.firstOrNull()?.let { latest ->
                 item {
                     JobCard(
                         latest,
                         running = state.running == latest.job.id,
-                        canResume = !busy && !taskRunning,
+                        canResume = !jobActive,
                         actions = actions,
                         onFree = { confirmFree = latest },
                         onStop = { confirmStop = true },
@@ -213,26 +242,8 @@ fun MoveScreen(
                         modifier = Modifier.testTag("movePending"),
                     )
                 }
-            } else {
+            } else if (!jobActive) {
                 moveSources(summary, groups, selected, { selected = it }, age, { chosenAge = it }, now, actions)
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            stringResource(R.string.move_selected, totalText(total)),
-                            style = KeepClearTheme.type.number,
-                            modifier = Modifier.testTag("moveSelected"),
-                        )
-                        KcButton(
-                            stringResource(R.string.move_pick_target),
-                            onClick = { guide = true },
-                            enabled = items.isNotEmpty() && !busy && !state.busy && !taskRunning,
-                            icon = KcIcons.Move,
-                            modifier = Modifier.fillMaxWidth().testTag("pickTarget"),
-                        )
-                        // F2: a pre-flight being prepared shows progress, not only a disabled button.
-                        if (state.busy) BusyLine()
-                    }
-                }
                 item { PhotosNote(actions.onOpenGooglePhotos) }
             }
             // MOVE-17: bring files back from a backup (a drive, folder or network drive), also before any scan.
@@ -253,7 +264,7 @@ fun MoveScreen(
                     JobCard(
                         view,
                         running = state.running == view.job.id,
-                        canResume = !busy && !taskRunning,
+                        canResume = !jobActive,
                         actions = actions,
                         onFree = { confirmFree = view },
                         onStop = { confirmStop = true },
@@ -268,7 +279,7 @@ fun MoveScreen(
     }
     if (guide) {
         PickGuideDialog(
-            hasDrive = actions.hasRemovableDrive,
+            drive = state.drive,
             onContinue = {
                 guide = false
                 actions.onPickTarget(items)
@@ -321,6 +332,61 @@ fun MoveScreen(
                 actions.onFree(view.job.id, userConfirmed(paths))
             },
         )
+    }
+}
+
+/**
+ * Owner brief H1 item 2: the sticky bar above the tabs: what is selected and the primary button with its size
+ * ("Back up 31.0 GB"). Always on screen, whatever the font size and however long the list.
+ */
+@Composable
+private fun BackupBar(total: Total, enabled: Boolean, preparing: Boolean, onClick: () -> Unit) {
+    val locale = LocalConfiguration.current.locales[0]
+    androidx.compose.material3.Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth().testTag("backupBar"),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                stringResource(R.string.move_selected, totalText(total)),
+                style = KeepClearTheme.type.number,
+                modifier = Modifier.testTag("moveSelected"),
+            )
+            KcButton(
+                if (total.files == 0) {
+                    stringResource(R.string.backup_button_empty)
+                } else {
+                    stringResource(R.string.backup_button, Bidi.isolate(ByteSize.format(total.bytes, locale)))
+                },
+                onClick = onClick,
+                enabled = enabled,
+                icon = KcIcons.Move,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("pickTarget"),
+            )
+            // F2: a pre-flight being prepared shows progress, not only a disabled button.
+            if (preparing) BusyLine()
+        }
+    }
+}
+
+/** Owner brief H1 item 11: the reminder was tapped: connect the drive, then check. */
+@Composable
+private fun RecheckCard(enabled: Boolean, onCheck: () -> Unit) {
+    KcCard(Modifier.testTag("recheckCard")) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.recheck_card), style = MaterialTheme.typography.bodyMedium)
+            KcButton(
+                stringResource(R.string.move_check_button),
+                onClick = onCheck,
+                enabled = enabled,
+                icon = KcIcons.Verified,
+                modifier = Modifier.fillMaxWidth().testTag("recheckButton"),
+            )
+        }
     }
 }
 
@@ -591,6 +657,10 @@ private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit, onRestore: ()
         if (r.skipped > 0) add(countSentence(R.plurals.move_free_skipped, r.skipped))
         if (r.failed > 0) add(countSentence(R.plurals.move_free_failed, r.failed))
         if (r.interrupted) add(stringResource(R.string.move_free_interrupted, Bidi.isolate(r.targetLabel)))
+        // With the measured headline, where the copy is goes to the detail line.
+        if (r.measuredFreed != null && r.forGood) {
+            add(stringResource(R.string.move_free_done_for_good, totalText(total), Bidi.isolate(r.targetLabel)))
+        }
     }.joinToString("\n").ifEmpty { null }
     // Owner decision P1: deleted for good, the undo is the checked copy ("Restore from a backup");
     // in the trash, Empty now.
@@ -598,15 +668,31 @@ private fun FreeResultCard(r: FreeResult, onOpenTrash: () -> Unit, onRestore: ()
     Box(Modifier.fillMaxWidth().testTag("freeResult")) {
         ResultBanner(
             message = when {
-                r.simulated -> stringResource(R.string.test_mode_would_free, totalText(total))
+                r.simulated -> {
+                    stringResource(R.string.test_mode_would_free, totalText(total))
+                }
 
-                r.forGood -> stringResource(
-                    R.string.move_free_done_for_good,
-                    totalText(total),
-                    Bidi.isolate(r.targetLabel),
-                )
+                // Owner brief H1 item 7: measured, like the clean result ("Freed 31.0 GB · now 47.8 GB free").
+                r.measuredFreed != null && r.nowFree != null -> {
+                    val locale = LocalConfiguration.current.locales[0]
+                    stringResource(
+                        R.string.result_freed_now,
+                        Bidi.isolate(ByteSize.format(r.measuredFreed, locale)),
+                        Bidi.isolate(ByteSize.format(r.nowFree, locale)),
+                    )
+                }
 
-                else -> stringResource(R.string.move_free_done, totalText(total))
+                r.forGood -> {
+                    stringResource(
+                        R.string.move_free_done_for_good,
+                        totalText(total),
+                        Bidi.isolate(r.targetLabel),
+                    )
+                }
+
+                else -> {
+                    stringResource(R.string.move_free_done, totalText(total))
+                }
             },
             detail = detail,
             actionText = when {
@@ -652,33 +738,34 @@ private fun JobCard(
         running -> {
             KcCard(Modifier.testTag("jobRunning")) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val locale = LocalConfiguration.current.locales[0]
-                    val nf = NumberFormat.getIntegerInstance(locale)
+                    Text(
+                        stringResource(R.string.backup_running_to, Bidi.isolate(view.job.targetLabel)),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    // Owner brief H1 item 4: backup mode (Ente): what the user may and shouldn't do meanwhile.
+                    Text(
+                        stringResource(if (view.network) R.string.backup_mode_network else R.string.backup_mode_drive),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag("backupMode"),
+                    )
+                    // The phase as a small label; ONE progress line with the time left.
                     Text(
                         stringResource(
-                            R.string.move_running,
-                            Bidi.isolate(view.job.targetLabel),
-                            Bidi.isolate(nf.format(r.verified)),
-                            Bidi.isolate(nf.format(r.total)),
+                            if (view.phase ==
+                                MovePhase.CHECKING
+                            ) {
+                                R.string.move_phase_checking
+                            } else {
+                                R.string.move_phase_copying
+                            },
                         ),
-                    )
-                    // Review PR C: phase, bytes and time left, not just a file count.
-                    val phase = stringResource(
-                        if (view.phase ==
-                            MovePhase.CHECKING
-                        ) {
-                            R.string.move_phase_checking
-                        } else {
-                            R.string.move_phase_copying
-                        },
-                    )
-                    val bytes = stringResource(
-                        R.string.move_progress_bytes,
-                        sizeText(view.doneBytes),
-                        sizeText(view.totalBytes),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("movePhase"),
                     )
                     Text(
-                        "$phase · $bytes",
+                        progressLine(view.doneBytes, view.totalBytes, view.etaMillis),
                         style = KeepClearTheme.type.number,
                         modifier = Modifier.testTag("moveProgress"),
                     )
@@ -689,12 +776,7 @@ private fun JobCard(
                             modifier = Modifier.testTag("moveBatteryWait"),
                         )
                     }
-                    view.etaMillis?.let { eta ->
-                        Text(
-                            stringResource(R.string.move_time_left, durationText(eta)),
-                            modifier = Modifier.testTag("moveEta"),
-                        )
-                    }
+                    ProgressAnnouncer(view.doneBytes, view.totalBytes)
                     LinearProgressIndicator(
                         progress = { if (view.totalBytes == 0L) 0f else view.doneBytes.toFloat() / view.totalBytes },
                         modifier = Modifier.fillMaxWidth(),
@@ -730,32 +812,67 @@ private fun JobCard(
         else -> {
             KcCard(Modifier.testTag("jobPaused")) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(pauseText(view.job.pauseReason, view.job.targetLabel))
+                    // Owner brief H1 item 8: a specific message and one button (Signal's pattern).
+                    Text(pauseText(view), modifier = Modifier.testTag("pauseText"))
                     Text(totalText(Total(r.verified, r.verifiedBytes)), style = KeepClearTheme.type.number)
-                    KcButton(
-                        stringResource(R.string.move_continue),
-                        onClick = { actions.onResume(view.job.id) },
-                        enabled = canResume,
-                        modifier = Modifier.testTag("resume"),
-                    )
+                    if (pauseHasButton(view.job.pauseReason)) {
+                        KcButton(
+                            stringResource(R.string.move_continue),
+                            onClick = { actions.onResume(view.job.id) },
+                            enabled = canResume,
+                            modifier = Modifier.testTag("resume"),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+/** Owner brief H1 item 8: a pause for the battery goes on by itself (no button); every other pause has one. */
+internal fun pauseHasButton(reason: PauseReason?): Boolean = reason != PauseReason.BATTERY_LOW
+
 @Composable
-private fun pauseText(reason: PauseReason?, label: String): String = when (reason) {
-    PauseReason.TARGET_DISCONNECTED -> stringResource(R.string.move_paused_disconnected)
+private fun pauseText(view: JobView): String {
+    val locale = LocalConfiguration.current.locales[0]
+
+    fun size(b: Long) = Bidi.isolate(ByteSize.format(b, locale))
+    return when (view.job.pauseReason) {
+        // "Not enough space on the USB drive: 4.1 GB needed, 2.3 GB free".
+        PauseReason.TARGET_FULL -> view.targetFreeBytes?.let { free ->
+            stringResource(R.string.pause_full_sizes, size(view.remainingBytes), size(free))
+        } ?: stringResource(R.string.pause_full_needed, size(view.remainingBytes))
+
+        else -> pauseText(view.job.pauseReason, view.job.targetLabel, view.network)
+    }
+}
+
+@Composable
+private fun pauseText(reason: PauseReason?, label: String, network: Boolean): String = when (reason) {
+    PauseReason.TARGET_DISCONNECTED -> stringResource(
+        if (network) R.string.move_paused_disconnected else R.string.pause_unplugged,
+    )
+
+    PauseReason.STOPPED_BY_PHONE -> stringResource(R.string.pause_phone_stopped)
+
     PauseReason.TARGET_FULL -> stringResource(R.string.move_paused_full)
+
     PauseReason.ACCESS_LOST -> stringResource(R.string.move_paused_access)
+
     PauseReason.PHONE_LOW_SPACE -> stringResource(R.string.move_paused_phone_space)
+
     PauseReason.CANCELLED -> stringResource(R.string.move_paused_stopped)
+
     PauseReason.SYSTEM_TIME_LIMIT -> stringResource(R.string.move_paused_time)
+
     PauseReason.INTERRUPTED -> stringResource(R.string.move_paused_interrupted)
+
     PauseReason.WRONG_TARGET -> stringResource(R.string.move_paused_wrong, Bidi.isolate(label))
+
     PauseReason.UNEXPECTED_ERROR -> stringResource(R.string.move_paused_unexpected)
+
     PauseReason.BATTERY_LOW -> stringResource(R.string.move_paused_battery)
+
     PauseReason.PAUSED_BY_USER, null -> stringResource(R.string.move_paused_user)
 }
 
@@ -776,10 +893,19 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 style = KeepClearTheme.type.number,
                 modifier = Modifier.testTag("receiptTotal"),
             )
-            if (r.verified > 0) {
+            // Owner brief H1 item 6: the stamp only once the second check has passed for every copy; before it,
+            // "Copied ✓ · Last step: check".
+            if (receiptStamped(view)) {
                 VerifiedStamp(
                     stringResource(R.string.receipt_stamp),
                     Modifier.padding(vertical = 8.dp).testTag("verifiedStamp"),
+                )
+            } else if (view.needsCheck) {
+                Text(
+                    stringResource(R.string.receipt_copied_next_check),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.testTag("copiedNextCheck"),
                 )
             }
             TearLine()
@@ -794,8 +920,35 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                 ),
                 modifier = Modifier.testTag("receiptVerified"),
             )
-            r.failed.forEach { (reason, count) ->
-                Text(countSentence(failText(reason), count), modifier = Modifier.testTag("failed_${reason.name}"))
+            // Owner brief H1 item 8: a partial result is one line and "Show", which opens the list.
+            val errors = r.failed.values.sum() + r.changed
+            var showErrors by rememberSaveable(view.job.id) { mutableStateOf(false) }
+            if (errors > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("errorsLine")) {
+                    Text(
+                        countSentence(R.plurals.backup_errors, errors),
+                        modifier = Modifier.weight(1f),
+                    )
+                    KcButton(
+                        stringResource(if (showErrors) R.string.backup_errors_hide else R.string.backup_errors_show),
+                        onClick = { showErrors = !showErrors },
+                        style = KcButtonStyle.Text,
+                        modifier = Modifier.testTag("errorsShow"),
+                    )
+                }
+            }
+            if (showErrors) {
+                r.failed.forEach { (reason, count) ->
+                    Text(countSentence(failText(reason), count), modifier = Modifier.testTag("failed_${reason.name}"))
+                }
+                if (r.changed > 0) Text(countSentence(R.plurals.move_receipt_changed, r.changed))
+                view.failedFiles.forEach { f ->
+                    Text(
+                        Bidi.isolate(f.path.substringAfterLast('/')),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("failedFile"),
+                    )
+                }
             }
             if (r.unverified > 0) {
                 Text(
@@ -809,7 +962,6 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                     modifier = Modifier.testTag("receiptNextcloud"),
                 )
             }
-            if (r.changed > 0) Text(countSentence(R.plurals.move_receipt_changed, r.changed))
             if (r.pending > 0) Text(countSentence(R.plurals.move_receipt_pending, r.pending))
             if (r.namesChanged > 0) Text(countSentence(R.plurals.move_receipt_names, r.namesChanged))
             Text(
@@ -837,12 +989,13 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("detailsCheckPc"),
                 )
+                // Owner brief H1 item 6: under Details, in neutral words.
+                Text(
+                    stringResource(R.string.details_unencrypted),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("unencrypted"),
+                )
             }
-            Text(
-                stringResource(R.string.move_receipt_unencrypted),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.testTag("unencrypted"),
-            )
             if (view.needsCheck) {
                 // H1: a read right after copying may come from the phone's memory; one more uncached check first.
                 Text(stringResource(R.string.move_check_needed), modifier = Modifier.testTag("checkNeeded"))
@@ -902,6 +1055,42 @@ fun ReceiptCard(view: JobView, onFree: () -> Unit, onShare: () -> Unit, onCheck:
     }
 }
 
+/** Owner brief H1 item 6: the receipt is stamped only after the second check passed for every copy. */
+internal fun receiptStamped(view: JobView): Boolean =
+    view.receipt.confirmed > 0 && view.receipt.confirmed == view.receipt.verified && !view.needsCheck
+
+/** Owner brief H1 item 4: "12.9 of 31.0GB · about 41 minutes left". */
+@Composable
+internal fun progressLine(doneBytes: Long, totalBytes: Long, etaMillis: Long?): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val (done, total) = ByteSize.progress(doneBytes, totalBytes, locale)
+    return if (etaMillis == null) {
+        stringResource(R.string.move_progress_bytes, done, total)
+    } else {
+        stringResource(R.string.backup_progress_eta, done, total, durationText(etaMillis))
+    }
+}
+
+/**
+ * Owner brief H1 item 5: TalkBack hears the progress in steps of about 10 % (a polite live region whose text changes
+ * only at each step), never on every file.
+ */
+@Composable
+private fun ProgressAnnouncer(doneBytes: Long, totalBytes: Long) {
+    val locale = LocalConfiguration.current.locales[0]
+    val step = announceStep(doneBytes, totalBytes)
+    val text = stringResource(
+        R.string.backup_progress_announce,
+        java.text.NumberFormat.getPercentInstance(locale).format(step / 10.0),
+    )
+    Box(
+        Modifier.semantics {
+            liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
+            contentDescription = text
+        }.testTag("progressAnnounce"),
+    )
+}
+
 /** H1 / MOVE-15: the steps of "Check backup". */
 @Composable
 private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
@@ -909,26 +1098,43 @@ private fun CheckCard(check: BackupCheck, label: String, actions: MoveActions) {
     KcCard(Modifier.testTag("checkCard")) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             when (check) {
+                // Owner brief H1 item 6: live states from the volume source: unplug → "Unplugged ✓ — plug it back
+                // in" → "Checking…" → the stamp.
                 is BackupCheck.Unplug -> {
                     Text(
-                        stringResource(R.string.move_check_unplug, drive),
+                        stringResource(R.string.replug_unplug),
+                        style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.testTag("checkUnplug"),
                     )
+                    Text(stringResource(R.string.move_check_unplug, drive), style = MaterialTheme.typography.bodySmall)
                 }
 
                 is BackupCheck.PlugBack -> {
                     Text(
-                        stringResource(R.string.move_check_plug_back, drive),
+                        stringResource(R.string.replug_detected),
+                        style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.testTag("checkPlugBack"),
                     )
                 }
 
                 is BackupCheck.Checking -> {
-                    Text(stringResource(R.string.move_check_checking))
+                    Text(
+                        stringResource(R.string.replug_checking),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.testTag("checkChecking"),
+                    )
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
 
                 is BackupCheck.Done -> {
+                    val clean = check.result.ok > 0 && check.result.damaged + check.result.missing == 0 &&
+                        check.result.unproven == 0
+                    if (clean) {
+                        VerifiedStamp(
+                            stringResource(R.string.receipt_stamp),
+                            Modifier.padding(vertical = 4.dp).testTag("checkStamp"),
+                        )
+                    }
                     Text(
                         countSentence(R.plurals.move_check_ok, check.result.ok),
                         modifier = Modifier.testTag("checkOk"),
@@ -998,7 +1204,7 @@ fun durationText(millis: Long): String {
  */
 @Composable
 private fun PickGuideDialog(
-    hasDrive: () -> Boolean,
+    drive: RemovableDrive?,
     onContinue: () -> Unit,
     onDismiss: () -> Unit,
     networkHost: String? = null,
@@ -1006,36 +1212,45 @@ private fun PickGuideDialog(
     nextcloudHost: String? = null,
     onNextcloud: () -> Unit = {},
 ) {
-    var noDrive by remember { mutableStateOf(false) }
     InfoSheet(
         title = stringResource(R.string.move_guide_title),
         dismissText = stringResource(R.string.move_cancel),
         onDismiss = onDismiss,
         modifier = Modifier.testTag("pickGuide"),
         primaryButton = {
+            // Owner brief H1 item 3: Android's picker opens right at the drive found (MainActivity).
             KcButton(
                 stringResource(R.string.move_guide_continue),
-                onClick = { if (hasDrive()) onContinue() else noDrive = true },
+                onClick = onContinue,
+                enabled = drive != null,
                 modifier = Modifier.fillMaxWidth().testTag("guideContinue"),
             )
         },
     ) {
-        Text(stringResource(R.string.move_guide_1), style = MaterialTheme.typography.bodyMedium)
-        Text(stringResource(R.string.move_guide_2), style = MaterialTheme.typography.bodyMedium)
-        if (noDrive) {
+        // Live: the sheet changes the moment a drive is plugged in or pulled out.
+        if (drive != null) {
             Text(
-                stringResource(R.string.move_guide_no_drive),
-                style = MaterialTheme.typography.bodyMedium,
+                stringResource(R.string.drive_found, Bidi.isolate(drive.label)),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("driveFound"),
+            )
+            Text(stringResource(R.string.drive_found_hint), style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Text(
+                stringResource(R.string.drive_connect),
+                style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.testTag("noDrive"),
             )
-            // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
-            KcButton(
-                stringResource(R.string.move_guide_anyway),
-                onClick = onContinue,
-                style = KcButtonStyle.Text,
-                modifier = Modifier.testTag("guideAnyway"),
-            )
+            Text(stringResource(R.string.drive_connect_live), style = MaterialTheme.typography.bodyMedium)
         }
+        // Advisory only: other places (a cloud folder: copy-only, MOVE-14) stay reachable.
+        KcButton(
+            stringResource(R.string.move_guide_anyway),
+            onClick = onContinue,
+            style = KcButtonStyle.Text,
+            modifier = Modifier.testTag("guideAnyway"),
+        )
         // M15 / M17b: only places set up under Settings › Advanced.
         networkHost?.let { host ->
             KcButton(

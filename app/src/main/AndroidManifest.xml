@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Owner brief H1 item 5: Android 16 Live Update of the backup's progress (a normal permission). -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!-- M13 / ONB-7: Usage access (a special access the user turns on in Settings), asked only when Apps is opened:
          app sizes and when each app was last opened, read on this phone only. -->

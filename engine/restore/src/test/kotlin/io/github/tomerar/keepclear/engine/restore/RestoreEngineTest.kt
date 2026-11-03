@@ -81,6 +81,29 @@ class RestoreEngineTest {
     }
 
     @Test
+    fun `README html next to the manifest is never restored or parsed as a backup file (H1 item 10)`(): Unit =
+        runBlocking {
+            val rootRel = MovePlanner.rootRel("OnePlus 10T")
+            store.putJob(MoveJob("j", target.id, target.label, rootRel, 1))
+            MovePlanner.plan("j", items, "OnePlus 10T", "Camera", target.caps).forEach { store.putFile(it) }
+            val texts = io.github.tomerar.keepclear.engine.move.BackupReadme.Texts("en", "ltr", "T", "W", "O", "R")
+            MoveEngine(fake, target, store, clock = { 5L }, readme = listOf(texts)).run("j").state shouldBe
+                JobState.DONE
+            fake.exists("$usb/$rootRel/README.html") shouldBe true
+            // A hostile manifest line naming it is dropped too.
+            val jsonl = "$usb/$rootRel/${Manifest.JSONL}"
+            val sha = "b".repeat(64)
+            val evil = "{\"rel\":\"README.html\",\"src\":\"$phone/README.html\",\"size\":1,\"mtime\":1," +
+                "\"sha256\":\"$sha\",\"verifiedAt\":1,\"nameChanged\":false}\n"
+            val text = fake.readAllBytes(jsonl).toString(Charsets.UTF_8) + evil
+            fake.delete(KPath.Local(jsonl))
+            fake.addFile(jsonl, text.toByteArray())
+            val catalog = engine().catalog(rootRel)!!
+            catalog shouldHaveSize 4
+            catalog.none { it.line.rel.contains("README") } shouldBe true
+        }
+
+    @Test
     fun `a file already on the phone is left alone, a different one is never overwritten`(): Unit = runBlocking {
         val rootRel = backUpAndLoseOriginals()
         val catalog = engine().catalog(rootRel)!!
