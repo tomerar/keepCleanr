@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- PR H3: icon options 2 and 3 stay in the APK until the owner picks one (progress W16); the gallery renders them. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@mipmap/ic_launcher_option1,@mipmap/ic_launcher_option2,@mipmap/ic_launcher_option3,@drawable/ic_launcher_option2_foreground,@drawable/ic_launcher_option2_monochrome,@drawable/ic_launcher_option3_foreground,@drawable/ic_launcher_option3_monochrome" />

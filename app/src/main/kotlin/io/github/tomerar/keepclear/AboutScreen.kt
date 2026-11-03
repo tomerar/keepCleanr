@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import io.github.tomerar.keepclear.core.common.Bidi
 import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
@@ -209,14 +210,10 @@ object WhatsNew {
      * The note to show once after an update from [lastSeen] to [current]: the newest entry in (lastSeen, current].
      * A first install ([lastSeen] 0) shows none (the intro explains the app).
      */
-    fun toShow(lastSeen: Long, current: Long, entries: List<WhatsNewEntry> = this.entries): WhatsNewEntry? =
-        if (lastSeen <=
-            0
-        ) {
-            null
-        } else {
-            entries.filter { it.versionCode in (lastSeen + 1)..current }.maxByOrNull { it.versionCode }
-        }
+    fun toShow(lastSeen: Long, current: Long, entries: List<WhatsNewEntry> = this.entries): WhatsNewEntry? {
+        if (lastSeen <= 0) return null
+        return entries.filter { it.versionCode in (lastSeen + 1)..current }.maxByOrNull { it.versionCode }
+    }
 
     const val PREFS = "whats_new"
     const val KEY = "lastSeenVersionCode"
@@ -228,7 +225,7 @@ object WhatsNew {
         entries: List<WhatsNewEntry> = this.entries,
     ): WhatsNewEntry? {
         val lastSeen = prefs.getLong(KEY, 0L)
-        if (lastSeen != current) prefs.edit().putLong(KEY, current).apply()
+        if (lastSeen != current) prefs.edit { putLong(KEY, current) }
         return toShow(lastSeen, current, entries)
     }
 }

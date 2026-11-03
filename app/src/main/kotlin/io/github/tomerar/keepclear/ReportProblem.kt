@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import io.github.tomerar.keepclear.core.designsystem.component.InfoSheet
 import io.github.tomerar.keepclear.core.designsystem.component.KcButton
 import io.github.tomerar.keepclear.core.designsystem.component.KcButtonStyle
@@ -129,7 +130,7 @@ object ProblemReport {
      * shared read-only through KeepClear's FileProvider. [address] empty: the user fills in "To" (C166).
      */
     fun intent(address: String, subject: String, body: String, attachment: Uri?): Intent {
-        val mailto = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+        val mailto = Intent(Intent.ACTION_SENDTO, "mailto:".toUri())
         val intent = if (attachment == null) {
             mailto
         } else {

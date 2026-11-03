@@ -2,10 +2,12 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- PR H3: launcher shortcut icon „trash”: Material Symbols Rounded "auto_delete" (Apache-2.0, THIRD_PARTY.md) in ink on a paper circle. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="960"
-    android:viewportHeight="960">
+    android:viewportHeight="960"
+    tools:ignore="VectorPath">
     <path
         android:fillColor="#FFF6F2EA"
         android:pathData="M0,480a480,480 0,1 0,960,0a480,480 0,1 0,-960,0z" />
