@@ -64,7 +64,8 @@ class PermanentKillPointPropertyTest {
             fake.beforeOp = { _, _ -> if (opsBeforeKill-- == 0) throw Killed() }
             try {
                 val m = manager()
-                val executor = ActionExecutor(fake, SafetyGuard(ProtectedPaths()), ProtectedPaths(), m, "s") { now }
+                val executor =
+                    ActionExecutor(fake, SafetyGuard(ProtectedPaths()), ProtectedPaths(), m, "s", clock = { now })
                 repeat(3) {
                     val picked = candidates.filter { random.nextBoolean() && fake.exists(it.first) }
                     if (picked.isEmpty()) return@repeat

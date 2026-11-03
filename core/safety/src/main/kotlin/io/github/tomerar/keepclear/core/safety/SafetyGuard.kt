@@ -55,6 +55,11 @@ class SafetyGuard(
             if (op.kind == OpKind.DELETE_FOR_GOOD || op.permanentReason != null) {
                 reasons += "Permanent delete requested by the plan, not decided by the executor: ${op.displayPath}"
             }
+            // Owner decision P1: a copy check belongs only to a MOVE original, and only to the same content.
+            val proof = op.backupProof
+            if (proof != null && (op.kind != OpKind.MOVE_DELETE_ORIGINAL || proof.copySha256 != op.expectedSha256)) {
+                reasons += "Backup proof on an op it doesn't belong to: ${op.displayPath}"
+            }
             if (op.kind == OpKind.MOVE_DELETE_ORIGINAL) {
                 val sha = op.expectedSha256
                 if (sha == null || !Sha256.isValidHex(sha)) {

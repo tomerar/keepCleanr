@@ -85,6 +85,16 @@ class MoveScreenTest {
         confirmedBytes = confirmed * 1_000_000L,
     )
 
+    /** Three confirmed originals, a year old, not favourites (owner decision P2's options keep none of them). */
+    private fun candidates(n: Int = 3) = (1..n).map {
+        io.github.tomerar.keepclear.engine.move.FreeCandidate(
+            "/storage/emulated/0/DCIM/Camera/IMG_$it.jpg",
+            1_000_000,
+            now - 400 * day,
+            favourite = false,
+        )
+    }
+
     private var picked: List<ClassifiedItem>? = null
     private var freed: String? = null
 
@@ -102,7 +112,7 @@ class MoveScreenTest {
     }
 
     @Test
-    fun `nothing is pre-selected and the default age skips the last 12 months and favourites`() {
+    fun `nothing is pre-selected and the first backup defaults to everything, favourites included (P2)`() {
         show()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
         compose.onNodeWithTag("pickTarget").assertIsNotEnabled()
@@ -113,24 +123,42 @@ class MoveScreenTest {
         // Review PR C: two plain steps before Android's folder picker.
         compose.onNodeWithTag("pickGuide").assertExists()
         compose.onNodeWithTag("guideContinue").performClick()
-        assertEquals(setOf("old.jpg", "older.jpg"), picked!!.map { it.item.path.substringAfterLast('/') }.toSet())
+        assertEquals(
+            setOf("old.jpg", "older.jpg", "recent.jpg", "fav.jpg"),
+            picked!!.map { it.item.path.substringAfterLast('/') }.toSet(),
+        )
     }
 
     @Test
-    fun `everything includes recent files but never favourites`() {
+    fun `after a first backup the default age skips the last 12 months, favourites still included (P2)`() {
+        show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = true))))
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("source_camera"))
+        compose.onNodeWithTag("source_camera").performClick()
+        compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("pickTarget"))
+        compose.onNodeWithTag("pickTarget").performClick()
+        compose.onNodeWithTag("guideContinue").performClick()
+        assertEquals(
+            setOf("old.jpg", "older.jpg", "fav.jpg"),
+            picked!!.map { it.item.path.substringAfterLast('/') }.toSet(),
+        )
+        assertEquals(MoveAge.ALL, defaultAge(emptyList()))
+    }
+
+    @Test
+    fun `everything includes recent files and favourites (P2)`() {
         val items = moveSelection(summary(), setOf("camera"), MoveAge.ALL, now)
         assertEquals(
-            setOf("old.jpg", "older.jpg", "recent.jpg"),
+            setOf("old.jpg", "older.jpg", "recent.jpg", "fav.jpg"),
             items.map {
                 it.item.path.substringAfterLast('/')
             }.toSet(),
         )
-        assertEquals(2, moveSelection(summary(), setOf("camera"), MoveAge.OLDER_6, now).size)
+        assertEquals(3, moveSelection(summary(), setOf("camera"), MoveAge.OLDER_6, now).size)
     }
 
     @Test
     fun `receipt shows how to get files back, warns it is unencrypted, and frees only after confirming`() {
-        show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = true))))
+        show(MoveUiState(jobs = listOf(JobView(job, receipt(), canReadBack = true, freeCandidates = candidates()))))
         compose.onNodeWithTag("receiptVerified").assertExists()
         compose.onNodeWithTag("howBack").assertExists()
         compose.onNodeWithTag("moveScreen").performScrollToNode(hasTestTag("unencrypted"))

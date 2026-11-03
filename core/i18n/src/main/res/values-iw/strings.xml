@@ -126,7 +126,7 @@
     <string name="move_age_12">מלפני יותר משנה</string>
     <string name="move_age_6">מלפני יותר מחצי שנה</string>
     <string name="move_age_all">הכול</string>
-    <string name="move_favourites_note">מועדפים אף פעם לא נכללים.</string>
+    <string name="move_favourites_note">גם מועדפים מגובים. כשמפנים מקום, אפשר להשאיר אותם בטלפון.</string>
     <string name="move_view">להציג</string>
     <string name="move_selected">נבחרו: %1$s</string>
     <string name="move_pick_target">לבחור לאן לגבות</string>
@@ -144,7 +144,7 @@
         <item quantity="two">שני קבצים גדולים מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הם נשארים בטלפון.</item>
         <item quantity="other">%1$s קבצים גדולים מ-4GB. ‏KeepClear לא יכול לדעת אם הכונן הזה מקבל קבצים כאלה, ולכן ליתר ביטחון הם נשארים בטלפון.</item>
     </plurals>
-    <string name="move_issue_battery">הסוללה מתחת ל-20 אחוז. כדי להתחיל, צריך לחבר מטען.</string>
+    <string name="move_issue_battery">הסוללה מתחת ל-10 אחוז. כדי להתחיל, צריך לחבר מטען.</string>
     <plurals name="move_issue_names">
         <item quantity="one">קובץ אחד יקבל שם קצת שונה כדי שהכונן יקבל אותו. השם המקורי שמור ברשימת הגיבוי.</item>
         <item quantity="two">שני קבצים יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים שמורים ברשימת הגיבוי.</item>
@@ -354,14 +354,14 @@
     <string name="details_check_pc">בדיקה למפתחים במחשב: sha256sum -c SHA256SUMS בתיקיית הגיבוי. ה-SHA-256 של כל קובץ נמצא ב-keepclear-manifest.jsonl.</string>
     <string name="move_free_done">%1$s הועברו לסל המחזור.</string>
     <plurals name="move_free_skipped">
-        <item quantity="one">קובץ אחד דולג (השתנה, או שהעותק חסר).</item>
-        <item quantity="two">שני קבצים דולגו (השתנו, או שהעותק חסר).</item>
-        <item quantity="other">%1$s קבצים דולגו (השתנו, או שהעותק חסר).</item>
+        <item quantity="one">קובץ אחד דולג ונשאר בטלפון (השתנה, או שהעותק שלו לא נמצא תקין).</item>
+        <item quantity="two">שני קבצים דולגו ונשארו בטלפון (השתנו, או שהעותק שלהם לא נמצא תקין).</item>
+        <item quantity="other">%1$s קבצים דולגו ונשארו בטלפון (השתנו, או שהעותק שלהם לא נמצא תקין).</item>
     </plurals>
     <plurals name="move_free_failed">
-        <item quantity="one">קובץ אחד לא הועבר.</item>
-        <item quantity="two">שני קבצים לא הועברו.</item>
-        <item quantity="other">%1$s קבצים לא הועברו.</item>
+        <item quantity="one">קובץ אחד לא פונה.</item>
+        <item quantity="two">שני קבצים לא פונו.</item>
+        <item quantity="other">%1$s קבצים לא פונו.</item>
     </plurals>
     <string name="settings_language">שפה</string>
     <string name="settings_language_system">שפת הטלפון</string>
@@ -687,4 +687,25 @@
     <string name="strip_legend_free">פנוי</string>
     <!-- Design QA item 3: Trash. -->
     <string name="trash_from_gallery_bin">מסל הגלריה</string>
+    <!-- Owner decisions P1–P4 (2026-11-03, PR H1a) -->
+    <string name="move_issue_battery_warning" formatted="false">כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך</string>
+    <string name="move_paused_battery" formatted="false">הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען.</string>
+    <string name="move_free_confirm_for_good">המקור יימחק מהטלפון. העותק נשאר ב-%1$s, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.</string>
+    <string name="free_where_for_good">יימחקו מהטלפון; העותק נשאר ב-%1$s</string>
+    <string name="free_keep_favourites">להשאיר בטלפון מועדפים</string>
+    <string name="free_keep_recent">להשאיר בטלפון את 30 הימים האחרונים</string>
+    <plurals name="free_kept_count">
+        <item quantity="one">קובץ אחד נשאר בטלפון</item>
+        <item quantity="two">%1$s קבצים נשארים בטלפון</item>
+        <item quantity="other">%1$s קבצים נשארים בטלפון</item>
+    </plurals>
+    <string name="free_whatsapp">בצ\'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי</string>
+    <string name="free_nothing">עם הבחירות האלה אין מה לפנות.</string>
+    <string name="free_progress_deleted">נמחקו %1$s מתוך %2$s</string>
+    <string name="free_progress_trash">הועברו לסל %1$s מתוך %2$s</string>
+    <string name="free_progress_test">נבדקו %1$s מתוך %2$s · מצב ניסיון, שום דבר לא נמחק</string>
+    <string name="move_free_done_for_good">פונו %1$s מהטלפון. העותק נשאר ב-%2$s.</string>
+    <string name="move_free_interrupted">הפינוי נעצר: אי אפשר היה לקרוא את %1$s. מה שעוד לא נמחק נשאר בטלפון.</string>
+    <string name="settings_keep_originals">לשמור את המקור גם בסל 30 יום (לא מפנה מקום)</string>
+    <string name="settings_keep_originals_body">אחרי גיבוי שנבדק, פינוי מקום יעביר כל מקור לסל המחזור של KeepClear ל-30 יום במקום למחוק אותו. המקום יתפנה רק כשהסל יתרוקן.</string>
 </resources>

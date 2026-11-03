@@ -131,6 +131,20 @@ PROTECTED, re-check, test mode and the session's confirmation apply as before. A
 file could delete it directly, so this adds no new capability to an attacker; it only removes the 30-day trash from
 a file that already looks deleted.
 
+### T8c. Freeing originals for good against a copy that isn't really there (owner decision P1, 2026-11-03)
+**Threat:** after a backup, freeing deletes the originals for good. A drive that lies (fake capacity, a page-cache
+read), a copy damaged or replaced on the drive after "Check backup", an original edited after it was copied, or a
+caller that builds a plan claiming "already checked" would delete the only copy.
+**Mitigations:** the executor decides permanence itself, per item, from data: a `MOVE_DELETE_ORIGINAL` op becomes a
+permanent delete only with a `BackupProof` (second check time, the copy's SHA-256 read back **at free time**, at most
+one hour old) that names the same SHA-256 as the op, and only after the strict re-hash of the original matched it
+(`PermanentKinds.verifiedBackupReason`); a proof on any other op, or for other content, rejects the plan
+(`SafetyGuard`). The engine builds proofs batch by batch right before each batch runs, from a fresh read of the copy
+on the target (never the job store alone); a copy that is missing, of another size or hashes differently is left out.
+Without a valid proof the original is skipped, never trashed instead. PROTECTED, kept paths, the re-check of size,
+date and identity, the confirmation in the current session and test mode apply as for every op. The setting "Keep the
+original in the 30-day trash too" restores the old behaviour. Tests: `FreeOriginalsTest`, `FreeKillPointPropertyTest`.
+
 ### T9. Privileged helpers (v1, Shizuku/root)
 **Mitigations:**
 - The AIDL user service checks the calling UID equals our app UID.
@@ -149,4 +163,5 @@ a file that already looks deleted.
 | SEC-7 tapjacking | UI test: obscured touch on confirm is ignored (E-SEC-10). |
 | SEC-8 supply chain | CI fails on unverified dependency checksum. |
 | SEC-10 look-alike bin files | `PermanentKindsTest` (strict `.trashed-` parsing, look-alikes, lossless paths), `PermanentDeleteTest`, `PermanentKillPointPropertyTest`, `MediaConsentHandlerTest` (E-SEC-11). |
+| SEC-4 freeing originals for good (owner decision P1, T8c) | `FreeOriginalsTest` (no second check, stale or foreign proof, copy damaged or read wrong at free time, original edited with the same size and date, PROTECTED, test mode, keep-in-trash, other session), `FreeKillPointPropertyTest` (600 random plans with kill points: every original at its path or verified twice), `PermanentDeleteTest` (E-MOVE-26). |
 | SEC-9 network places (D3/D6) | `SmbSecurityTest`, `HostHttpClientTest`, `WebDavLocationTest`, `NextcloudLoginTest`, `DavXmlTest`, `WebDavBackupTargetTest` (oversized listing, long GET), `NextcloudLoginServerTest` (revoke on the real server), `MoveEngineTest` (copy-only never frees), `NetworkSecurityAppTest`, build-logic `ForbiddenApisTest`. |

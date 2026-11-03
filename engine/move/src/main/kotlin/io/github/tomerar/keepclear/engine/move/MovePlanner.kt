@@ -69,8 +69,17 @@ object MovePlanner {
             override val blocking = true
         }
 
+        /** Owner decision P3: below [BatteryPolicy.START_MIN] and not charging; the backup can't start. */
         data object BatteryLow : Issue {
             override val blocking = true
+        }
+
+        /**
+         * Owner decision P3: not charging and below [BatteryPolicy.WARN_BELOW]: it may start, with a calm warning
+         * that it pauses by itself at [BatteryPolicy.PAUSE_AT] and goes on later.
+         */
+        data object BatteryWarning : Issue {
+            override val blocking = false
         }
 
         data class NamesChanged(val count: Int) : Issue {
@@ -113,7 +122,11 @@ object MovePlanner {
         val needed = files.filterNot { it in tooLarge }.sumOf { it.sourceSize }
         val withMargin = needed + needed / 20
         target.freeBytes()?.let { free -> if (free < withMargin) issues += Issue.NotEnoughSpace(withMargin, free) }
-        if (batteryPercent < 20 && !charging) issues += Issue.BatteryLow
+        when (BatteryPolicy.atStart(BatteryLevel(batteryPercent, charging))) {
+            BatteryPolicy.Start.REFUSE -> issues += Issue.BatteryLow
+            BatteryPolicy.Start.WARN -> issues += Issue.BatteryWarning
+            BatteryPolicy.Start.OK -> Unit
+        }
         files.count { it.nameChanged }.takeIf { it > 0 }?.let { issues += Issue.NamesChanged(it) }
         if (!target.caps.canReadBack) {
             issues += Issue.CannotVerify

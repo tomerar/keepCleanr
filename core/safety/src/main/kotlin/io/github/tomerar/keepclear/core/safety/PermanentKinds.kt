@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.core.safety
 
+import io.github.tomerar.keepclear.core.hash.Sha256
 import io.github.tomerar.keepclear.core.storage.KPath
 import java.util.Locale
 
@@ -11,7 +12,30 @@ enum class PermanentReason {
 
     /** Already in another app's bin (Android's "Recently deleted", `.trashed-*`, a file manager's bin). */
     ALREADY_IN_A_BIN,
+
+    /**
+     * Owner decision P1 (2026-11-03): the original of a backed-up file whose copy passed the second check on the
+     * target and was hashed again right before ([BackupProof]); the copy is the undo ("Restore from a backup").
+     */
+    VERIFIED_BACKUP,
 }
+
+/**
+ * Owner decision P1 (2026-11-03): what the MOVE engine found about the copy of one original **at free time**. Set only
+ * by `MoveEngine` when it builds the free plan, batch by batch, right before the executor runs that batch.
+ */
+data class BackupProof(
+    /** The target's id (`BackupTarget.id`), never only its label. */
+    val targetId: String,
+    /** The copy's path on the target, relative to the target root. */
+    val copyRel: String,
+    /** SHA-256 of the copy as read back from the target at [copyCheckedAt]. */
+    val copySha256: String,
+    /** When the second check (an uncached read, ADR 0007 amendment H1) confirmed the copy; never null. */
+    val secondCheckAt: Long,
+    /** When the copy was read back and hashed for this free (wall clock). */
+    val copyCheckedAt: Long,
+)
 
 /**
  * Owner decision 2026-11-02 (requirements Q2 amended, SAFETY-2, ADR 0006 amendment): the **only** items that are
@@ -98,6 +122,29 @@ object PermanentKinds {
         val original = match.groupValues[2]
         return original.takeIf { KPath.isValidName(it) && it != "." && it != ".." }
     }
+
+    /** A copy check older than this no longer counts as "at free time" (owner decision P1). */
+    const val MAX_PROOF_AGE_MILLIS: Long = 60L * 60_000L
+
+    /**
+     * Owner decision P1 (2026-11-03, SAFETY-5, ADR 0007 amendment): [PermanentReason.VERIFIED_BACKUP] when [op] is the
+     * original of one file whose copy passed the second check and was hashed again at free time to the SHA-256 the
+     * original was copied with, else null. [strictRehash] must be on: the executor has just re-hashed the original to
+     * that same SHA-256 (ADR 0007), so the original, the first copy check, the second check and the check at free time
+     * all agree. The caller asks this only after every other check of the op passed.
+     */
+    fun verifiedBackupReason(op: PlannedOp, now: Long, strictRehash: Boolean): PermanentReason? {
+        if (op.kind != OpKind.MOVE_DELETE_ORIGINAL || op.isDirectory || !strictRehash) return null
+        val sha = op.expectedSha256?.takeIf { Sha256.isValidHex(it) } ?: return null
+        val proof = op.backupProof ?: return null
+        if (proof.copySha256 != sha || proof.secondCheckAt <= 0) return null
+        val age = now - proof.copyCheckedAt
+        if (age < -CLOCK_SKEW_MILLIS || age > MAX_PROOF_AGE_MILLIS) return null
+        return PermanentReason.VERIFIED_BACKUP
+    }
+
+    /** A copy check stamped up to this far in the future still counts (two clocks read a moment apart). */
+    private const val CLOCK_SKEW_MILLIS: Long = 60_000L
 
     private fun isWhatsAppStatus(folders: List<String>): Boolean {
         val root = folders.indexOfFirst { it in whatsAppRoots }

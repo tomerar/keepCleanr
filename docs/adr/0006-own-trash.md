@@ -60,3 +60,38 @@ How it stays safe:
 Tests: `PermanentKindsTest`, `PermanentDeleteTest` (each kind deleted, each other kind trashed, PROTECTED refused, test
 mode, changed items, no confirmation), `PermanentKillPointPropertyTest` (the no-loss invariant for every other kind
 under random kill points), `MediaConsentHandlerTest`, `CleanPlannerTest`, app `DesignQaTest`. Threat model T8b (SEC-10).
+
+## Amended 2026-11-03 (owner decision P1)
+
+Freeing space after a verified backup used to move the originals into KeepClear's trash **on the same storage**, so
+nothing was freed until the trash was emptied (about six more taps in the Trash). The owner decided (P1, requirements
+Q1 amended): **after a verified backup, freeing deletes the originals for good.** The checked copy on the backup is the
+undo ("Restore from a backup", MOVE-17); the result offers it.
+
+Only when, per file and at free time:
+1. the copy passed the **second check** on that target (an uncached read: drive unplugged and plugged back in, or a
+   reboot; ADR 0007 amendment H1);
+2. the copy is **read back from the target and hashed again** right before its batch runs, and matches;
+3. the original is **re-checked right before its delete**: present, same size, date and identity, and re-hashed
+   (strict mode, ADR 0007) to the same SHA-256.
+
+How it stays safe:
+- **Decided at the choke point, per item, from data**, like the 2026-11-02 kinds: `ActionExecutor` turns a
+  `MOVE_DELETE_ORIGINAL` op into `DELETE_FOR_GOOD` (`PermanentReason.VERIFIED_BACKUP`) only when
+  `PermanentKinds.verifiedBackupReason` holds for its `BackupProof` (second check time; the copy's SHA-256 read back now,
+  at most one hour old, equal to the op's) and after every other check passed. Without a valid proof the original is
+  **skipped**, never sent to the trash instead. A proof on another kind of op, or for other content, rejects the plan.
+- **In batches** (`FreeOriginals`, `engine:move`): the engine re-hashes the copies of one batch (≤ 200 files, ≈ 2 GB),
+  then that batch goes through the executor; progress says "Deleted 400 of 6,830". The drive stays open until the
+  end; if it goes away, the free stops and says so; what wasn't freed stays on the phone.
+- **Unchanged:** PROTECTED paths, kept paths, the confirmation in the current session (the tap names exactly the
+  files), test mode (it simulates the whole free and says what would have been freed), the delete inside
+  `TrashManager` (a plain file by path, never a folder or anything in a KeepClear trash).
+- **Opt-in for cautious users:** "Keep the original in the 30-day trash too (frees no space)", off by default
+  (`FreeSettings`); with it on, originals go to the trash exactly as before (TRASH-5's "Release now" still applies).
+- **The free step keeps favourites and the last 30 days on the phone** by default (P2); WhatsApp media gets one more
+  sentence in the confirmation (P4).
+
+Tests: `FreeOriginalsTest`, `FreeKillPointPropertyTest` (the no-loss invariant now reads: every original is at its path,
+byte-identical, or verified twice on the target, never neither), `PermanentDeleteTest`, app
+`OwnerDecisionsP1P4Test` and `ViewModelStabilityTest`. Threat model T8c.

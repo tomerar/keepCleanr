@@ -67,4 +67,21 @@ class ScanIndexTest {
         index.finish(full, complete = true, files = 1, bytes = 1, generation = null)
         index.previous().keys shouldBe setOf("/a")
     }
+
+    @Test
+    fun `favourites answer per path, in chunks, and leave out paths the scan doesn't know (P2)`(): Unit = runBlocking {
+        val run = index.startRun()
+        val items = (0 until 1_200).map { i ->
+            val path = "/storage/emulated/0/DCIM/$i.jpg"
+            ScanItem(KPath.Local(path), path, 1, 5, isFavorite = i % 7 == 0)
+        }
+        index.write(run, items)
+        val asked = items.map { it.path } + "/storage/emulated/0/DCIM/unknown.jpg"
+        val answer = index.favourites(asked)
+        answer.size shouldBe 1_200
+        answer.filterValues { it }.size shouldBe items.count { it.isFavorite }
+        answer.containsKey("/storage/emulated/0/DCIM/unknown.jpg") shouldBe false
+        answer["/storage/emulated/0/DCIM/7.jpg"] shouldBe true
+        answer["/storage/emulated/0/DCIM/8.jpg"] shouldBe false
+    }
 }

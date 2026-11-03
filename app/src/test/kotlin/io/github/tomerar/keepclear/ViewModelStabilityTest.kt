@@ -20,6 +20,7 @@ import io.github.tomerar.keepclear.engine.move.MoveEngine
 import io.github.tomerar.keepclear.engine.move.MoveFileState
 import io.github.tomerar.keepclear.engine.move.MoveJob
 import io.github.tomerar.keepclear.engine.move.MovePlanner
+import io.github.tomerar.keepclear.engine.move.PauseReason
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.trash.TrashEntry
 import io.github.tomerar.keepclear.engine.trash.TrashState
@@ -190,6 +191,8 @@ class ViewModelStabilityTest {
     @Test
     fun `free up space keeps running after leaving the screen, and Home reloads the trash (E3)`() {
         setUp()
+        // Owner decision P1: with the keep-in-trash setting the originals go to the trash, which Home reloads.
+        app.freeSettings.setKeepInTrash(true)
         val (id, sources) = backedUp(confirmed = true)
         val home = t.viewModel(HomeViewModel::class.java)
         val screen = t.newStore()
@@ -208,6 +211,109 @@ class ViewModelStabilityTest {
         // A new screen shows the result.
         val again = t.viewModel(MoveViewModel::class.java, t.newStore())
         TestApp.awaitMain("result shown") { again.state.value.freeResult?.done == 3 }
+    }
+
+    @Test
+    fun `free up space after the second check deletes the originals for good, the copies stay (P1)`() {
+        setUp()
+        val (id, sources) = backedUp(confirmed = true, n = 5)
+        val move = t.viewModel(MoveViewModel::class.java)
+        move.freeOriginals(id, userConfirmed(sources.take(4)))
+        TestApp.awaitMain("freed") {
+            app.moveController.task.value == null && app.moveController.results.value.freeResult != null
+        }
+        val result = app.moveController.results.value.freeResult!!
+        assertEquals(4, result.done)
+        assertTrue(result.forGood)
+        assertFalse(result.simulated)
+        assertEquals("Drive", result.targetLabel)
+        // Only what the confirmation named; nothing in the trash; every copy still on the drive.
+        assertTrue(sources.take(4).none { File(it).exists() })
+        assertTrue(File(sources[4]).exists())
+        assertEquals(0, runBlocking { app.trashManager.entries() }.size)
+        val files = runBlocking { app.moveController.store.files(id) }
+        assertTrue(files.all { File(tmp.root, "drive/${it.relTarget}").exists() })
+        assertEquals(0, t.mainThreadReads.get())
+    }
+
+    @Test
+    fun `free up space in test mode deletes nothing and says what it would have freed (P1, SAFETY-9)`() {
+        setUp()
+        val (id, sources) = backedUp(confirmed = true)
+        app.testMode.turnOn()
+        val move = t.viewModel(MoveViewModel::class.java)
+        move.freeOriginals(id, userConfirmed(sources))
+        TestApp.awaitMain("simulated") {
+            app.moveController.task.value == null && app.moveController.results.value.freeResult != null
+        }
+        val result = app.moveController.results.value.freeResult!!
+        assertTrue(result.simulated)
+        assertEquals(3, result.done)
+        assertTrue(sources.all { File(it).exists() })
+        assertEquals(0, runBlocking { app.trashManager.entries() }.size)
+    }
+
+    @Test
+    fun `free up space without the second check deletes nothing (P1)`() {
+        setUp()
+        val (id, sources) = backedUp(confirmed = false)
+        val move = t.viewModel(MoveViewModel::class.java)
+        move.freeOriginals(id, userConfirmed(sources))
+        TestApp.awaitMain("done") {
+            app.moveController.task.value == null && app.moveController.results.value.freeResult != null
+        }
+        val result = app.moveController.results.value.freeResult!!
+        assertEquals(0, result.done)
+        assertEquals(3, result.skipped)
+        assertTrue(sources.all { File(it).exists() })
+    }
+
+    @Test
+    fun `a backup paused for the battery goes on when the app opens and the phone charges (P3)`() {
+        setUp()
+        val (id, _) = backedUp(confirmed = false)
+        runBlocking {
+            val store = app.moveController.store
+            store.putJob(store.job(id)!!.copy(state = JobState.PAUSED, pauseReason = PauseReason.BATTERY_LOW))
+        }
+        app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = false) }
+        val started = java.util.concurrent.CopyOnWriteArrayList<String>()
+        app.moveController.startJobService = { _, job -> started += job }
+        // Opening the Backup screen while the battery is still low and not charging: it keeps waiting.
+        t.viewModel(MoveViewModel::class.java)
+        TestApp.settle(500)
+        assertEquals(emptyList<String>(), started.toList())
+        // The charger goes in; the next time the screen opens, the backup goes on.
+        app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = true) }
+        t.viewModel(MoveViewModel::class.java, t.newStore())
+        TestApp.awaitMain("started") { started.isNotEmpty() }
+        assertEquals(listOf(id), started.toList())
+    }
+
+    @Test
+    fun `a backup paused for the battery goes on when the charger goes in while the screen stays open (P3)`() {
+        setUp()
+        val (id, _) = backedUp(confirmed = false)
+        runBlocking {
+            val store = app.moveController.store
+            store.putJob(store.job(id)!!.copy(state = JobState.PAUSED, pauseReason = PauseReason.BATTERY_LOW))
+        }
+        val before = batteryPollMillis
+        batteryPollMillis = 50
+        try {
+            app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = false) }
+            val started = java.util.concurrent.CopyOnWriteArrayList<String>()
+            app.moveController.startJobService = { _, job -> started += job }
+            t.viewModel(MoveViewModel::class.java)
+            TestApp.settle(500)
+            assertEquals(emptyList<String>(), started.toList())
+            // Same screen, still open: the charger goes in.
+            app.batterySource = { io.github.tomerar.keepclear.engine.move.BatteryLevel(8, charging = true) }
+            TestApp.awaitMain("started") { started.isNotEmpty() }
+            assertEquals(listOf(id), started.toList())
+        } finally {
+            batteryPollMillis = before
+        }
     }
 
     @Test

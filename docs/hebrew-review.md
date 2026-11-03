@@ -11,7 +11,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-604 Hebrew strings; 162 new since the last review (96 new, 66 changed).
+620 Hebrew strings; 182 new since the last review (112 new, 70 changed).
 
 ## Contents
 
@@ -21,10 +21,10 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 - [Clean now](#clean-now) (35, 18 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (32, 4 new since last review)
 - [Swipe review](#swipe-review) (17, 9 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (184, 57 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (198, 75 new since last review)
 - [Trash](#trash) (47, 14 new since last review)
 - [Apps](#apps) (31, 4 new since last review)
-- [Settings](#settings) (40, 13 new since last review)
+- [Settings](#settings) (42, 15 new since last review)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25, 10 new since last review)
 - [Notifications](#notifications) (4, 1 new since last review)
 - [Device check (test builds)](#device-check-test-builds) (9, 1 new since last review)
@@ -242,6 +242,15 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `details_nextcloud_check` | Your Nextcloud computed the SHA-256 of each stored copy (X-Hash-SHA256 over WebDAV) and it matched the original's, so nothing had to be downloaded. Copies it didn't report were read back over the network instead. Before space is freed, every copy is read back and checked once more. | ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת. |  | reviewed |
 | `duration_hours` | [one] %1$s hour / [other] %1$s hours | [one] שעה אחת / [two] שעתיים / [other] %1$s שעות |  | reviewed |
 | `duration_minutes` | [one] %1$s minute / [other] %1$s minutes | [one] דקה אחת / [two] שתי דקות / [other] %1$s דקות |  | reviewed |
+| `free_keep_favourites` | Keep favourites on the phone | להשאיר בטלפון מועדפים |  | **new** (new since last review) |
+| `free_keep_recent` | Keep the last 30 days on the phone | להשאיר בטלפון את 30 הימים האחרונים |  | **new** (new since last review) |
+| `free_kept_count` | [one] %1$s file stays on the phone / [other] %1$s files stay on the phone | [one] קובץ אחד נשאר בטלפון / [two] %1$s קבצים נשארים בטלפון / [other] %1$s קבצים נשארים בטלפון |  | **new** (new since last review) |
+| `free_nothing` | With these choices there is nothing to free. | עם הבחירות האלה אין מה לפנות. |  | **new** (new since last review) |
+| `free_progress_deleted` | Deleted %1$s of %2$s | נמחקו %1$s מתוך %2$s |  | **new** (new since last review) |
+| `free_progress_test` | Checked %1$s of %2$s · trial mode, nothing is deleted | נבדקו %1$s מתוך %2$s · מצב ניסיון, שום דבר לא נמחק |  | **new** (new since last review) |
+| `free_progress_trash` | Moved to the trash: %1$s of %2$s | הועברו לסל %1$s מתוך %2$s |  | **new** (new since last review) |
+| `free_whatsapp` | In the chat the file will show as unavailable; the copy is kept in the backup. | בצ'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי |  | **new** (new since last review) |
+| `free_where_for_good` | Deleted from the phone; the copy stays on %1$s | יימחקו מהטלפון; העותק נשאר ב-%1$s |  | **new** (new since last review) |
 | `move_age_12` | More than a year old | מלפני יותר משנה |  | reviewed |
 | `move_age_6` | More than 6 months old | מלפני יותר מחצי שנה |  | reviewed |
 | `move_age_all` | Everything | הכול |  | reviewed |
@@ -260,15 +269,18 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_check_unproven` | [one] %1$s file wasn't checked this time: the phone may still remember it from the copy. Unplug the drive, plug it back in and check again. / [other] %1$s files weren't checked this time: the phone may still remember them from the copy. Unplug the drive, plug it back in and check again. | [one] קובץ אחד לא נבדק הפעם: ייתכן שהטלפון עדיין זוכר אותו מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. / [two] שני קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. / [other] %1$s קבצים לא נבדקו הפעם: ייתכן שהטלפון עדיין זוכר אותם מההעתקה. אפשר לנתק את הכונן, לחבר אותו שוב ולבדוק שוב. |  | **new** (new since last review) |
 | `move_check_why` | Why: right after copying, the phone can answer from its own memory instead of the drive. Unplugging clears that. | למה: מיד אחרי ההעתקה הטלפון עשוי לענות מהזיכרון שלו ולא מהכונן. ניתוק וחיבור מחדש מנקים את זה. |  | reviewed |
 | `move_continue` | Continue | להמשיך |  | reviewed |
-| `move_favourites_note` | Favourites are never included. | מועדפים אף פעם לא נכללים. |  | reviewed |
+| `move_favourites_note` | Favourites are backed up too. When you free up space, you can keep them on the phone. | גם מועדפים מגובים. כשמפנים מקום, אפשר להשאיר אותם בטלפון. |  | **changed** (new since last review) |
 | `move_free_button` | Free up %1$s from the phone | לפנות %1$s מהטלפון |  | **changed** (new since last review) |
 | `move_free_confirm_body` | %1$s will move to KeepClear's trash. Each one is checked against its copy on the drive first. You can restore them for 30 days. | %1$s יעברו לסל המחזור של KeepClear. כל קובץ נבדק קודם מול העותק שלו בכונן. אפשר לשחזר במשך 30 יום. |  | reviewed |
+| `move_free_confirm_for_good` | The originals will be deleted from the phone. The copy stays on %1$s, checked file by file, and you can bring files back from it at any time. | המקור יימחק מהטלפון. העותק נשאר ב-%1$s, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן. |  | **new** (new since last review) |
 | `move_free_confirm_title` | Free space on the phone? | לפנות מקום בטלפון? |  | reviewed |
 | `move_free_confirm_yes` | Move to the trash | להעביר לסל המחזור |  | reviewed |
 | `move_free_copy_only` | The originals stay on the phone: this computer is used without a name and password, so KeepClear can't be sure the copy there stays as it is. | המקור נשאר בטלפון: נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear לא יכול להיות בטוח שהעותק שם יישאר כמו שהוא. |  | **new** (new since last review) |
 | `move_free_done` | %1$s moved to the trash. | %1$s הועברו לסל המחזור. |  | reviewed |
-| `move_free_failed` | [one] %1$s file couldn't be moved. / [other] %1$s files couldn't be moved. | [one] קובץ אחד לא הועבר. / [two] שני קבצים לא הועברו. / [other] %1$s קבצים לא הועברו. |  | reviewed |
-| `move_free_skipped` | [one] %1$s file was skipped (changed, or its copy is missing). / [other] %1$s files were skipped (changed, or their copy is missing). | [one] קובץ אחד דולג (השתנה, או שהעותק חסר). / [two] שני קבצים דולגו (השתנו, או שהעותק חסר). / [other] %1$s קבצים דולגו (השתנו, או שהעותק חסר). |  | reviewed |
+| `move_free_done_for_good` | Freed %1$s from the phone. The copy stays on %2$s. | פונו %1$s מהטלפון. העותק נשאר ב-%2$s. |  | **new** (new since last review) |
+| `move_free_failed` | [one] %1$s file couldn't be freed. / [other] %1$s files couldn't be freed. | [one] קובץ אחד לא פונה. / [two] שני קבצים לא פונו. / [other] %1$s קבצים לא פונו. |  | **changed** (new since last review) |
+| `move_free_interrupted` | Freeing stopped: %1$s couldn't be read. What wasn't deleted yet stays on the phone. | הפינוי נעצר: אי אפשר היה לקרוא את %1$s. מה שעוד לא נמחק נשאר בטלפון. |  | **new** (new since last review) |
+| `move_free_skipped` | [one] %1$s file was skipped and stays on the phone (it changed, or its copy didn't check out). / [other] %1$s files were skipped and stay on the phone (they changed, or their copy didn't check out). | [one] קובץ אחד דולג ונשאר בטלפון (השתנה, או שהעותק שלו לא נמצא תקין). / [two] שני קבצים דולגו ונשארו בטלפון (השתנו, או שהעותק שלהם לא נמצא תקין). / [other] %1$s קבצים דולגו ונשארו בטלפון (השתנו, או שהעותק שלהם לא נמצא תקין). |  | **changed** (new since last review) |
 | `move_free_unavailable` | The originals stay on the phone: this place can't be checked. | המקור נשאר בטלפון: אי אפשר לבדוק את המקום הזה. |  | reviewed |
 | `move_guide_1` | 1. Plug in the USB drive or insert the memory card. | 1. לחבר את הדיסק און קי או להכניס את כרטיס הזיכרון. |  | reviewed |
 | `move_guide_2` | 2. In the next screen, tap the drive's name on the left (☰), then "Use this folder". | 2. במסך הבא, להקיש על שם הכונן בתפריט (☰), ואז על „שימוש בתיקייה הזו”. |  | reviewed |
@@ -277,7 +289,8 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_guide_no_drive` | No USB drive or memory card is connected. Plug one in, then try again. | לא מחובר דיסק און קי או כרטיס זיכרון. צריך לחבר אחד ולנסות שוב. |  | reviewed |
 | `move_guide_title` | Before you choose | לפני הבחירה |  | reviewed |
 | `move_history` | Earlier backups | גיבויים קודמים |  | reviewed |
-| `move_issue_battery` | Battery is below 20 percent. Connect the charger to start. | הסוללה מתחת ל-20 אחוז. כדי להתחיל, צריך לחבר מטען. |  | reviewed |
+| `move_issue_battery` | Battery is below 10 percent. Connect the charger to start. | הסוללה מתחת ל-10 אחוז. כדי להתחיל, צריך לחבר מטען. |  | **changed** (new since last review) |
+| `move_issue_battery_warning` | Better to charge first; the backup pauses by itself at 10% and goes on later. | כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך |  | **new** (new since last review) |
 | `move_issue_cannot_verify` | KeepClear can't make sure the copy here is good, so the originals stay on the phone. | KeepClear לא יכול לוודא שהעותק כאן תקין, ולכן המקור יישאר בטלפון. |  | reviewed |
 | `move_issue_copy_only` | This computer is used without a name and password, so KeepClear only copies to it: the originals stay on the phone. | נכנסים למחשב הזה בלי שם משתמש וסיסמה, ולכן KeepClear רק מעתיק אליו: המקור נשאר בטלפון. |  | **new** (new since last review) |
 | `move_issue_names` | [one] %1$s file gets a slightly different name so the drive accepts it. The original name is kept in the backup's list. / [other] %1$s files get a slightly different name so the drive accepts them. The original names are kept in the backup's list. | [one] קובץ אחד יקבל שם קצת שונה כדי שהכונן יקבל אותו. השם המקורי שמור ברשימת הגיבוי. / [two] שני קבצים יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים שמורים ברשימת הגיבוי. / [other] %1$s קבצים יקבלו שם קצת שונה כדי שהכונן יקבל אותם. השמות המקוריים שמורים ברשימת הגיבוי. |  | reviewed |
@@ -314,6 +327,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `move_pause` | Pause | להשהות |  | reviewed |
 | `move_pause_stop_help` | Pause keeps your place and continues from the same file. Stop ends this backup; everything already checked stays on the drive. | השהיה שומרת את המקום וממשיכה מאותו קובץ. עצירה מסיימת את הגיבוי הזה; כל מה שכבר נבדק נשאר בכונן. |  | reviewed |
 | `move_paused_access` | Paused: KeepClear lost access to the drive. Choose it again. | הושהה: ל-KeepClear אין יותר גישה לכונן. צריך לבחור אותו שוב. |  | reviewed |
+| `move_paused_battery` | The backup paused by itself because the battery reached 10%. It goes on once the phone charges. | הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען. |  | **new** (new since last review) |
 | `move_paused_disconnected` | Paused: the drive was disconnected. Plug it in and tap Continue. | הושהה: הכונן נותק. צריך לחבר אותו וללחוץ על „להמשיך”. |  | reviewed |
 | `move_paused_full` | Paused: the drive is full. | הושהה: הכונן מלא. |  | reviewed |
 | `move_paused_interrupted` | Paused because KeepClear was closed or updated. Tap Continue. | הושהה כי KeepClear נסגר או עודכן. אפשר ללחוץ על „להמשיך”. |  | reviewed |
@@ -521,6 +535,8 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `settings_advanced` | Advanced | מתקדם |  | reviewed |
 | `settings_get_back_body` | Cleaned: in the trash, for 30 days. Backed up: on the Backup tab › "Restore from a backup". | מה שנוקה: בסל המחזור, במשך 30 יום. מה שגובה: בלשונית גיבוי › „לשחזר מגיבוי”. |  | **changed** (new since last review) |
 | `settings_get_back_title` | How to get files back | איך מחזירים קבצים |  | reviewed |
+| `settings_keep_originals` | Keep the original in the 30-day trash too (frees no space) | לשמור את המקור גם בסל 30 יום (לא מפנה מקום) |  | **new** (new since last review) |
+| `settings_keep_originals_body` | After a checked backup, freeing space then moves each original to KeepClear's trash for 30 days instead of deleting it. The space comes back only when the trash is emptied. | אחרי גיבוי שנבדק, פינוי מקום יעביר כל מקור לסל המחזור של KeepClear ל-30 יום במקום למחוק אותו. המקום יתפנה רק כשהסל יתרוקן. |  | **new** (new since last review) |
 | `settings_language` | Language | שפה |  | reviewed |
 | `settings_language_system` | Phone's language | שפת הטלפון |  | reviewed |
 | `settings_network_body` | A computer at home with a shared folder, on the same Wi-Fi. Once it's set up, it appears as a place to back up to. | מחשב בבית עם תיקייה משותפת, באותה רשת Wi-Fi. אחרי ההגדרה הוא יופיע כמקום לגבות אליו. |  | **new** (new since last review) |

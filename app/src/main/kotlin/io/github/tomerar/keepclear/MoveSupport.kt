@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import io.github.tomerar.keepclear.core.database.RoomMoveJobStore
 import io.github.tomerar.keepclear.core.i18n.R
+import io.github.tomerar.keepclear.engine.move.BatteryPolicy
 import io.github.tomerar.keepclear.engine.move.JobState
 import io.github.tomerar.keepclear.engine.move.MoveEngine
 import io.github.tomerar.keepclear.engine.move.MoveFileState
@@ -37,7 +38,26 @@ import kotlinx.coroutines.launch
 enum class TaskKind { FREE, CHECK, RESTORE }
 
 /** A running [TaskKind] and how far it got (files done of total; 0 of 0 while it prepares). */
-data class TaskProgress(val kind: TaskKind, val done: Int = 0, val total: Int = 0)
+data class TaskProgress(
+    val kind: TaskKind,
+    val done: Int = 0,
+    val total: Int = 0,
+    /** Owner decision P1, [TaskKind.FREE] only: how the originals are freed, and how many so far. */
+    val freeMode: FreeMode? = null,
+    val freed: Int = 0,
+)
+
+/** Owner decision P1: what freeing does to the originals in this run. */
+enum class FreeMode {
+    /** Deleted for good from the phone; the checked copy is the undo. */
+    FOR_GOOD,
+
+    /** The user's setting: to KeepClear's 30-day trash. */
+    TRASH,
+
+    /** Test mode (SAFETY-9): checked only, nothing changes. */
+    TEST,
+}
 
 /**
  * E3: results of foreground work, kept app-wide so they survive leaving the app (the screen's ViewModel can be
@@ -131,6 +151,11 @@ class MoveController(private val app: KeepClearApplication) {
         }
     }
 
+    /** Owner decision P1: a finer progress for the running task of [kind] (e.g. how many originals were freed). */
+    fun updateTask(kind: TaskKind, update: (TaskProgress) -> TaskProgress) {
+        synchronized(this) { _task.value?.takeIf { it.kind == kind }?.let { _task.value = update(it) } }
+    }
+
     /** E3: stops the running task (the user cancelled, or Android's time limit). */
     fun cancelTask() {
         taskJob?.cancel()
@@ -148,10 +173,13 @@ class MoveController(private val app: KeepClearApplication) {
         }
     }
 
-    fun start(context: Context, jobId: String) {
+    /** Starts the service for a copy job; tests replace it (Robolectric runs no services). */
+    internal var startJobService: (Context, String) -> Unit = { context, jobId ->
         val intent = Intent(context, MoveService::class.java).putExtra(MoveService.EXTRA_JOB, jobId)
         ContextCompat.startForegroundService(context, intent)
     }
+
+    fun start(context: Context, jobId: String) = startJobService(context, jobId)
 
     /** Set by the running service; same process, so no background service start is needed (Android 12+). */
     @Volatile internal var stopper: ((PauseReason) -> Unit)? = null
@@ -179,6 +207,9 @@ class MoveService : Service() {
         const val EXTRA_TASK = "task"
         const val EXTRA_REASON = "reason"
         private const val NOTIFICATION_ID = 41
+
+        /** Owner decision P3: how often a backup paused for the battery looks again. */
+        private const val BATTERY_POLL_MILLIS = 30_000L
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -259,6 +290,9 @@ class MoveService : Service() {
         stopSelf(latestStartId)
     }
 
+    /** Owner decision P3: the job while it waits for the battery (paused, battery low); null while it copies. */
+    @Volatile private var currentWait: MoveJob? = null
+
     private suspend fun run(jobId: String, stopReason: () -> PauseReason) {
         val store = app.moveController.store
         val job = store.job(jobId) ?: return
@@ -291,12 +325,35 @@ class MoveService : Service() {
             bootId = { app.trashClock.bootId() },
             // D4: each file's first check records the drive's mount generation.
             attachGeneration = { app.volumeEvents.generation(check.target.volumeId) },
+            // Owner decision P3: pauses itself at 10 % on battery.
+            battery = app.batterySource,
         )
         // The target (a network drive's connection) is released when the job ends, fails or is cancelled.
         val end = check.target.useTarget {
             try {
-                engine.run(jobId)
+                // Owner decision P3: a pause for the battery waits here (the service stays, so nothing has to start
+                // it again from the background) and goes on once the phone charges; Pause/Stop end the wait.
+                BatteryPolicy.runWithPauses(
+                    battery = app.batterySource,
+                    wait = { kotlinx.coroutines.delay(BATTERY_POLL_MILLIS) },
+                    onWaiting = { paused ->
+                        app.moveController.ticks.value++
+                        if (MoveNotifications.allowed(this@MoveService)) {
+                            nm.notify(NOTIFICATION_ID, MoveNotifications.batteryPaused(this@MoveService))
+                        }
+                        // Pause or Stop while waiting: the job keeps its checkpoints and says why it stopped.
+                        currentWait = paused
+                    },
+                ) {
+                    currentWait = null
+                    engine.run(jobId)
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
+                currentWait?.let { waiting ->
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        store.putJob(waiting.copy(pauseReason = stopReason()))
+                    }
+                }
                 throw e
             } catch (e: Exception) {
                 // Never crash the service: keep every checkpoint and pause (review Low). No paths in the log.
@@ -415,7 +472,7 @@ object MoveNotifications {
             .apply {
                 if (progress != null && progress.total > 0) {
                     setContentText(
-                        context.resources.getQuantityString(
+                        freeProgressText(context, progress) ?: context.resources.getQuantityString(
                             R.plurals.task_progress,
                             progress.total,
                             progress.done,
@@ -431,6 +488,43 @@ object MoveNotifications {
             .setOnlyAlertOnce(true)
             .setContentIntent(openApp(context))
             .build()
+
+    /** Owner decision P1: "Deleted 400 of 6,830" while freeing; null for any other task. */
+    fun freeProgressText(context: Context, progress: TaskProgress): String? {
+        val mode = progress.freeMode ?: return null
+        val nf = java.text.NumberFormat.getIntegerInstance(context.resources.configuration.locales[0])
+        return when (mode) {
+            FreeMode.FOR_GOOD -> context.getString(
+                R.string.free_progress_deleted,
+                nf.format(progress.freed),
+                nf.format(progress.total),
+            )
+
+            FreeMode.TRASH -> context.getString(
+                R.string.free_progress_trash,
+                nf.format(progress.freed),
+                nf.format(progress.total),
+            )
+
+            FreeMode.TEST -> context.getString(
+                R.string.free_progress_test,
+                nf.format(progress.done),
+                nf.format(progress.total),
+            )
+        }
+    }
+
+    /** Owner decision P3: the backup waits for the charger (or the battery) and goes on by itself. */
+    fun batteryPaused(context: Context): Notification = NotificationCompat.Builder(context, CHANNEL)
+        .setSmallIcon(android.R.drawable.stat_sys_upload)
+        .setContentTitle(context.getString(R.string.move_notification_title))
+        .setContentText(context.getString(R.string.move_paused_battery))
+        .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.move_paused_battery)))
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .setContentIntent(openApp(context))
+        .addAction(0, context.getString(R.string.move_stop), control(context, PauseReason.CANCELLED, 2))
+        .build()
 
     fun progress(context: Context, verified: Int, total: Int): Notification =
         NotificationCompat.Builder(context, CHANNEL)

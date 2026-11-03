@@ -346,7 +346,25 @@ class KeepClearApplication : Application() {
             },
             // CLS-7: a file kept while the plan runs is skipped too (PR #27 review).
             keptNow = { path -> keptNow(path) },
+            // Owner decision P1: after a verified backup the originals are deleted for good unless the user keeps
+            // them in the trash too (Settings); asked right before each original.
+            freeOriginalsForGood = { !freeSettings.keepInTrash },
         )
+    }
+
+    /** Owner decision P1: "Keep the original in the 30-day trash too" (off by default). */
+    val freeSettings by lazy { MainThreadPolicy.settings { FreeSettings(this) } }
+
+    /**
+     * Owner decision P3: the battery right now (null when Android doesn't say). Tests replace it with a fake source.
+     */
+    @Volatile internal var batterySource: () -> io.github.tomerar.keepclear.engine.move.BatteryLevel? = {
+        runCatching {
+            val bm = getSystemService(android.os.BatteryManager::class.java)
+            val percent = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            percent.takeIf { it in 0..100 }
+                ?.let { io.github.tomerar.keepclear.engine.move.BatteryLevel(it, bm.isCharging) }
+        }.getOrNull()
     }
 
     private var keptCache: Pair<Set<String>, io.github.tomerar.keepclear.core.safety.ProtectedPaths>? = null

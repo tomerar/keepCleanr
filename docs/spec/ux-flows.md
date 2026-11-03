@@ -213,7 +213,7 @@ What should we move?
 (●) Camera photos & videos     58.1 GB · 8,912 files
 ( ) WhatsApp photos & videos you received   17.8 GB
 ( ) Big videos only            14.85 GB · 81
-Older than: [ 1 year ▾ ]   ☐ Include favourites
+Older than: [ 1 year ▾ ]   (favourites are always included, owner decision P2)
 Total: 58.1 GB · 8,912 files
 [Next: choose where]
 ```
@@ -234,6 +234,7 @@ Checklist screen, each line ✓ / ✕ with a fix:
 - Space on drive: "120 GB free, 58.1 GB needed ✓"
 - Drive format: "FAT32: 3 videos are over 4 GB and can't be copied to it ✕ — [Copy the rest] [How to fix]"
 - Battery: "Plug in your phone. Copying 58 GB takes about 1–1.5 hours." (estimate from measured speed after first 200 MB)
+- Battery (owner decision P3, 2026-11-03): below 10% and not charging it can't start ("הסוללה מתחת ל-10 אחוז. כדי להתחיל, צריך לחבר מטען."); 10–19% is a note, not a block: "כדאי לטעון קודם; הגיבוי ייעצר לבד ב-10% וימשיך אחר כך". While running, at 10% on battery it pauses by itself ("הגיבוי נעצר לבד כי הסוללה ירדה ל-10%. הוא ימשיך כשהטלפון ייטען.") and goes on when the phone charges.
 - File names: "12 names changed to fit the drive ✓ (see Details)"
 
 `[Start backup]` / `[להתחיל גיבוי]`
@@ -280,6 +281,21 @@ he: **כל 8,909 הקבצים תקינים.** / **‏3 קבצים חסרים א�
 
 Decided (Q1): "Move to trash" is the default action; "Free the space now" is the prominent release button. Hebrew: `[להעביר לסל המחזור (הכי בטוח)]` `[לפנות את המקום עכשיו]` `[ביטול]`. Before trashing, every original is re-hashed (strict mode, Q13); progress shows "Checking each photo one last time…" / "בודקים כל תמונה פעם אחרונה…".
 
+**Owner decisions P1, P2, P4 (2026-11-03) replace the sheet above.** Shown only after "Check backup" passed:
+> **לפנות מקום בטלפון?**
+> כמה: ‏6,830 קבצים · 24.1GB · מה יקרה: יימחקו מהטלפון; העותק נשאר ב-SanDisk
+> המקור יימחק מהטלפון. העותק נשאר ב-SanDisk, נבדק קובץ-קובץ, ואפשר להחזיר ממנו בכל זמן.
+> (only when WhatsApp media is freed) בצ'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי
+> ☑ להשאיר בטלפון מועדפים · ‏412 קבצים נשארים בטלפון
+> ☑ להשאיר בטלפון את 30 הימים האחרונים · ‏96 קבצים נשארים בטלפון
+> `[לפנות 24.1GB מהטלפון]` `[לבטל]`
+
+- The two options are ticked by default and **keep** files (SAFETY-10 is about selecting for deletion). Unticking one adds its files to the count, the size and the tap's confirmation. If they keep everything: "עם הבחירות האלה אין מה לפנות." and the button does nothing.
+- The button is ink, not red (C118): the checked copy is the undo.
+- Progress: "נמחקו 400 מתוך 6,830" (trial mode: "נבדקו 400 מתוך 6,830 · מצב ניסיון, שום דבר לא נמחק").
+- Result: "פונו 24.1GB · 6,830 קבצים מהטלפון. העותק נשאר ב-SanDisk." `[לשחזר מגיבוי]`; skipped files are counted and stay on the phone; if the drive goes away: "הפינוי נעצר: …".
+- With Settings' "לשמור את המקור גם בסל 30 יום (לא מפנה מקום)" on, the sheet and result are the trash version above ("להעביר לסל המחזור", Empty now).
+
 ---
 
 ## 6. Trash (TRASH-1…6)
@@ -314,7 +330,7 @@ Space returns as items expire, or empty now.
 
 - Language: System / English / עברית.
 - Trash keeps items for: 30 days (7–60).
-- Move defaults: older than 1 year; include favourites off.
+- Move defaults: older than 1 year (the first backup: everything); favourites included (owner decision P2, 2026-11-03).
 - Permissions: list with status + "Manage" link for each.
 - About: version, license GPL-3.0, source link, "KeepClear has no internet permission", trash survives uninstall note (TRASH-7), credits (SD Maid SE rules data etc.).
 - **Advanced** (P-2, off the default path): file details (hashes, paths on the drive), the drive's format, export logs, strict-mode switch with its warning, and later expert options (e.g. Shizuku, Later). Nothing here is needed for normal use.
