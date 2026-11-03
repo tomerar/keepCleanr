@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -135,11 +136,38 @@ class Shots(
         capture("swipe")
     }
 
+    /** H1c: the Trash as a grid of pictures by month (its default). */
     fun trash() {
         show {
             TrashScreen(OwnerPhone.trash, { _, _ -> }, { _, _ -> }, {}, showUninstallNote = true, now = OwnerPhone.NOW)
         }
         capture("trash")
+    }
+
+    /** H1c: the grouped list stays one tap away. */
+    fun trashList() {
+        show {
+            TrashScreen(
+                OwnerPhone.trash,
+                { _, _ -> },
+                { _, _ -> },
+                {},
+                showUninstallNote = true,
+                now = OwnerPhone.NOW,
+                initialView = TrashView.LIST,
+            )
+        }
+        capture("trash_list")
+    }
+
+    /** H1c: one trashed photo's details, opened from its tile. */
+    fun trashDetails() {
+        show {
+            TrashScreen(OwnerPhone.trash, { _, _ -> }, { _, _ -> }, {}, showUninstallNote = false, now = OwnerPhone.NOW)
+        }
+        compose.onNodeWithTag("trash").performScrollToNode(hasTestTag("tile_c1"))
+        compose.onNodeWithTag("tile_c1").performClick()
+        capture("trash_details")
     }
 
     /** Design QA item 3: the bottom of the Trash, with its actions after the list (none of them filled red). */
@@ -203,16 +231,25 @@ class Shots(
         capture("backup_summary")
     }
 
+    /** H1c: "Restore from a backup" as a sheet: the backup's files by month, with pictures from the USB drive. */
     fun restore() {
-        val groups = listOf("2021-07" to 2_400_000_000L, "2021-08" to 1_900_000_000L, "2022-12" to 3_100_000_000L)
-            .map { (month, bytes) -> RestoreGroup("Camera", month, bytes, toOriginal = 410, toRestoreFolder = 0) }
-        val catalog = RestoreStep.Catalog(
-            "KeepClear/Phone",
-            groups,
-            io.github.tomerar.keepclear.engine.restore.Space(allocatable = 16_800_000_000, total = 128_000_000_000),
-        )
-        show { Backup(MoveUiState(restore = catalog)) }
+        show { Backup(MoveUiState(restore = OwnerPhone.restoreCatalog)) }
         capture("restore")
+    }
+
+    /** H1c: the phone hasn't room for every month chosen: the newest files that fit can come back now. */
+    fun restorePartial() {
+        val tight = OwnerPhone.restoreCatalog.copy(
+            space = io.github.tomerar.keepclear.engine.restore.Space(
+                allocatable = 1_400_000_000,
+                total = 16_000_000_000,
+            ),
+        )
+        show { Backup(MoveUiState(restore = tight)) }
+        compose.onNodeWithTag("restoreViewToggle").performClick()
+        tight.groups.forEach { compose.onNodeWithTag("restore_${it.key}").performClick() }
+        compose.onNodeWithTag("restoreFit").performScrollTo()
+        capture("restore_partial")
     }
 
     fun apps() {

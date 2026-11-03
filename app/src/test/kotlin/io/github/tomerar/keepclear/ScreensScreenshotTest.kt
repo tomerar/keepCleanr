@@ -42,6 +42,10 @@ class ScreensScreenshotTest(private val locale: String, private val night: Boole
 
     @Test fun trashActions(): Unit = shots.trashActions()
 
+    @Test fun trashList(): Unit = shots.trashList()
+
+    @Test fun trashDetails(): Unit = shots.trashDetails()
+
     @Test fun backup(): Unit = shots.backup()
 
     @Test fun backupProgress(): Unit = shots.backupProgress()
@@ -49,6 +53,8 @@ class ScreensScreenshotTest(private val locale: String, private val night: Boole
     @Test fun backupSummary(): Unit = shots.backupSummary()
 
     @Test fun restore(): Unit = shots.restore()
+
+    @Test fun restorePartial(): Unit = shots.restorePartial()
 
     @Test fun apps(): Unit = shots.apps()
 

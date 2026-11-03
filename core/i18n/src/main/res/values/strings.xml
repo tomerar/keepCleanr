@@ -65,7 +65,7 @@
     <string name="trash_title">Trash</string>
     <string name="trash_chip">Trash · %1$s</string>
     <string name="trash_summary">%1$s · deleted for good after 30 days</string>
-    <string name="trash_empty_state">The trash is empty.</string>
+    <string name="trash_empty_state">The trash is empty. Files you clean stay here for 30 days.</string>
     <string name="trash_restore">Restore</string>
     <string name="obscured_touch_hint">Something is covering the screen, so the tap was ignored. Close other apps\' bubbles or overlays and try again.</string>
     <string name="trash_changed">Changed since it was deleted</string>
@@ -429,7 +429,6 @@
     <string name="restore_no_backup">No KeepClear backup was found there.</string>
     <string name="restore_which_phone">Which phone\'s backup?</string>
     <string name="restore_choose">What to bring back</string>
-    <string name="restore_where">Files go back to where they were only if KeepClear moved them from there on this phone. Others go to Pictures › KeepClear Restored. Hidden files and apps are not restored. Nothing on the phone is replaced.</string>
     <string name="restore_run">Restore</string>
     <string name="restore_running">Restoring…</string>
     <string name="restore_interrupted">The drive was disconnected. What was restored stays; restore again to finish.</string>
@@ -538,7 +537,6 @@
         <item quantity="one">%1$s file is already on the phone (nothing to copy)</item>
         <item quantity="other">%1$s files are already on the phone (nothing to copy)</item>
     </plurals>
-    <string name="restore_fit">Choose only what fits</string>
     <string name="restore_not_enough_room">Nothing was restored: there isn\'t enough room on the phone. KeepClear always leaves %1$s free.</string>
     <string name="restore_stopped_low_space">Stopped because the phone is almost full. What was restored stays; make room, then restore again to finish.</string>
     <string name="restore_simulated">Would have restored %1$s (trial mode): %2$s back to where they were, %3$s to Pictures › KeepClear Restored. Nothing was written to the phone.</string>
@@ -696,4 +694,25 @@
     <string name="readme_open">On a computer: connect the drive and open the folders inside (Camera, WhatsApp, Pictures). They are ordinary photos and videos and open in any viewer. Please don\'t change or delete files here: this is the backup.</string>
     <string name="readme_restore">To put them back on a phone: install KeepClear, open the Backup tab and tap \"Restore from a backup\", then choose this drive.</string>
     <string name="backup_running_to">Backing up to %1$s</string>
+    <!-- H1c: trash and restore grid (owner brief H1 item 9) -->
+    <string name="grid_show_list">Show as a list</string>
+    <string name="grid_show_grid">Show as pictures</string>
+    <string name="grid_show_months">Show by month</string>
+    <string name="grid_search_hint">Search by name or date, e.g. July 2021</string>
+    <string name="grid_search_clear">Clear the search</string>
+    <string name="grid_no_match">No file matches this search.</string>
+    <string name="grid_preview">Preview</string>
+    <string name="grid_tile_description">%1$s, %2$s, %3$s</string>
+    <string name="grid_details_line">%1$s · %2$s</string>
+    <string name="trash_changed_short">Changed</string>
+    <string name="restore_open_settings">Open settings</string>
+    <string name="restore_pick_other">Choose another place</string>
+    <string name="restore_choose_again">Choose what fits</string>
+    <string name="restore_destination">Where they go: back where they were, if KeepClear moved them from there on this phone. Everything else goes to the restore folder, Pictures › KeepClear Restored. Hidden files and apps are not restored. Nothing on the phone is replaced.</string>
+    <plurals name="restore_partial">
+        <item quantity="one">There is room for %2$s of 1 file.</item>
+        <item quantity="other">There is room for %2$s of %1$s files.</item>
+    </plurals>
+    <string name="restore_partial_run">Restore these now</string>
+    <string name="restore_this_file">Restore this file</string>
 </resources>

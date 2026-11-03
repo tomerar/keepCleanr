@@ -342,6 +342,21 @@ class MainActivity : ComponentActivity() {
                                 onChooseBackup = moveVm::chooseBackup,
                                 onRestore = moveVm::runRestore,
                                 onClose = moveVm::closeRestore,
+                                // H1c: the settings screen that grants it; the `play` build can't have it.
+                                onAllFilesAccess = if (BuildConfig.FLAVOR == "foss") {
+                                    {
+                                        startActivity(
+                                            Intent(
+                                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                                "package:$packageName".toUri(),
+                                            ),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                                onChooseAgain = moveVm::chooseAgain,
+                                thumbnail = moveVm::restoreThumbnail,
                             ),
                             onStart = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationsOff &&

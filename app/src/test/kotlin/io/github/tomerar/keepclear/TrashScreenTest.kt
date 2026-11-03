@@ -53,7 +53,7 @@ class TrashScreenTest {
                 _,
                 ->
                 restored = e
-            }, onPurge = { e, _ -> purged = e }, onBack = {})
+            }, onPurge = { e, _ -> purged = e }, onBack = {}, initialView = TrashView.LIST)
         }
     }
 
@@ -111,6 +111,7 @@ class TrashScreenTest {
             KeepClearTheme {
                 TrashScreen(
                     TrashUi(listOf(a), releasable = setOf("a"), releaseHeldBack = 2),
+                    initialView = TrashView.LIST,
                     onRestore = { _, _ -> },
                     onPurge = { e, _ -> purged = e },
                     onBack = {},
@@ -150,6 +151,7 @@ class TrashScreenTest {
             KeepClearTheme {
                 TrashScreen(
                     TrashUi(listOf(a), changed = setOf("a")),
+                    initialView = TrashView.LIST,
                     onRestore = { e, _ -> restored = e },
                     onPurge = { _, _ -> },
                     onBack = {},
