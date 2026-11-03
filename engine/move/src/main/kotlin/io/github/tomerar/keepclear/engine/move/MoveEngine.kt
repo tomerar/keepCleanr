@@ -563,7 +563,9 @@ class MoveEngine(
             when {
                 hash != null && hash == f.sourceSha256 -> {
                     ok++
-                    put(f.copy(confirmedAt = clock()))
+                    // The next check needs its own proof of a fresh read (review of PR #54): this read is the new
+                    // baseline, so a re-check in this boot asks for another unplug and plug-in first.
+                    put(f.copy(confirmedAt = clock(), verifyBootId = boot, verifyAttach = attach?.encode()))
                 }
 
                 else -> {
@@ -590,16 +592,19 @@ class MoveEngine(
     /**
      * D4: how many verified, not yet confirmed files have no proof right now that a read would come from the drive
      * (0 = "Check backup" can read at once; otherwise the drive has to be unplugged and plugged back in first).
-     * Reads only the job store, never the target.
+     * With [includeConfirmed], files that passed an earlier check count too: a re-check (the reminder, owner brief
+     * H1 item 11) must prove a fresh read of every copy again (review of PR #54). Reads only the job store.
      */
-    suspend fun unprovenNow(jobId: String): Int {
+    suspend fun unprovenNow(jobId: String, includeConfirmed: Boolean = false): Int {
         store.job(jobId) ?: return 0
         val boot = bootId()
         val attach = attachGeneration()
         // Before the app asks to unplug: older files get their baseline now, so that unplug can prove them.
         recordLegacyBaselines(jobId, boot, attach)
         return store.files(jobId).count {
-            it.state == MoveFileState.VERIFIED && it.confirmedAt == null && !freshReadProven(it, boot, attach)
+            it.state == MoveFileState.VERIFIED &&
+                (includeConfirmed || it.confirmedAt == null) &&
+                !freshReadProven(it, boot, attach)
         }
     }
 

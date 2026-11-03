@@ -897,7 +897,7 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 attachGeneration = { app.volumeEvents.generation(volume) },
             )
             val rebooted = !OpenedTarget.isNetwork(ref) &&
-                withContext(Dispatchers.IO) { proofEngine().unprovenNow(jobId) } == 0
+                withContext(Dispatchers.IO) { proofEngine().unprovenNow(jobId, includeConfirmed = true) } == 0
             val evidence = if (OpenedTarget.isNetwork(ref)) {
                 // M15: a network drive's reads all come from the server; a new connection is a fresh read, so
                 // there is nothing to unplug (decided conservatively: progress.md C8).
@@ -918,7 +918,10 @@ class MoveViewModel(application: Application) : AndroidViewModel(application) {
                 // D4: Android reports the mount a moment after the files are reachable; wait briefly for it. Without
                 // it the engine proves nothing and the result says how many files still need a check.
                 kotlinx.coroutines.withTimeoutOrNull(MOUNT_EVENT_WAIT_MILLIS) {
-                    while (withContext(Dispatchers.IO) { proofEngine().unprovenNow(jobId) } > 0) {
+                    suspend fun stale() = withContext(Dispatchers.IO) {
+                        proofEngine().unprovenNow(jobId, includeConfirmed = true)
+                    }
+                    while (stale() > 0) {
                         kotlinx.coroutines.delay(POLL_MILLIS / 4)
                     }
                 }
