@@ -56,10 +56,17 @@ object AppLanguage {
     /** [base] in the stored language on Android 11–12; unchanged on 13+ (Android applies it) or with no choice. */
     fun wrap(base: Context, sdk: Int = Build.VERSION.SDK_INT): Context {
         if (systemKeeps(sdk)) return base
-        val tag = runCatching { stored(base) }.getOrNull() ?: return base
-        val locale = Locale.forLanguageTag(tag)
-        Locale.setDefault(locale)
-        val config = Configuration(base.resources.configuration).apply { setLocale(locale) }
+        val tag = runCatching { stored(base) }.getOrNull()
+        // No choice stored: the phone's own languages, applied explicitly. The application context may still carry
+        // the language chosen when the process started (review of PR #60), so returning [base] would keep it.
+        val locales = if (tag == null) {
+            android.content.res.Resources.getSystem().configuration.locales
+        } else {
+            android.os.LocaleList(Locale.forLanguageTag(tag))
+        }
+        if (tag == null && base.resources.configuration.locales == locales) return base
+        Locale.setDefault(locales[0])
+        val config = Configuration(base.resources.configuration).apply { setLocales(locales) }
         return base.createConfigurationContext(config)
     }
 

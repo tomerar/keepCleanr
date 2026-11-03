@@ -96,7 +96,10 @@ class MoveController(private val app: KeepClearApplication) {
     }
 
     /** Owner brief H4 item 5: when a backup last ran. */
-    val runLog by lazy { BackupRunLog(app.getSharedPreferences(BackupRunLog.PREFS, Context.MODE_PRIVATE)) }
+    val runLog by lazy {
+        // Review of PR #60: opening a new preferences file reads the disk, so it goes inside the settings allowance.
+        MainThreadPolicy.settings { BackupRunLog(app.getSharedPreferences(BackupRunLog.PREFS, Context.MODE_PRIVATE)) }
+    }
 
     /** Owner brief H4 item 5: Android's record of how KeepClear's process ended; tests replace it. */
     internal var processExits: ProcessExitSource = AndroidProcessExitSource(app)
