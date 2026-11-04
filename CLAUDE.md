@@ -98,6 +98,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 - Engines (`engine:*`, `core:model`, `core:safety`, `core:rules`, `core:hash`) are pure JVM: no `android.*` imports.
 - Rules and filters are data (JSON/tables) with table-driven positive and negative tests.
+- English is the default language of the repository (owner, 2026-11-04): `README.md`, every doc, ADR, spec, comment and commit is in professional English; Hebrew appears in docs only as quoted app strings. The Hebrew README is `README.he.md` (a full translation, linked from the top of `README.md`); change both together.
 - Add `// SPDX-License-Identifier: GPL-3.0-or-later` to new files. Code reused from GPL-3.0/MIT/Apache projects keeps its copyright line and gets an entry in `THIRD_PARTY.md`. Never copy AGPL or GPL-2.0-only code, SD Maid SE icons/docs, or upstream translations.
 - Restricted permissions go only in `app/src/foss/AndroidManifest.xml`.
 

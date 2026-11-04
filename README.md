@@ -2,66 +2,83 @@
 
 **Keep what matters. Clear the rest.**
 
-Smart storage cleaner for Android. Deletes junk in one tap, explains anything unclear, and backs up your photos before freeing space. Open source, no ads, no tracking.
+KeepClear frees up space on Android phones without risking your memories. Junk goes in one tap, anything unclear is explained, and photos and videos are backed up and checked before anything is removed from the phone.
 
-## How it handles files
+[![CI](https://github.com/tomerar/keepCleanr/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tomerar/keepCleanr/actions/workflows/ci.yml?query=branch%3Amain)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+![Android 11+](https://img.shields.io/badge/Android-11%2B-3b6e4f)
+![No ads · no tracking](https://img.shields.io/badge/ads%20%26%20tracking-none-555)
 
-| Category | What it means |
-|----------|---------------|
-| **SAFE** | Junk. Deleted in one tap. |
-| **REVIEW** | Explained to you. You decide. |
-| **MOVE** | Memories. Backup, verify, then delete. |
+**English** · [עברית](README.he.md)
 
-## Core principle
+[How it works](#how-it-works) · [Try it](#try-it) · [Safety](#how-your-files-stay-safe) · [Privacy](#privacy) · [Build](#build-from-source) · [Docs](#documentation)
 
-> Delete junk instantly, explain anything unclear, never remove memories without a verified backup. Every deletion goes to a 30-day trash first.
+| Home | Choose what to delete | Backup | Before anything is deleted |
+|:---:|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="190" alt="Home: free space, what can be freed safely, and one Free up button"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_review.png" width="190" alt="A review group of screenshots, nothing selected"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_backup.png" width="190" alt="A checked backup on a USB drive with its receipt"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_confirm.png" width="190" alt="The confirmation sheet: how many, how much space, what will happen"> |
 
-## Status
+## How it works
 
-🚧 Early development. No release yet. Research and spec live in [`docs/`](docs/) ([requirements](docs/spec/requirements.md), [design](docs/spec/design.md), [plan](docs/spec/tasks.md)).
+KeepClear scans the phone and sorts what it finds into three lanes:
 
-## Building
+| Lane | What's in it | What happens |
+|---|---|---|
+| **Clean now** | Temporary files, thumbnails, files already in other apps' bins | Cleared in one tap, after one confirmation |
+| **Choose what to delete** | Big videos, screenshots, AI images, duplicates, old downloads, WhatsApp and Telegram media | Each item says why it was found. Nothing is selected for you; nothing is deleted unless you choose it |
+| **Back up** | Your photos and videos | Copied to your USB drive, a folder you pick, or a shared folder on your computer or home server. Every copy is read back and checked, checked again after you unplug and re-plug the drive, and space is freed only when you tap **Free up** and confirm |
 
-Requires JDK 21 and the Android SDK (platform `android-37.0`).
+Also: an **Apps** tab (biggest and unused apps, uninstall through Android's own window), going through a group **one by one with a swipe**, **restore** from a KeepClear backup, offline **Help**, a **history** of what KeepClear did, English and Hebrew, light and dark.
+
+## Try it
+
+There is no release yet. Every green build of `main` publishes a signed **test APK** that installs from the phone, no computer needed: see [Test build for the phone](docs/progress.md#test-build-for-the-phone-no-computer-needed).
+
+The test APK installs as "KeepClear test" and **starts in test mode**: cleaning, deleting, freeing space, restoring and emptying the trash only show what they *would* do, until you turn test mode off under Settings › Advanced. Backups still copy real files to the drive or folder you choose, because copying removes nothing from the phone.
+
+## How your files stay safe
+
+- **Nothing is deleted without your confirmation.** The only thing that runs in the background is the trash emptying itself: files you already confirmed are deleted for good once their 30 days are up.
+- **Most of what you clean waits 30 days** in KeepClear's trash and comes back with one tap. Deleted right away, and said so before you confirm: files that rebuild themselves (thumbnails, temporary files), files already in another app's bin, and originals freed after a checked backup.
+- **Originals are freed only after a verified backup**: each copy is read back and compared by checksum, checked a second time after re-plugging, re-checked on the drive and on the phone right before freeing. A file that fails any check stays on the phone. Favourites and the last 30 days stay on the phone by default.
+- **One choke point.** Every deletion in the code goes through a single checked path, and WhatsApp's databases and backups, KeepClear's trash and the backup drive itself are always protected. Architecture tests enforce this; destructive code ships with property tests that simulate the app being killed at every step.
+
+Details: [safety rules](CLAUDE.md#safety-rules-non-negotiable) · [requirements](docs/spec/requirements.md) · [threat model](docs/spec/threat-model.md) · [ADR 0006: own trash](docs/adr/0006-own-trash.md) · [ADR 0007: verify by hash](docs/adr/0007-verify-by-hash.md)
+
+## Privacy
+
+No ads, no analytics, no crash SDKs, no Google Play Services, no account. Nothing about you or your files leaves the phone. The only network use is a backup **you** set up: to a shared folder on your computer or home server, at the address you typed, or, under Settings › Advanced, to your own Nextcloud (including its sign-in). Every permission is optional and explained before Android asks. See [PRIVACY.md](docs/PRIVACY.md).
+
+## Two versions
+
+| | `foss` (F-Droid, GitHub) | `play` (Google Play) |
+|---|---|---|
+| Finds | Everything, with All files access: WhatsApp media, old-phone folders, other apps' bins, leftovers | Photos, videos and folders you grant access to |
+| Why | Full cleaner | Play policy ([ADR 0005](docs/adr/0005-flavors-play-foss.md)) |
+
+## Build from source
+
+JDK 21 and the Android SDK with platform `android-37.0`.
 
 ```sh
-./gradlew :app:assembleFossDebug   # F-Droid/GitHub flavor
-./gradlew ciCheck                  # everything CI checks
-scripts/reproducible-build.sh      # builds the unsigned fossRelease twice and checks both are identical
+./gradlew :app:assembleFossDebug   # debug APK, foss flavor
+./gradlew ciCheck                  # everything CI runs, except the emulator tests
+scripts/reproducible-build.sh      # builds fossRelease twice in different setups and checks the APKs are identical
 ```
 
-The F-Droid/IzzyOnDroid store listing lives in `fastlane/metadata/android/` (English and Hebrew).
+Kotlin and Jetpack Compose (Material 3), minSdk 30, targetSdk 36. Release builds are [reproducible](scripts/reproducible-build.sh), checked on every push. The store listing lives in [`fastlane/metadata/android/`](fastlane/metadata/android/) (English and Hebrew).
+
+## Documentation
+
+| Read | For |
+|---|---|
+| [Requirements](docs/spec/requirements.md) · [Design](docs/spec/design.md) · [Edge cases](docs/spec/edge-cases.md) | What KeepClear does, and how it behaves when things go wrong |
+| [Decisions (ADRs)](docs/adr/) · [Research](docs/research/) | Why it is built this way, with sources |
+| [Design system](docs/design/design-system.md) · [Gallery](docs/design/gallery.md) | "Paper & Ink" components, and before → after screens |
+| [Progress](docs/progress.md) | Status, decisions, device checks |
+| [Contributing](CONTRIBUTING.md) · [Translating](docs/TRANSLATING.md) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) | How to help |
+| [Third-party code](THIRD_PARTY.md) · [Changelog](CHANGELOG.md) | Credits and history |
 
 ## License
 
-[GPL-3.0](LICENSE)
+KeepClear is free software under the [GNU GPL, version 3 or later](LICENSE).
 
----
-
-<div dir="rtl">
-
-## KeepClear (עברית)
-
-**שומרים את מה שחשוב. מנקים את השאר.**
-
-מנקה אחסון חכם לאנדרואיד. מוחק קבצי זבל בלחיצה אחת, מסביר כל דבר לא ברור, ומגבה את התמונות שלך לפני שהוא מפנה מקום. קוד פתוח, בלי פרסומות, בלי מעקב.
-
-### איך הוא מטפל בקבצים
-
-- **SAFE (בטוח):** קבצי זבל. נמחקים בלחיצה אחת.
-- **REVIEW (לבדיקה):** מקבלים הסבר, ואתה מחליט.
-- **MOVE (העברה):** זיכרונות. גיבוי, אימות, ורק אז מחיקה.
-
-### העיקרון המרכזי
-
-> מוחקים זבל מיד, מסבירים כל דבר לא ברור, ולעולם לא מוחקים זיכרונות בלי גיבוי מאומת. כל מחיקה עוברת קודם לסל מחזור ל-30 יום.
-
-### סטטוס
-
-🚧 בפיתוח ראשוני. עדיין אין גרסה.
-
-### רישיון
-
-[GPL-3.0](LICENSE)
-
-</div>
