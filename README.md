@@ -46,7 +46,7 @@ Details: [safety rules](CLAUDE.md#safety-rules-non-negotiable) · [requirements]
 
 ## Privacy
 
-No ads, no analytics, no crash SDKs, no Google Play Services, no account. Nothing about you or your files leaves the phone. The only network use is a backup to a shared folder **you** set up, at the address you typed. Every permission is optional and explained before Android asks. See [PRIVACY.md](docs/PRIVACY.md).
+No ads, no analytics, no crash SDKs, no Google Play Services, no account. Nothing about you or your files leaves the phone. The only network use is a backup **you** set up: to a shared folder on your computer or home server, at the address you typed, or, under Settings › Advanced, to your own Nextcloud (including its sign-in). Every permission is optional and explained before Android asks. See [PRIVACY.md](docs/PRIVACY.md).
 
 ## Two versions
 
