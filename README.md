@@ -31,11 +31,11 @@ Also: an **Apps** tab (biggest and unused apps, uninstall through Android's own 
 
 There is no release yet. Every green build of `main` publishes a signed **test APK** that installs from the phone, no computer needed: see [Test build for the phone](docs/progress.md#test-build-for-the-phone-no-computer-needed).
 
-The test APK installs as "KeepClear test" and **starts in test mode**: it shows what it *would* delete or move, and changes nothing until you turn test mode off under Settings › Advanced.
+The test APK installs as "KeepClear test" and **starts in test mode**: cleaning, deleting, freeing space, restoring and emptying the trash only show what they *would* do, until you turn test mode off under Settings › Advanced. Backups still copy real files to the drive or folder you choose, because copying removes nothing from the phone.
 
 ## How your files stay safe
 
-- **Nothing is deleted without your confirmation**, and nothing happens in the background.
+- **Nothing is deleted without your confirmation.** The only thing that runs in the background is the trash emptying itself: files you already confirmed are deleted for good once their 30 days are up.
 - **Most of what you clean waits 30 days** in KeepClear's trash and comes back with one tap. Deleted right away, and said so before you confirm: files that rebuild themselves (thumbnails, temporary files), files already in another app's bin, and originals freed after a checked backup.
 - **Originals are freed only after a verified backup**: each copy is read back and compared by checksum, checked a second time after re-plugging, re-checked on the drive and on the phone right before freeing. A file that fails any check stays on the phone. Favourites and the last 30 days stay on the phone by default.
 - **One choke point.** Every deletion in the code goes through a single checked path, and WhatsApp's databases and backups, KeepClear's trash and the backup drive itself are always protected. Architecture tests enforce this; destructive code ships with property tests that simulate the app being killed at every step.
@@ -102,14 +102,14 @@ KeepClear מפנה מקום בטלפון בלי לסכן את הזיכרונות
 
 ### למה אפשר לסמוך עליו
 
-- שום דבר לא נמחק בלי אישור שלכם, ושום דבר לא קורה ברקע.
+- שום דבר לא נמחק בלי אישור שלכם. הדבר היחיד שקורה ברקע הוא שסל המחזור מתרוקן: קבצים שכבר אישרתם נמחקים לצמיתות כשעוברים 30 הימים שלהם.
 - את רוב מה שמנקים אפשר לשחזר מסל המחזור במשך 30 יום. מה שנמחק לצמיתות (קבצים שנבנים מחדש לבד, קבצים מסלים של אפליקציות אחרות ומקורות אחרי גיבוי שנבדק) כתוב לפני האישור.
 - מועדפים ו-30 הימים האחרונים נשארים בטלפון, אלא אם בוחרים אחרת.
 - בלי פרסומות, בלי מעקב, בלי חשבון. שום מידע לא יוצא מהטלפון.
 
 ### לנסות
 
-עדיין אין גרסה רשמית. גרסת ניסיון מתקינים ישר מהטלפון: [הוראות](docs/progress.md#test-build-for-the-phone-no-computer-needed). היא נפתחת **במצב ניסיון**: מראה מה היה נמחק או מועבר, ולא משנה כלום עד שמכבים את מצב הניסיון בהגדרות › מתקדם.
+עדיין אין גרסה רשמית. גרסת ניסיון מתקינים ישר מהטלפון: [הוראות](docs/progress.md#test-build-for-the-phone-no-computer-needed). היא נפתחת **במצב ניסיון**: ניקוי, מחיקה, פינוי מקום, שחזור וריקון הסל רק מראים מה היה קורה, עד שמכבים את מצב הניסיון בהגדרות › מתקדם. גיבוי כן מעתיק קבצים אמיתיים לדיסק און קי או לתיקייה שבוחרים, כי העתקה לא מוחקת כלום מהטלפון.
 
 ### רישיון
 
