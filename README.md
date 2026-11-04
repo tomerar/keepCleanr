@@ -9,7 +9,9 @@ KeepClear frees up space on Android phones without risking your memories. Junk g
 ![Android 11+](https://img.shields.io/badge/Android-11%2B-3b6e4f)
 ![No ads · no tracking](https://img.shields.io/badge/ads%20%26%20tracking-none-555)
 
-[עברית](#עברית) · [How it works](#how-it-works) · [Try it](#try-it) · [Safety](#how-your-files-stay-safe) · [Privacy](#privacy) · [Build](#build-from-source) · [Docs](#documentation)
+**English** · [עברית](README.he.md)
+
+[How it works](#how-it-works) · [Try it](#try-it) · [Safety](#how-your-files-stay-safe) · [Privacy](#privacy) · [Build](#build-from-source) · [Docs](#documentation)
 
 | Home | Choose what to delete | Backup | Before anything is deleted |
 |:---:|:---:|:---:|:---:|
@@ -80,39 +82,3 @@ Kotlin and Jetpack Compose (Material 3), minSdk 30, targetSdk 36. Release builds
 
 KeepClear is free software under the [GNU GPL, version 3 or later](LICENSE).
 
----
-
-<div dir="rtl">
-
-## עברית
-
-**שומרים את מה שחשוב. מנקים את השאר.**
-
-KeepClear מפנה מקום בטלפון בלי לסכן את הזיכרונות שלכם. קבצי זבל מתנקים בלחיצה אחת, כל דבר לא ברור מוסבר, ותמונות וסרטונים מגובים ונבדקים לפני שמשהו יוצא מהטלפון.
-
-| מסך הבית | לבחור מה למחוק | גיבוי | לפני שמשהו נמחק |
-|:---:|:---:|:---:|:---:|
-| <img src="fastlane/metadata/android/iw-IL/images/phoneScreenshots/1_home.png" width="190" alt="מסך הבית"> | <img src="fastlane/metadata/android/iw-IL/images/phoneScreenshots/2_review.png" width="190" alt="קבוצת צילומי מסך, שום דבר לא מסומן"> | <img src="fastlane/metadata/android/iw-IL/images/phoneScreenshots/3_backup.png" width="190" alt="גיבוי שנבדק בדיסק און קי"> | <img src="fastlane/metadata/android/iw-IL/images/phoneScreenshots/4_confirm.png" width="190" alt="חלון האישור"> |
-
-### איך זה עובד
-
-- **לנקות עכשיו:** קבצים זמניים, תמונות ממוזערות וקבצים שכבר נמצאים בסלים של אפליקציות אחרות. מתנקה בלחיצה אחת, אחרי אישור.
-- **לבחור מה למחוק:** סרטונים גדולים, צילומי מסך, כפילויות, הורדות ישנות ומדיה של וואטסאפ. ליד כל פריט כתוב למה הוא נמצא. שום דבר לא מסומן מראש, ושום דבר לא נמחק בלי שתבחרו.
-- **לגבות:** תמונות וסרטונים מועתקים לדיסק און קי, לתיקייה שבוחרים או למחשב בבית. כל עותק נקרא שוב ונבדק, נבדק שוב אחרי שמנתקים ומחברים מחדש, ומקום מתפנה רק כשלוחצים „לפנות” ומאשרים.
-
-### למה אפשר לסמוך עליו
-
-- שום דבר לא נמחק בלי אישור שלכם. הדבר היחיד שקורה ברקע הוא שסל המחזור מתרוקן: קבצים שכבר אישרתם נמחקים לצמיתות כשעוברים 30 הימים שלהם.
-- את רוב מה שמנקים אפשר לשחזר מסל המחזור במשך 30 יום. מה שנמחק לצמיתות (קבצים שנבנים מחדש לבד, קבצים מסלים של אפליקציות אחרות ומקורות אחרי גיבוי שנבדק) כתוב לפני האישור.
-- מועדפים ו-30 הימים האחרונים נשארים בטלפון, אלא אם בוחרים אחרת.
-- בלי פרסומות, בלי מעקב, בלי חשבון. שום מידע לא יוצא מהטלפון.
-
-### לנסות
-
-עדיין אין גרסה רשמית. גרסת ניסיון מתקינים ישר מהטלפון: [הוראות](docs/progress.md#test-build-for-the-phone-no-computer-needed). היא נפתחת **במצב ניסיון**: ניקוי, מחיקה, פינוי מקום, שחזור וריקון הסל רק מראים מה היה קורה, עד שמכבים את מצב הניסיון בהגדרות › מתקדם. גיבוי כן מעתיק קבצים אמיתיים לדיסק און קי או לתיקייה שבוחרים, כי העתקה לא מוחקת כלום מהטלפון.
-
-### רישיון
-
-תוכנה חופשית ברישיון [GNU GPL, גרסה 3 ואילך](LICENSE).
-
-</div>
