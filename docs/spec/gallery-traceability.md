@@ -4,13 +4,13 @@
 
 ## G1b primitive under development
 
-`CanonicalPixelsTest` covers synthetic EXIF orientations, transparency, low-detail/quality facts and rejected bounds. These tests do not establish format decoding, permission handling, persistence, photographic accuracy or device resource gates. The primitive is not wired to the app.
+`CanonicalPixelsTest` covers synthetic EXIF orientations, aspect-preserving padding, transparency, low-detail/quality facts and rejected bounds. These tests do not establish format decoding, permission handling, persistence, photographic accuracy or device resource gates. The primitive is not wired to the app.
 
 ## Actual G1a test mapping (2026-11-08)
 
 | Contract portion | Existing implementation verification | Remaining gate |
 |---|---|---|
-| GAL-3; AC-G2; T-G1/10/14 | Build-logic `ForbiddenApisTest`: fully qualified storage/proof/action/Android/network/ML and reflection/native escape counterexamples; `ArchitectureTest` adds gallery purity/import/native rules | Full CI and later action-boundary regressions; no disposal bridge exists |
+| GAL-3; AC-G2; T-G1/10/14 | Build-logic `ForbiddenApisTest`: fully qualified storage/proof/action/Android/network/ML and reflection/native escape counterexamples; `ArchitectureTest` adds gallery purity/import/native rules | G1a full CI passed; later action-boundary regressions remain; no disposal bridge exists |
 | GAL-5; E-G05/06; T-G8 | `GalleryGroupingPropertyTest`: chain rejection, seeded complete-link/disjoint/permutation properties, delayed copies, flat/text/aspect negatives, 5,000 collisions, cap counts and sizes | G2 candidate-generation recall, photographic quality and memory/latency measurements; AC-G4 not passed |
 | GAL-10; E-G22/32; AC-G15 policy | `GalleryKeeperAdviceTest`: measured reasons, tie/conflict/invalid-fact abstention; grouping test keeps tied quality resolved without escalation | Blinded preference evaluation and independent selection UI |
 | GAL-12/19 contract; E-G07/10/18/25/31; T-G4/5/13 | `GalleryGroupingPropertyTest`: changed same-size/time revision, incompatible feature version, NaN/Infinity/range errors, epoch/run changes during reads, cancellation | G1b real provider/cache/lifecycle behavior and process-death persistence |
