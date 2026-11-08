@@ -111,6 +111,16 @@ def labels(path, items):
                     raise InputError(f"{context}: identical content appears in multiple bootstrap clusters")
                 content_clusters[digest] = cluster
         truth[key] = {"label": label, "cluster": cluster, "stratum": stratum, "split": split}
+    # Bootstrap independence belongs to the entire event, not just the two
+    # images selected for a label. Unlabelled event members can carry the same
+    # content into otherwise separate labelled event clusters.
+    for item in items.values():
+        digest = item["digest"]
+        cluster = event_clusters.get(item["event"])
+        if digest and cluster is not None:
+            if digest in content_clusters and content_clusters[digest] != cluster:
+                raise InputError("manifest: identical content appears in multiple bootstrap clusters")
+            content_clusters[digest] = cluster
     return truth
 
 

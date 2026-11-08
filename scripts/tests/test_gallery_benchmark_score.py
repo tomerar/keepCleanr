@@ -104,6 +104,21 @@ class BenchmarkScoreTest(unittest.TestCase):
         with self.assertRaisesRegex(benchmark.InputError, "identical content"):
             benchmark.labels(self.labels, benchmark.inventory(self.manifest))
 
+    def test_unlabelled_event_members_cannot_hide_identical_content_across_clusters(self):
+        self.write_csv("manifest", ["image_id", "event_id", "split", "stratum", "status", "sha256"], [
+            ["a", "event_a", "holdout", "camera", "analyzed", ""],
+            ["b", "event_a", "holdout", "camera", "analyzed", ""],
+            ["hidden_a", "event_a", "holdout", "camera", "skipped", "a" * 64],
+            ["c", "event_b", "holdout", "camera", "analyzed", ""],
+            ["d", "event_b", "holdout", "camera", "analyzed", ""],
+            ["hidden_b", "event_b", "holdout", "camera", "not_processed", "a" * 64],
+        ])
+        self.write_csv("labels", ["image_a", "image_b", "label", "cluster_id", "pair_stratum"], [
+            ["a", "b", "match", "one", "camera"], ["c", "d", "match", "two", "camera"],
+        ])
+        with self.assertRaisesRegex(benchmark.InputError, "identical content"):
+            benchmark.labels(self.labels, benchmark.inventory(self.manifest))
+
     def test_duplicate_mirrored_pair_rejected(self):
         self.write_csv("labels", ["image_a", "image_b", "label", "cluster_id", "pair_stratum"], [
             ["a", "b", "match", "one", "camera"], ["b", "a", "match", "one", "camera"],
