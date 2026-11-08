@@ -22,6 +22,11 @@ internal object CanonicalPixels {
         val orientedHeight = if (orientation >= 5) sourceWidth else sourceHeight
         val hashSamples = letterbox(samples, orientedWidth, orientedHeight, 32, 32)
         val small = letterbox(samples, orientedWidth, orientedHeight, 9, 8)
+        // A very thin image can fall between every grid center. Do not allow
+        // its mostly padding hashes to establish a visual match.
+        val shortFraction = minOf(orientedWidth, orientedHeight).toDouble() / maxOf(orientedWidth, orientedHeight)
+        val shortGridSide = if (orientedWidth >= orientedHeight) 8 else 9
+        val insufficientContent = shortFraction * shortGridSide < 2.0
         val mean = samples.average()
         val variance = samples.sumOf { (it - mean) * (it - mean) } / samples.size
         var laplacianSum = 0.0
@@ -49,7 +54,7 @@ internal object CanonicalPixels {
             dHash = PerceptualHashes.dHash(small),
             pHash = PerceptualHashes.pHash(hashSamples),
             aspect = aspect,
-            lowDetail = variance < 16.0,
+            lowDetail = variance < 16.0 || insufficientContent,
             quality = QualityFacts(sourceWidth.toLong() * sourceHeight, sharpness, clipped),
         )
     }
