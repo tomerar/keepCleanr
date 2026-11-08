@@ -5,7 +5,7 @@ Implements: [requirements.md](requirements.md). Decisions: [ADRs](../adr/). Evid
 
 ---
 
-> **Current implementation baseline and gallery amendment (owner 2026-11-08).** The app currently uses manual composition in `KeepClearApplication` and platform thumbnails with a memory-only cache; Hilt/Coil and empty future modules in older sketches below are not prerequisites. [Gallery architecture](gallery-design.md) is the authoritative detailed contract for the accepted deterministic-first, ambiguity-routed local organizer; [decisions](gallery-decisions.md) define its zero-cost/privacy boundary. New gallery components are still unimplemented.
+> **Current implementation baseline and gallery amendment (owner 2026-11-08).** The app currently uses manual composition in `KeepClearApplication` and platform thumbnails with a memory-only cache; Hilt/Coil and empty future modules in older sketches below are not prerequisites. [Gallery architecture](gallery-design.md) is the authoritative detailed contract for the accepted deterministic-first, ambiguity-routed local organizer; [decisions](gallery-decisions.md) define its zero-cost/privacy boundary. The G1a internal JVM engine now exists; Android/cache/UI/action integration remains unimplemented. See [verification](../verification/gallery-g1a-2026-11-08.md).
 
 ## 1. Goals and shape
 

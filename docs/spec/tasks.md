@@ -14,7 +14,7 @@ Rules for every milestone:
 
 ## Current gallery milestone (owner 2026-11-08)
 
-**G0 owner scope/authorization complete; G1a is next and not implemented.** The owner accepted [D-G1…D-G8](gallery-decisions.md), asked for documentation on main and a complete builder handoff, and authorized staged gallery development as a scoped exception to the older freeze. Existing physical-device, safety and release gates remain pending. Do not request the same scope approval again or pretend those checks passed.
+**G0 baseline reconciled; G1a internal JVM implementation exists; CI passed on `d079573` and the current PR head requires its applicable CI/review gate.** See [verification](../verification/gallery-g1a-2026-11-08.md). G1b is the next implementation milestone after that gate; it has not started. The owner accepted [D-G1…D-G8](gallery-decisions.md), asked for documentation on main and a complete builder handoff, and authorized staged gallery development as a scoped exception to the older freeze. Existing physical-device, safety and release gates remain pending. Do not request the same scope approval again or pretend those checks passed.
 
 Follow [gallery-tasks.md](gallery-tasks.md): baseline reconciliation → G1a pure-JVM deterministic engine/router/budget contracts → G1b bounded Android read/cache → G2 evaluation; G3 local AI is optional and ambiguity-only; G4 comparison/safe REVIEW bridge can use A; G5/G6 validate the selected release. [gallery-overview.md](gallery-overview.md) is the read order and [gallery-builder.md](../prompts/gallery-builder.md) is the implementation prompt. Start without an ML dependency or cloud/subscription integration.
 
