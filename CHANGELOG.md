@@ -12,6 +12,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 - Thumbnails, temp files, WhatsApp statuses older than 24 hours and OS junk now stay in "Clean now" even when they are recent (owner decision B1; rules v3). Favourites and everything else recent still go to Review.
 
 ### Added
+- Begin an internal guarded PNG read that compares MediaStore observations before and after decoding; no application entry or action is enabled.
 - Add a limited internal PNG stream decoder with byte and pixel caps, CRC validation, animated/EXIF rejection and cooperative cancellation; it is not connected to the application.
 - Begin G1b with a bounded Android bitmap-to-feature primitive; no gallery UI, source access or storage changes are enabled.
 - G1a internal gallery JVM engine: bounded full-digest/complete-link visual groups, versioned read-only contracts, factual keeper advice with abstention, explicit uncertainty routes and a global numeric inference-budget policy. This is test-only groundwork: no application entry, Android decoder/cache, model/runtime, network or file-action integration.

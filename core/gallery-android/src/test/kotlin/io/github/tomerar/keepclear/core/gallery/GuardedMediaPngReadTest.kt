@@ -23,10 +23,13 @@ import io.github.tomerar.keepclear.engine.gallery.FeatureVersion
 import io.github.tomerar.keepclear.engine.gallery.GalleryRun
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.scan.Source
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,6 +37,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowContentResolver
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
 
@@ -56,7 +60,16 @@ class GuardedMediaPngReadTest {
         ShadowContentResolver.registerProviderInternal("media", provider)
         val context = ApplicationProvider.getApplicationContext<Context>()
         val observation = MediaStoreObservation(context.contentResolver) { "store-v1" }
-        reader = GuardedMediaPngRead(context.contentResolver, observation)
+        reader = GuardedMediaPngRead(context.contentResolver, observation) {
+            provider.opens++
+            provider.onOpen()
+            object : ByteArrayInputStream(provider.data) {
+                override fun close() {
+                    provider.closed = true
+                    super.close()
+                }
+            }
+        }
     }
 
     @Test
@@ -65,6 +78,7 @@ class GuardedMediaPngReadTest {
         assertNotNull(result)
         assertEquals(1, provider.opens)
         assertEquals(4, provider.queries)
+        assertTrue(provider.closed)
     }
 
     @Test
@@ -103,6 +117,20 @@ class GuardedMediaPngReadTest {
         assertEquals(1, provider.opens)
     }
 
+    @Test
+    fun `cancellation after decoding propagates and stream is closed`(): Unit = runBlocking {
+        var calls = 0
+        try {
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ ->
+                if (++calls == 3) throw CancellationException("stopped")
+                true
+            }
+            fail("Cancellation must propagate")
+        } catch (_: CancellationException) {
+            assertTrue(provider.closed)
+        }
+    }
+
     private fun item(category: Category = Category.REVIEW, size: Long = provider.data.size.toLong()) = ClassifiedItem(
         item = ScanItem(
             ref = KPath.Media("external_primary", 17),
@@ -120,6 +148,7 @@ class GuardedMediaPngReadTest {
 
     private class FakeMediaProvider(val data: ByteArray) : ContentProvider() {
         var opens = 0
+        var closed = false
         var queries = 0
         var onOpen: () -> Unit = {}
         val fields = mutableMapOf<String, Any?>(

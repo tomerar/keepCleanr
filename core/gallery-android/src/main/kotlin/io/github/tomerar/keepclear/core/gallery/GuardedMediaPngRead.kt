@@ -3,6 +3,7 @@ package io.github.tomerar.keepclear.core.gallery
 
 import android.content.ContentResolver
 import android.content.ContentUris
+import android.net.Uri
 import android.provider.MediaStore
 import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.storage.KPath
@@ -23,6 +24,7 @@ import java.io.InputStream
 internal class GuardedMediaPngRead(
     private val resolver: ContentResolver,
     private val observations: MediaStoreObservation,
+    private val openStream: (Uri) -> InputStream? = resolver::openInputStream,
 ) {
     /** The gate must check current run, permission epoch, scope, exclusions and kept state on every invocation. */
     suspend fun read(
@@ -38,7 +40,7 @@ internal class GuardedMediaPngRead(
         currentCoroutineContext().ensureActive()
         try {
             val uri = ContentUris.withAppendedId(MediaStore.Files.getContentUri(ref.volume), ref.id)
-            val stream = resolver.openInputStream(uri)?.let(::CountingStream) ?: return@withContext null
+            val stream = openStream(uri)?.let(::CountingStream) ?: return@withContext null
             val facts = BoundedPngDecoder.decode(stream) ?: return@withContext null
             if (stream.count != before.size) return@withContext null
             currentCoroutineContext().ensureActive()
