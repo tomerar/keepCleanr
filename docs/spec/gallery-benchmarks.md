@@ -12,6 +12,26 @@ Existing owner checks, CI and no-loss tests remain mandatory. This protocol dist
 4. Can the entire pipeline run on a 4 GB/API 30 device and the owner's OnePlus 10T with bounded sustained memory, energy, temperature and disk use?
 5. Are offline access, cancellation, source identity, trash recovery and existing backup behavior intact across faults?
 
+## Offline scoring tool — preparation for G2
+
+`scripts/gallery-benchmark-score.py` scores **metadata and human-labelled relationships only**, without reading, decoding or uploading any photos. Its synthetic unit tests verify arithmetic and safeguards; they are not photographic accuracy measurements and do not complete G2. Run:
+
+```sh
+python3 -I scripts/gallery-benchmark-score.py --manifest manifest.csv --labels labels.csv --groups groups.csv --candidates candidates.csv --split holdout > private-aggregate.json
+python3 -I -B -m unittest discover -s scripts/tests -p 'test_gallery_benchmark*.py'
+```
+
+Use only opaque IDs and nonsensitive category names; keep the CSVs and the output private and review aggregates before sharing. Input is UTF-8 CSV with these headers:
+
+- Manifest: `image_id,event_id,split,stratum,status`, where split is `development`, `validation` or `holdout`, and status is `analyzed`, `unsupported`, `skipped` or `not_processed`. Include the full eligible reference scope, not only analyzed items. An event cannot appear in multiple splits.
+- Labels: `image_a,image_b,label,cluster_id,pair_stratum`. Labels are `match`, `different` or `ambiguous`; every pair must remain within one split. Cluster IDs represent independent event/family units for resampling: all pairs sharing an event must use the same cluster, including cross-event hard-negative links. This constraint prevents a known form of false statistical independence; reviewers must still validate provenance, sampling and inter-cluster independence.
+- Groups: `group_id,image_id`, one row per member in the selected split. Groups must be disjoint, contain 2–20 images and include only analyzed items. Every within-group pair is scored, not only its anchor edges.
+- Optional candidates: `image_a,image_b` from the pre-reranking candidate stage, including candidates that were not grouped. Without this file candidate recall is reported as unknown.
+
+The JSON reports labelled reference-pair recall including unprocessed images, pre-reranking recall on that reference, known-pair precision, uncertain/unlabelled suggestions, false-merge groups, split/event counts and labelled pair strata. The deterministic 95% cluster-bootstrap interval is **only for known, unambiguous suggested pairs**; it is unavailable if there are fewer than two clusters, too many invalid resamples, or more than ten million bootstrap draws. Undefined metrics are `null`, never zero. Missing/ambiguous labels and incomplete processing are reported separately; a precision estimate over known labels is not the precision of all suggestions. No automatic release-gate decision is made.
+
+This tool cannot establish dataset rights, label quality, sufficient negative sampling, device performance, energy, confidence-interval validity for the actual study, or AC-G4 compliance. G2 must freeze the corpus/splits and threshold before held-out evaluation and document those independent checks.
+
 ## Corpus and ground truth
 
 Create a versioned, licensed/consented **real-image** benchmark corpus, stored locally for testing. Do not upload a family library to providers, commit personal photos, or use owner consent to this research as permission to access a personal gallery. Public fixtures must have redistribution rights; private owner evaluation stays on the owner's phone. Keep a local manifest with image digests, dimensions, codec, provenance/rights, source/event labels and transformations. Shared reports contain only aggregate/opaque test identifiers.
