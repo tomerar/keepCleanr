@@ -19,14 +19,18 @@ class CanonicalPixelsTest {
     @Test
     fun `thin images are withheld even when content has high contrast`() {
         val bitmap = Bitmap.createBitmap(256, 4, Bitmap.Config.ARGB_8888)
-        for (y in 0 until 4) for (x in 0 until 256) {
-            bitmap.setPixel(x, y, if (x < 128) Color.BLACK else Color.WHITE)
+        for (y in 0 until 4) {
+            for (x in 0 until 256) {
+                bitmap.setPixel(x, y, if (x < 128) Color.BLACK else Color.WHITE)
+            }
         }
         assertTrue(CanonicalPixels.extract(bitmap, 256, 4, 1).lowDetail)
         assertTrue(CanonicalPixels.extract(bitmap, 256, 4, 6).lowDetail)
         val normal = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
-        for (y in 0 until 32) for (x in 0 until 32) {
-            normal.setPixel(x, y, if (x < 16) Color.BLACK else Color.WHITE)
+        for (y in 0 until 32) {
+            for (x in 0 until 32) {
+                normal.setPixel(x, y, if (x < 16) Color.BLACK else Color.WHITE)
+            }
         }
         assertFalse(CanonicalPixels.extract(normal, 32, 32, 1).lowDetail)
     }
