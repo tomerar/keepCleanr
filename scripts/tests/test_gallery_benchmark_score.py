@@ -83,6 +83,27 @@ class BenchmarkScoreTest(unittest.TestCase):
         with self.assertRaisesRegex(benchmark.InputError, "event leakage"):
             benchmark.inventory(self.manifest)
 
+    def test_identical_content_cannot_leak_across_splits_with_different_event_ids(self):
+        self.write_csv("manifest", ["image_id", "event_id", "split", "stratum", "status", "sha256"], [
+            ["a", "event_a", "holdout", "camera", "analyzed", "a" * 64],
+            ["b", "event_b", "development", "camera", "analyzed", "a" * 64],
+        ])
+        with self.assertRaisesRegex(benchmark.InputError, "identical content"):
+            benchmark.inventory(self.manifest)
+
+    def test_identical_content_cannot_be_split_into_independent_bootstrap_clusters(self):
+        self.write_csv("manifest", ["image_id", "event_id", "split", "stratum", "status", "sha256"], [
+            ["a", "event_a", "holdout", "camera", "analyzed", "a" * 64],
+            ["b", "event_b", "holdout", "camera", "analyzed", "a" * 64],
+            ["c", "event_c", "holdout", "camera", "analyzed", ""],
+            ["d", "event_d", "holdout", "camera", "analyzed", ""],
+        ])
+        self.write_csv("labels", ["image_a", "image_b", "label", "cluster_id", "pair_stratum"], [
+            ["a", "c", "match", "one", "camera"], ["b", "d", "match", "two", "camera"],
+        ])
+        with self.assertRaisesRegex(benchmark.InputError, "identical content"):
+            benchmark.labels(self.labels, benchmark.inventory(self.manifest))
+
     def test_duplicate_mirrored_pair_rejected(self):
         self.write_csv("labels", ["image_a", "image_b", "label", "cluster_id", "pair_stratum"], [
             ["a", "b", "match", "one", "camera"], ["b", "a", "match", "one", "camera"],

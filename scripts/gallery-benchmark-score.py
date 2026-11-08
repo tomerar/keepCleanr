@@ -17,6 +17,7 @@ from itertools import combinations
 from pathlib import Path
 
 TOKEN = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
+DIGEST = re.compile(r"[0-9a-f]{64}\Z")
 SPLITS = {"development", "validation", "holdout"}
 STATES = {"analyzed", "unsupported", "skipped", "not_processed"}
 LABELS = {"match", "different", "ambiguous"}
@@ -56,7 +57,7 @@ def pair(a, b, context):
 
 
 def inventory(path):
-    items, event_split = {}, {}
+    items, event_split, digest_split = {}, {}, {}
     for index, row in rows(path, {"image_id", "event_id", "split", "stratum", "status"}):
         context = f"manifest row {index}"
         image = token(row["image_id"], context)
@@ -68,14 +69,21 @@ def inventory(path):
         if event in event_split and event_split[event] != split:
             raise InputError(f"{context}: event leakage across dataset splits")
         event_split[event] = split
-        items[image] = {"event": event, "split": split, "stratum": stratum, "status": status}
+        digest = row.get("sha256", "")
+        if digest:
+            if not DIGEST.fullmatch(digest):
+                raise InputError(f"{context}: invalid SHA-256")
+            if digest in digest_split and digest_split[digest] != split:
+                raise InputError(f"{context}: identical content appears in multiple dataset splits")
+            digest_split[digest] = split
+        items[image] = {"event": event, "split": split, "stratum": stratum, "status": status, "digest": digest}
     if not items:
         raise InputError("manifest is empty")
     return items
 
 
 def labels(path, items):
-    truth, clusters, event_clusters = {}, {}, {}
+    truth, clusters, event_clusters, content_clusters = {}, {}, {}, {}
     for index, row in rows(path, {"image_a", "image_b", "label", "cluster_id", "pair_stratum"}):
         context = f"labels row {index}"
         key = pair(row["image_a"], row["image_b"], context)
@@ -97,6 +105,11 @@ def labels(path, items):
             if event in event_clusters and event_clusters[event] != cluster:
                 raise InputError(f"{context}: an event appears in multiple bootstrap clusters")
             event_clusters[event] = cluster
+            digest = items[image]["digest"]
+            if digest:
+                if digest in content_clusters and content_clusters[digest] != cluster:
+                    raise InputError(f"{context}: identical content appears in multiple bootstrap clusters")
+                content_clusters[digest] = cluster
         truth[key] = {"label": label, "cluster": cluster, "stratum": stratum, "split": split}
     return truth
 
@@ -217,6 +230,7 @@ def evaluate(items, truth, suggested, candidates_found, split, repetitions, seed
         "schema_version": 1,
         "split": split,
         "eligible_images": len(eligible),
+        "images_with_recorded_digest": sum(bool(item["digest"]) for item in eligible),
         "distinct_events": len({item["event"] for item in eligible}),
         "image_strata": dict(sorted(Counter(item["stratum"] for item in eligible).items())),
         "split_image_counts": {name: sum(item["split"] == name for item in items.values()) for name in sorted(SPLITS)},
