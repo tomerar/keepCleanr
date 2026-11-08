@@ -4,7 +4,7 @@
 
 ## G1b primitive under development
 
-`CanonicalPixelsTest` covers synthetic EXIF orientations, aspect-preserving padding, transparency, low-detail/quality facts and rejected bounds. These tests do not establish format decoding, permission handling, persistence, photographic accuracy or device resource gates. The primitive is not wired to the app.
+`CanonicalPixelsTest` covers synthetic EXIF orientations, aspect-preserving padding, transparency, low-detail/quality facts and rejected bounds. `BoundedPngDecoderTest` covers a synthetic PNG, malformed/animated/EXIF inputs, byte and pixel limits, cancellation and stream closure. These tests do not establish other formats, permission handling, persistence, photographic accuracy or device resource gates. The primitive is not wired to the app.
 
 ## Actual G1a test mapping (2026-11-08)
 

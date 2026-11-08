@@ -124,7 +124,7 @@ jobs:
           # Design QA item 8: BidiTitleOnDeviceTest saves real screenshots of the Hebrew ConfirmSheet title to the
           # emulator's Download/KeepClear-bidi; they are pulled even when a test fails, then the job fails as before.
           script: |
-            ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest :backup:target-saf:connectedDebugAndroidTest :core:storage-saf:connectedDebugAndroidTest || touch instrumented-tests-failed
+            ./gradlew :app:connectedFossDebugAndroidTest :core:storage-media:connectedDebugAndroidTest :core:gallery-android:connectedDebugAndroidTest :backup:target-saf:connectedDebugAndroidTest :core:storage-saf:connectedDebugAndroidTest || touch instrumented-tests-failed
             adb pull /sdcard/Download/KeepClear-bidi bidi-screenshots || true
             test ! -f instrumented-tests-failed
       - name: Upload the on-device bidi screenshots
