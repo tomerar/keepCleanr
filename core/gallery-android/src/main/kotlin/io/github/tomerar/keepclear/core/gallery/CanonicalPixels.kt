@@ -26,7 +26,12 @@ internal object CanonicalPixels {
         // its mostly padding hashes to establish a visual match.
         val shortFraction = minOf(orientedWidth, orientedHeight).toDouble() / maxOf(orientedWidth, orientedHeight)
         val shortGridSide = if (orientedWidth >= orientedHeight) 8 else 9
-        val insufficientContent = shortFraction * shortGridSide < 2.0
+        val inset = (1.0 - shortFraction) / 2.0
+        val contentSamples = (0 until shortGridSide).count {
+            val center = (it + 0.5) / shortGridSide
+            center >= inset && center < inset + shortFraction
+        }
+        val insufficientContent = contentSamples < 2
         val mean = samples.average()
         val variance = samples.sumOf { (it - mean) * (it - mean) } / samples.size
         var laplacianSum = 0.0
