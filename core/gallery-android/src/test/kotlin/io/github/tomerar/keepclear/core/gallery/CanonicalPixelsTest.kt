@@ -17,6 +17,19 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class CanonicalPixelsTest {
     @Test
+    fun `wide and tall sources are padded without distortion`() {
+        val black = IntArray(1024)
+        assertArrayEquals(
+            intArrayOf(255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255),
+            CanonicalPixels.letterbox(black, 2, 1, 4, 4),
+        )
+        assertArrayEquals(
+            intArrayOf(255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255),
+            CanonicalPixels.letterbox(black, 1, 2, 4, 4),
+        )
+    }
+
+    @Test
     fun `all exif orientations map each pixel once`() {
         val pixels = (1..6).map { Color.rgb(it * 30, it * 30, it * 30) }.toIntArray()
         val expected = listOf(

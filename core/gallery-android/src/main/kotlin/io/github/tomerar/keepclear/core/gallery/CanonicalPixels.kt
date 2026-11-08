@@ -18,7 +18,10 @@ internal object CanonicalPixels {
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         val samples = sample(pixels, bitmap.width, bitmap.height, orientation, 32, 32)
-        val small = sample(pixels, bitmap.width, bitmap.height, orientation, 9, 8)
+        val orientedWidth = if (orientation >= 5) sourceHeight else sourceWidth
+        val orientedHeight = if (orientation >= 5) sourceWidth else sourceHeight
+        val hashSamples = letterbox(samples, orientedWidth, orientedHeight, 32, 32)
+        val small = letterbox(samples, orientedWidth, orientedHeight, 9, 8)
         val mean = samples.average()
         val variance = samples.sumOf { (it - mean) * (it - mean) } / samples.size
         var laplacianSum = 0.0
@@ -44,11 +47,38 @@ internal object CanonicalPixels {
         }
         return VisualFacts(
             dHash = PerceptualHashes.dHash(small),
-            pHash = PerceptualHashes.pHash(samples),
+            pHash = PerceptualHashes.pHash(hashSamples),
             aspect = aspect,
             lowDetail = variance < 16.0,
             quality = QualityFacts(sourceWidth.toLong() * sourceHeight, sharpness, clipped),
         )
+    }
+
+    /** Fit the full image into a white square without distortion; quality facts exclude this padding. */
+    internal fun letterbox(
+        content: IntArray,
+        width: Int,
+        height: Int,
+        targetWidth: Int,
+        targetHeight: Int,
+    ): IntArray {
+        require(content.size == 1024 && width > 0 && height > 0 && targetWidth > 0 && targetHeight > 0)
+        val scale = maxOf(width, height).toDouble()
+        val contentWidth = width / scale
+        val contentHeight = height / scale
+        val left = (1.0 - contentWidth) / 2.0
+        val top = (1.0 - contentHeight) / 2.0
+        return IntArray(targetWidth * targetHeight) { index ->
+            val x = (index % targetWidth + 0.5) / targetWidth
+            val y = (index / targetWidth + 0.5) / targetHeight
+            if (x < left || x >= left + contentWidth || y < top || y >= top + contentHeight) {
+                255
+            } else {
+                val sx = (((x - left) / contentWidth) * 32).toInt().coerceIn(0, 31)
+                val sy = (((y - top) / contentHeight) * 32).toInt().coerceIn(0, 31)
+                content[sy * 32 + sx]
+            }
+        }
     }
 
     /** Center sampling across the entire oriented image; no center crop. Alpha is composited on white. */
