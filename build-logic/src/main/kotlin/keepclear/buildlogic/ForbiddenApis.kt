@@ -99,6 +99,49 @@ object ForbiddenApis {
     private const val SEQUENCED = "a Java 21 List method, missing before Android 15 (API 35): use removeAt(0), " +
         "removeAt(lastIndex), first(), last() or kotlin.collections.ArrayDeque (owner brief H4 item 9)"
 
+    /** G1a: even fully qualified/reflection/native escape routes cannot bring action or I/O capabilities in. */
+    private fun galleryTypeAllowed(type: String): Boolean =
+        listOf(
+            "io/github/tomerar/keepclear/engine/gallery/",
+            "kotlin/",
+            "kotlinx/coroutines/",
+            "org/jetbrains/annotations/",
+            "java/lang/",
+            "java/util/",
+        ).any { type.startsWith(it) } &&
+            listOf(
+                "java/lang/reflect/",
+                "kotlin/reflect/",
+                "kotlin/io/",
+                "java/util/logging/",
+                "java/util/prefs/",
+                "java/util/jar/",
+                "java/util/zip/",
+            )
+                .none { type.startsWith(it) } &&
+            type !in
+            setOf(
+                "java/lang/Runtime",
+                "java/lang/ProcessBuilder",
+                "java/lang/ClassLoader",
+                "java/lang/Thread",
+                "java/lang/Process",
+                "java/lang/ProcessHandle",
+                "java/util/ServiceLoader",
+            )
+
+    private fun galleryCallAllowed(call: String): Boolean =
+        call !in setOf("java/lang/System.load", "java/lang/System.loadLibrary") &&
+            !call.startsWith("java/lang/invoke/MethodHandles.") &&
+            !call.startsWith("java/lang/invoke/MethodHandles\$Lookup.") &&
+            !call.startsWith("java/lang/Class.forName") &&
+            !call.startsWith("java/lang/Class.getDeclared") &&
+            !call.startsWith("java/lang/Class.getMethod") &&
+            !call.startsWith("java/lang/Class.getField") &&
+            !call.startsWith("java/lang/Class.getConstructor") &&
+            !call.startsWith("java/lang/Class.newInstance") &&
+            !call.startsWith("java/lang/Class.getClassLoader")
+
     /** Every method call in this class file, as `owner.name` (internal owner name). */
     fun calledMethods(classFile: ByteArray): Set<String> {
         val found = sortedSetOf<String>()
@@ -242,7 +285,15 @@ object ForbiddenApis {
                 rules.filter { it.matches(ref) && projectPath !in it.allowedIn && !it.matches(self) }
                     .map { "$projectPath: $file refers to ${ref.replace('/', '.')}: ${it.why}" }
             } + calledMethods(bytes).filter { it in forbiddenCalls }
-                .map { "$projectPath: $file calls ${it.replace('/', '.')}: $SEQUENCED" }
+                .map { "$projectPath: $file calls ${it.replace('/', '.')}: $SEQUENCED" } +
+                if (projectPath == ":engine:gallery") {
+                    referencedTypes(bytes).filterNot(::galleryTypeAllowed)
+                        .map { "$projectPath: $file refers to $it: gallery is numeric/advisory only (GAL-3)" } +
+                        calledMethods(bytes).filterNot(::galleryCallAllowed)
+                            .map { "$projectPath: $file calls $it: no gallery reflection/native escape (GAL-3)" }
+                } else {
+                    emptyList()
+                }
         }
 
     /** Reads every `.class` file under [dirs] and inside [jars]. */

@@ -110,6 +110,42 @@ class ForbiddenApisTest {
     }
 
     @Test
+    fun `gallery cannot acquire storage, proof, Android, network, ML or reflective capabilities`() {
+        val forbidden = listOf(
+            "io/github/tomerar/keepclear/core/storage/StorageGateway",
+            "io/github/tomerar/keepclear/core/model/BackupProof",
+            "io/github/tomerar/keepclear/core/safety/ActionExecutor",
+            "android/graphics/Bitmap",
+            "java/io/File",
+            "java/nio/file/Files",
+            "java/net/Socket",
+            "org/tensorflow/lite/Interpreter",
+            "java/lang/Runtime",
+            "java/lang/reflect/Method",
+            "java/util/logging/SocketHandler",
+            "java/util/prefs/Preferences",
+        )
+        forbidden.forEach { ref ->
+            val bytes = synthetic("io/github/tomerar/keepclear/engine/gallery/Leak", ref)
+            assertTrue(ForbiddenApis.check(":engine:gallery", mapOf("Leak.class" to bytes)).isNotEmpty(), ref)
+        }
+        val escape = compile(
+            "Escape" to """
+                class Escape {
+                    Object reflect() throws Exception { return Class.forName("java.io.File"); }
+                    void nativeLoad() { System.loadLibrary("hidden"); }
+                }
+            """.trimIndent(),
+        )
+        val violations = ForbiddenApis.check(":engine:gallery", escape)
+        assertTrue(violations.any { "Class.forName" in it })
+        assertTrue(violations.any { "System.loadLibrary" in it })
+        val numeric =
+            compile("Numeric" to "class Numeric { int distance(long a, long b) { return Long.bitCount(a ^ b); } }")
+        assertEquals(emptyList<String>(), ForbiddenApis.check(":engine:gallery", numeric))
+    }
+
+    @Test
     fun `Java 21 List methods are caught, Deque and LinkedList's own are not (owner brief H4 item 9)`() {
         val code = """
             import java.util.*;

@@ -1,6 +1,6 @@
 # Gallery architecture
 
-**Status: Owner-approved scope and policy, 2026-11-08; implementation pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. This documentation change contains no application implementation.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. G1a now implements the internal JVM contracts and numeric policies described below; no application entry, Android adapter, cache or action bridge is wired.
 
 ## Context and design choice
 
@@ -9,6 +9,8 @@ KeepClear already scans and classifies storage, separates memories from reviewab
 The owner selected a deterministic-first cascade. A local image-feature adapter may later host one admitted runtime only for an explicitly ambiguous subset. Model availability is not a reason to process the whole gallery. No provider/cloud/account/subscription interface belongs in this implementation.
 
 ## Components and dependency direction
+
+G1a's actual contracts, numeric conventions, cap accounting and verification limitations are recorded in [the implementation evidence](../verification/gallery-g1a-2026-11-08.md). The following Android/cache/UI/model components remain future milestones. The internal engine is deliberately narrower than the allowed dependency ceiling below: it depends on no model/scan/safety/storage module.
 
 | Proposed component | Responsibility | Allowed dependencies | Forbidden capabilities |
 |---|---|---|---|
@@ -44,7 +46,7 @@ The diagram shows capability flow, not an unconditional deletion pipeline. Keep/
 2. **Exact-identity candidates.** Filter by size and available cheap metadata, then calculate full SHA-256 only for plausible byte-identical participants. A partial hash is a rejection accelerator, never equality proof. Reuse valid completed digest records and retain current source/witness checks; gallery findings cannot automatically expand existing SAFE eligibility.
 3. **Canonical decode.** Resolve a local item through its current `KPath`/URI authorization. Read dimensions before allocating. Bound input pixels and output to the analysis size; apply EXIF orientation exactly once, preserve aspect with documented padding/cropping policy, convert consistently to sRGB, handle alpha explicitly. Use the same versioned policy for all compared features. UI square thumbnails are previews, not a guaranteed canonical crop.
 4. **Cheap features.** Compute dHash/pHash, dimensions/aspect, luminance/exposure and sharpness on the bounded image. A low-detail image gets a caution flag because perceptual hashes can collapse to identical values. Treat source dates as imperfect metadata; missing/forged times cannot establish equivalence.
-5. **Generate candidates.** Use BK-tree/Hamming search and source/time/aspect buckets. Include global perceptual-hash retrieval so a delayed messenger copy can match an older source; temporal windows are accelerators, not a mandatory relationship. Instrument node visits, bucket sizes and hit rates. Cap work per item and expose truncation. A bounded brute-force reference is used only for evaluation.
+5. **Generate candidates.** G1a uses bounded global Hamming-band retrieval (five dHash bands and seven pHash bands). This is a bounded alternative to the proposed BK-tree; its uncapped radius recall follows the pigeonhole rule, while cap-limited recall must be measured in G2. Source/time/aspect buckets may later accelerate retrieval. Include global perceptual-hash retrieval so a delayed messenger copy can match an older source; temporal windows are accelerators, not a mandatory relationship. Instrument node visits, bucket sizes and hit rates. Cap work per item and expose truncation. A bounded brute-force reference is used only for evaluation.
 6. **Group conservatively.** Start from deterministic stable anchors, use complete-link consistency within small groups or an equivalently strict declared rule, and enforce max 20 members in v1. A~B and B~C do not imply A~C. Each image has one actionable comparison group per run; references to related groups are read-only. Partition oversized families conservatively and identify that not every result is shown.
 7. **Explain and rank.** Compare quality within the group; preserve a stable default ordering, flag favourites, let users inspect all members and abstain on ties/uncertainty. No face identity, automatic blink judgement, inferred “bad child photo,” or sentimental-value score. User-kept items are excluded from disposal suggestions and never promoted as deletable.
 8. **Publish incrementally.** Atomically publish completed records under the current run/algorithm versions. Old runs cannot overwrite a new run. Keep an honest partial result if the user stops; distinguish cancellation from an empty complete gallery.

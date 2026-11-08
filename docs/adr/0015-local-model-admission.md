@@ -1,6 +1,6 @@
 # ADR 0015: Admit an on-device model only after it beats the deterministic baseline
 
-Status: **Accepted by owner, 2026-11-08** · Implementation pending
+Status: **Accepted by owner, 2026-11-08** · G1a numeric budget policy implemented; no model/runtime admitted
 
 Builds on Accepted ADR 0014 and D-G1…D-G8. Acceptance is for this admission policy, not approval to add any particular model/runtime or a paid/network dependency.
 

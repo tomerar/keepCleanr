@@ -1,6 +1,6 @@
 # Gallery: owner decisions and implementation authority
 
-Status: **Accepted by owner, 2026-11-08. Implementation not started.**
+Status: **Accepted by owner, 2026-11-08. G1a internal implementation exists; application integration remains pending.**
 
 This records the discussion after the research review. It is authoritative for gallery scope; requirements, architecture, ADRs, tasks and the builder handoff must agree with it. It does not claim that an experiment, benchmark, migration or device check has passed.
 

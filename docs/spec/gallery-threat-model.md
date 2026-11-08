@@ -1,6 +1,6 @@
 # Gallery threat-model extension
 
-**Status: Owner-approved scope and policy, 2026-11-08; implementation pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Extends the main threat model and SEC-* controls; T-G*/SEC-G* are gallery identifiers.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Extends the main threat model and SEC-* controls; T-G*/SEC-G* are gallery identifiers.
 
 ## Assets and trust boundaries
 
@@ -43,3 +43,5 @@ If separately approved later: require explicit thumbnail selection/preview, meta
 | T-G14: cost or quality fallback sends gallery data to a provider or requires subscription credits | SEC-G14: D-G1/D-G2 are capability restrictions. No provider/download/account/paid-tier module, A2A/MCP bridge, token reuse or hosted fallback; model-free offline core remains useful | Dependency/UI/source review and online zero-network tests with no account/credits; model failure and budget exhaustion never create a remote request |
 
 Keeper recommendations are untrusted advice bound to measured facts, never selection/confirmation. T-G1/T-G10 apply to explanations and recommendation markers too.
+
+G1a implements a dependency-free advisory API (apart from Kotlin/coroutines) and a compiled-type/call capability firewall, with numeric chain/collision/stale/budget counterexamples. [Verification](../verification/gallery-g1a-2026-11-08.md) does not close Android/native, storage/cache, dynamic-network or action threats; those boundaries are not integrated in this milestone.
