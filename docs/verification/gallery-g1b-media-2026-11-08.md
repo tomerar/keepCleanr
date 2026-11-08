@@ -1,0 +1,9 @@
+# G1b: MediaStore metadata observation (in progress)
+
+Baseline: `79f27c128c644ff81677b5a4fefcce27368a7666`. The internal observation reads metadata for a scanner-provided MediaStore item only. It checks the existing protected-path policy, rejects protected, pending, trashed and favorite entries, compares volume, path, size and time against the scan, and obtains the MediaStore version and generation. It reads the row twice and rechecks the store version and a caller-supplied live scope gate. It neither opens image content nor grants an action, and has no application caller.
+
+The live gate must validate the run, permission scope, user-kept state, exclusions and current scan. This primitive cannot by itself establish a permission epoch, detect every same-size source replacement before the first observation, or authorize a cached result. The future adapter must obtain and compare compatible source revisions around reads and revalidate all authority. The policy intentionally skips rows without a strong positive generation, local file-walk sources and favorites; their handling and coverage remain future work.
+
+Before workspace maintenance removed the initial uncommitted files, six synthetic Robolectric tests and architecture/formatting checks passed locally. The source and seven tests have been reconstructed, including a cancellation regression, but this reconstructed version has not yet been run; its CI, review and real provider/device checks are pending. Do not treat this observation as a completed G1b adapter.
+
+Continuation: [PR #69](https://github.com/tomerar/keepCleanr/pull/69), branch `feat/gallery-g1b-media`. Validate the reconstructed tests and live-authority design, then implement actual permission-epoch and scan/source-version handling, bounded reads, cache/migration and remaining still formats. No UI, removal or release gate has passed.

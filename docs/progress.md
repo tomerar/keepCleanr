@@ -12,7 +12,7 @@ The adopted [builder handoff](prompts/gallery-builder.md) now has a G1a internal
 |---|---|---|
 | G0 owner scope/authority | Adopted; baseline reconciled at `210b873` | Room 7 and existing integration confirmed; SDK now installed locally; physical devices and labelled real-image corpus remain unavailable |
 | G1a deterministic read-only engine/router/budgets | Merged in [#65](https://github.com/tomerar/keepCleanr/pull/65); final head [CI #191](https://github.com/tomerar/keepCleanr/actions/runs/42459651395) and review passed | G1b and photographic/device evaluation remain |
-| G1b Android adapter and cache | In progress: bounded bitmap features and a limited PNG stream decoder; not wired | Authorized source/permission validation, JPEG and other formats, cache/migration and device tests remain |
+| G1b Android adapter and cache | In progress: bounded bitmap features and PNG stream decoder merged; MediaStore metadata observation is in draft #69 | Actual authorization/permission epoch, JPEG and other formats, cache/migration and device tests remain |
 | G2 baseline evaluation | Not started; offline scoring tooling merged in [#66](https://github.com/tomerar/keepCleanr/pull/66) | Labelled real images and physical-device measurements remain |
 | G3 optional selective local AI | Conditional, not started | Dependency/privacy/quality/efficiency admission; no runtime selected |
 | G4/G5/G6 UX/actions/validation/release | Not started | Existing safety gates, new live group-retention tests and honest hardware results |

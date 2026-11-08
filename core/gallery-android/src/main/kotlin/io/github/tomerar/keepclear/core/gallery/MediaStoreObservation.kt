@@ -38,7 +38,9 @@ internal class MediaStoreObservation(
         val ref = scan.ref as? KPath.Media ?: return@withContext null
         if (scan.source != Source.MEDIA_STORE || item.category == Category.PROTECTED || scan.isTrashed ||
             scan.isFavorite || protectedPaths.isProtected(scan.path) || !gate(run, item)
-        ) return@withContext null
+        ) {
+            return@withContext null
+        }
         currentCoroutineContext().ensureActive()
         try {
             val before = storeVersion(ref.volume)?.takeIf { it.isNotEmpty() && it.length <= 512 }
@@ -60,6 +62,7 @@ internal class MediaStoreObservation(
                 putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE)
                 putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE)
             }
+
             fun read(): SourceVersion? = resolver.query(uri, columns, args, null)?.use { cursor ->
                 if (!cursor.moveToFirst() || cursor.count != 1) return@use null
                 val index = columns.map(cursor::getColumnIndexOrThrow)
@@ -73,7 +76,9 @@ internal class MediaStoreObservation(
                     cursor.getInt(index[7]) != 0 || !mime.startsWith("image/") ||
                     cursor.getString(index[8]) != scan.path || cursor.getString(index[9]) != ref.volume ||
                     protectedPaths.isProtected(cursor.getString(index[8]))
-                ) return@use null
+                ) {
+                    return@use null
+                }
                 val mtime = seconds * 1_000
                 if (size != scan.size || mtime != scan.mtimeMillis) return@use null
                 SourceVersion(

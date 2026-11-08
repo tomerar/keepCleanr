@@ -141,8 +141,12 @@ class MediaStoreObservationTest {
     private fun item(category: Category = Category.REVIEW, path: String = "/storage/emulated/0/Pictures/a.png") =
         ClassifiedItem(
             item = ScanItem(
-                ref = KPath.Media("external_primary", 17), path = path, size = 100, mtimeMillis = 2_000,
-                mime = "image/png", source = Source.MEDIA_STORE,
+                ref = KPath.Media("external_primary", 17),
+                path = path,
+                size = 100,
+                mtimeMillis = 2_000,
+                mime = "image/png",
+                source = Source.MEDIA_STORE,
             ),
             category = category,
             ruleId = "review",
@@ -166,9 +170,14 @@ class MediaStoreObservationTest {
             MediaStore.MediaColumns.DATA to "/storage/emulated/0/Pictures/a.png",
             MediaStore.MediaColumns.VOLUME_NAME to "external_primary",
         )
+
         override fun onCreate() = true
+
         override fun query(
-            uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, cancellationSignal: CancellationSignal?,
+            uri: Uri,
+            projection: Array<out String>?,
+            queryArgs: Bundle?,
+            cancellationSignal: CancellationSignal?,
         ): Cursor {
             queries++
             val names = requireNotNull(projection)
@@ -176,16 +185,26 @@ class MediaStoreObservationTest {
             afterQuery()
             return cursor
         }
+
         override fun query(
-            uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?,
+            uri: Uri,
+            projection: Array<out String>?,
+            selection: String?,
+            selectionArgs: Array<out String>?,
+            sortOrder: String?,
         ): Cursor = query(uri, projection, null, null)
+
         override fun getType(uri: Uri): String? = null
+
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
             opens++
             throw FileNotFoundException()
         }
+
         override fun insert(uri: Uri, values: ContentValues?): Uri? = null
+
         override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
+
         override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
     }
 }
