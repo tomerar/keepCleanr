@@ -215,4 +215,26 @@ class GalleryRunBudgetTest {
         assertEquals(1, budget.snapshot().startedUnique)
         assertEquals(2, budget.snapshot().reservedUnique)
     }
+
+    @Test
+    fun `mutating a returned work list cannot expand or erase the private reservation`() {
+        val budget = budget()
+        val ready = budget.reserve(route(source(1), source(2)), contract, emptySet()) as BudgetDecision.Ready
+        val original = ready.missing.toList()
+        val injected = LearnedFeatureKey(source(3), contract)
+        (ready.missing as MutableList<LearnedFeatureKey>).apply {
+            clear()
+            add(injected)
+        }
+        assertTrue(budget.beginStage(ready.ticket))
+        assertFalse(budget.beginInference(ready.ticket, injected))
+        assertFalse(budget.finishGroup(ready.ticket))
+        assertEquals(0, budget.snapshot().startedUnique)
+        assertEquals(2, budget.snapshot().reservedUnique)
+        // Even after an unsuccessful finish, the original sources were not quietly retried in a new group.
+        assertEquals(
+            BudgetDecision.Deferred(BudgetStop.INVALID_ROUTE),
+            budget.reserve(route(original[0].source, original[1].source), contract, emptySet()),
+        )
+    }
 }

@@ -62,6 +62,7 @@ internal class GalleryRunBudget(
     private var nextTicket = 0L
     private var active: BudgetDecision.Ready? = null
     private var participants: List<SourceVersion> = emptyList()
+    private var pending: Set<LearnedFeatureKey> = emptySet()
     private var inFlight: LearnedFeatureKey? = null
     private var initialized = false
 
@@ -92,6 +93,7 @@ internal class GalleryRunBudget(
         reserved += missing
         cacheHits += keys.size - missing.size
         participants = route.participants.toList()
+        pending = missing.toSet()
         return BudgetDecision.Ready(++nextTicket, missing.toList()).also { active = it }
     }
 
@@ -105,7 +107,7 @@ internal class GalleryRunBudget(
 
     fun beginInference(ticket: Long, key: LearnedFeatureKey): Boolean {
         if (!valid(ticket) || !initialized || activeSince == null || inFlight != null ||
-            key !in active!!.missing || key in started
+            key !in pending || key !in reserved || key in started
         ) {
             return false
         }
@@ -125,9 +127,10 @@ internal class GalleryRunBudget(
 
     fun finishGroup(ticket: Long, resolvedEarly: Boolean = false): Boolean {
         if (active?.ticket != ticket || inFlight != null) return false
-        val publish = valid(ticket) && (resolvedEarly || active!!.missing.all { it in completed })
+        val publish = valid(ticket) && (resolvedEarly || pending.all { it in completed })
         active = null
         participants = emptyList()
+        pending = emptySet()
         return publish
     }
 

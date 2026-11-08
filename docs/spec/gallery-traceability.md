@@ -13,7 +13,7 @@
 | GAL-24/25; AC-G13/14 numeric policy; E-G29/30/31 | `GalleryRunBudgetTest`: uncalibrated/resolved/no-match/unsupported rejection, pair admission, run-wide count, shared/cache participants, source/model/preprocessing mismatch, initialization/time/overrun, pause/cancel/stale/foreign ticket, failed retry, early stop | G2 calibration, G3 actual runtime lifecycle/initialization/inference and cache persistence; no model is loaded by G1a |
 | Feature primitive conventions | `PerceptualHashesTest`: dHash bit order, flat/structured pHash golden values and malformed samples | G1b real-format/orientation/colour/resize/quality fixtures |
 
-The 31 gallery tests and focused policy checks are JVM evidence only; the [verification record](../verification/gallery-g1a-2026-11-08.md) lists exact runs and pending checks. The principal verification table below retains later integration plans.
+The 32 gallery tests and focused policy checks are JVM evidence only; the [verification record](../verification/gallery-g1a-2026-11-08.md) lists exact runs and pending checks. The principal verification table below retains later integration plans.
 
 ## Requirements → criteria → failure cases → integration tests → milestone
 
