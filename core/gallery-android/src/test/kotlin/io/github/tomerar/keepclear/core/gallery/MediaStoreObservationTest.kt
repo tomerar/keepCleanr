@@ -125,6 +125,12 @@ class MediaStoreObservationTest {
     }
 
     @Test
+    fun `scope check failure is treated as unavailable before provider access`(): Unit = runBlocking {
+        assertNull(reader.observe(item(), run, protected) { _, _ -> throw SecurityException("revoked") })
+        assertEquals(0, provider.queries)
+    }
+
+    @Test
     fun `cancellation from the live scope gate is propagated`(): Unit = runBlocking {
         var calls = 0
         try {
