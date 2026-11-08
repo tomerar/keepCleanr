@@ -37,12 +37,13 @@ internal class MediaStoreObservation(
         val scan = item.item
         val ref = scan.ref as? KPath.Media ?: return@withContext null
         if (scan.source != Source.MEDIA_STORE || item.category == Category.PROTECTED || scan.isTrashed ||
-            scan.isFavorite || protectedPaths.isProtected(scan.path) || !gate(run, item)
+            scan.isFavorite || protectedPaths.isProtected(scan.path)
         ) {
             return@withContext null
         }
         currentCoroutineContext().ensureActive()
         try {
+            if (!gate(run, item)) return@withContext null
             val before = storeVersion(ref.volume)?.takeIf { it.isNotEmpty() && it.length <= 512 }
                 ?: return@withContext null
             val uri = ContentUris.withAppendedId(MediaStore.Files.getContentUri(ref.volume), ref.id)
