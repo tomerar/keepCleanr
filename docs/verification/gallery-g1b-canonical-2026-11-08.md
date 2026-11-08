@@ -1,0 +1,9 @@
+# G1b: bounded canonical bitmap primitive
+
+Date: 2026-11-08. Baseline: main `834b19c2ce563c1234cb716e2bc5a8e8b3b28441`. This is an initial G1b increment, not a complete adapter or gallery feature.
+
+`CanonicalPixels` accepts only a caller-owned, already decoded bitmap of at most 262,144 pixels, source dimensions of at most 100 million pixels and a valid EXIF orientation. It calculates deterministic full-frame center-sampled luminance grids, white alpha compositing, perceptual hashes and provisional quality facts. It does not open or mutate files, manage permissions, write a cache, select images for disposal or run a model. `PerceptualHashes` exposes the existing pure numeric functions so the Android primitive can reuse them.
+
+The JUnit/Robolectric tests exercise all eight orientation mappings, transparency, flat/edge quality behavior, determinism, ownership and invalid inputs with generated pixels. The five tests passed under Robolectric API 36 with `:core:gallery-android:testDebugUnitTest` while generating verification metadata for its compiler dependency. The first run failed before tests because the worker could not resolve Maven; the rerun passed with the workspace proxy configured for test JVMs. A standard verification-enabled rerun and full CI remain pending. The local first `ciCheck` attempt was interrupted after a formatting failure; it must be rerun. No decoder, photographic corpus, physical device, performance, battery or integrated UI has been evaluated. Quality conventions and thresholds remain provisional until G2.
+
+Remaining G1b work: authorize current scanner/classifier sources and permission epochs; bounded still-image decoding, color/format/motion handling, cancellation and source revalidation; additive private Room cache with safe migration, invalidation, quota and clear; real-format tests and device/no-GMS checks. G2 and all subsequent gates remain pending.

@@ -5,7 +5,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 
 /** Pure numeric primitives over already canonical, bounded 8-bit luminance samples. No image decoding. */
-internal object PerceptualHashes {
+object PerceptualHashes {
     /** Row-major 9×8 samples, MSB first. A bit means left luminance > right luminance; ties are zero. */
     fun dHash(samples: IntArray): Long {
         validate(samples, 72)

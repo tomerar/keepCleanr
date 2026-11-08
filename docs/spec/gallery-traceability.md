@@ -2,6 +2,10 @@
 
 **Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. The G1a verification section below lists actual tests. Other proposed test names remain plans, not claims those tests already exist.
 
+## G1b primitive under development
+
+`CanonicalPixelsTest` covers synthetic EXIF orientations, transparency, low-detail/quality facts and rejected bounds. These tests do not establish format decoding, permission handling, persistence, photographic accuracy or device resource gates. The primitive is not wired to the app.
+
 ## Actual G1a test mapping (2026-11-08)
 
 | Contract portion | Existing implementation verification | Remaining gate |
