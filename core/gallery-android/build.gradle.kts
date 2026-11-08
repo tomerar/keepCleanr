@@ -9,6 +9,7 @@ android {
 
 dependencies {
     implementation(project(":engine:gallery"))
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
