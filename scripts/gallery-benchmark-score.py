@@ -83,7 +83,7 @@ def inventory(path):
 
 
 def labels(path, items):
-    truth, clusters, event_clusters, content_clusters = {}, {}, {}, {}
+    truth, clusters, event_clusters = {}, {}, {}
     for index, row in rows(path, {"image_a", "image_b", "label", "cluster_id", "pair_stratum"}):
         context = f"labels row {index}"
         key = pair(row["image_a"], row["image_b"], context)
@@ -105,22 +105,32 @@ def labels(path, items):
             if event in event_clusters and event_clusters[event] != cluster:
                 raise InputError(f"{context}: an event appears in multiple bootstrap clusters")
             event_clusters[event] = cluster
-            digest = items[image]["digest"]
-            if digest:
-                if digest in content_clusters and content_clusters[digest] != cluster:
-                    raise InputError(f"{context}: identical content appears in multiple bootstrap clusters")
-                content_clusters[digest] = cluster
         truth[key] = {"label": label, "cluster": cluster, "stratum": stratum, "split": split}
-    # Bootstrap independence belongs to the entire event, not just the two
-    # images selected for a label. Unlabelled event members can carry the same
-    # content into otherwise separate labelled event clusters.
+    # Connect entire events through recorded identical content, including
+    # unlabelled members and unlabelled events that bridge two labelled ones.
+    parents, digest_events = {}, {}
+
+    def root(event):
+        parents.setdefault(event, event)
+        while parents[event] != event:
+            parents[event] = parents[parents[event]]
+            event = parents[event]
+        return event
+
     for item in items.values():
         digest = item["digest"]
-        cluster = event_clusters.get(item["event"])
-        if digest and cluster is not None:
-            if digest in content_clusters and content_clusters[digest] != cluster:
-                raise InputError("manifest: identical content appears in multiple bootstrap clusters")
-            content_clusters[digest] = cluster
+        event = item["event"]
+        if digest:
+            if digest in digest_events:
+                parents[root(event)] = root(digest_events[digest])
+            else:
+                digest_events[digest] = event
+    connected_clusters = {}
+    for event, cluster in event_clusters.items():
+        component = root(event)
+        if component in connected_clusters and connected_clusters[component] != cluster:
+            raise InputError("manifest: identical content connects multiple bootstrap clusters")
+        connected_clusters[component] = cluster
     return truth
 
 
