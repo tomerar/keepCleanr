@@ -1,0 +1,29 @@
+{
+  "retrieved_date": "2026-11-08",
+  "url": "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite",
+  "bytes": 4117670,
+  "sha256": "bbbb4c51a55a53905af1daec995ca1aae355046f8839bb8c9f5ce9271394bc40",
+  "file_signature": "TFL3",
+  "input_shape": [
+    1,
+    224,
+    224,
+    3
+  ],
+  "input_type": "FLOAT32",
+  "output_shape": [
+    1,
+    1024
+  ],
+  "output_type": "FLOAT32",
+  "embedded_metadata_license": "Apache License 2.0",
+  "method": "Read FlatBuffer tensor tables and embedded metadata; model not executed",
+  "not_verified": [
+    "Android inference",
+    "preprocessing parity",
+    "quality",
+    "energy",
+    "memory",
+    "native compatibility"
+  ]
+}

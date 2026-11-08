@@ -4,6 +4,9 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 
 ## [Unreleased]
 
+### Documentation
+- Adopt the owner's 2026-11-08 gallery scope: zero additional payment, on-device-only similar/duplicate grouping, deterministic-first selective local AI, incremental reuse and reasoned keeper advice. Add requirements/architecture/accepted ADR policies, edge/threat/test/benchmark/phase annexes, source evidence and a complete builder handoff; link them from the main specs and record G1a as the next unimplemented milestone. No application feature, ML dependency, runtime approval or measured device result is included in this documentation change.
+
 ### Changed
 - Thumbnails, temp files, WhatsApp statuses older than 24 hours and OS junk now stay in "Clean now" even when they are recent (owner decision B1; rules v3). Favourites and everything else recent still go to Review.
 

@@ -82,3 +82,6 @@ Kotlin and Jetpack Compose (Material 3), minSdk 30, targetSdk 36. Release builds
 
 KeepClear is free software under the [GNU GPL, version 3 or later](LICENSE).
 
+## Gallery organizer — approved plan, not implemented yet
+
+The owner-approved next scope is free, entirely on-device similar/duplicate photo comparison with reasoned keeper advice: deterministic stages first, optional local AI only on a bounded ambiguous subset, incremental caching and no automatic selection/deletion. Existing memory/backup safety remains unchanged. Start with the [gallery specification](docs/spec/gallery-overview.md), [decisions](docs/spec/gallery-decisions.md) and [complete builder handoff](docs/prompts/gallery-builder.md). No runtime is selected and no phone benchmark is claimed.

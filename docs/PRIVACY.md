@@ -5,7 +5,7 @@ Published at: https://github.com/tomerar/keepCleanr/blob/main/docs/PRIVACY.md (a
 
 ## Short version
 
-KeepClear works only on your phone. It does not collect, send, sell or share any data. It has no ads, no analytics, no automatic crash reporting and no account. It connects to the network only if you set up a backup place on the network (a shared folder on your computer or NAS, or your own Nextcloud under Settings › Advanced), and then only to the address you typed.
+KeepClear works only on your phone. It does not collect, sell or share your data with KeepClear or tracking/AI services. It has no ads, no analytics, no automatic crash reporting and no account. It connects to the network only if you set up a backup place on the network (a shared folder on your computer or NAS, or your own Nextcloud under Settings › Advanced), and then only to the address you typed.
 
 ## What KeepClear accesses, and why
 
@@ -36,6 +36,10 @@ All of these are optional. KeepClear explains each one before Android asks you, 
 - A one-by-one review you left before finishing ("Continue where you left off"): the paths, sizes and dates of the files you decided on and what you chose, in KeepClear's private settings (never in a cloud backup or device transfer); it is forgotten when you finish or start over.
 
 You can delete all of it by clearing KeepClear's storage in Android settings, or by uninstalling. The trash folder stays after uninstall so you can still recover files; KeepClear tells you this and offers to empty it.
+
+## Gallery design approved 2026-11-08 — not implemented yet
+
+The accepted [gallery specification](spec/gallery-decisions.md) requires analysis entirely on the phone and no additional payment, subscription/API credits or account. Its future private, recomputable cache may hold perceptual fingerprints, local image features and virtual groups, excluded from cloud backup/device transfer and ordinary reports. Clearing it must leave original photos, kept choices, trash and backup records intact. Deterministic stages run first; any admitted local model is limited to a bounded ambiguous subset. The gallery has no network purpose and never uploads photos/features or falls back to a hosted provider. This paragraph describes the approved design, not data already produced by a shipped gallery feature.
 
 ## Reports you choose to send
 
@@ -75,6 +79,6 @@ Open an issue at https://github.com/tomerar/keepCleanr/issues, or for security m
 
 ## מדיניות פרטיות בקצרה
 
-KeepClear עובד רק בטלפון שלכם. הוא לא אוסף, לא שולח, לא מוכר ולא משתף שום מידע. אין בו פרסומות, אין ניתוח שימוש, אין דיווחי קריסה אוטומטיים ואין חשבון. דוח על בעיה נשלח רק אם בוחרים לשלוח אותו, מאפליקציית המייל או השיתוף, ואין בו שמות של קבצים. במצב ניסיון אפשר לייצא בעצמכם את רשימת הקבצים שהיו נמחקים; היא כוללת שמות ותיקיות, ונשמרת רק במקום שתבחרו. בגרסה הנוכחית אין לו בכלל הרשאת אינטרנט. קבצים יוצאים מהטלפון רק לכונן או לתיקייה שבחרתם לגיבוי.
+KeepClear עובד רק בטלפון שלכם. הוא לא אוסף, לא מוכר ולא משתף את המידע שלכם עם KeepClear או עם שירותי מעקב ו־AI. אין בו פרסומות, אין ניתוח שימוש, אין דיווחי קריסה אוטומטיים ואין חשבון. דוח על בעיה נשלח רק אם בוחרים לשלוח אותו, מאפליקציית המייל או השיתוף, ואין בו שמות של קבצים. במצב ניסיון אפשר לייצא בעצמכם את רשימת הקבצים שהיו נמחקים; היא כוללת שמות ותיקיות, ונשמרת רק במקום שתבחרו. הרשאת האינטרנט משמשת רק לגיבוי לכתובת רשת או לשרת Nextcloud שהגדרתם, ולא לניתוח תמונות או לשירות AI בענן. קבצים יוצאים מהטלפון רק לכונן או לתיקייה שבחרתם לגיבוי.
 
 </div>

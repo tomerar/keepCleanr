@@ -1,0 +1,45 @@
+# Gallery edge cases
+
+**Status: Owner-approved scope and policy, 2026-11-08; implementation pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Extends existing E-* contracts without weakening them.
+
+| ID | Case | Required behavior / acceptance |
+|---|---|---|
+| E-G01 | No permission, inaccessible clone or unsupported work/private profile | Explain scope; analyze nothing inaccessible; no permission escalation or misleading full-gallery totals |
+| E-G02 | Android Selected Photos set shrinks; permission auto-resets/revokes mid-run | Stop affected reads, hide cached images/groups immediately, increment permission epoch, show incomplete/access-changed state; no action plan from old authorization |
+| E-G03 | Backup drive, target marker, granted-folder trash or another app's bin appears in inventory | Apply existing exclusions first. Gallery does not analyze backup/trash contents or use them as retained members |
+| E-G04 | In-flight MediaStore item (`IS_PENDING`), file still growing, zero-length or unreadable image | Skip with reason; retry only in a new authorized run after stability; never report as a “bad photo” to remove |
+| E-G05 | Flat/black images, near-identical screenshots, receipts differing in one digit | Perceptual collisions do not prove equality. Use conservative grouping/text-sensitive hard-negative evaluation; abstain where task precision fails |
+| E-G06 | A~B, B~C, A!~C; 5,000-image burst; ambiguous time zones/capture dates | No transitive-chain group. Enforce group/candidate budgets, deterministic partitions, progress and partial/truncated disclosure; no all-pairs UI freeze |
+| E-G07 | Same-size/same-mtime edit, coarse filesystem time, path reuse, media-ID reuse, source restored or reindexed | Source-version check invalidates uncertain features and decisions; read/compare current content as needed; never map a previous Delete choice onto a replacement |
+| E-G08 | Process killed after a feature, group, decision, summary, confirmation or trash step | Publish only completed feature records. Restore deferred review only after revalidation; never restore confirmation. Existing trash recovery/no-loss behavior remains authoritative |
+| E-G09 | User keeps a file mid-run, selects all members, reviews overlapping groups or acts from a second session | Latest kept/exclusion state wins at choke point; all-member removal refused. Invalidate stale groups and ensure a version-valid retained member before action |
+| E-G10 | Model/threshold/preprocessing changes, corrupt cache, unknown enum/version | Ignore incompatible recomputable features, rebuild lazily; keep explicit user-kept state. Do not mix vectors or carry destructive intent to changed groups |
+| E-G11 | EXIF rotations/mirroring, non-sRGB/HDR, transparency, panoramas and portrait crops | Canonical policy applied exactly once and versioned; bound decode; compare orientation/aspect correctly. Unsupported representation is skipped, not misclassified |
+| E-G12 | HEIC/HEIF decoder absent/fails; animated GIF/WebP; RAW/DNG; motion-photo/video content | Initial still-image support matrix is explicit. Exclude unsupported animation/RAW/motion semantics; never treat a preview frame as proof the complete asset is redundant |
+| E-G13 | Huge claimed dimensions, damaged EXIF/codec stream, truncated files, malicious provider | Bound pixels/bytes/time, close handles, handle decoder error; no OOM loop or source mutation. Repeated failing item is skipped for this run |
+| E-G14 | SQLiteFull/ENOSPC during feature commit; gallery table at quota; migration interrupted | Abort gallery write, retain authoritative safety data, stop/degrade to in-memory/hash path if budget permits; never clean user media to make room automatically |
+| E-G15 | Free space crosses LIGHT <500 MB / MINIMAL <100 MB thresholds | Pause optional analysis/writes; keep established nearly-full experience. No model download or cache growth; progress says paused for space |
+| E-G16 | Low-memory trim, activity recreation, OS process kill, thermal throttling, battery ≤10% unplugged | Release bitmap/model buffers, checkpoint completed work where safe, pause; recovery is explicit foreground continuation. Zero new scheduled/boot scanning |
+| E-G17 | Runtime missing, unsupported ABI/operator, 16 KiB native-load error, delegate failure | Disable failed path, return approved hash-only capability with clear message, no crash loop; no cloud fallback. A failing release gate blocks shipping the native candidate |
+| E-G18 | Identical/zero/non-finite/out-of-range vectors, changed output dimension | Validate contract; invalid feature never enters similarity math/index. Skip or baseline fallback; no auto threshold guessing |
+| E-G19 | USB/SD/provider disconnect or revoked SAF grant during read/review | Stop affected work, retain honest incomplete count, discard inaccessible retained-member claims; do not drop existing trash records |
+| E-G20 | Backup/free/restore/clean starts while gallery analysis runs | Prioritize file operation, pause gallery, invalidate affected versions afterward. Do not add simultaneous heavy I/O/inference to the backup path |
+| E-G21 | User clears gallery cache, clears app data, updates or reinstalls | Cache clear preserves safety records and kept preferences. Clearing all app data/uninstall retains existing documented trash behavior; reinstalled cache never recreates a prior consent |
+| E-G22 | No similar images / no quality winner / no eligible REVIEW items | Calm empty/abstention state, no exaggerated savings or forced cleanup. MOVE groups remain backup-oriented |
+| E-G23 | Hebrew/emoji/NFD/bidi filenames; mixed RTL dates; newline/tab in keys | Existing canonical/bidi handling; safe opaque encoded identifiers, bounded parser, source-key exactness. No name sanitization that causes two sources to share a decision |
+| E-G24 | TalkBack, 200% font, landscape/foldable, reduced motion, swapped swipe direction | All actions available as buttons/custom actions; counters readable, no clipped confirmation; physical current swipe mapping and swap setting honored |
+| E-G25 | Double Start, rapid Cancel/Continue, late old-run publish, repeated confirm tap | One active run, monotonic run/epoch validation, cancellation prevents stale publication; existing current-session/idempotent action controls apply |
+| E-G26 | No GMS, clean install offline, provider API down/credits exhausted | Core local feature still works. No cloud dependency exists; no auth or API error is introduced into default flows |
+| E-G27 | Sum of groups exceeds unique item bytes; trash doesn't free bytes immediately | Deduplicate by source/version and preserve lane totals; show reviewable bytes as potential review scope only. Report measured freed bytes after actual qualifying operations |
+| E-G28 | User asks to “delete the worse camera shot” before backup | Existing camera memory rule remains: comparison and backup handoff only. A new deletion policy is outside this proposal, regardless of model confidence |
+
+Every implementation milestone maps its relevant E-G rows to named tests. Existing E-DEL/E-MOVE/E-RES/E-PERM/E-LIFE/E-LOW/E-SEC behavior continues to apply when the gallery hands off to existing flows.
+
+## Selective processing and keeper decisions (owner 2026-11-08)
+
+| ID | Case | Required behavior / acceptance |
+|---|---|---|
+| E-G29 | Many ambiguous groups, shared participants, tiny/large scope or threshold marks everything ambiguous | Enforce the single run-wide unique-inference/time budget; account for both pair participants and cache hits. Never reset per group. Reject uncalibrated broad escalation; show unresolved/deferred counts |
+| E-G30 | All groups resolved deterministically, no-match/unsupported items, or compatible cached ambiguous vectors | Zero unnecessary runtime initialization/inference. No-match does not become an all-library AI queue; reuse completed valid records |
+| E-G31 | Model initialization consumes time budget; user cancels, source changes or permission epoch advances before queued inference | Include initialization in accrued learned time, stop scheduling, revalidate versions/authorization and discard stale publication. Resume keeps run counters; no background/automatic new run to evade limits |
+| E-G32 | Quality tie, conflicting sharpness/exposure/resolution, or user disagrees with the keeper suggestion | Abstain or explain the limited factual advantage. Suggested keeper is separate from all checkboxes; changing/accepting/disagreeing with advice creates no implicit disposal intent or file write |

@@ -1,0 +1,349 @@
+{
+  "retrieved_date": "2026-11-08",
+  "not_a_full_resolved_native_dependency_audit": true,
+  "poms": [
+    {
+      "snapshot_name": "litert-1.4.2.pom",
+      "sha256": "9528ce669b5bb545a03cd14d92f429064af04a644f2cd8e306e7705e8bf40a30",
+      "coordinates": "com.google.ai.edge.litert:litert:1.4.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.ai.edge.litert",
+          "artifactId": "litert-api",
+          "version": "[1.4.2]"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-2.1.0.pom",
+      "sha256": "18b62e62f6d7fabf0134c280d55b13ec0bde7ab1ea9d61a7a8e289346583550f",
+      "coordinates": "com.google.ai.edge.litert:litert:2.1.0",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.lifecycle",
+          "artifactId": "lifecycle-runtime",
+          "version": "2.10.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "33.5.0-android"
+        },
+        {
+          "groupId": "org.jetbrains.kotlinx",
+          "artifactId": "kotlinx-coroutines-guava",
+          "version": "1.10.2"
+        },
+        {
+          "groupId": "com.google.android.play",
+          "artifactId": "ai-delivery",
+          "version": "0.1.1-alpha01"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-2.2.0.pom",
+      "sha256": "3db10e002008df2ffe3f00a5353622e8ff419f282fc27ddadb5880a100139276",
+      "coordinates": "com.google.ai.edge.litert:litert:2.2.0",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.ai.edge.litert",
+          "artifactId": "litert-api",
+          "version": "2.2.0"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-2.3.0.pom",
+      "sha256": "912be63ad7aa3df18ed8c53deeb8c2e44ed407976d08253089e93c185963d774",
+      "coordinates": "com.google.ai.edge.litert:litert:2.3.0",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.ai.edge.litert",
+          "artifactId": "litert-api",
+          "version": "2.3.0"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-2.3.2.pom",
+      "sha256": "54cfcbd53e2237cf962cdf0c630d844d9a5f08f2f273af5f58db74aad2e958cc",
+      "coordinates": "com.google.ai.edge.litert:litert:2.3.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.ai.edge.litert",
+          "artifactId": "litert-api",
+          "version": "2.3.2"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-api-1.4.2.pom",
+      "sha256": "da9af6af75d05c7af53571cf45833fdbd80271a99306b397090dac199c38c0d8",
+      "coordinates": "com.google.ai.edge.litert:litert-api:1.4.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": []
+    },
+    {
+      "snapshot_name": "litert-api-2.2.0.pom",
+      "sha256": "1921ae6be5ee561ea01d367286faac0884ffc8f6477c3d66b4b43e690ef43970",
+      "coordinates": "com.google.ai.edge.litert:litert-api:2.2.0",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.lifecycle",
+          "artifactId": "lifecycle-runtime",
+          "version": "2.10.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "33.5.0-android"
+        },
+        {
+          "groupId": "org.jetbrains.kotlinx",
+          "artifactId": "kotlinx-coroutines-guava",
+          "version": "1.8.0"
+        },
+        {
+          "groupId": "com.google.android.play",
+          "artifactId": "ai-delivery",
+          "version": "0.1.1-alpha01"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-api-2.3.0.pom",
+      "sha256": "ace008f44c8ce4715c0e0b3f506dd0aee0bfada54c09c10c1e6bf714857b639a",
+      "coordinates": "com.google.ai.edge.litert:litert-api:2.3.0",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.lifecycle",
+          "artifactId": "lifecycle-runtime",
+          "version": "2.10.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "33.5.0-android"
+        },
+        {
+          "groupId": "org.jetbrains.kotlinx",
+          "artifactId": "kotlinx-coroutines-guava",
+          "version": "1.8.0"
+        },
+        {
+          "groupId": "com.google.android.play",
+          "artifactId": "ai-delivery",
+          "version": "0.1.1-alpha01"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "litert-api-2.3.2.pom",
+      "sha256": "2620b31d4c5c80b5d664988b304958019a2c3ea1fb48d47bf4547b39a4fc10cd",
+      "coordinates": "com.google.ai.edge.litert:litert-api:2.3.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.lifecycle",
+          "artifactId": "lifecycle-runtime",
+          "version": "2.10.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "33.5.0-android"
+        },
+        {
+          "groupId": "org.jetbrains.kotlinx",
+          "artifactId": "kotlinx-coroutines-guava",
+          "version": "1.8.0"
+        },
+        {
+          "groupId": "com.google.android.play",
+          "artifactId": "ai-delivery",
+          "version": "0.1.1-alpha01"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "mediapipe-core-0.10.35.pom",
+      "sha256": "eff02d6277cbe29930082a773bd9a069167782f8e1287a5b688bc9f6a963b11c",
+      "coordinates": "com.google.mediapipe:tasks-core:0.10.35",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.flogger",
+          "artifactId": "flogger",
+          "version": "0.6"
+        },
+        {
+          "groupId": "com.google.flogger",
+          "artifactId": "flogger-system-backend",
+          "version": "0.6"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "27.0.1-android"
+        },
+        {
+          "groupId": "com.google.protobuf",
+          "artifactId": "protobuf-javalite",
+          "version": "4.26.1"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-api",
+          "version": "3.0.0"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-backend-cct",
+          "version": "3.1.0"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-runtime",
+          "version": "3.1.0"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "mediapipe-core-1.2.2.pom",
+      "sha256": "71bd2a0c8c561b618303789cf6a3f69af328178c2075164600c43ea568b4db67",
+      "coordinates": "com.google.mediapipe:tasks-core:1.2.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "com.google.flogger",
+          "artifactId": "flogger",
+          "version": "0.6"
+        },
+        {
+          "groupId": "com.google.flogger",
+          "artifactId": "flogger-system-backend",
+          "version": "0.6"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "27.0.1-android"
+        },
+        {
+          "groupId": "com.google.protobuf",
+          "artifactId": "protobuf-javalite",
+          "version": "4.26.1"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-api",
+          "version": "3.0.0"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-backend-cct",
+          "version": "3.1.0"
+        },
+        {
+          "groupId": "com.google.android.datatransport",
+          "artifactId": "transport-runtime",
+          "version": "3.1.0"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "mediapipe-tasks-vision-0.10.35.pom",
+      "sha256": "0cf846c2f16a41853b587fe55909cb63887faf068b9bf2b4760b9a43ecb6ebbf",
+      "coordinates": "com.google.mediapipe:tasks-vision:0.10.35",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.annotation",
+          "artifactId": "annotation",
+          "version": "1.1.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "27.0.1-android"
+        },
+        {
+          "groupId": "com.google.mediapipe",
+          "artifactId": "tasks-core",
+          "version": "0.10.35"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "mediapipe-tasks-vision-1.2.2.pom",
+      "sha256": "68b1450654fe137709fa6f6c76fa6155ad55307959196f5350f1aaf7e3b06752",
+      "coordinates": "com.google.mediapipe:tasks-vision:1.2.2",
+      "licenses": [
+        "The Apache Software License, Version 2.0"
+      ],
+      "dependencies": [
+        {
+          "groupId": "androidx.annotation",
+          "artifactId": "annotation",
+          "version": "1.1.0"
+        },
+        {
+          "groupId": "com.google.guava",
+          "artifactId": "guava",
+          "version": "27.0.1-android"
+        },
+        {
+          "groupId": "com.google.mediapipe",
+          "artifactId": "tasks-core",
+          "version": "1.2.2"
+        },
+        {
+          "groupId": "com.google.ai.edge.litertlm",
+          "artifactId": "litertlm-android",
+          "version": "0.18.0"
+        }
+      ]
+    },
+    {
+      "snapshot_name": "onnxruntime-android-1.31.1.pom",
+      "sha256": "8afb71e8b2366f9974f81ce394239e958ada962a30534fcab8d7a43c1b08c1a5",
+      "coordinates": "com.microsoft.onnxruntime:onnxruntime-android:1.31.1",
+      "licenses": [
+        "MIT License"
+      ],
+      "dependencies": []
+    }
+  ]
+}

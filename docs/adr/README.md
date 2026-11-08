@@ -2,7 +2,7 @@
 
 Short records of the big, hard-to-reverse choices. Format: Context → Decision → Consequences → Alternatives considered. Status is one of Proposed / Accepted / Superseded.
 
-All ADRs were accepted with the spec on 2026-10-31.
+Initial ADRs were accepted with the spec on 2026-10-31; later decisions carry their own dates and amendments. Acceptance of gallery ADRs is policy/scope approval, not proof of implemented features or passed measurements.
 
 | # | Title | Status |
 |---|---|---|
@@ -19,3 +19,5 @@ All ADRs were accepted with the spec on 2026-10-31.
 | [0011](0011-network-and-cloud-targets.md) | Network and cloud backup targets; server digests may free originals (amends 0008) | Accepted (Drive first, 2026-11-01) |
 | [0012](0012-foss-accessibility-cache-cleaner.md) | Accessibility "Clear cache" automation: foss only, "Later", behind gates | Accepted (none in v1, 2026-11-01) |
 | [0013](0013-paper-and-ink-design-system.md) | "Paper & Ink" design system on stable Material 3 (colours, fonts, no Expressive beta, dynamic colour off) | Accepted (2026-11-02) |
+| [0014](0014-gallery-suggestions-and-safety.md) | Free local advisory gallery, deterministic-first, reasoned keeper advice and existing safety boundaries | Accepted by owner (2026-11-08); implementation pending |
+| [0015](0015-local-model-admission.md) | Admit local AI only for a bounded ambiguous subset after quality/resource/dependency gates | Accepted policy (2026-11-08); no runtime selected |

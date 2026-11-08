@@ -2,6 +2,22 @@
 
 > **Latest test APK (after the final polish round, PRs #53–#62):** [Actions run #180](https://github.com/tomerar/keepCleanr/actions/runs/41715307159), artifact **`keepclear-test-180-96b3c53.apk`** (from `main` at 96b3c53, kept until 2026-12-03). It installs over the previous "KeepClear test" (same public test key) and starts in test mode: nothing is deleted or moved until test mode is turned off under Settings › Advanced. How to install: "Test build for the phone" below. Before/after pictures: [docs/design/gallery.md](design/gallery.md#final-polish-h1h5).
 
+## Gallery direction adopted — 2026-11-08
+
+Owner decisions [D-G1…D-G8](spec/gallery-decisions.md) are accepted: zero extra payment; entirely on-device; similar/duplicate images first; deterministic-first computation; optional AI only for a bounded ambiguous subset; incremental caching; factual keeper advice with abstention; no preselection/deletion or safety-category/proof change. Existing ChatGPT/Claude subscription ideas are later research, not approved network/billing integration.
+
+This is a documentation-only adoption and complete [builder handoff](prompts/gallery-builder.md), not an implemented feature or a passed model/device test. Gallery development is a scoped exception to the older freeze. All existing owner-device, release/signing and unrelated Later gates remain as recorded below.
+
+| Gallery milestone | Status | Next evidence |
+|---|---|---|
+| G0 owner scope/authority | Adopted 2026-11-08 | Reconcile current code/schema/resources at implementation start; no repeated scope approval |
+| G1a deterministic read-only engine/router/budgets | Not started — **current** | Code, golden/property tests, no Android/network/write capability; no ML dependency |
+| G1b/G2 adapters/cache/baseline evaluation | Not started | Real-format tests and actual device/corpus baseline |
+| G3 optional selective local AI | Conditional, not started | Dependency/privacy/quality/efficiency admission; no runtime selected |
+| G4/G5/G6 UX/actions/validation/release | Not started | Existing safety gates, new live group-retention tests and honest hardware results |
+
+[Overview](spec/gallery-overview.md) · [requirements](spec/gallery-requirements.md) · [architecture](spec/gallery-design.md) · [tasks](spec/gallery-tasks.md). Numerical targets and budget defaults are provisional engineering gates, not measured results.
+
 Updated after every milestone so work can resume if a session stops. Plan: [spec/tasks.md](spec/tasks.md).
 
 Legend: ✅ done (merged) · 🔄 in progress · ⏸ blocked · ⏭ skipped · ⬜ not started
@@ -417,7 +433,7 @@ Today every test APK is signed with the public key in `keystore/`, so anyone can
 | W2, W5, W7, W8 | Later, after the device checks pass. Dropbox stays engine-only, tested with the strict fake. |
 | W6 | The owner proofreads the Hebrew himself, from [`hebrew-review.md`](hebrew-review.md) (every Hebrew string with its key, the English and the screen, grouped by screen). |
 | C12–C26 | Approved. Added to Later: "trust this certificate" for self-signed home servers (show the fingerprint, pin it, Advanced only). Device matrix: check which user number Samsung uses for cloned apps (Dual Messenger). |
-| Freeze | **Feature freeze until the app runs on the owner's phone.** Only: (1) the flaky SMB test's root cause, (2) a read-only "Device check" screen in test builds (Settings › Advanced) that produces a shareable report without file paths, (3) M17b for Nextcloud only, on OkHttp, under Advanced. The Dropbox UI waits for W8. |
+| Freeze (historical; gallery exception D-G8 added 2026-11-08) | **Feature freeze until the app runs on the owner's phone**, except the separately authorized staged gallery implementation above; release/device checks are not waived. Only: (1) the flaky SMB test's root cause, (2) a read-only "Device check" screen in test builds (Settings › Advanced) that produces a shareable report without file paths, (3) M17b for Nextcloud only, on OkHttp, under Advanced. The Dropbox UI waits for W8. |
 
 ## Blockers and decisions needed
 
@@ -432,6 +448,8 @@ None open. Decided by the owner on 2026-11-01 (recorded in requirements §14):
 Accepted on 2026-11-01: [ADR 0011](adr/0011-network-and-cloud-targets.md) with Google Drive first (Drive after a sign-in spike → SMB → Nextcloud → Dropbox; if the spike fails, SMB first and the owner is told; honest Google-account space check) and [ADR 0012](adr/0012-foss-accessibility-cache-cleaner.md) (no Accessibility cleaner in v1; guided per-app list instead).
 
 ## Notes for resuming
+
+- **Current gallery work, 2026-11-08:** owner direction and ADR policies adopted; start G1a under [gallery-tasks.md](spec/gallery-tasks.md). The older resumption notes below are historical and do not require repeating the accepted scope approval. No gallery implementation or new phone check is complete.
 
 - **State on 2026-11-02 night (feature freeze):** the three allowed items are merged: SMB flaky-test diagnostics (#37, issue #36 open until it recurs), Device check screen (#38), OkHttp + real Nextcloud in CI (#39), Nextcloud in the app under Advanced (#40). Next: the owner runs the Device check on the phone; no new user features until the app runs there.
 - **State on 2026-11-01 evening:** v1 milestones M11–M16a, M17a, M17c and M18a are merged (PRs #19–#33). What is left needs the owner: M17b (wire Nextcloud/Dropbox into the app: needs W3, W4, W8), the rest of M18 (W5–W7), Google Drive (postponed), and the Later list.

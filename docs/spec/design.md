@@ -5,6 +5,8 @@ Implements: [requirements.md](requirements.md). Decisions: [ADRs](../adr/). Evid
 
 ---
 
+> **Current implementation baseline and gallery amendment (owner 2026-11-08).** The app currently uses manual composition in `KeepClearApplication` and platform thumbnails with a memory-only cache; Hilt/Coil and empty future modules in older sketches below are not prerequisites. [Gallery architecture](gallery-design.md) is the authoritative detailed contract for the accepted deterministic-first, ambiguity-routed local organizer; [decisions](gallery-decisions.md) define its zero-cost/privacy boundary. New gallery components are still unimplemented.
+
 ## 1. Goals and shape
 
 KeepClear does four things: **scan** storage, **classify** each item (SAFE / REVIEW / MOVE / PROTECTED), **present** it with plain-language explanations, and **act** (trash, move with verification, restore). Every destructive path converges on one guarded executor and one trash.
@@ -80,9 +82,9 @@ keepclear/
     └─ android/        # instrumented helpers: seed MediaStore, SAF test provider
 ```
 
-Dependency rule: `feature:* → engine:* → core:*-api/model`. Engines never depend on Android modules; Android implementations are bound in `app` via Hilt. Only `backup:target-*` modules and `backup:net` may contain network code, and only target modules declare `INTERNET` (ADR 0008 as amended by ADR 0011; Konsist and the manifest check enforce it).
+Dependency rule: `feature:* → engine:* → core:*-api/model`. Engines never depend on Android modules; Android implementations are bound in `app` through its current manual graph; Hilt is deferred, not required for gallery. Only `backup:target-*` modules and `backup:net` may contain network code, and only target modules declare `INTERNET` (ADR 0008 as amended by ADR 0011; Konsist and the manifest check enforce it).
 
-Libraries (all GPL-3.0-compatible): Compose + Material 3, Hilt, Room, WorkManager, Coroutines/Flow, kotlinx.serialization, Coil 3 (thumbnails), smbj (v1, Apache-2.0), OkHttp + Okio (v1, Apache-2.0, only in `backup:net`, W3), Shizuku API (v1, Apache-2.0/MIT). Tests: JUnit5, Kotest property testing, Turbine, Robolectric (selected), Compose UI tests, Paparazzi/Roborazzi screenshots, Konsist (architecture rules).
+Libraries (all GPL-3.0-compatible): Compose + Material 3, Room, WorkManager, Coroutines/Flow, kotlinx.serialization, platform thumbnails (memory-only cache; no Coil/Hilt currently), smbj (v1, Apache-2.0), OkHttp + Okio (v1, Apache-2.0, only in `backup:net`, W3), Shizuku API (v1, Apache-2.0/MIT). Tests: JUnit5, Kotest property testing, Turbine, Robolectric (selected), Compose UI tests, Paparazzi/Roborazzi screenshots, Konsist (architecture rules).
 
 ---
 
@@ -303,7 +305,7 @@ OEM background killing (OnePlus) is mitigated by FGS for long work and by resuma
 
 ## 9a. Low-space modes (LOW-*)
 
-`SpaceProbe` (`StatFs` + `getAllocatableBytes`) publishes `SpaceMode = NORMAL | LIGHT (<500 MB) | MINIMAL (<100 MB)` as a `StateFlow`, re-sampled on resume, before each job step and every 30 s during jobs. Components subscribe: Coil disk cache off in LIGHT+, scan persistence off in MINIMAL, MOVE start gated at 100 MB. All destructive ops are write-ahead (journal row + sidecar first), so a failed journal write means the file was never touched (LOW-3).
+`SpaceProbe` (`StatFs` + `getAllocatableBytes`) publishes `SpaceMode = NORMAL | LIGHT (<500 MB) | MINIMAL (<100 MB)` as a `StateFlow`, re-sampled on resume, before each job step and every 30 s during jobs. Components subscribe: thumbnails remain memory-only (no disk cache in any mode), scan persistence off in MINIMAL, MOVE start gated at 100 MB. All destructive ops are write-ahead (journal row + sidecar first), so a failed journal write means the file was never touched (LOW-3).
 
 ## 9b. Versioned formats and migrations (MIG-*)
 
@@ -333,3 +335,9 @@ Updates kill the process: copy/verify resumes from Room; deletions never resume 
 - **Instrumented tests** on emulator API 30/34/36 for MediaStore trash, SAF move, FGS lifecycle.
 - **Device acceptance** on the owner's OnePlus 10T with a scripted checklist (requirements §13).
 - **Kill tests**: randomized process kill during copy/trash/restore; assert invariants (no file lost: every original is either at its path, in trash with sidecar, or verified on target).
+
+## 12. Gallery organizer — owner-approved architecture, implementation pending
+
+The normative [gallery design](gallery-design.md) defines the narrow read-only engine/Android/cache boundaries, canonical decode/versioning, conservative grouping, explainable keeper advice and an explicit four-state uncertainty router. Metadata/exact hashes/cheap visual features resolve the easy cases. An admitted local model can consume only version-valid ambiguous participants under one run-wide count/time budget, with lazy loading, compatible-cache reuse and early stop. No gallery-wide embedding pass, provider client, paid tier or additional network purpose is authorized.
+
+[ADR 0014](../adr/0014-gallery-suggestions-and-safety.md) accepts advisory separation; [ADR 0015](../adr/0015-local-model-admission.md) accepts conditional model admission. The model-free path stays fully useful. Main scan, ActionExecutor, existing duplicate witnesses, BackupProof, trash and MOVE policy are unchanged; new REVIEW disposal requires an additive typed retention guard with tests. See [requirements](gallery-requirements.md), [benchmarks](gallery-benchmarks.md) and [tasks](gallery-tasks.md).

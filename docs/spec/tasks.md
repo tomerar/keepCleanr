@@ -12,6 +12,14 @@ Rules for every milestone:
 
 ---
 
+## Current gallery milestone (owner 2026-11-08)
+
+**G0 owner scope/authorization complete; G1a is next and not implemented.** The owner accepted [D-G1…D-G8](gallery-decisions.md), asked for documentation on main and a complete builder handoff, and authorized staged gallery development as a scoped exception to the older freeze. Existing physical-device, safety and release gates remain pending. Do not request the same scope approval again or pretend those checks passed.
+
+Follow [gallery-tasks.md](gallery-tasks.md): baseline reconciliation → G1a pure-JVM deterministic engine/router/budget contracts → G1b bounded Android read/cache → G2 evaluation; G3 local AI is optional and ambiguity-only; G4 comparison/safe REVIEW bridge can use A; G5/G6 validate the selected release. [gallery-overview.md](gallery-overview.md) is the read order and [gallery-builder.md](../prompts/gallery-builder.md) is the implementation prompt. Start without an ML dependency or cloud/subscription integration.
+
+The M0…M18 sections below retain the earlier implementation history and their required checks; do not restart M0 or treat the historical initial-approval paragraph as the current task.
+
 ## Phase 0: Foundations (no user-visible deletion)
 
 ### M0: Project skeleton and guard rails
@@ -181,10 +189,10 @@ Each device run records: device, OS build, flavor, checklist results and through
 Added in the spec phase (no app code): `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`, `.github/labels.yml`, `docs/TRANSLATING.md` (Weblate workflow). Label sync and Weblate hookup are applied once the owner approves (they change GitHub/Weblate settings).
 
 ## Later
-"Trust this certificate" for self-signed home servers (show the fingerprint, pin it on first use, Advanced only; owner 2026-11-02), Dropbox sign-in UI and Google Play listing (after the device checks pass; owner 2026-11-02), similar photos (dHash + BK-tree), Shizuku tier, Accessibility cache cleaner (foss only, if ADR 0012 is approved), OneDrive, Immich checksum target, SFTP, PC companion, root tier, video squeeze.
+"Trust this certificate" for self-signed home servers (show the fingerprint, pin it on first use, Advanced only; owner 2026-11-02), Dropbox sign-in UI and Google Play listing (after the device checks pass; owner 2026-11-02), semantic gallery albums/search beyond the accepted G scope, Shizuku tier, Accessibility cache cleaner (foss only, if ADR 0012 is approved), OneDrive, Immich checksum target, SFTP, PC companion, root tier, video squeeze.
 
 ---
 
-## Proposed first milestone for approval
+## Historical initial milestone proposal (2026-10-31; already implemented)
 
 **M0 + M1 + M2 as "Foundations"** (no UI beyond a placeholder, no deletion possible): project skeleton with both flavors, CI guard rails, storage abstraction with fault-injecting fake, owner-shaped fixtures, and the safety core with property tests. It proves the safety architecture before any feature exists, and everything after builds on it.

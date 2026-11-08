@@ -14,9 +14,15 @@ KeepClear is an open-source (GPL-3.0-or-later) Android storage cleaner. Junk is 
 
 Work only on the current milestone in `tasks.md`. If the spec is wrong or incomplete, update the spec in the same PR and say so.
 
+## Current gallery work (owner 2026-11-08)
+
+The owner accepted `docs/spec/gallery-decisions.md` (D-G1…D-G8) and requested the documentation on main plus a full builder handoff. Gallery development is a **scoped exception** to the earlier feature freeze; existing phone/safety/release checks remain pending. Read `docs/spec/gallery-overview.md` and `docs/prompts/gallery-builder.md`. G0 owner approval is recorded; **G1a is current, unimplemented**. Do not ask for that approval again or start unrelated Later features.
+
+Gallery must cost the user nothing extra and run entirely on the phone without an account/credits/provider. Implement deterministic metadata/exact-hash/visual-hash/quality stages first, factual keeper advice with abstention, incremental reuse and an explicit uncertainty router. Optional admitted local AI may process only a budgeted ambiguous subset; lazy-load, deduplicate participants and stop early. No whole-library embedding, cloud/subscription/A2A/MCP integration, automatic preselection/deletion or category/proof weakening. Keep MOVE memories on the verified-backup path. Both new ADR policies are Accepted; no model/runtime is admitted. Benchmarks are provisional targets until actually measured.
+
 ## Status
 
-Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. The review PRs A, B, C and the v1 milestones M11–M16a, M17a (Nextcloud/WebDAV engine), M17c (Dropbox engine) and M18a (reproducible build, store listing, accessibility) are merged (PRs #12–#33). **Feature freeze (owner, 2026-11-02): no new user features until the app runs on the owner's phone.** The three allowed items are merged (PRs #37–#40: SMB flaky-test diagnostics with issue #36, Device check screen, OkHttp + Nextcloud in CI, Nextcloud under Advanced); next is the owner's Device check on the phone. The owner review of 25a3be7 (2026-11-02) is done: PRs #42–#49 (D safety and security, E stability, F1 "Paper & Ink" design system and three-tab navigation, F2 screens and Hebrew voice, F3 screenshots and store); the freeze was lifted only for those items. Dropbox stays engine-only until W8; Play listing, developer verification and F-Droid submission come after the device checks pass. Device checks and proposals waiting for the owner: `docs/progress.md`.
+Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.md` §14). MVP milestones **M0–M10 are merged** (PRs #1–#11). Owner decisions of 2026-11-01 (B1, B2, Q4, product principles, backup targets, caches) are in `requirements.md` §0a and §14. The review PRs A, B, C and the v1 milestones M11–M16a, M17a (Nextcloud/WebDAV engine), M17c (Dropbox engine) and M18a (reproducible build, store listing, accessibility) are merged (PRs #12–#33). **Historical feature freeze (owner, 2026-11-02): no new user features until the app runs on the owner's phone; amended for staged gallery development by D-G8 on 2026-11-08 (above), without waiving device/release checks.** The three allowed items are merged (PRs #37–#40: SMB flaky-test diagnostics with issue #36, Device check screen, OkHttp + Nextcloud in CI, Nextcloud under Advanced); next is the owner's Device check on the phone. The owner review of 25a3be7 (2026-11-02) is done: PRs #42–#49 (D safety and security, E stability, F1 "Paper & Ink" design system and three-tab navigation, F2 screens and Hebrew voice, F3 screenshots and store); the freeze was lifted only for those items. Dropbox stays engine-only until W8; Play listing, developer verification and F-Droid submission come after the device checks pass. Device checks and proposals waiting for the owner: `docs/progress.md`.
 
 ## Product principles (owner, 2026-11-01)
 
@@ -30,7 +36,7 @@ Spec approved by the owner on 2026-10-31 (decisions in `docs/spec/requirements.m
 
 ## Stack
 
-- Kotlin only, Jetpack Compose (Material 3), Hilt, Room, WorkManager, Coroutines/Flow, kotlinx.serialization, Coil.
+- Kotlin only, Jetpack Compose (stable Material 3), Room, WorkManager, Coroutines/Flow, kotlinx.serialization. Actual composition is a manual graph in `KeepClearApplication`; thumbnails use platform APIs with a memory-only cache. Hilt/Coil are not current dependencies or gallery prerequisites.
 - minSdk 30, targetSdk 36, compileSdk 37 (ADR 0003).
 - Flavors: `foss` (all-files access, F-Droid/GitHub) and `play` (MediaStore + SAF only) (ADR 0005).
 - Tests: JUnit5, Kotest (property tests), Turbine, Robolectric (sparingly), Compose UI tests, screenshot tests, Konsist architecture rules.

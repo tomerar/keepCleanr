@@ -3,6 +3,8 @@
 Status: **Approved by owner 2026-10-31**, updated with owner decisions of 2026-11-01 (§0a, §14) · Date: 2026-11-01
 Inputs: [research 01–07](../research/), owner's measured device data (OnePlus 10T, Android 15, 240 GB, 93% full).
 
+> **Owner amendment, 2026-11-08 — gallery scope accepted; implementation pending.** [D-G1…D-G8](gallery-decisions.md) require zero additional payment, on-device processing, similar/duplicate grouping, deterministic-first analysis with optional AI only for a bounded ambiguous subset, incremental reuse and reasoned keeper advice. [Gallery requirements](gallery-requirements.md) own GAL-1…26 / AC-G1…15; [overview](gallery-overview.md) links design, security, tests and tasks. Existing SAFETY/CLS/MOVE/PRIV/LOW rules remain binding. Current gallery coding milestone is G1a; no runtime or measured benchmark is approved by this documentation change.
+
 ## 0. How to read this
 
 - Requirements use **EARS** wording:
@@ -174,7 +176,7 @@ Messenger knowledge is **data** (`core:rules/messengers.json`): one entry per ap
 | REV-5a | v1 | THE SYSTEM SHALL keep an unfinished swipe session per group (PR H2b): closing keeps it, and starting again offers „להמשיך מאיפה שעצרתם” with how far the user got, how many are marked, and how many decisions were dropped; a decision is tied to the file's path, size and date, and is dropped on resume when the file changed or is gone. Storage: one small versioned text per group in KeepClear's own settings file `swipe_sessions`, read and written off the main thread (MIG-2/3; choices stored by enum name); finishing or starting over deletes it. | `SwipeSessionStoreTest`, `SwipeH2bTest`. |
 | REV-6 | v1 | THE SYSTEM SHALL list apps unused for ~6 months (monthly usage buckets + `firstInstallTime`), with app size (code + data + cache), and offer system uninstall (`ACTION_DELETE`) or Android's archive where supported. Wording: "not opened in about 6 months" (month precision). | Owner's 11 apps / 2.8 GB. Requires Usage Access. |
 | REV-7 | v1 | THE SYSTEM SHALL detect leftovers of uninstalled apps (CorpseFinder-style marker DB) and present them as REVIEW, never SAFE, in v1. | foss only for full detection. |
-| REV-8 | Later | THE SYSTEM SHALL detect similar photos (dHash/pHash, default threshold "Balanced"), suggest the best shot, and never auto-select. | — |
+| REV-8 | Next — G milestones | THE SYSTEM SHALL offer free, entirely on-device similar/duplicate comparison with deterministic metadata/hash/quality stages first, reasoned keeper advice and abstention, no disposal preselection, incremental reuse and optional local AI only for a budgeted ambiguous subset. It SHALL preserve all existing categories and action/backup proofs. | [GAL-1…26 / AC-G1…15](gallery-requirements.md); [owner decisions](gallery-decisions.md); implementation pending |
 
 ---
 
@@ -402,3 +404,7 @@ Decided by the owner on 2026-10-31; the spec and ADRs above reflect these answer
 | T | Backup targets | USB/SD (done). [ADR 0011](../adr/0011-network-and-cloud-targets.md) **accepted** with Google Drive first: Drive (after the sign-in spike; honest space check, MOVE-21) → SMB → Nextcloud → Dropbox; OneDrive Later. If the spike fails, SMB first. Research [08](../research/08-cloud-targets.md). |
 | C | App caches | Shizuku lowered to Later (ONB-8, SAFE-7, SEC-9). SAFE-5/6 are the main "Clear app caches" path for everyone, plus a guided per-app list (SAFE-10) because SAFE-5 can free little on a nearly full phone. No Accessibility cleaner in v1 ([ADR 0012](../adr/0012-foss-accessibility-cache-cleaner.md), accepted); the guided per-app list (SAFE-10) ships instead. `Android/data` content gets explanation cards (SAFE-9). |
 | D | Testing on the phone | CI publishes a signed `fossDebug` test APK on every push to `main` (Actions artifact, no Release). Read-only device checks first; destructive ones when the owner is home. |
+
+### Gallery owner decisions — 2026-11-08
+
+[gallery-decisions.md](gallery-decisions.md) is the authoritative D-G1…D-G8 record. The owner explicitly prioritized zero additional product cost, local-only processing, similar/duplicate images, reasoned keeper advice, speed and efficiency through deterministic-first selective inference. A possible existing-subscription integration is research-only and does not override local-only/zero-payment scope. [ADRs 0014/0015](../adr/README.md) accept the scope/admission policy, not a runtime. The owner requested documentation on main and a builder handoff; gallery development is a scoped exception to the earlier freeze while physical-device/release checks remain pending. [G tasks](gallery-tasks.md) define the implementation sequence.

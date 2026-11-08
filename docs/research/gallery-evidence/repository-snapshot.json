@@ -1,0 +1,796 @@
+{
+  "retrieved_date": "2026-11-08",
+  "timezone": "Asia/Bangkok",
+  "repository": "tomerar/keepCleanr",
+  "head": "d8b596dbe6bb96184427d0aabe4f0eb9065772ae",
+  "remote_ci_run": "https://github.com/tomerar/keepCleanr/actions/runs/41823352718",
+  "snapshot_files": [
+    {
+      "path": "CLAUDE.md",
+      "blob_sha": "abc61340a3a50c880e551b54d7cbbd2c2de312e1",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "README.md",
+      "blob_sha": "62b84be0c073764535571db6653b317fe4538cf5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": ".github/workflows/labels.yml",
+      "blob_sha": "f6c9d99bf8398c38c49141efbf56ab2b8965d386",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/Config.kt",
+      "blob_sha": "46137127da292b5171d3718f7bfd6280a82601d5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/gradle/verification-metadata.xml",
+      "blob_sha": "e43b98042fc737a477c92ad8f653a77b73e09ba3",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/DependencyAllowlistTask.kt",
+      "blob_sha": "bcb374199f4ac5781e7b9c6691b59d3fcf3ca88b",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/AndroidLibraryConventionPlugin.kt",
+      "blob_sha": "7bcfd885a998e372758ae1dc08075e5f4e6bfb20",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/TestMode.kt",
+      "blob_sha": "38698158f14befba786d081177fa89d502924b51",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/DependencyConfinement.kt",
+      "blob_sha": "308059643d44e76a3c0840c56556d15197120816",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/DependencyAllowlist.kt",
+      "blob_sha": "a1d025cf620875f6d5eb0152165cf6bd00245102",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/AndroidApplicationConventionPlugin.kt",
+      "blob_sha": "5df53048b9e4820ddd642742dc304ed10a5b56e0",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/build.gradle.kts",
+      "blob_sha": "9667a6938b7248ed0a28443f67f2432984588e82",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "blob_sha": "e1fb10a2e4f0392e2fe776084ebfb4f559b1c073",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/ForbiddenApis.kt",
+      "blob_sha": "74c34cc8575631886953c5fab44b8246816294fb",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "THIRD_PARTY.md",
+      "blob_sha": "c9334db9475c892d6729c4d7df86bcc0cf2ebc79",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/MainThreadPolicy.kt",
+      "blob_sha": "0bd07e235209ec2ac6f5491f72da2081cb1b7ddb",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/settings.gradle.kts",
+      "blob_sha": "18314501b96ddda7084c42a59e70976b012cd4b7",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/ReviewScreens.kt",
+      "blob_sha": "bf2749bb6ea0712cd224d48419060bacf28a1983",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/Thumbnails.kt",
+      "blob_sha": "44cd610cde8f92b49b6f2d32d547450b1e3f37d7",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/SwipeReview.kt",
+      "blob_sha": "689ff648f4e9707809b47abd15f62f409cf2977d",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/ComposeConventionPlugin.kt",
+      "blob_sha": "0be3073a52ec2a08fe0ba8d1a2e1456f3216eddf",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/CopyLint.kt",
+      "blob_sha": "13ae6ee2e5da250f177083afd6a44b4dddd79f25",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/UserChoices.kt",
+      "blob_sha": "7b8c4a4a87078f8fc61e5474a8d04bd73de0420f",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/KeepClearApplication.kt",
+      "blob_sha": "ec458267a3499964b04158c2b936d52f4f3a5b2f",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/JvmLibraryConventionPlugin.kt",
+      "blob_sha": "c455db77ca4eafa5e148734d46b9945d1ed84097",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/GroupTools.kt",
+      "blob_sha": "bf45a9021d18531da82e628cd8f94f905d468482",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/HomeViewModel.kt",
+      "blob_sha": "5325b1358ca6d0186f1e7aaeae78697c21edc903",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/build.gradle.kts",
+      "blob_sha": "6aed6df460576e9a7d4ccd74375b7f19e6d32341",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/KotlinAndroid.kt",
+      "blob_sha": "5bf4082dca08a99f2cf0569b1882a4f64b4bb4ae",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "app/src/main/kotlin/io/github/tomerar/keepclear/SwipeSupport.kt",
+      "blob_sha": "dcdcbd5db4528d41753721b54cc4f1cae11951a9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/DependencyConfinementTest.kt",
+      "blob_sha": "812c6a5a49465d20e2fe8a240af9ccd381867de0",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/RootConventionPlugin.kt",
+      "blob_sha": "8769d070f278d243167eb3b1cf2320d0465d2280",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/StoreMetadata.kt",
+      "blob_sha": "62ddf883c47cdca89a2da61ddad52b2276004743",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/ManifestPolicyTask.kt",
+      "blob_sha": "32a31225318c6229a511266977eba12d20786536",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/StringParityTest.kt",
+      "blob_sha": "3f8d6f6c9a09db1c6acf1f47a6449e9ea32a1c79",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/WorkflowPolicyTest.kt",
+      "blob_sha": "958da423faa83862a15aa4b8531a4d3f0ae81e0c",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/KeepClearDatabase.kt",
+      "blob_sha": "4ffb02b54385a7829e592de5c8a4d5a26d8e28a4",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/hash/src/main/kotlin/io/github/tomerar/keepclear/core/hash/Sha256.kt",
+      "blob_sha": "e9f2a3114f2690f015d0ce3c009106a3a4f93ffe",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/ManifestPolicyTest.kt",
+      "blob_sha": "ca34e0ab697328ffffbc1e084f0a74e73f4220fd",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/hash/src/main/kotlin/io/github/tomerar/keepclear/core/hash/DropboxContentHash.kt",
+      "blob_sha": "40c6739bf8918c9713588c7337d166e64dcbd127",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/StringParity.kt",
+      "blob_sha": "ce2392c0f952e93b61aacaf0f908d80e6bbbed2f",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/test/kotlin/io/github/tomerar/keepclear/core/database/RoomTrashIndexTest.kt",
+      "blob_sha": "9e4ac7fcdd02de1cc262999663eb125f8f71f5e4",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/ScanIndex.kt",
+      "blob_sha": "e174d6ee0bfb4d394205b088b84307224ff6f9c2",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/MoveEntities.kt",
+      "blob_sha": "b558f3ab96f2dd626029f631444c7217ff111867",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/Daos.kt",
+      "blob_sha": "b33b507fefabb36435f1d4bc7ac69420949544a3",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/TrashEntities.kt",
+      "blob_sha": "565d2ae205f3db11ce9d3d85b9a81e47a616eb82",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/test/kotlin/io/github/tomerar/keepclear/core/database/MigrationTest.kt",
+      "blob_sha": "844b26f2510286cc9ce1be5ab963af5bb3571452",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/build.gradle.kts",
+      "blob_sha": "bd1f5efb825c04c51c714c55cfa4b3cf0752752d",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/Entities.kt",
+      "blob_sha": "f62f17c20ebe00db1ed4ddd81eeb2674c02cea36",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/ManifestPolicy.kt",
+      "blob_sha": "562270db4b41dc29fb4ac3747f79dc5d38cc17f5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/test/kotlin/io/github/tomerar/keepclear/core/database/ScanIndexTest.kt",
+      "blob_sha": "b71c269614ffd6534e5ed7e524472fc43aa288b1",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/hash/build.gradle.kts",
+      "blob_sha": "9f3effe937f803f6ab674bbd23db84de9d30a023",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/database/src/test/kotlin/io/github/tomerar/keepclear/core/database/RoomMoveJobStoreTest.kt",
+      "blob_sha": "384cd22c7137815724a044e9d8d5fd07f74ad9c9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build.gradle.kts",
+      "blob_sha": "a55d3d0beb4f357f931f9034cb93c822f90b4df4",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/CopyLintTest.kt",
+      "blob_sha": "3e5b7e100b5e8663e8db41b2596a3442e3d8ebf5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/main/kotlin/keepclear/buildlogic/WrapperPolicy.kt",
+      "blob_sha": "f2f6ca8bd7d3bbddd645704215d437b04fd90107",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/DependencyAllowlistTest.kt",
+      "blob_sha": "0dd69724cda881df194965fc3327f2fec6bf3f89",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/ForbiddenApisTest.kt",
+      "blob_sha": "978a8b5badc775b902c668b5ab74d235b0000779",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/WrapperPolicyTest.kt",
+      "blob_sha": "f02acf652755bb92ff2335de5860d70af1d8bc12",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "build-logic/src/test/kotlin/keepclear/buildlogic/StoreMetadataTest.kt",
+      "blob_sha": "f33fc9947d0fa61f8a1c600aae398dd4836a5820",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/hash/src/test/kotlin/io/github/tomerar/keepclear/core/hash/Sha256Test.kt",
+      "blob_sha": "90933f43bf1d81264d6fcc867c0d44b735cd3e57",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/ProtectedPaths.kt",
+      "blob_sha": "16de1778e95e1850d7c35b996c70ce42d40098ce",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/SafetyGuardTest.kt",
+      "blob_sha": "d114d0d902f390d952188ce404d8040b623a4966",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/build.gradle.kts",
+      "blob_sha": "5bf8aa699dfa4eafe72bbf3fc4bf4cf0a17eb71c",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/ActionPlan.kt",
+      "blob_sha": "120ce4fd028861ea546218087f9c3af973544e85",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/model/src/main/kotlin/io/github/tomerar/keepclear/core/model/Category.kt",
+      "blob_sha": "0a9dd56ead6ac2ef1789439c4897de558d13ddd9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/CanonicalPath.kt",
+      "blob_sha": "de86697208fe4141c2a3b6ef187fdc0515d68c2e",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/hash/src/test/kotlin/io/github/tomerar/keepclear/core/hash/DropboxContentHashTest.kt",
+      "blob_sha": "4c94b93408ec5a45d32457375ea8ff88b2d4e623",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/build.gradle.kts",
+      "blob_sha": "f06ad620ede66810a129ac3d986cbf885f9fb6cf",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/MountedGateway.kt",
+      "blob_sha": "ab0e88acb0f7d9d01b3d5ee2dcb886b003cb1951",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/Stat.kt",
+      "blob_sha": "324820c7423654fecadf4ef525dc941e6b5d3181",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/SafetyGuard.kt",
+      "blob_sha": "5824a37dbacd904e61458c90f4acad1a68ef5376",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/FakeStorageGatewayContractTest.kt",
+      "blob_sha": "0f11235d982d0957d96d3a8f9896cd217da50885",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/FakeStorageGatewayTest.kt",
+      "blob_sha": "5e027728c107ae50e2a094fdafdcbc2fedc2d37c",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/PermanentKindsTest.kt",
+      "blob_sha": "fb40de8ee5019fcad5bde68faa967ee6545041c3",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/RoutingGatewayTest.kt",
+      "blob_sha": "24a7b1b59c133d425c3dc7b1f7fa0331c81d98f6",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/Streams.kt",
+      "blob_sha": "28099e459ad156d47052e725cae68e17e2979703",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/RoutingGateway.kt",
+      "blob_sha": "6522af5f096569520457e54f0e588516f067a872",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/StorageGateway.kt",
+      "blob_sha": "e4423056badad3a84484862c8f036dbe881bc0ce",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/KPath.kt",
+      "blob_sha": "0de854e1963cf55477d541b2d19001ae0841b415",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/ActionExecutor.kt",
+      "blob_sha": "3f5cb2497d47c15d1d3dec437ae1199c940252fa",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/model/build.gradle.kts",
+      "blob_sha": "9f3effe937f803f6ab674bbd23db84de9d30a023",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/ActionExecutorTest.kt",
+      "blob_sha": "a76ab3a10eee13d18b1d0a6273cd098ec92fcccb",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/main/kotlin/io/github/tomerar/keepclear/core/storage/StorageException.kt",
+      "blob_sha": "623d65e92dd5d24bed0d296905ee666e18806818",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/SafetyTestSupport.kt",
+      "blob_sha": "5b07bba9c3314a3a36802d7ed6d508325f61cf1c",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/MountedGatewayTest.kt",
+      "blob_sha": "e3e71920f4abca15be82683550eddce9109c3712",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/KPathTest.kt",
+      "blob_sha": "491f9647f263581bea216bf5c7da2f785862d339",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/main/kotlin/io/github/tomerar/keepclear/core/safety/PermanentKinds.kt",
+      "blob_sha": "ac2404a9f63add71e6e1298639f45f2c6883e1c2",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/ProtectedPathsTest.kt",
+      "blob_sha": "c88ac53bad754b23e758543ab59c8d56ae4de4cb",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/safety/src/test/kotlin/io/github/tomerar/keepclear/core/safety/ProtectedPlanPropertyTest.kt",
+      "blob_sha": "4e5e17da0aeaf0e6cacc54943d8c0871847fbf53",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/PRIVACY.md",
+      "blob_sha": "3a2a50c7cfd23781bd1284042a140cab88ab70d0",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0008-no-accessibility-no-network.md",
+      "blob_sha": "c14f52bc6d82d54247314586910133af2d94f5fb",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0011-network-and-cloud-targets.md",
+      "blob_sha": "0f898fc042a2062916b0ad991ebf969e5511b37e",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0012-foss-accessibility-cache-cleaner.md",
+      "blob_sha": "629694450966d698531acc63206b30829f30ed78",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0013-paper-and-ink-design-system.md",
+      "blob_sha": "37365e48747bcc3cae64d9d1a688983f74002047",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "blob_sha": "44a948f443ce9b50642111546b3eba1ed5b2cb35",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/progress.md",
+      "blob_sha": "1fb3586bf35f91925177c9ddee99c444422167ed",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0005-flavors-play-foss.md",
+      "blob_sha": "bf2682cdcb78f17e87872b35a548d4f4c73641af",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0001-kotlin-compose-native.md",
+      "blob_sha": "0e68738ebeae71474b69f54efa53d199609e3b82",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/TRANSLATING.md",
+      "blob_sha": "df9c7e8963d9eb325963c5f9f3aa00b56eee9659",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0002-license-gpl-3.0.md",
+      "blob_sha": "5c33e21eeeca5e9b08fe660642bf4471135fae68",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/testFixtures/kotlin/io/github/tomerar/keepclear/core/storage/StorageGatewayContract.kt",
+      "blob_sha": "6be3c41a313bd06acabb11e5296b62e66b6bf749",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/04-android-apis.md",
+      "blob_sha": "2c0dfc0a4c157ed68ea005bddd092de2b45a48e6",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0004-privilege-tiers-shizuku-optional.md",
+      "blob_sha": "4bec6feadb8c95f03c425423a59f6b7099e17758",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/03-other-oss.md",
+      "blob_sha": "12b29f8d6f27d1ade1f05c7819bd8e248da3ef68",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0007-verify-by-hash.md",
+      "blob_sha": "1ae36a594ed9ca585952e17587a86bef16df93ab",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0003-min-sdk.md",
+      "blob_sha": "d5c2d52c5754cb66d9e4f4e5bf474023270fe5a6",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/01-sdmaid-se.md",
+      "blob_sha": "16b02275613b568b76a449a5ab5a6544f3c82d13",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0009-signing-and-release.md",
+      "blob_sha": "061415740c2cc8d9ba44dabe8eabb9545f5c40b8",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/testFixtures/kotlin/io/github/tomerar/keepclear/core/storage/FakeStorageGateway.kt",
+      "blob_sha": "0e91260d2fa87b710adb44b059bc50d0cb718129",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/design/gallery.md",
+      "blob_sha": "f26c33ddf45c785e0a91749e0c99cd2a00629447",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/02-reference-apps.md",
+      "blob_sha": "aed9fdf72f48317660844eac9cde1f47bc018987",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/07-competitor-ux.md",
+      "blob_sha": "ba883b39db5c071c3da0b0c246e5b8fe9409e788",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/05-play-policy-and-flavors.md",
+      "blob_sha": "3b64481c7d4c1aff2e04a082854409a8437cb6a9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "core/storage-api/src/test/kotlin/io/github/tomerar/keepclear/core/storage/StreamsTest.kt",
+      "blob_sha": "2cec1d5105edecd28d08fcc4376309379fc7728f",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/06-backup-targets-and-verification.md",
+      "blob_sha": "ffb3a1afa14c63582448f49ca0a175a59abb806d",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0006-own-trash.md",
+      "blob_sha": "90074782fe0a5730b1eb762f3c034f398cd2d755",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/design/design-system.md",
+      "blob_sha": "ef1c5e0dd240f2f61c96001efb7b8429da2dd319",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/hebrew-review.md",
+      "blob_sha": "96ff7f3572566697f808bb4b2c8a778d1b1aaffe",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/adr/0010-mvp-folder-trash.md",
+      "blob_sha": "b08c24274d60d84de711f517fd612358cefa999b",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/design.md",
+      "blob_sha": "0c1dbd56eb8adef3a401bac288600afab5958754",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/edge-cases.md",
+      "blob_sha": "5cd5cf0a950ae7de609a6dfde9229035bc9f14f4",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/requirements.md",
+      "blob_sha": "0055dcdd556442633ad4ac99b77e09b62e1161b5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/tasks.md",
+      "blob_sha": "d21a18612aa969edcc2703b22039f66856ecf2e5",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/threat-model.md",
+      "blob_sha": "ecd5e312ffd9b036b67227840bdbab7c00b3a5a8",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/spec/ux-flows.md",
+      "blob_sha": "c7656c7676207851c255ffee6a82b066f56885d6",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/main/kotlin/io/github/tomerar/keepclear/engine/classify/Apps.kt",
+      "blob_sha": "f615f95b0af561c5d4e95554876b37967988996f",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/AppsReportTest.kt",
+      "blob_sha": "0a8b50a9e08728520eadbe44f29e9a17f3a2df6d",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/RuleTableTest.kt",
+      "blob_sha": "ec8a5714d03d23dbf82816aeec29d146ccb8577d",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/main/kotlin/io/github/tomerar/keepclear/engine/classify/ClassificationSummary.kt",
+      "blob_sha": "b46fee8b4a11bab8c230dba89b8f88b9956a6125",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/build.gradle.kts",
+      "blob_sha": "0673a0a99231d2effd227abb869b02bc3eb4dfb9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/build.gradle.kts",
+      "blob_sha": "012269aefd6b214fd828212be573bf18848a3964",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/UserChoicesTest.kt",
+      "blob_sha": "3a3ae4ed581ffd8af740f9c89dee8904548411b9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/ExplanationStringsTest.kt",
+      "blob_sha": "6fe7bdb8492e8d35ba023b6c17811adfad5f3d53",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/test/kotlin/io/github/tomerar/keepclear/engine/enrich/SafeCleanupEndToEndTest.kt",
+      "blob_sha": "74e71401f40b64576b607b6ac1f02ed473c9ba76",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/main/kotlin/io/github/tomerar/keepclear/engine/classify/Rules.kt",
+      "blob_sha": "5e25c1510ed455c9d286dce666fd45dcc6876247",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/main/kotlin/io/github/tomerar/keepclear/engine/classify/ClassifyModel.kt",
+      "blob_sha": "1470cea3c3d00527a08338ae749be156354fee77",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/main/kotlin/io/github/tomerar/keepclear/engine/classify/Classifier.kt",
+      "blob_sha": "4510524b40bfa9f7411b297fdbe4f7d747f4de90",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/src/main/kotlin/io/github/tomerar/keepclear/engine/scan/ScanDiff.kt",
+      "blob_sha": "31f45c96e290853ee8fa8f72649d372cc5cdcae9",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/ClassifierOracleTest.kt",
+      "blob_sha": "c3d1a8a78db63f9c912a6de69c56e0b713c3286e",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/test/kotlin/io/github/tomerar/keepclear/engine/enrich/FactEnricherTest.kt",
+      "blob_sha": "9e9911ad882b789ec42e5744e41a50e544997903",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/09-accessibility-cache-cleaner.md",
+      "blob_sha": "90005babe6fa94ebdedc0e2bbed6ec4361464cfd",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/test/kotlin/io/github/tomerar/keepclear/engine/enrich/CleanPlannerTest.kt",
+      "blob_sha": "879cb245bb7de628d338869dde6bde3e3694881e",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/main/kotlin/io/github/tomerar/keepclear/engine/enrich/ZipCentralDirectory.kt",
+      "blob_sha": "31815604d6b9504d650e3d12943d005dbfb3eea4",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/build.gradle.kts",
+      "blob_sha": "383b47f220108ad0b32ddccab378974916c3a5fd",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/classify/src/test/kotlin/io/github/tomerar/keepclear/engine/classify/ClassificationSummaryTest.kt",
+      "blob_sha": "b8fb5a9c17ccb372c05f2b8cfceef37400dcbfdf",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/main/kotlin/io/github/tomerar/keepclear/engine/enrich/FactEnricher.kt",
+      "blob_sha": "a777d515c5e6b9a033235de287816677a86b7bce",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/src/main/kotlin/io/github/tomerar/keepclear/engine/scan/ScanModel.kt",
+      "blob_sha": "52e978609cdfbf14272b32754b9480b71410d576",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "docs/research/08-cloud-targets.md",
+      "blob_sha": "96fc4c77194379f2559d1c2459c79c4ede022132",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/enrich/src/main/kotlin/io/github/tomerar/keepclear/engine/enrich/CleanPlanner.kt",
+      "blob_sha": "57f27c2842931006737070c8e139e4397d56ca74",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "blob_sha": "f8a9ef96ca6198bd1e4be4c8355adfb8989d3d61",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/src/main/kotlin/io/github/tomerar/keepclear/engine/scan/SpaceMode.kt",
+      "blob_sha": "faa5d69a9fe0cfa5ffee638a6ca564417d422ba8",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "testing/architecture/src/test/kotlin/io/github/tomerar/keepclear/architecture/ArchitectureTest.kt",
+      "blob_sha": "e57115f918dcf279471e16f776eb1eb5981a1d96",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/src/main/kotlin/io/github/tomerar/keepclear/engine/scan/Scanner.kt",
+      "blob_sha": "3dd0ce8b39b986dde241f7478352a3aadead6fb2",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "testing/architecture/build.gradle.kts",
+      "blob_sha": "3ad5bf043211345426c7813c6b377e659ae17075",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "engine/scan/src/test/kotlin/io/github/tomerar/keepclear/engine/scan/ScannerTest.kt",
+      "blob_sha": "2c7e7ffc8c8947fa2a92ee0e1e7321753efedcaf",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "blob_sha": "284056df77865a5626c6f81ee14cf454ed4f104a",
+      "scope": "retrieved audit snapshot; focused inspection, not a claim every line was reviewed"
+    }
+  ],
+  "new_local_build_or_device_test": false,
+  "repository_mutations": false
+}
