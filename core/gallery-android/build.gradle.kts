@@ -9,6 +9,8 @@ android {
 
 dependencies {
     implementation(project(":engine:gallery"))
+    implementation(project(":engine:classify"))
+    implementation(project(":core:safety"))
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
