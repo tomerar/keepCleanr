@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -21,6 +22,7 @@ import java.util.zip.DeflaterOutputStream
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BoundedPngDecoderTest {
     @Test
     fun `valid still png decodes and closes source`(): Unit = runBlocking {
@@ -65,6 +67,16 @@ class BoundedPngDecoderTest {
         val jpeg = TrackedStream(byteArrayOf(-1, -40, -1, -39))
         assertNull(BoundedPngDecoder.decode(jpeg))
         assertTrue(jpeg.closed)
+    }
+
+    @Test
+    fun `incomplete scanlines with valid chunks are refused`(): Unit = runBlocking {
+        // The zlib stream and all chunk CRCs are valid but contain one row instead of two.
+        val partial = png(width = 2, height = 2)
+        assertTrue(BoundedPngDecoder.isSupportedPng(partial))
+        val stream = TrackedStream(partial)
+        assertNull(BoundedPngDecoder.decode(stream))
+        assertTrue(stream.closed)
     }
 
     @Test

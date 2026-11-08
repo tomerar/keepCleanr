@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.core.gallery
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ColorSpace
+import android.graphics.ImageDecoder
 import io.github.tomerar.keepclear.engine.gallery.VisualFacts
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
+import java.nio.ByteBuffer
 import java.util.zip.CRC32
 
 /** Provisional primitive: caller must run off the UI thread and authorize/revalidate the source around this call. */
@@ -42,28 +43,24 @@ internal object BoundedPngDecoder {
             return null
         }
         currentCoroutineContext().ensureActive()
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        try {
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        } catch (_: RuntimeException) {
-            return null
-        }
-        val width = bounds.outWidth
-        val height = bounds.outHeight
-        if (width.toLong() != headerWidth || height.toLong() != headerHeight) return null
+        val width = headerWidth.toInt()
+        val height = headerHeight.toInt()
         var sample = 1
         while ((width.toLong() + sample - 1) / sample * ((height.toLong() + sample - 1) / sample) >
             MAX_DECODED_PIXELS
         ) {
             sample *= 2
         }
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = sample
-            inPreferredConfig = Bitmap.Config.ARGB_8888
-            inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
-        }
         val bitmap = try {
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(ByteBuffer.wrap(bytes))) { decoder, info, _ ->
+                require(info.size.width == width && info.size.height == height)
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                decoder.setTargetSampleSize(sample)
+                decoder.setTargetColorSpace(ColorSpace.get(ColorSpace.Named.SRGB))
+                decoder.setOnPartialImageListener { false }
+            }
+        } catch (_: IOException) {
+            null
         } catch (_: RuntimeException) {
             null
         } ?: return null
