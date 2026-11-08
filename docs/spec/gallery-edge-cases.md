@@ -1,6 +1,6 @@
 # Gallery edge cases
 
-**Status: Owner-approved scope and policy, 2026-11-08; implementation pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Extends existing E-* contracts without weakening them.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Extends existing E-* contracts without weakening them.
 
 | ID | Case | Required behavior / acceptance |
 |---|---|---|
@@ -34,6 +34,8 @@
 | E-G28 | User asks to “delete the worse camera shot” before backup | Existing camera memory rule remains: comparison and backup handoff only. A new deletion policy is outside this proposal, regardless of model confidence |
 
 Every implementation milestone maps its relevant E-G rows to named tests. Existing E-DEL/E-MOVE/E-RES/E-PERM/E-LIFE/E-LOW/E-SEC behavior continues to apply when the gallery hands off to existing flows.
+
+G1a's numeric counterexamples and remaining adapter/device gates are mapped in [traceability](gallery-traceability.md#actual-g1a-test-mapping-2026-11-08). In particular, E-G07/10/25 currently cover versioned read-port rejection, not a claim that Android/provider/process-death behavior has been tested.
 
 ## Selective processing and keeper decisions (owner 2026-11-08)
 

@@ -1,6 +1,6 @@
 # Builder handoff: implement KeepClear's efficient local gallery organizer
 
-Status: **Owner-authorized scope, 2026-11-08.** This is an implementation handoff, not a claim of completed code or benchmark results. The documentation owner has requested this handoff after reviewing the research and answering product questions.
+Status: **Owner-authorized scope, 2026-11-08.** Current implementation status: G1a internal code exists; its required CI gate is pending ([verification](../verification/gallery-g1a-2026-11-08.md)). The original handoff below describes the starting baseline; use docs/progress.md to select the next incomplete gate. This is an implementation handoff, not a claim of completed code or benchmark results. The documentation owner has requested this handoff after reviewing the research and answering product questions.
 
 Use the following prompt in a coding agent with access to `https://github.com/tomerar/keepCleanr`.
 

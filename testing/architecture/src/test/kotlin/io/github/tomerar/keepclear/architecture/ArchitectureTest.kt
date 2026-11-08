@@ -23,6 +23,7 @@ class ArchitectureTest {
             "engine/classify",
             "engine/trash",
             "engine/enrich",
+            "engine/gallery",
             "engine/move",
             "engine/restore",
             "backup/target-api",
@@ -30,6 +31,20 @@ class ArchitectureTest {
         )
 
     private val projectScope = Konsist.scopeFromProject()
+
+    @Test
+    fun `gallery has only numeric read-only capabilities (GAL-3, ADR 0014)`() {
+        val files = Konsist.scopeFromModule("engine/gallery").files.filter { "/src/main/" in it.path }
+        check(files.isNotEmpty())
+        files.assertFalse { file ->
+            Regex("""\bexternal\s+fun\b|\btypealias\b""").containsMatchIn(file.text)
+        }
+        files.assertTrue { file ->
+            file.imports.all {
+                it.name.startsWith("kotlin.math.") || it.name.startsWith("kotlinx.coroutines.")
+            }
+        }
+    }
 
     @Test
     fun `pure JVM modules do not import android`() {

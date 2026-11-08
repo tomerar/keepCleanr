@@ -1,6 +1,6 @@
 # Gallery implementation specification
 
-Status: **Owner-approved scope, 2026-11-08; implementation pending.**
+Status: **Owner-approved scope, 2026-11-08; G1a internal engine implemented, CI gate pending.**
 
 Build a free, entirely on-device organizer for similar/duplicate photos with a reasoned recommendation about what to keep. Use deterministic stages first; learned inference is optional and limited to an explicitly uncertain subset. Speed, incremental work, battery, memory and original-data safety are acceptance constraints.
 
@@ -20,4 +20,4 @@ The main requirements/design/tasks point here; gallery annexes own the detailed 
 
 ## Current milestone
 
-G0 scope approval is recorded. Start **G1a: read-only contracts and deterministic engine**. Do not add an ML dependency during G1a, do not change application safety categories and do not implement a hosted-provider integration. Follow each subsequent small milestone and its checks rather than implementing a speculative complete AI stack in one change.
+G0 scope approval is recorded. **G1a: read-only contracts and deterministic engine** is implemented behind an internal/test entry. Complete its required CI gate before G1b. See [verification](../verification/gallery-g1a-2026-11-08.md). Do not add an ML dependency during G1a, do not change application safety categories and do not implement a hosted-provider integration. Follow each subsequent small milestone and its checks rather than implementing a speculative complete AI stack in one change.

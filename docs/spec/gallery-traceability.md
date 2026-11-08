@@ -1,8 +1,21 @@
 # Gallery traceability and documentation changes
 
-**Status: Owner-approved scope and policy, 2026-11-08; implementation pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. Planned test names remain plans, not claims those tests already exist.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. The G1a verification section below lists actual tests. Other proposed test names remain plans, not claims those tests already exist.
 
-## Requirements → criteria → failure cases → tests → milestone
+## Actual G1a test mapping (2026-11-08)
+
+| Contract portion | Existing implementation verification | Remaining gate |
+|---|---|---|
+| GAL-3; AC-G2; T-G1/10/14 | Build-logic `ForbiddenApisTest`: fully qualified storage/proof/action/Android/network/ML and reflection/native escape counterexamples; `ArchitectureTest` adds gallery purity/import/native rules | Full CI and later action-boundary regressions; no disposal bridge exists |
+| GAL-5; E-G05/06; T-G8 | `GalleryGroupingPropertyTest`: chain rejection, seeded complete-link/disjoint/permutation properties, delayed copies, flat/text/aspect negatives, 5,000 collisions, cap counts and sizes | G2 candidate-generation recall, photographic quality and memory/latency measurements; AC-G4 not passed |
+| GAL-10; E-G22/32; AC-G15 policy | `GalleryKeeperAdviceTest`: measured reasons, tie/conflict/invalid-fact abstention; grouping test keeps tied quality resolved without escalation | Blinded preference evaluation and independent selection UI |
+| GAL-12/19 contract; E-G07/10/18/25/31; T-G4/5/13 | `GalleryGroupingPropertyTest`: changed same-size/time revision, incompatible feature version, NaN/Infinity/range errors, epoch/run changes during reads, cancellation | G1b real provider/cache/lifecycle behavior and process-death persistence |
+| GAL-24/25; AC-G13/14 numeric policy; E-G29/30/31 | `GalleryRunBudgetTest`: uncalibrated/resolved/no-match/unsupported rejection, pair admission, run-wide count, shared/cache participants, source/model/preprocessing mismatch, initialization/time/overrun, pause/cancel/stale/foreign ticket, failed retry, early stop | G2 calibration, G3 actual runtime lifecycle/initialization/inference and cache persistence; no model is loaded by G1a |
+| Feature primitive conventions | `PerceptualHashesTest`: dHash bit order, flat/structured pHash golden values and malformed samples | G1b real-format/orientation/colour/resize/quality fixtures |
+
+The 31 gallery tests and focused policy checks are JVM evidence only; the [verification record](../verification/gallery-g1a-2026-11-08.md) lists exact runs and pending checks. The principal verification table below retains later integration plans.
+
+## Requirements → criteria → failure cases → integration tests → milestone
 
 | Requirements | Acceptance | Edge cases | Proposed principal verification | Milestone |
 |---|---|---|---|---|

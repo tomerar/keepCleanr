@@ -1,6 +1,6 @@
 # ADR 0014: Gallery suggestions are local, advisory and separate from cleanup proof
 
-Status: **Accepted by owner, 2026-11-08** · Implementation pending
+Status: **Accepted by owner, 2026-11-08** · G1a internal advisory engine implemented; application integration pending
 
 Relates to ADRs 0006/0007/0008/0010/0011/0013; expands REV-8. Owner decisions D-G1…D-G8 are recorded in docs/spec/gallery-decisions.md. Acceptance approves staged local development, not a claim that the feature ships.
 

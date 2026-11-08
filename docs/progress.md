@@ -6,12 +6,12 @@
 
 Owner decisions [D-G1…D-G8](spec/gallery-decisions.md) are accepted: zero extra payment; entirely on-device; similar/duplicate images first; deterministic-first computation; optional AI only for a bounded ambiguous subset; incremental caching; factual keeper advice with abstention; no preselection/deletion or safety-category/proof change. Existing ChatGPT/Claude subscription ideas are later research, not approved network/billing integration.
 
-This is a documentation-only adoption and complete [builder handoff](prompts/gallery-builder.md), not an implemented feature or a passed model/device test. Gallery development is a scoped exception to the older freeze. All existing owner-device, release/signing and unrelated Later gates remain as recorded below.
+The adopted [builder handoff](prompts/gallery-builder.md) now has a G1a internal JVM implementation. It is not wired into the application, and no model/device gate has passed. [Verification record](verification/gallery-g1a-2026-11-08.md). Gallery development is a scoped exception to the older freeze. All existing owner-device, release/signing and unrelated Later gates remain as recorded below.
 
 | Gallery milestone | Status | Next evidence |
 |---|---|---|
-| G0 owner scope/authority | Adopted 2026-11-08 | Reconcile current code/schema/resources at implementation start; no repeated scope approval |
-| G1a deterministic read-only engine/router/budgets | Not started — **current** | Code, golden/property tests, no Android/network/write capability; no ML dependency |
+| G0 owner scope/authority | Adopted; baseline reconciled at `210b873` | Room 7, manual graph/platform thumbnails/MemoryHashCache confirmed; no Android SDK, physical device or labelled real-image corpus available here |
+| G1a deterministic read-only engine/router/budgets | Internal implementation and focused JVM verification done; **required CI gate pending** | Full ciCheck, build-logic and both release flavors must pass before advancing; see verification record |
 | G1b/G2 adapters/cache/baseline evaluation | Not started | Real-format tests and actual device/corpus baseline |
 | G3 optional selective local AI | Conditional, not started | Dependency/privacy/quality/efficiency admission; no runtime selected |
 | G4/G5/G6 UX/actions/validation/release | Not started | Existing safety gates, new live group-retention tests and honest hardware results |
@@ -449,7 +449,7 @@ Accepted on 2026-11-01: [ADR 0011](adr/0011-network-and-cloud-targets.md) with G
 
 ## Notes for resuming
 
-- **Current gallery work, 2026-11-08:** owner direction and ADR policies adopted; start G1a under [gallery-tasks.md](spec/gallery-tasks.md). The older resumption notes below are historical and do not require repeating the accepted scope approval. No gallery implementation or new phone check is complete.
+- **Current gallery work, 2026-11-08:** G1a internal JVM code exists; complete its CI gate before G1b under [gallery-tasks.md](spec/gallery-tasks.md). The older resumption notes below are historical and do not require repeating the accepted scope approval. No application integration or new phone check is complete; focused G1a verification is recorded separately.
 
 - **State on 2026-11-02 night (feature freeze):** the three allowed items are merged: SMB flaky-test diagnostics (#37, issue #36 open until it recurs), Device check screen (#38), OkHttp + real Nextcloud in CI (#39), Nextcloud in the app under Advanced (#40). Next: the owner runs the Device check on the phone; no new user features until the app runs there.
 - **State on 2026-11-01 evening:** v1 milestones M11–M16a, M17a, M17c and M18a are merged (PRs #19–#33). What is left needs the owner: M17b (wire Nextcloud/Dropbox into the app: needs W3, W4, W8), the rest of M18 (W5–W7), Google Drive (postponed), and the Later list.
