@@ -157,7 +157,7 @@ def confidence_interval(clusters, repetitions, seed):
     """Resample independently defined pair-label clusters, not correlated individual pairs."""
     if len(clusters) < 2 or repetitions < 1 or len(clusters) * repetitions > 10_000_000:
         return None
-    samples = list(clusters.values())
+    samples = [clusters[key] for key in sorted(clusters)]
     rng = random.Random(seed)
     values = []
     for _ in range(repetitions):
@@ -228,6 +228,7 @@ def evaluate(items, truth, suggested, candidates_found, split, repetitions, seed
         }
     return {
         "schema_version": 1,
+        "python_version": ".".join(str(part) for part in sys.version_info[:3]),
         "split": split,
         "eligible_images": len(eligible),
         "images_with_recorded_digest": sum(bool(item["digest"]) for item in eligible),

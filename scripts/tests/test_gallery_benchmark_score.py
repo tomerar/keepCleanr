@@ -163,9 +163,10 @@ class BenchmarkScoreTest(unittest.TestCase):
 
     def test_bootstrap_resamples_clusters_not_individual_pairs(self):
         clusters = {"one": [90, 10], "two": [0, 10], "none_selected": [0, 0]}
-        first = benchmark.confidence_interval(clusters, 1000, 7)
+        first = benchmark.confidence_interval(clusters, 10000, 7)
         self.assertIsNotNone(first)
-        self.assertEqual(first, benchmark.confidence_interval(clusters, 1000, 7))
+        self.assertEqual(first, benchmark.confidence_interval(clusters, 10000, 7))
+        self.assertEqual(first, benchmark.confidence_interval(dict(reversed(list(clusters.items()))), 10000, 7))
         self.assertEqual(first["independent_clusters"], 3)
         self.assertEqual(first["lower_95"], 0.0)
         self.assertEqual(first["upper_95"], 0.9)
