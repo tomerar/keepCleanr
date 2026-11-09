@@ -43,9 +43,12 @@ class G4aGalleryTest {
     private val controller = GalleryController(
         coordinator = lazyCoordinator(),
         liveScope = { fakes.scope },
-        exclusions = { { GalleryExclusions(ProtectedPaths()) } },
+        exclusions = { { live } },
         scope = work,
     )
+
+    /** The live exclusions the controller reads (kept roots change between steps of a test). */
+    @Volatile private var live = GalleryExclusions(ProtectedPaths())
 
     private fun lazyCoordinator(): () -> io.github.tomerar.keepclear.core.gallery.GalleryCoordinator {
         val c by lazy {
@@ -205,27 +208,25 @@ class G4aGalleryTest {
         controller.start(GalleryFakes.summary(items), scanComplete = true)
         assertEquals(2, until { it.phase == GalleryPhase.DONE }.groups.size)
         // Nothing changed: the same groups.
-        controller.refresh(GalleryFakes.summary(items), isKept = { false })
+        controller.refresh(GalleryFakes.summary(items))
         assertEquals(2, controller.state.value.groups.size)
         // The tied pair's photo 3 was cleaned since: the latest scan has no such item, so that pair is no group.
-        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }), isKept = { false })
+        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }))
         val cleaned = until { it.groups.size == 1 }
         assertTrue(cleaned.groups.single().members.none { it.item == items[2] })
         // Photo 1 was kept from the photo preview ("Don't suggest this again"): its pair goes too.
-        controller.refresh(
-            GalleryFakes.summary(items),
-            isKept = GalleryExclusions(ProtectedPaths(), setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))::isKept,
-        )
+        live = GalleryExclusions(ProtectedPaths(), setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))
+        controller.refresh(GalleryFakes.summary(items))
         assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
     }
 
     @Test
-    fun `back on the gallery, a photo whose lane changed shows its latest lane and an edited one leaves`() {
+    fun `back on the gallery, a changed lane shows, an edited photo or a new favourite leaves`() {
         val items = library()
         controller.start(GalleryFakes.summary(items), scanComplete = true)
         until { it.phase == GalleryPhase.DONE }
         val moved = items[1].copy(category = Category.MOVE)
-        controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }), isKept = { false })
+        controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }))
         val shown = until { s -> s.groups.any { g -> g.members.any { it.item == moved } } }
         assertTrue(shown.groups.single { g -> g.members.any { it.item == moved } }.hasMemories)
         // Photo 3 edited in place (same row and path, a new time): its old measurements no longer describe it.
@@ -242,10 +243,14 @@ class G4aGalleryTest {
                     }
                 },
             ),
-            isKept = { false },
         )
         val after = until { it.groups.size == 1 }
         assertTrue(after.groups.single().members.none { it.item.item.path == edited.item.path })
+        // Photo 1 made a favourite in another gallery app (unchanged path, size and time): a run would not compare
+        // it any more, so its pair goes too.
+        val favourite = items[0].copy(item = items[0].item.copy(isFavorite = true))
+        controller.refresh(GalleryFakes.summary(listOf(favourite, moved) + items.drop(2)))
+        assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
     }
 
     @Test

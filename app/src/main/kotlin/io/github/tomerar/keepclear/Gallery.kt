@@ -10,6 +10,7 @@ import io.github.tomerar.keepclear.core.gallery.GalleryProgress
 import io.github.tomerar.keepclear.core.gallery.GalleryRunState
 import io.github.tomerar.keepclear.core.gallery.GallerySkip
 import io.github.tomerar.keepclear.core.gallery.GallerySnapshot
+import io.github.tomerar.keepclear.core.gallery.galleryCompares
 import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
@@ -280,22 +281,24 @@ class GalleryController(
     }
 
     /**
-     * C235, CLS-7: on every return to the gallery the groups follow the latest scan and the user's kept choices. A
-     * photo the latest scan no longer has (cleaned, moved to the trash, deleted elsewhere) or one kept since, from
-     * here or from the photo preview, leaves its group; so does one edited or replaced in place (same row and path,
+     * C235, CLS-7: on every return to the gallery the groups follow the latest scan and the live exclusions. A photo
+     * the latest scan no longer has (cleaned, moved to the trash, deleted elsewhere) or one a run would no longer
+     * compare (kept from here or the photo preview, a favourite, protected, in a bin, on a backup drive) leaves its
+     * group; so does one edited or replaced in place (same row and path,
      * another size or time), whose measurements no longer describe it. A photo still there is shown with its latest
      * lane.
      */
-    fun refresh(summary: ClassificationSummary?, isKept: (String) -> Boolean) {
+    fun refresh(summary: ClassificationSummary?) {
         val latest = summary?.let { s -> GalleryUi.keyed(s.groups.flatMap { it.items }) }.orEmpty()
-        val next = items.mapNotNull { (key, shown) ->
-            latest[key]?.takeIf {
-                sameVersion(it, shown) && !isKept(it.item.path)
-            }?.let { key to it }
-        }.toMap()
-        if (next == items) return
-        items = next
-        last?.let(::publish)
+        scope.launch {
+            val live = exclusions()()
+            val next = items.mapNotNull { (key, shown) ->
+                latest[key]?.takeIf { sameVersion(it, shown) && galleryCompares(it, live) }?.let { key to it }
+            }.toMap()
+            if (next == items) return@launch
+            items = next
+            last?.let(::publish)
+        }
     }
 
     private fun sameVersion(latest: ClassifiedItem, shown: ClassifiedItem) = latest.item.path == shown.item.path &&

@@ -299,12 +299,7 @@ class MainActivity : ComponentActivity() {
                                 onAllowAccess = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
                                 onCheckAccess = {
                                     galleryVm.controller.checkScope()
-                                    // The kept rule as the scan applies it (GalleryExclusions, CLS-7).
-                                    val kept = io.github.tomerar.keepclear.core.gallery.GalleryExclusions(
-                                        io.github.tomerar.keepclear.core.safety.ProtectedPaths(),
-                                        app.userChoices.state.value.kept,
-                                    )
-                                    galleryVm.controller.refresh(vm.state.value.summary, kept::isKept)
+                                    galleryVm.controller.refresh(vm.state.value.summary)
                                 },
                                 onKeepThisTime = galleryVm.controller::keepThisTime,
                                 onDontOffer = { path ->

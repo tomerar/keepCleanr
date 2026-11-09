@@ -40,6 +40,7 @@ Mutations (each applied alone with `scripts`-style text replacement, the named t
 | Backup section shown for every group | `G4aScreensTest` "memories offer the existing backup …" |
 | Done always says "all N photos" | `G4aScreensTest` "run wording is honest …" |
 | `GalleryController.refresh` ignores a new size or time (edited in place) | `G4aGalleryTest` "… a photo whose lane changed shows its latest lane and an edited one leaves" (C235) |
+| `GalleryController.refresh` skips the eligibility check (new favourite, kept) | `G4aGalleryTest` both "back on the gallery …" tests (C235) |
 | `GalleryController.refresh` keeps its old members | `G4aGalleryTest` "back on the gallery, photos the latest scan dropped or the user kept …" and "… a photo whose lane changed shows its latest lane" (C235) |
 | `stopGalleryInBackground` does not stop the run | `G4aGalleryTest` "leaving the app stops a running comparison …" (C236) |
 | `Gallery.kt` imports `core.safety.ActionPlan` | `ArchitectureTest` "app gallery code is offline, advisory and foreground" |
