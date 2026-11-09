@@ -13,6 +13,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 
 ### Added
 - Add an internal gallery analysis coordinator: it works out the current photo access (none, selected photos, all photos, all files) on every check, hides cached results at once when that access changes, analyses only still images the latest scan found and that are not protected, kept, in a bin or on a backup drive, reuses unchanged results, pauses when the phone is nearly full and can be stopped and continued. Nothing in the app starts it yet.
+- Add internal bounded JPEG still decoding (marker, dimension and EXIF checks before decoding; orientation applied once; progressive, CMYK, Motion Photo, multi-picture and trailing-data files skipped as unsupported) and make the guarded MediaStore read choose PNG or JPEG by content signature with explicit unsupported results. Nothing is connected to the application.
 - Add an internal, private gallery feature cache (database schema 8): numeric facts only, reused only for the same source version, feature version and permission scope, bounded in size, paused when the phone is nearly full, and clearable without touching the trash, backups or kept choices. Nothing uses it yet.
 - Begin an internal guarded PNG read that compares MediaStore observations before and after decoding; no application entry or action is enabled.
 - Add a limited internal PNG stream decoder with byte and pixel caps, CRC validation, animated/EXIF rejection and cooperative cancellation; it is not connected to the application.

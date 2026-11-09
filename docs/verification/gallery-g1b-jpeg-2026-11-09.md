@@ -1,0 +1,36 @@
+# G1b: bounded JPEG still decoding through the guarded MediaStore read
+
+Date: 2026-11-09. Base: `60036c311d555dfaee37612b7a30ddc2323ddf2e` (main after PR #71). Branch `g1b-jpeg`, local, not yet a PR. Decisions C200–C204 in [progress](../progress.md). There is still no gallery entry in the application, no cache, no permission-epoch coordinator and no app caller.
+
+## What changed
+
+- `BoundedStillDecoder` reads at most 8 MiB (one extra byte detects overflow), always closes the stream and chooses the decoder only from the content signature: PNG magic bytes, or JPEG SOI followed by a marker. Every other signature (GIF, WebP, HEIF/HEIC, AVIF, BMP, TIFF/DNG, empty) is `UNSUPPORTED_FORMAT`. Results are `Decoded(facts)` or `Skipped(reason)` with reasons unsupported format, unsupported variant, file too large, image too large or damaged.
+- `BoundedJpegDecoder` walks the whole marker structure to EOI before any bitmap is allocated: segment lengths, fill bytes, stuffed bytes and restart markers inside entropy data, one frame, a scan after the frame, at most 4,096 segments, cancellation checks every 64 segments and every 64 KiB of entropy data. It analyzes only SOF0/SOF1, 8-bit, one or three components, declared size at most 100 megapixels, nothing after EOI. Progressive, CMYK/YCCK, 12-bit, arithmetic, lossless, hierarchical and DNL frames, MPF `APP2`, any trailing data (Motion Photo video, MPF/Ultra HDR images), several EXIF blocks are unsupported variants (C201, C202); malformed EXIF or orientation outside 1–8 is damaged.
+- Orientation (C200): ImageDecoder applies EXIF orientation. The decoder reads IFD0 orientation, requires ImageDecoder's reported size to equal the oriented size, and hands the upright bitmap to `CanonicalPixels` with orientation 1. Decoding requests sRGB, a software bitmap, a power-of-two sample size keeping output at or below 262,144 pixels, and refuses partial images. The output bitmap must match the sampled oriented size, and it is recycled.
+- `BoundedPngDecoder` now shares the reader and platform decode step; its public behaviour and tests are unchanged.
+- `GuardedMediaPngRead` is renamed `GuardedMediaStillRead` (C204). It returns `Read`, `Unsupported(reason)` or `Unavailable`. A row above 8 MiB is reported too large without being opened; for every opened source the read byte count must equal the observed size, and the after-observation and live gate must match before either features or an unsupported reason are returned.
+- Not changed: the input bytes and the source (tests check the byte array and that the fake provider receives no insert/update/delete).
+
+## Evidence for the orientation decision
+
+`JpegOrientationDeviceTest` (PR #71) decodes generated JPEGs with each EXIF value and checks dimensions and corner colours. The instrumented job that runs `:core:gallery-android:connectedDebugAndroidTest` succeeded on API 30 and API 36 emulators for PR #71's head `2b0eb66` (Actions run 42504255417) and for main `60036c3` (run 42545063381). A local Robolectric native-graphics probe gave the same behaviour: orientation 6 on a 40×20 JPEG reported `ImageInfo` size 20×40 and decoded to 20×40. Mirror-only orientations (2, 3, 4) do not change the size, so for them the safeguard relies on that device test.
+
+## Tests (local, synthetic, generated in memory)
+
+`:core:gallery-android:testDebugUnitTest` passed: 43 tests. Of these, 11 are new in `BoundedJpegDecoderTest`, 11 in `GuardedMediaStillReadTest` (7 earlier PNG guard cases with the same meaning against the new result type, plus 4 new), and 6 PNG, 7 canonical-pixel and 8 observation tests unchanged.
+
+- `BoundedJpegDecoderTest`: valid baseline JPEG, input unchanged, stream closed; all eight orientations through decode and canonical features give the upright reference's dHash/pHash/aspect, while the eight stored arrangements without EXIF are distinct; 1024×768 downsampled with full-resolution pixel count; truncation at five points, bad segment length, unknown marker, scan before frame, second SOI, zero width; damaged/duplicate/little-endian/invalid EXIF; 120 MP declared refused, 100 MP accepted by the header check, more than 8 MiB refused after reading 8 MiB + 1; trailing byte, appended MP4 `ftyp`, appended JPEG, MPF `APP2`; progressive/lossless/arithmetic/hierarchical frame markers, CMYK, 12-bit, DNL height, DAC, second frame; dispatch of PNG and JPEG and refusal of GIF, WebP, HEIC, AVIF, BMP, TIFF, bare SOI and empty input; cancellation during the read and during a 256 KiB entropy scan.
+- `GuardedMediaStillReadTest`: a JPEG stored as `a.png` with MIME `image/png` is decoded as JPEG (orientation 6 gives aspect 2.0); a current GIF, a JPEG with trailing data and a truncated JPEG give the matching unsupported reason after the full guard; an unsupported source whose generation changes during the read is unavailable; a row above the cap is reported too large and never opened.
+
+Mutations, each run against the full module test task and each failing at least one test (then reverted): no dimension swap for orientations 5–8; EXIF orientation ignored; orientation applied a second time in `CanonicalPixels`; trailing data allowed; progressive allowed; CMYK allowed; entropy-scan cancellation check removed; MPF allowed; source-pixel bound removed; JPEG not dispatched; oversize row opened; unsupported returned without the after-observation; no downsampling; duplicate EXIF allowed; byte-count check removed.
+
+Instrumented (compiled locally with `:core:gallery-android:assembleDebugAndroidTest`; execution on API 30/36 is pending CI): `BoundedJpegDecoderDeviceTest` runs all eight orientations, a downsampled decode, truncation, trailing data and PNG dispatch through the real platform decoder; `MediaStoreObservationDeviceTest` now also inserts an orientation-6 JPEG into MediaStore and reads it through `GuardedMediaStillRead`.
+
+## Known limits, not verified
+
+- JPEG has no checksum. A file cut without an end marker is refused, but cut entropy data followed by an end marker passed the structure check and decoded as a complete image under Robolectric native graphics (the platform fills the gap). Features then describe damaged pixels (C203). The device behaviour for this case was not checked.
+- Progressive JPEGs, Motion Photos, MPF/Ultra HDR files and JPEGs above 8 MiB are reported unsupported, not analyzed. How many camera files that affects on a real phone is unmeasured.
+- No photographic accuracy, device memory peak, decode time, battery, low-space, blocked-provider cancellation, real permission-epoch or Selected Photos behaviour is claimed. Cancellation of a single blocked provider read or native decode is not guaranteed.
+- Full CI and review are pending; see the report for the exact local checks.
+
+Review of PR #73: a sequential JPEG with several scans, or one scan that does not cover every frame component, is now unsupported before the platform decoder runs, because it needs whole-image coefficient buffers that sample-size downscaling does not bound. `BoundedJpegDecoderTest` checks three-component frames split into three single-component scans, two full scans and one partial scan, and that a one-component, one-scan grey JPEG still passes. Mutation: dropping the check makes that test fail.

@@ -35,6 +35,8 @@
 
 Every implementation milestone maps its relevant E-G rows to named tests. Existing E-DEL/E-MOVE/E-RES/E-PERM/E-LIFE/E-LOW/E-SEC behavior continues to apply when the gallery hands off to existing flows.
 
+G1b still decoding (2026-11-09, C200–C204): E-G04/11/12/13 are covered for PNG and JPEG by `BoundedPngDecoderTest`, `BoundedJpegDecoderTest` and `GuardedMediaStillReadTest` (synthetic fixtures) and by API 30/36 instrumented tests pending CI. Unsupported formats and variants (GIF, WebP, HEIF/AVIF, progressive or CMYK JPEG, Motion Photo, MPF/Ultra HDR, any data after the JPEG end marker) are skipped with an explicit reason; see the [support matrix](gallery-design.md#pipeline-and-algorithms). Known limit: JPEG has no checksum, so damage that keeps the marker structure (including cut entropy data followed by an end marker) decodes to wrong pixels rather than being refused.
+
 G1a's numeric counterexamples and remaining adapter/device gates are mapped in [traceability](gallery-traceability.md#actual-g1a-test-mapping-2026-11-08). In particular, E-G07/10/25 currently cover versioned read-port rejection, not a claim that Android/provider/process-death behavior has been tested.
 
 ## Selective processing and keeper decisions (owner 2026-11-08)
