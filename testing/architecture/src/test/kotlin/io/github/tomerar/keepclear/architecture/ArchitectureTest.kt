@@ -111,6 +111,45 @@ class ArchitectureTest {
     }
 
     /**
+     * G4a (C224; GAL-20, AC-G8): the app's gallery screens and controller stay offline, advisory and foreground. They
+     * open no socket or URL and reach no backup or network module, never touch the file-action API (no executor,
+     * plan or confirmation: disposal is G4b), and never schedule work.
+     */
+    @Test
+    fun `app gallery code is offline, advisory and foreground`() {
+        val files = Konsist.scopeFromModule("app").files.filter { file ->
+            "/src/main/" in file.path && listOf("/Gallery.kt", "/GalleryScreens.kt").any { file.path.endsWith(it) }
+        }
+        check(files.size == 2)
+        val forbiddenImports = listOf(
+            "java.net",
+            "javax.net",
+            "okhttp3",
+            "android.net",
+            "io.github.tomerar.keepclear.backup",
+            "io.github.tomerar.keepclear.core.safety",
+            "io.github.tomerar.keepclear.engine.trash",
+            "io.github.tomerar.keepclear.engine.move",
+            "androidx.work",
+        )
+        val forbiddenText = listOf(
+            "Socket",
+            "URL(",
+            "openConnection",
+            "executor(",
+            "ActionPlan",
+            "Confirmation",
+            "WorkManager",
+            "GlobalScope",
+            "startService",
+        )
+        files.assertFalse { file ->
+            file.imports.any { imp -> forbiddenImports.any { imp.name.startsWith(it) } } ||
+                forbiddenText.any { it in file.text }
+        }
+    }
+
+    /**
      * GAL-11, AC-G8 (C209): the gallery cache lives in the app database (`databases/keepclear.db`), and app data never
      * goes to a cloud backup or a device transfer: `allowBackup=false`, and both rule files exclude the database
      * domain (and every other domain).

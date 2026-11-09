@@ -65,6 +65,8 @@ fun AppScreens(
     tabs: TabsUi = TabsUi(),
     /** PR H3: Help, history and About. */
     info: InfoUi = InfoUi(),
+    /** G4a: the read-only gallery comparison. */
+    gallery: GalleryHost = GalleryHost(),
 ) {
     // F1b: system Back pops the shown tab's stack, then goes to the first tab; there it closes the app.
     BackHandler(enabled = Nav.handlesBack(state), onBack = onBack)
@@ -105,6 +107,7 @@ fun AppScreens(
                     moveFlow,
                     tabs,
                     info,
+                    gallery,
                 )
             }
         }
@@ -247,6 +250,7 @@ private fun CurrentScreen(
     moveFlow: kotlinx.coroutines.flow.StateFlow<MoveUiState>?,
     tabs: TabsUi,
     info: InfoUi,
+    gallery: GalleryHost,
 ) {
     val summary = state.summary
     // PR H3: Help's and Settings' links open screens only; "Restore from a backup" is the Backup tab's own flow.
@@ -313,7 +317,31 @@ private fun CurrentScreen(
                     },
                     onBack = onBack,
                     onBackUp = { onOpen(Screen.Backup) },
+                    // G4a: the review lane's "Find similar photos" (user-started, read-only).
+                    onFindSimilar = { onOpen(Screen.Gallery) }.takeIf {
+                        screen.category == io.github.tomerar.keepclear.core.model.Category.REVIEW
+                    },
                 )
+            }
+        }
+
+        Screen.Gallery -> {
+            val ui = gallery.flow?.collectAsStateWithLifecycle()?.value ?: gallery.value
+            GalleryScreen(ui, galleryActions(gallery, onOpen), onOpenGroup = {
+                onOpen(Screen.GalleryGroup(it))
+            }, onBack)
+        }
+
+        is Screen.GalleryGroup -> {
+            val ui = gallery.flow?.collectAsStateWithLifecycle()?.value ?: gallery.value
+            // A group that is gone (kept this time, its photos no longer offered, or access changed) is never shown
+            // from an old state: the list is.
+            val group = ui.groups.firstOrNull { it.id == screen.id }
+            val actions = galleryActions(gallery, onOpen)
+            if (group == null) {
+                GalleryScreen(ui, actions, onOpenGroup = { onOpen(Screen.GalleryGroup(it)) }, onBack)
+            } else {
+                GalleryGroupScreen(group, actions, onBack)
             }
         }
 
@@ -481,6 +509,25 @@ private fun CurrentScreen(
             if (item == null) home() else PreviewScreen(item, onBack, previewActions)
         }
     }
+}
+
+/** G4a: the gallery's actions, with a photo opening the existing preview and Back up opening the Backup tab. */
+private fun galleryActions(gallery: GalleryHost, onOpen: (Screen) -> Unit): GalleryActions {
+    val a = gallery.actions
+    return GalleryActions(
+        onStart = a.onStart,
+        onStop = a.onStop,
+        onContinue = a.onContinue,
+        onAllowAccess = a.onAllowAccess,
+        onCheckAccess = a.onCheckAccess,
+        onKeepThisTime = a.onKeepThisTime,
+        onDontOffer = a.onDontOffer,
+        onBackUp = {
+            a.onBackUp()
+            onOpen(Screen.Backup)
+        },
+        onOpenPhoto = { item -> onOpen(Screen.Preview(item.item.path, item.ruleId, item.category)) },
+    )
 }
 
 /** PR H3: what Help, "What KeepClear did" and About show. */

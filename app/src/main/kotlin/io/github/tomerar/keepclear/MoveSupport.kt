@@ -135,6 +135,8 @@ class MoveController(private val app: KeepClearApplication) {
         onCancelled: () -> Unit = {},
         block: suspend (progress: (done: Int, total: Int) -> Unit) -> Unit,
     ): Job? {
+        // E-G20 (C221): freeing, checking and restoring take priority over a running gallery comparison.
+        app.pauseGalleryForFileAction()
         synchronized(this) {
             // PR #45 review: a cancelled task counts as running until it has completed (its clean-up, e.g. closing
             // a network connection, may still run), so a replacement can't start under it.
@@ -213,7 +215,11 @@ class MoveController(private val app: KeepClearApplication) {
         ContextCompat.startForegroundService(context, intent)
     }
 
-    fun start(context: Context, jobId: String) = startJobService(context, jobId)
+    fun start(context: Context, jobId: String) {
+        // E-G20 (C221): a backup copy (start or Continue) takes priority over a running gallery comparison.
+        app.pauseGalleryForFileAction()
+        startJobService(context, jobId)
+    }
 
     /** Set by the running service; same process, so no background service start is needed (Android 12+). */
     @Volatile internal var stopper: ((PauseReason) -> Unit)? = null

@@ -11,7 +11,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-832 Hebrew strings; 457 new since the last review (342 new, 115 changed).
+889 Hebrew strings; 514 new since the last review (399 new, 115 changed).
 
 ## Contents
 
@@ -21,24 +21,25 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 - [Clean now](#clean-now) (44, 28 new since last review)
 - [Review (categories, groups, item preview)](#review-categories-groups-item-preview) (49, 23 new since last review)
 - [Swipe review](#swipe-review) (24, 17 new since last review)
-- [Move to backup and restore](#move-to-backup-and-restore) (245, 143 new since last review)
+- [Similar photos](#similar-photos) (57, 57 new since last review)
+- [Move to backup and restore](#move-to-backup-and-restore) (242, 140 new since last review)
 - [Trash](#trash) (54, 27 new since last review)
 - [Apps](#apps) (34, 7 new since last review)
 - [Settings](#settings) (61, 39 new since last review)
-- [Help, history and About](#help-history-and-about) (69, 69 new since last review)
+- [Help, history and About](#help-history-and-about) (71, 71 new since last review)
 - [Nextcloud set-up (Settings › Advanced)](#nextcloud-set-up-settings--advanced) (25, 11 new since last review)
 - [Notifications](#notifications) (6, 4 new since last review)
 - [Device check (test builds)](#device-check-test-builds) (9, 1 new since last review)
 - [Launcher shortcuts](#launcher-shortcuts) (6, 6 new since last review)
 - [Other](#other) (20, 20 new since last review)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96, 16 new since last review)
-- [Not used in code](#not-used-in-code) (3, 3 new since last review)
+- [Not used in code](#not-used-in-code) (4, 4 new since last review)
 
 ## Intro and permissions
 
 | Key | English | עברית | Also | Status |
 |---|---|---|---|---|
-| `access_allow` | Allow access | לאשר גישה | Home | reviewed |
+| `access_allow` | Allow access | לאשר גישה | Home, Similar photos | reviewed |
 | `access_card_body` | To look at your photos, videos and files, KeepClear needs your permission. Everything stays on this phone. | כדי להסתכל על התמונות, הסרטונים והקבצים, KeepClear צריך את האישור שלכם. הכול נשאר בטלפון. | Home | reviewed |
 | `access_card_title` | See what's taking space | לראות מה תופס מקום | Home | reviewed |
 | `access_folder_only` | Only choose WhatsApp's folder | לבחור רק את התיקייה של וואטסאפ | Home | **new** (new since last review) |
@@ -193,7 +194,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `choice_always_junk` | Always suggest cleaning this folder | להציע תמיד לנקות את התיקייה הזו |  | **changed** (new since last review) |
 | `choice_always_junk_body` | From the next scan, files from %1$s appear in "Clean now". You can undo this in Settings. | מהסריקה הבאה, קבצים מ-%1$s יופיעו ב„לנקות עכשיו”. אפשר לבטל בהגדרות. |  | **changed** (new since last review) |
 | `choice_always_junk_confirm` | Always suggest it | להציע תמיד |  | **changed** (new since last review) |
-| `choice_keep` | Don't suggest this again | לא להציע את זה שוב |  | **changed** (new since last review) |
+| `choice_keep` | Don't suggest this again | לא להציע את זה שוב | Similar photos | **changed** (new since last review) |
 | `cloned_label` | Cloned app | אפליקציה משוכפלת |  | reviewed |
 | `grid_search_clear` | Clear the search | לנקות את החיפוש | Move to backup and restore, Trash | **new** (new since last review) |
 | `grid_search_hint` | Search by name or date, e.g. July 2021 | חיפוש לפי שם או תאריך, למשל יולי 2021 | Move to backup and restore, Trash | **new** (new since last review) |
@@ -268,6 +269,68 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `swipe_summary_note` | Next you see the list and can take items out. Deleted files go to the trash for 30 days. | בשלב הבא מוצגת הרשימה ואפשר להוציא ממנה פריטים. קבצים שנמחקים עוברים לסל המחזור ל-30 יום. |  | reviewed |
 | `swipe_undo` | Undo | חזרה |  | **changed** (new since last review) |
 
+## Similar photos
+
+| Key | English | עברית | Also | Status |
+|---|---|---|---|---|
+| `details` | See details | לראות פרטים | Move to backup and restore | **changed** (new since last review) |
+| `gallery_access_changed` | Access to your photos changed, so the earlier results are hidden. Nothing was deleted. | הגישה לתמונות השתנתה, אז התוצאות הקודמות הוסתרו. שום דבר לא נמחק. |  | **new** (new since last review) |
+| `gallery_back_up` | Back up | לגבות |  | **new** (new since last review) |
+| `gallery_close` | Close | לסגור |  | **new** (new since last review) |
+| `gallery_compare_hint` | This is only a suggestion; nothing is chosen. Tap a photo to see it larger. | זו רק המלצה, שום דבר לא נבחר. אפשר ללחוץ על תמונה כדי לראות אותה גדולה. |  | **new** (new since last review) |
+| `gallery_continue` | Continue | להמשיך |  | **new** (new since last review) |
+| `gallery_detail_decoded` | Looked at now: %1$s | נבדקו עכשיו: %1$s |  | **new** (new since last review) |
+| `gallery_detail_eligible` | Photos to compare: %1$s | תמונות להשוואה: %1$s |  | **new** (new since last review) |
+| `gallery_detail_excluded` | Left out on purpose, like favourites, photos you chose not to be offered, protected folders, the gallery's bin or a backup drive: %1$s | הושארו בחוץ בכוונה, כמו מועדפים, תמונות שביקשתם לא להציע, תיקיות מוגנות, סל הגלריה או דיסק גיבוי: %1$s |  | **new** (new since last review) |
+| `gallery_detail_from_cache` | Compared before and unchanged: %1$s | הושוו קודם ולא השתנו: %1$s |  | **new** (new since last review) |
+| `gallery_detail_limits` | Some photos may have more similar ones than shown. | ייתכן שלחלק מהתמונות יש עוד תמונות דומות שלא מוצגות. |  | **new** (new since last review) |
+| `gallery_detail_method` | KeepClear compares the pictures themselves with simple checks on this phone: size, sharpness and brightness. It doesn't use the internet. | KeepClear משווה את התמונות עצמן בבדיקות פשוטות בטלפון: גודל, חדות ובהירות. הוא לא משתמש באינטרנט. |  | **new** (new since last review) |
+| `gallery_detail_not_reached` | Not reached yet: %1$s | עוד לא הגענו אליהן: %1$s |  | **new** (new since last review) |
+| `gallery_detail_not_saved` | Results aren't saved on the phone this time, so the next comparison starts over. | הפעם התוצאות לא נשמרות בטלפון, אז ההשוואה הבאה תתחיל מההתחלה. |  | **new** (new since last review) |
+| `gallery_detail_skip_changed` | Changed or gone during the comparison: %1$s | השתנו או נעלמו בזמן ההשוואה: %1$s |  | **new** (new since last review) |
+| `gallery_detail_skip_damaged` | Damaged, empty or incomplete: %1$s | פגומות, ריקות או לא שלמות: %1$s |  | **new** (new since last review) |
+| `gallery_detail_skip_format` | Kind of file not supported yet: %1$s | סוג קובץ שעוד לא נתמך: %1$s |  | **new** (new since last review) |
+| `gallery_detail_skip_large` | Too large to compare: %1$s | גדולות מדי להשוואה: %1$s |  | **new** (new since last review) |
+| `gallery_detail_skip_no_reader` | In places KeepClear can't compare yet: %1$s | במקומות ש-KeepClear עוד לא יודע להשוות: %1$s |  | **new** (new since last review) |
+| `gallery_detail_skip_variant` | Special photos, like moving photos or several pictures in one file: %1$s | תמונות מיוחדות, כמו תמונות חיות או כמה תמונות בקובץ אחד: %1$s |  | **new** (new since last review) |
+| `gallery_details_title` | Details | פרטים |  | **new** (new since last review) |
+| `gallery_done_complete` | Done: all %1$s photos KeepClear can see were compared. | סיום: כל %1$s התמונות ש-KeepClear רואה הושוו. |  | **new** (new since last review) |
+| `gallery_done_partial` | Done: %1$s of %2$s photos were compared. Some couldn't be compared, so this isn't every photo. | סיום: ‏%1$s מתוך %2$s תמונות הושוו. חלק מהתמונות לא הושוו, אז אלה לא כל התמונות. |  | **new** (new since last review) |
+| `gallery_entry_body` | Photos that look almost the same, side by side. Nothing is deleted or moved. | תמונות שנראות כמעט אותו דבר, זו לצד זו. שום דבר לא נמחק ולא זז. |  | **new** (new since last review) |
+| `gallery_entry_title` | Find similar photos | למצוא תמונות דומות |  | **new** (new since last review) |
+| `gallery_group_count` | [one] %1$s similar photo / [other] %1$s similar photos | [one] תמונה דומה אחת / [two] שתי תמונות דומות / [other] %1$s תמונות דומות |  | **new** (new since last review) |
+| `gallery_group_memories` | Includes memories: back them up first | יש כאן זיכרונות, כדאי לגבות אותם קודם |  | **new** (new since last review) |
+| `gallery_groups_title` | Similar groups | קבוצות דומות |  | **new** (new since last review) |
+| `gallery_keep_this_time` | Keep them all this time | להשאיר את כולן הפעם |  | **new** (new since last review) |
+| `gallery_needs_scan` | Scan the phone first; then similar photos can be compared. | קודם צריך לסרוק את הטלפון, ואז אפשר להשוות תמונות דומות. |  | **new** (new since last review) |
+| `gallery_no_groups` | No similar photos were found among the photos that were compared. | לא נמצאו תמונות דומות בין התמונות שהושוו. |  | **new** (new since last review) |
+| `gallery_no_recommendation` | No clear recommendation | אין המלצה ברורה |  | **new** (new since last review) |
+| `gallery_no_recommendation_body` | These photos are about equally good. | התמונות האלה טובות בערך באותה מידה. |  | **new** (new since last review) |
+| `gallery_on_phone` | The comparison runs on this phone only. Nothing is deleted, moved or sent anywhere. | ההשוואה נעשית רק בטלפון. שום דבר לא נמחק, לא זז ולא נשלח לשום מקום. |  | **new** (new since last review) |
+| `gallery_paused_action` | Paused while KeepClear works on your files. Tap Continue when it's done. | ההשוואה הושהתה בזמן ש-KeepClear עובד על הקבצים. אפשר ללחוץ על „להמשיך” כשהוא מסיים. |  | **new** (new since last review) |
+| `gallery_paused_space` | Paused: the phone is almost full. Free up some space, then tap Continue. | ההשוואה הושהתה: הטלפון כמעט מלא. אפשר לפנות קצת מקום ואז ללחוץ על „להמשיך”. |  | **new** (new since last review) |
+| `gallery_progress` | %1$s of %2$s photos | %1$s מתוך %2$s תמונות |  | **new** (new since last review) |
+| `gallery_reason_clipping` | Fewer areas that are too bright or too dark | פחות אזורים בהירים או כהים מדי |  | **new** (new since last review) |
+| `gallery_reason_resolution` | Higher resolution | רזולוציה גבוהה יותר |  | **new** (new since last review) |
+| `gallery_reason_sharper` | Sharper | חדה יותר |  | **new** (new since last review) |
+| `gallery_review_later` | Choosing what to delete from here comes in a later version. | האפשרות לבחור מכאן מה למחוק תגיע בגרסה מאוחרת יותר. |  | **new** (new since last review) |
+| `gallery_running` | Comparing photos… | משווים תמונות… |  | **new** (new since last review) |
+| `gallery_scope_all` | KeepClear compares all the photos it can see on this phone. | KeepClear משווה את כל התמונות שהוא רואה בטלפון. |  | **new** (new since last review) |
+| `gallery_scope_none` | KeepClear can't see your photos yet. Allow access to compare them. | KeepClear עדיין לא רואה את התמונות. כדי להשוות אותן, צריך לתת גישה. |  | **new** (new since last review) |
+| `gallery_scope_selected` | KeepClear sees only the photos you picked, so only those are compared. | KeepClear רואה רק את התמונות שבחרתם, אז רק הן מושוות. |  | **new** (new since last review) |
+| `gallery_section_memories` | Memories to back up | זיכרונות לגבות |  | **new** (new since last review) |
+| `gallery_section_review` | Other photos | תמונות אחרות |  | **new** (new since last review) |
+| `gallery_skipped` | [one] %1$s photo couldn't be compared / [other] %1$s photos couldn't be compared | [one] לא ניתן היה להשוות תמונה אחת / [two] לא ניתן היה להשוות שתי תמונות / [other] לא ניתן היה להשוות %1$s תמונות |  | **new** (new since last review) |
+| `gallery_start` | Compare photos | להשוות תמונות |  | **new** (new since last review) |
+| `gallery_start_again` | Compare again | להשוות שוב |  | **new** (new since last review) |
+| `gallery_stop` | Stop | לעצור |  | **new** (new since last review) |
+| `gallery_stopped` | Stopped. %1$s of %2$s photos were compared; the groups below come from those only. | ההשוואה נעצרה. ‏%1$s מתוך %2$s תמונות הושוו, והקבוצות כאן הן רק מהן. |  | **new** (new since last review) |
+| `gallery_suggested` | Suggested to keep | מומלץ להשאיר |  | **new** (new since last review) |
+| `gallery_suggested_reasons` | Suggested to keep: %1$s | מומלץ להשאיר: %1$s |  | **new** (new since last review) |
+| `gallery_title` | Similar photos | תמונות דומות |  | **new** (new since last review) |
+| `grid_preview` | Preview | להציג | Move to backup and restore, Trash | **new** (new since last review) |
+| `grid_tile_description` | %1$s, %2$s, %3$s | %1$s, %2$s, %3$s | Move to backup and restore, Trash | **new** (new since last review) |
+
 ## Move to backup and restore
 
 | Key | English | עברית | Also | Status |
@@ -288,7 +351,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `backup_progress_announce` | Backup %1$s done | הגיבוי הגיע ל-%1$s |  | **new** (new since last review) |
 | `backup_progress_eta` | %1$s of %2$s · about %3$s left | %1$s מתוך %2$s · נשארו כ-%3$s | Other | **new** (new since last review) |
 | `backup_running_to` | Backing up to %1$s | מגבים אל %1$s |  | **new** (new since last review) |
-| `details` | See details | לראות פרטים |  | **changed** (new since last review) |
 | `details_check_pc` | Developer check on a computer: sha256sum -c SHA256SUMS in the backup folder. Each file's SHA-256 is in keepclear-manifest.jsonl. | בדיקה למפתחים במחשב: sha256sum -c SHA256SUMS בתיקיית הגיבוי. ה-SHA-256 של כל קובץ נמצא ב-keepclear-manifest.jsonl. |  | reviewed |
 | `details_nextcloud_check` | Your Nextcloud computed the SHA-256 of each stored copy (X-Hash-SHA256 over WebDAV) and it matched the original's, so nothing had to be downloaded. Copies it didn't report were read back over the network instead. Before space is freed, every copy is read back and checked once more. | ה-Nextcloud חישב SHA-256 לכל עותק שנשמר (X-Hash-SHA256 דרך WebDAV) והוא זהה לזה של המקור, כך שלא היה צורך להוריד דבר. עותקים שעליהם לא דיווח נקראו בחזרה דרך הרשת. לפני פינוי מקום, כל עותק נקרא שוב ונבדק פעם נוספת. |  | reviewed |
 | `details_unencrypted` | Files on the drive are stored as they are, without encryption, so any computer can open them. | הקבצים בכונן נשמרים כמו שהם, בלי הצפנה, כך שאפשר לפתוח אותם בכל מחשב. |  | **new** (new since last review) |
@@ -308,10 +370,8 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `free_whatsapp` | In the chat the file will show as unavailable; the copy is kept in the backup. | בצ'אט יופיע שהקובץ לא זמין; העותק שמור בגיבוי |  | **new** (new since last review) |
 | `free_where_for_good` | Deleted from the phone; the copy stays on %1$s | יימחקו מהטלפון; העותק נשאר ב-%1$s |  | **new** (new since last review) |
 | `grid_no_match` | No file matches this search. | אין קובץ שמתאים לחיפוש. | Trash | **new** (new since last review) |
-| `grid_preview` | Preview | להציג | Trash | **new** (new since last review) |
 | `grid_show_grid` | Show as pictures | להציג כתמונות | Trash | **new** (new since last review) |
 | `grid_show_months` | Show by month | להציג לפי חודשים |  | **new** (new since last review) |
-| `grid_tile_description` | %1$s, %2$s, %3$s | %1$s, %2$s, %3$s | Trash | **new** (new since last review) |
 | `move_age_12` | More than a year old | מלפני יותר משנה |  | reviewed |
 | `move_age_6` | More than 6 months old | מלפני יותר מחצי שנה |  | reviewed |
 | `move_age_all` | Everything | הכול |  | reviewed |
@@ -721,6 +781,8 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `help_private_space_title` | Private space | מרחב פרטי |  | **new** (new since last review) |
 | `help_safe_body` | KeepClear never deletes anything without your tap, and never in the background. ⏎  ⏎ Most of what you clean waits 30 days in the trash, so you can restore it. Files that rebuild themselves are deleted right away. ⏎  ⏎ KeepClear never touches WhatsApp chats and their backups, the drive you back up to, or files you chose to keep. ⏎  ⏎ Right before it deletes anything, KeepClear checks each file again. A file that changed since the scan is left where it is, and you are told. ⏎  ⏎ Nothing leaves the phone except the copies you back up to a place you chose. There are no ads, no tracking and no account. ⏎  ⏎ Test mode: the test version starts in test mode. A line at the top of every screen says so, and nothing is deleted or moved; you only see what would happen. | KeepClear אף פעם לא מוחק בלי שתלחצו, ואף פעם לא ברקע. ⏎  ⏎ רוב מה שמנקים מחכה 30 יום בסל המחזור, ואפשר לשחזר אותו. קבצים שנבנים מחדש לבד נמחקים מיד. ⏎  ⏎ KeepClear לא נוגע אף פעם בצ'אטים של וואטסאפ ובגיבויים שלהם, בדיסק און קי שמגבים אליו ובקבצים שבחרתם לשמור. ⏎  ⏎ רגע לפני כל מחיקה KeepClear בודק כל קובץ שוב. קובץ שהשתנה מאז הסריקה נשאר במקומו, ומופיעה הודעה על כך. ⏎  ⏎ שום דבר לא יוצא מהטלפון, חוץ מהעותקים שמגבים למקום שבחרתם. אין פרסומות, אין מעקב ואין חשבון. ⏎  ⏎ מצב בדיקה: גרסת הבדיקה מתחילה במצב בדיקה. שורה בראש כל מסך אומרת את זה, ושום קובץ לא נמחק ולא מועבר; רק רואים מה היה קורה. |  | **new** (new since last review) |
 | `help_safe_title` | Is it safe? | האם זה בטוח |  | **new** (new since last review) |
+| `help_similar_body` | In "Choose what to delete", "Find similar photos" puts photos that look almost the same side by side, so you can compare them. You start it; it never runs by itself or in the background, and it works on this phone only, without the internet. ⏎  ⏎ A photo marked "Suggested to keep" is larger or sharper than the others in its group, or has fewer areas that are too bright or too dark. It is only a suggestion: nothing is chosen, deleted or moved. When the photos are about equally good, KeepClear says there is no clear recommendation. ⏎  ⏎ Photos from the camera and other memories can be backed up from there. Choosing photos to delete from a group comes in a later version. ⏎  ⏎ With access to selected photos only, only those are compared. Some kinds of photos, like moving photos, can't be compared yet; the screen says how many. | ב„לבחור מה למחוק”, „למצוא תמונות דומות” מציג זו לצד זו תמונות שנראות כמעט אותו דבר, כדי שתוכלו להשוות ביניהן. אתם מפעילים את זה. זה אף פעם לא רץ לבד או ברקע, וזה עובד רק בטלפון, בלי אינטרנט. ⏎  ⏎ תמונה שמסומנת „מומלץ להשאיר” גדולה יותר, חדה יותר, או עם פחות אזורים בהירים או כהים מדי משאר התמונות בקבוצה. זו רק המלצה: שום דבר לא נבחר, לא נמחק ולא זז. כשהתמונות טובות בערך באותה מידה, KeepClear אומר שאין המלצה ברורה. ⏎  ⏎ את התמונות מהמצלמה ושאר הזיכרונות אפשר לגבות משם. האפשרות לבחור מקבוצה תמונות למחיקה תגיע בגרסה מאוחרת יותר. ⏎  ⏎ אם נתתם גישה רק לתמונות שבחרתם, רק הן מושוות. יש סוגים של תמונות, כמו תמונות חיות, שעוד אי אפשר להשוות. המסך אומר כמה כאלה יש. |  | **new** (new since last review) |
+| `help_similar_title` | Similar photos | תמונות דומות |  | **new** (new since last review) |
 | `help_stopped_body` | Nothing is lost: what was copied and checked stays on the drive, and the backup continues from where it stopped. ⏎  ⏎ The USB drive was unplugged: connect it again and tap "Continue". ⏎  ⏎ The USB drive is full: KeepClear says how much space is needed. Delete what you don't need from the drive, use a bigger one, or choose fewer photos this time. ⏎  ⏎ The battery is low: at 10% the backup pauses by itself, and it continues once the phone is charging. ⏎  ⏎ The phone stopped the backup to save battery: open KeepClear and tap "Continue". Allowing notifications helps the backup keep running. ⏎  ⏎ Anything else: the Backup tab says what happened, with one button to go on. If it keeps happening, report a problem from Settings. | שום דבר לא הולך לאיבוד: מה שהועתק ונבדק נשאר בדיסק און קי, והגיבוי ממשיך מהמקום שבו נעצר. ⏎  ⏎ הדיסק און קי נותק: מחברים אותו שוב ולוחצים „להמשיך”. ⏎  ⏎ אין מספיק מקום בדיסק און קי: KeepClear אומר כמה מקום צריך. אפשר למחוק ממנו מה שלא צריך, להשתמש בדיסק און קי גדול יותר, או לבחור פחות תמונות הפעם. ⏎  ⏎ הסוללה חלשה: ב-10% הגיבוי נעצר לבד, וממשיך כשהטלפון בטעינה. ⏎  ⏎ הטלפון עצר את הגיבוי כדי לחסוך סוללה: פותחים את KeepClear ולוחצים „להמשיך”. אישור להתראות עוזר לגיבוי להמשיך לרוץ. ⏎  ⏎ כל דבר אחר: בלשונית גיבוי כתוב מה קרה, עם כפתור אחד להמשך. אם זה חוזר, אפשר לדווח על בעיה מההגדרות. |  | **new** (new since last review) |
 | `help_stopped_title` | The backup stopped: what to do | הגיבוי נעצר — מה לעשות |  | **new** (new since last review) |
 | `help_title` | Help | עזרה | Top app bar and tabs, Settings | **new** (new since last review) |
@@ -952,6 +1014,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 
 | Key | English | עברית | Also | Status |
 |---|---|---|---|---|
+| `gallery_kept_this_time` | Hidden for now. They come back the next time you compare. | הוסתרו בינתיים. הן יופיעו שוב בהשוואה הבאה. |  | **new** (new since last review) |
 | `keep_notice` | KeepClear won't suggest %1$s again. | KeepClear לא יציע שוב את %1$s. |  | **new** (new since last review) |
 | `move_pick_target` | Choose where to back up | לבחור לאן לגבות |  | **changed** (new since last review) |
 | `notice_undo` | Undo | חזרה |  | **new** (new since last review) |

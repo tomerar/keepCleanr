@@ -228,6 +228,12 @@ sealed interface Screen {
 
     /** PR H3: About (version, source, privacy, translations, licences). */
     data object About : Screen
+
+    /** G4a: "Find similar photos" (opened from the review lane; read-only). */
+    data object Gallery : Screen
+
+    /** G4a: one similar group side by side ([GalleryGroupUi.id]). */
+    data class GalleryGroup(val id: String) : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -718,6 +724,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
     fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) {
         if (_state.value.busy) return
+        // E-G20 (C221): cleaning takes priority over a running gallery comparison, before anything is planned.
+        app.pauseGalleryForFileAction()
         val origin = currentScreen()
         _state.update { it.copy(busy = true, cleanResult = null) }
         viewModelScope.launch {
