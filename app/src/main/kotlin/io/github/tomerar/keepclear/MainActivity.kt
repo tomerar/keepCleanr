@@ -78,6 +78,8 @@ class MainActivity : ComponentActivity() {
                 val nextcloudVm: NextcloudViewModel = viewModel()
                 val nextcloudState by nextcloudVm.state.collectAsStateWithLifecycle()
                 val nextcloudHost by app.nextcloud.hostState.collectAsStateWithLifecycle()
+                // G4a: the read-only gallery comparison; its coordinator is created only when a run starts (C220).
+                val galleryVm: GalleryViewModel = viewModel()
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
                 // ONB-1: the intro on first launch, or when Settings asks for it again.
@@ -283,6 +285,29 @@ class MainActivity : ComponentActivity() {
                     ),
                 ) {
                     AppScreens(
+                        gallery = GalleryHost(
+                            flow = galleryVm.state,
+                            actions = GalleryActions(
+                                onStart = {
+                                    galleryVm.controller.start(
+                                        vm.state.value.summary,
+                                        (vm.state.value.scan as? ScanState.Done)?.complete == true,
+                                    )
+                                },
+                                onStop = galleryVm.controller::stop,
+                                onContinue = galleryVm.controller::continueRun,
+                                onAllowAccess = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
+                                onCheckAccess = {
+                                    galleryVm.controller.checkScope()
+                                    galleryVm.controller.refresh(vm.state.value.summary)
+                                },
+                                onKeepThisTime = galleryVm.controller::keepThisTime,
+                                onDontOffer = { path ->
+                                    vm.keep(path)
+                                    galleryVm.controller.dontOffer(path)
+                                },
+                            ),
+                        ),
                         settingsActions = SettingsActions(
                             networkHost = networkHost,
                             choices = choices,
@@ -724,6 +749,15 @@ class MainActivity : ComponentActivity() {
     /** PRIV-5: the privacy policy, opened in the browser (KeepClear itself has no internet access). */
     private fun openPrivacy() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_URL.toUri())) }
+    }
+
+    /**
+     * GAL-1 (C236): the comparison is foreground only. Leaving the app (Home, the lock screen, another app) stops a
+     * running one at its next item; it stays stopped until the user taps Continue. A rotation is not leaving.
+     */
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) (application as KeepClearApplication).stopGalleryInBackground()
     }
 
     override fun onNewIntent(intent: Intent) {

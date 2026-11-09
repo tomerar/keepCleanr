@@ -331,6 +331,8 @@ class KeepClearApplication : Application() {
      * PROTECTED roots include every backup folder known right now (H3, safety rule 4).
      */
     suspend fun executor(onResult: (OpResult) -> Unit = {}): ActionExecutor {
+        // E-G20 (C221): a file action takes priority over a running gallery comparison.
+        pauseGalleryForFileAction()
         // SAFETY-3: what the user kept is PROTECTED at the choke point too, not only in the lists.
         val guarded = BackupRoots.protectedPaths(moveController.store.jobs(), packageName, userChoices.state.value.kept)
         return ActionExecutor(
@@ -423,6 +425,74 @@ class KeepClearApplication : Application() {
 
     /** E13: full hashes of files seen in earlier classifications (memory only), so a rescan doesn't read them again. */
     val hashCache by lazy { MemoryHashCache() }
+
+    /**
+     * G4a (C220): the gallery's live scope (foss: All files access counts; play: never). Re-read on every check;
+     * its tiny preferences file only notices a change (C211).
+     */
+    val galleryScope by lazy {
+        MainThreadPolicy.settings {
+            io.github.tomerar.keepclear.core.gallery.LiveGalleryScope.of(this) {
+                BuildConfig.FLAVOR == "foss" && MediaAccess.hasAllFiles()
+            }
+        }
+    }
+
+    /** Tests only: a coordinator over fakes, set before first use. */
+    internal var galleryFactory: (() -> io.github.tomerar.keepclear.core.gallery.GalleryCoordinator)? = null
+
+    private val galleryLazy = lazy {
+        galleryFactory?.invoke() ?: run {
+            val reads = io.github.tomerar.keepclear.core.gallery.MediaStoreGalleryReads.of(this)
+            io.github.tomerar.keepclear.core.gallery.GalleryCoordinator(
+                store = io.github.tomerar.keepclear.core.database.RoomGalleryFeatureStore(
+                    database.galleryDao(),
+                    freeBytes = { phoneFreeBytes(this) },
+                ),
+                observer = reads.observer,
+                reader = reads.reader,
+                scope = galleryScope,
+            )
+        }
+    }
+
+    /**
+     * G4a (C220): the user-started, read-only gallery comparison. Created on first use only: until the user opens
+     * "Find similar photos" nothing of it exists (no database read, no scope check, no coordinator).
+     */
+    val gallery: io.github.tomerar.keepclear.core.gallery.GalleryCoordinator by galleryLazy
+
+    /**
+     * E-G20 (C221): every file action (clean, trash, restore, free after a backup, backup copy, restore from a
+     * backup) takes priority; a running gallery comparison pauses at its next item or read and can be continued by
+     * the user. Never creates the coordinator.
+     */
+    fun pauseGalleryForFileAction() {
+        if (galleryLazy.isInitialized()) gallery.pauseForFileAction()
+    }
+
+    /** E-G20 (C237): Home's clean, trash, restore or empty is running (set from its state). */
+    @Volatile internal var homeFileAction = false
+
+    /**
+     * E-G20 (C237): a file action is running now: Home's clean or trash work, a backup copy, or a free, check or
+     * restore task. A gallery comparison can't start or continue meanwhile (the pause hook stops one already
+     * running); the user taps Continue once it is over.
+     */
+    fun fileActionActive(): Boolean =
+        homeFileAction || moveController.running.value != null || moveController.task.value != null
+
+    /**
+     * GAL-1 (C236): called when the app leaves the foreground. A running comparison stops (the honest partial result
+     * stays, Continue is explicit); an idle, finished or paused one is left as it is. Never creates the coordinator.
+     */
+    fun stopGalleryInBackground() {
+        if (galleryLazy.isInitialized() &&
+            gallery.progress.value.state == io.github.tomerar.keepclear.core.gallery.GalleryRunState.RUNNING
+        ) {
+            gallery.stop()
+        }
+    }
 
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }

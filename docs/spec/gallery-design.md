@@ -1,6 +1,6 @@
 # Gallery architecture
 
-**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G1b primitives, the schema-8 feature cache and an internal analysis coordinator with a live permission epoch implemented (no app caller, no UI); application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. G1a now implements the internal JVM contracts and numeric policies described below; no application entry, Android adapter, cache or action bridge is wired.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G1b primitives, the schema-8 feature cache and the analysis coordinator with a live permission epoch implemented; G4a read-only comparison UI wired into the app locally (2026-11-09, not yet PR: no disposal, no persisted review decisions).** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. G1a now implements the internal JVM contracts and numeric policies described below; no application entry, Android adapter, cache or action bridge is wired.
 
 ## Context and design choice
 
@@ -140,5 +140,7 @@ Selection groups are disjoint for actions; cross-session changes still require r
 Keep the three existing tabs. Place a lightweight “Find similar photos” entry in the review area, with a backup-oriented entry for camera comparison if useful. Do not add a second Home “safe bytes” hero or unsolicited AI marketing. Show source scope, “Reviewed/Analyzed N of M,” skipped count and a simple stop/continue action. Technical model/delegate details belong under Advanced.
 
 Comparison groups show full previews on request, date/size/source and an optional “Sharper”/“Similar composition” hint. Keep and review actions have equal visual weight, with no preselection. A mixed group clearly distinguishes “Back up first” memories from reviewable screenshots. An unavailable model says the simpler comparison is in use; an inaccessible source is hidden, not rendered from a private cached thumbnail.
+
+**G4a (2026-11-09, local, [verification](../verification/gallery-g4a-ui-2026-11-09.md); C220–C226).** The app composes the coordinator lazily, builds the snapshot from Home's latest classification and the live exclusions, and maps its progress to plain wording; file actions pause a running comparison (`pauseGalleryForFileAction`, E-G20). The comparison is read-only: the marker is a label, MOVE members hand off to the Backup tab, REVIEW members have no action until G4b. "Keep this time" is in-session; "do not offer again" is the existing per-file kept rule. Both screens re-read the scope on every resume and hide groups from an older permission epoch.
 
 Virtual grouping, cache clearing and dismissing suggestions never show “space freed.” Actual review-trash and verified-backup results keep current exact/measured accounting. Persistent “do not offer this again” uses existing kept semantics; “keep this time” remains distinct.

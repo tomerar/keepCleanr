@@ -54,6 +54,8 @@ class H3HelpTest {
                 // PR H4: its two topics come after the brief's eight.
                 "המקום של KeepClear והסרת ההתקנה",
                 "מרחב פרטי",
+                // G4a: after PR H4's two.
+                "תמונות דומות",
             ),
             HelpTopics.all(foss = true).map { he.getString(it.title) },
         )
@@ -63,7 +65,7 @@ class H3HelpTest {
     fun `every topic has a body of paragraphs in English and Hebrew, and the ids are unique`() {
         for (foss in listOf(true, false)) {
             val topics = HelpTopics.all(foss)
-            assertEquals(10, topics.size) // the brief's eight and PR H4's two
+            assertEquals(11, topics.size) // the brief's eight, PR H4's two and G4a's similar photos
             assertEquals(topics.size, topics.map { it.id }.toSet().size)
             for (lang in listOf("en", "iw")) {
                 val c = inLanguage(lang)
@@ -107,6 +109,17 @@ class H3HelpTest {
         assertTrue(he.getString(R.string.intro_restore) in he.getString(R.string.help_new_phone_body))
         assertTrue(he.getString(R.string.restore_start) in he.getString(R.string.help_get_back_body))
         assertTrue(he.getString(R.string.move_continue) in he.getString(R.string.help_stopped_body))
+        // G4a: the similar-photos topic quotes the real entry, lane and marker labels.
+        for (res in listOf(en, he)) {
+            val body = res.getString(R.string.help_similar_body)
+            for (label in listOf(
+                R.string.gallery_entry_title,
+                R.string.gallery_suggested,
+                R.string.home_card_review_title,
+            )) {
+                assertTrue(res.getString(label), res.getString(label) in body)
+            }
+        }
     }
 
     @Test

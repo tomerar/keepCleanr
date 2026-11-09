@@ -59,6 +59,13 @@ class GallerySnapshot(
     }
 }
 
+/**
+ * Whether a run would compare [item] now under [exclusions] (the same decision as before every read). The app uses it
+ * to drop shown members that became favourites, kept, protected, trashed, excluded or junk since (C235).
+ */
+fun galleryCompares(item: ClassifiedItem, exclusions: GalleryExclusions): Boolean =
+    GalleryEligibility.decide(item, exclusions) is GalleryEligibility.Decision.Eligible
+
 /** Metadata-only eligibility. It reuses the scan's classification; it is not another scanner. */
 internal object GalleryEligibility {
     sealed interface Decision {

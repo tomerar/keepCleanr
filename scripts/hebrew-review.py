@@ -35,6 +35,8 @@ SCREENS = [
     ("Clean now", ["SafeScreen", "SafeConfirm"]),
     ("Review (categories, groups, item preview)", ["ReviewScreens", "RuleText", "UserChoices"]),
     ("Swipe review", ["SwipeReview"]),
+    # G4a: "Find similar photos" (the review lane's read-only comparison).
+    ("Similar photos", ["Gallery"]),
     # MainActivity's own strings are the notification question before a backup and the shared backup summary.
     ("Move to backup and restore", ["MoveScreen", "MoveSupport", "MoveViewModel", "RestoreUi", "NetworkDrive",
                                     "OpenedTarget", "MoveNotifications", "MoveController", "MoveWorker",
@@ -59,6 +61,7 @@ PREFIXES = [
     ("Trash", ["trash_"]),
     ("Apps", ["apps_", "app_"]),
     ("Swipe review", ["swipe_"]),
+    ("Similar photos", ["gallery_"]),
     ("Notifications", ["reminder_text", "reminder_title", "reminder_channel"]),
     ("Settings", ["settings_", "reminder_setting", "test_mode", "choice_kept", "choice_junk_list"]),
     ("Nextcloud set-up (Settings › Advanced)", ["nextcloud_"]),

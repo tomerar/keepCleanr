@@ -7,9 +7,9 @@ import android.content.Context
  * The one adapter binding the coordinator's read ports to the guarded MediaStore still read (C210, C204). The read
  * chooses the PNG or JPEG decoder from the content signature, so the item's name or MIME type is never trusted here;
  * its explicit unsupported reasons map one to one to [UnsupportedImage], and any other refusal is
- * [GalleryRead.Unavailable].
+ * [GalleryRead.Unavailable]. Public only so the app can compose it ([of]); its parts stay internal (G4a, C220).
  */
-internal class MediaStoreGalleryReads(
+class MediaStoreGalleryReads internal constructor(
     private val observation: MediaStoreObservation,
     private val guarded: GuardedMediaStillRead,
 ) {
@@ -32,7 +32,7 @@ internal class MediaStoreGalleryReads(
             return MediaStoreGalleryReads(observation, GuardedMediaStillRead(context.contentResolver, observation))
         }
 
-        fun unsupported(reason: StillSkip): UnsupportedImage = when (reason) {
+        internal fun unsupported(reason: StillSkip): UnsupportedImage = when (reason) {
             StillSkip.UNSUPPORTED_FORMAT -> UnsupportedImage.FORMAT
             StillSkip.UNSUPPORTED_VARIANT -> UnsupportedImage.VARIANT
             StillSkip.TOO_LARGE_FILE -> UnsupportedImage.FILE_TOO_LARGE

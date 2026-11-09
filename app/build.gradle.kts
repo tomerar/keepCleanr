@@ -94,6 +94,9 @@ dependencies {
     implementation(project(":engine:classify"))
     implementation(project(":engine:trash"))
     implementation(project(":engine:enrich"))
+    // G4a: the read-only gallery comparison (advisory; no file action, no network).
+    implementation(project(":engine:gallery"))
+    implementation(project(":core:gallery-android"))
     implementation(project(":core:safety"))
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":core:model"))

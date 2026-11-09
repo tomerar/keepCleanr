@@ -34,8 +34,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -228,6 +230,12 @@ sealed interface Screen {
 
     /** PR H3: About (version, source, privacy, translations, licences). */
     data object About : Screen
+
+    /** G4a: "Find similar photos" (opened from the review lane; read-only). */
+    data object Gallery : Screen
+
+    /** G4a: one similar group side by side ([GalleryGroupUi.id]). */
+    data class GalleryGroup(val id: String) : Screen
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -240,6 +248,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanCancelled = false
 
     init {
+        // E-G20 (C237): while a clean, trash, restore or empty runs here, a gallery comparison can't start or continue.
+        viewModelScope.launch {
+            _state.map { it.busy }.distinctUntilChanged().collect { app.homeFileAction = it }
+        }
         // E3: a free, check or restore ended in the foreground service: free space, trash and scan are new.
         viewModelScope.launch {
             app.moveController.finished.drop(1).collect {
@@ -718,6 +730,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
     fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) {
         if (_state.value.busy) return
+        // E-G20 (C221): cleaning takes priority over a running gallery comparison, before anything is planned.
+        app.pauseGalleryForFileAction()
         val origin = currentScreen()
         _state.update { it.copy(busy = true, cleanResult = null) }
         viewModelScope.launch {
