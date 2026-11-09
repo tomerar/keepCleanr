@@ -167,6 +167,19 @@ data class GalleryUi(
             // G4b (C230): a member is available only while the latest scan still has it as it was compared (same
             // size and time); a photo the user just kept is not offered (and is never counted as the one kept).
             val available = all.map { group -> availableMembers(group, items, hidden) }
+            // Each group's own valid choices (GAL-9: the same group version, photos still shown and reviewable).
+            val ownByGroup = all.mapIndexed { index, group ->
+                chosen[groupId(group)]?.takeIf { it.first == versionDigest(group.version) }?.second.orEmpty()
+                    .filter { path ->
+                        available[index].any { it.item.item.path == path && it.item.category == Category.REVIEW }
+                    }
+                    .toSet()
+            }
+            // Which groups each photo belongs to, built once per publication (a tap must not scan every group).
+            val groupsOf = HashMap<String, MutableList<Int>>()
+            available.forEachIndexed { index, members ->
+                members.forEach { groupsOf.getOrPut(it.item.item.path) { mutableListOf() } += index }
+            }
             val groups = all.mapIndexedNotNull { index, group ->
                 val suggested = (group.advice as? KeeperAdvice.Suggested)?.source?.key
                 val members = available[index].map { it.copy(suggested = suggested == it.source?.key) }
@@ -179,16 +192,17 @@ data class GalleryUi(
                     emptyList()
                 }
                 val version = versionDigest(group.version)
-                // GAL-9: a choice holds only for the same group version and photos still shown and reviewable.
-                val own = chosen[id]?.takeIf { it.first == version }?.second.orEmpty()
-                    .filter { path -> members.any { it.item.item.path == path && it.item.category == Category.REVIEW } }
-                    .toSet()
+                val own = ownByGroup[index]
                 val choosable = members.filter { m ->
                     val path = m.item.item.path
                     m.item.category == Category.REVIEW && path !in own &&
-                        // GAL-8: every group this photo belongs to keeps another available, unchosen photo.
-                        all.indices.filter { g -> available[g].any { it.item.item.path == path } }.all { g ->
-                            available[g].any { it.item.item.path != path && it.item.item.path !in own }
+                        // GAL-8: every group this photo belongs to keeps another available photo not chosen there
+                        // (nor here).
+                        groupsOf[path].orEmpty().all { g ->
+                            available[g].any {
+                                val other = it.item.item.path
+                                other != path && other !in ownByGroup[g] && other !in own
+                            }
                         }
                 }.map { it.item.item.path }.toSet()
                 GalleryGroupUi(
@@ -234,9 +248,19 @@ data class GalleryUi(
             }?.let { GalleryMember(it, suggested = false, source = source) }
         }
 
-        /** The group's id: its smallest member key (stable across runs for the same photos). */
-        internal fun groupId(group: GalleryGroup): String =
-            group.version.members.minOf { it.key }.let { "${it.volume}:${it.ref}" }
+        /**
+         * The group's id: its smallest member key plus a digest of all its member keys, so it is stable across runs
+         * for the same photos and two overlapping groups that share their smallest member never share an id (their
+         * choices, dismissals and evidence stay apart).
+         */
+        internal fun groupId(group: GalleryGroup): String {
+            val keys = group.version.members.map { it.key }.sortedWith(compareBy({ it.volume }, { it.ref }))
+            val min = group.version.members.minOf { it.key }
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(keys.joinToString("\n") { "${it.volume.length}:${it.volume}:${it.ref}" }.toByteArray())
+                .take(6).joinToString("") { "%02x".format(it) }
+            return "${min.volume}:${min.ref}:$digest"
+        }
 
         /**
          * G4b (GAL-9): a digest of the group version (run, scan, permission epoch, policy and feature versions, every

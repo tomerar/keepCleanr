@@ -255,6 +255,30 @@ class G4bGalleryReviewTest {
     }
 
     @Test
+    fun `overlapping groups - a choice in one group keeps its photo from being the other's last (GAL-8)`() {
+        // x in g1 = {x, y} and g2 = {x, z}, all three still there; z is chosen in g2, so x is all g2 keeps.
+        val (progress, _) = overlapping()
+        val all = listOf(31, 32, 33).map { GalleryFakes.photo(it) }
+        val items = GalleryUi.keyed(all)
+        val open = GalleryUi.of(progress, items).groups
+        assertEquals(
+            "overlapping groups that share their smallest photo keep apart ids",
+            2,
+            open.map {
+                it.id
+            }.distinct().size,
+        )
+        val g2 = open.single { g -> g.members.any { it.item.item.path.endsWith("IMG_33.jpg") } }
+        val z = g2.members.single { it.item.item.path.endsWith("IMG_33.jpg") }.item.item.path
+        val x = all[0].item.path
+        val ui = GalleryUi.of(progress, items, chosen = mapOf(g2.id to (g2.version to setOf(z))))
+        val g1 = ui.groups.single { g -> g.members.none { it.item.item.path == z } }
+        assertTrue("x would empty g2", x !in g1.choosable)
+        assertEquals(setOf(all[1].item.path), g1.choosable)
+        assertEquals(setOf(z), ui.groups.single { it.id == g2.id }.chosen)
+    }
+
+    @Test
     fun `a choice made for another version of the group is not shown or used (GAL-9)`() {
         val (progress, items) = overlapping()
         val g1 = GalleryUi.of(progress, items).groups.single()
