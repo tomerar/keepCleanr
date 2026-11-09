@@ -58,3 +58,8 @@ Removing only the first of the two "no groups after an access change" guards sur
 - Exact-identity (full-file digest) grouping is not used by this path; memory, thermal and battery pauses (E-G16) other than low space are not implemented; the backup/clean flows do not call the pause hook yet (E-G20).
 - Low space is learned from the store's refusal of a write, so at most one image is decoded after crossing 500 MB before the run pauses.
 - Process death, performance, battery and photographic accuracy were not measured.
+
+## Review of PR #74
+
+- **Progress while running.** The worker publishes a running snapshot after every handled item, so `progress` shows the actual analysed and not-reached counts during a run instead of only at its end. Test: `progress shows real counts while the run is working`. Mutation: removing the publish makes it fail.
+- **Revalidation before Continue (E-G07/E-G09).** Before a stopped or paused run resumes, every completed source is checked against the latest exclusions and re-observed. A source that changed version, disappeared or became excluded, for example kept during the pause, is taken back into the queue with its count corrected, so the run decides it again instead of grouping old features. Test: `continue re-checks completed sources and never groups a changed or newly kept one`: one photo gets a new revision and another is kept while stopped; Continue decodes the first again and skips the second. Mutation: removing the revalidation makes it fail. Revalidation reads metadata only. During one uninterrupted run, a completed source is not re-observed before grouping; every later action still revalidates independently.

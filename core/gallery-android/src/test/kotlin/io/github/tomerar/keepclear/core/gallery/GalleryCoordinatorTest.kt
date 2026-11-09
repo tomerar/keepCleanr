@@ -226,6 +226,49 @@ class GalleryCoordinatorTest {
         }
 
     @Test
+    fun `progress shows real counts while the run is working`(): Unit = runBlocking {
+        // Review of PR #74: the flow used to stay at zero analysed until the run ended.
+        val seen = mutableListOf<GalleryProgress>()
+        reads.onRead = { seen += coordinator.progress.value }
+        val done = coordinator.start(snapshot(photos(4)))!!
+        assertEquals(GalleryRunState.COMPLETED, done.state)
+        assertEquals(listOf(0, 1, 2, 3), seen.map { it.counts.analysed })
+        assertTrue(seen.all { it.state == GalleryRunState.RUNNING && it.grouping == null })
+        assertEquals(listOf(4, 3, 2, 1), seen.map { it.counts.notReached })
+    }
+
+    @Test
+    fun `continue re-checks completed sources and never groups a changed or newly kept one`(): Unit = runBlocking {
+        // Review of PR #74: while stopped, photo 1 changes and photo 2 is kept; Continue must not reuse either.
+        val items = photos(6)
+        var kept = emptyList<String>()
+        val blocked = CompletableDeferred<Unit>()
+        val entered = CompletableDeferred<Unit>()
+        reads.block = { path ->
+            if (path == items[2].item.path && !blocked.isCompleted) {
+                entered.complete(Unit)
+                blocked.await()
+            }
+        }
+        val running = async {
+            coordinator.start(snapshot(items) { GalleryExclusions(ProtectedPaths(), keptRoots = kept) })
+        }
+        entered.await()
+        coordinator.stop()
+        val stopped = running.await()!!
+        assertEquals(2, stopped.counts.analysed)
+        blocked.complete(Unit)
+        reads.revision[items[0].item.path] = "r2"
+        kept = listOf(items[1].item.path)
+        val resumed = coordinator.continueRun()!!
+        assertEquals(GalleryRunState.COMPLETED, resumed.state)
+        assertEquals(5, resumed.counts.analysed)
+        assertEquals(1, resumed.counts.skipped[GallerySkip.INACCESSIBLE])
+        assertEquals(5, resumed.grouping!!.diagnostics.eligible)
+        assertEquals(7, reads.decoded) // photo 1 decoded again for its new version; photo 2 never read again
+    }
+
+    @Test
     fun `a file action pauses gallery work and a second start is refused while running`(): Unit = runBlocking {
         val items = photos(4)
         val gate = CompletableDeferred<Unit>()

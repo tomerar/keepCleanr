@@ -159,6 +159,9 @@ class GalleryCoordinator(
                 return publish(s.progress(GalleryRunState.ACCESS_CHANGED, null))
             }
             s.writesPaused = false
+            // Review of PR #74: a completed source may have changed, gone or become excluded while the run was
+            // stopped or paused; such an item goes back to the queue instead of being grouped from old features.
+            revalidateCompleted(s)?.let { return publish(s.progress(it, null)) }
             return drive(s)
         } finally {
             active.unlock()
@@ -217,6 +220,8 @@ class GalleryCoordinator(
             for (index in queue) {
                 currentCoroutineContext().ensureActive()
                 (interrupt ?: process(s, index))?.let { return it }
+                // Review of PR #74: collectors see real counts while the run works, not only at its end.
+                publish(s.progress(GalleryRunState.RUNNING, null))
             }
             next += queue.size
         }
@@ -310,6 +315,34 @@ class GalleryCoordinator(
         }
     }
 
+    /**
+     * Re-observes every completed source before a resumed run (E-G07/E-G09): an item whose current version differs,
+     * that is gone, or that the latest exclusions (for example a new kept choice) no longer allow, is reopened so the
+     * run decides it again. Returns a halt state when the scope changed meanwhile.
+     */
+    private suspend fun revalidateCompleted(s: Session): GalleryRunState? {
+        val gate = GalleryGate { run, item ->
+            run == s.run && interrupt == null && scope.current() == s.auth &&
+                GalleryEligibility.decide(item, s.snapshot.exclusions()) is GalleryEligibility.Decision.Eligible
+        }
+        for ((key, index) in s.completedIndex.toList()) {
+            interruption(s)?.let { return it }
+            val planned = s.items[index]
+            val exclusions = s.snapshot.exclusions()
+            val current = if (GalleryEligibility.decide(
+                    planned.item,
+                    exclusions,
+                ) is GalleryEligibility.Decision.Eligible
+            ) {
+                observer.observe(planned.item, s.run, exclusions.protectedPaths, gate)
+            } else {
+                null
+            }
+            if (current == null || current != s.completed[key]?.record?.source) s.reopen(key, index)
+        }
+        return interruption(s)
+    }
+
     /** A read refused because of a stop, pause or scope change leaves its item pending, not skipped. */
     private suspend fun interruption(s: Session): GalleryRunState? {
         interrupt?.let { return it }
@@ -365,6 +398,8 @@ class GalleryCoordinator(
         val items = mutableListOf<Planned>()
         val pending = linkedSetOf<Int>()
         val completed = linkedMapOf<SourceKey, CompletedFeature>()
+        val completedIndex = linkedMapOf<SourceKey, Int>()
+        private val completedFromCache = mutableMapOf<SourceKey, Boolean>()
         val skipped = linkedMapOf<GallerySkip, Int>()
         val excluded = linkedMapOf<GalleryExclusion, Int>()
         var stillImages = 0
@@ -412,7 +447,17 @@ class GalleryCoordinator(
         fun complete(index: Int, record: FeatureRecord, kind: ContentKind, fromCache: Boolean) {
             pending -= index
             if (completed.put(record.source.key, CompletedFeature(record, kind)) != null) return
+            completedIndex[record.source.key] = index
+            completedFromCache[record.source.key] = fromCache
             if (fromCache) this.fromCache++ else newlyDecoded++
+        }
+
+        /** Takes a completed item back into the queue; its earlier count no longer describes a current result. */
+        fun reopen(key: SourceKey, index: Int) {
+            completed.remove(key)
+            completedIndex.remove(key)
+            if (completedFromCache.remove(key) == true) fromCache-- else newlyDecoded--
+            pending += index
         }
 
         suspend fun accessChanged(live: GalleryAuthorization) {
