@@ -14,11 +14,16 @@ import io.github.tomerar.keepclear.engine.gallery.GalleryResult
 import io.github.tomerar.keepclear.engine.gallery.GalleryRun
 import io.github.tomerar.keepclear.engine.gallery.SourceKey
 import io.github.tomerar.keepclear.engine.gallery.SourceVersion
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
+import java.security.DigestOutputStream
 import java.security.MessageDigest
+import java.util.Locale
 
 /*
  * Developer-only G2 evaluation harness core (C216, GAL-26). This directory is compiled into the module's JVM tests
@@ -138,7 +143,7 @@ class EvaluationPass(
     val outcomes: List<Pair<CorpusEntry, EvaluationOutcome>>,
     val grouping: GalleryResult,
     /** Unordered pairs of image IDs the candidate index retrieved before comparison (CandidateProbe). */
-    val candidates: Set<Pair<String, String>>,
+    val candidates: CandidatePairs,
     val stageNanos: Map<String, Long>,
     /** Per opened image: read + decode + orientation + resize + features, in nanoseconds. */
     val imageNanos: List<Long>,
@@ -146,6 +151,56 @@ class EvaluationPass(
     val peakNativeHeapBytes: Long,
     val memorySamples: Int,
 )
+
+/**
+ * Distinct unordered candidate pairs, stored as packed indexes into the sorted image IDs (two `Int`s in one `Long`)
+ * rather than `Pair` objects, sorted by (first ID, second ID). A crowded 50,000-image corpus can retrieve about five
+ * million pairs; this keeps them in one primitive array (review of PR #75) without truncating any.
+ */
+class CandidatePairs internal constructor(private val ids: List<String>, private val packed: LongArray) {
+    val size: Int get() = packed.size
+
+    fun forEach(action: (String, String) -> Unit) {
+        for (value in packed) action(ids[(value ushr 32).toInt()], ids[(value and 0xffffffffL).toInt()])
+    }
+}
+
+/**
+ * Collects candidate pairs with bounded memory: duplicates are removed by sorting whenever the buffer fills, and the
+ * buffer only grows when most of it holds distinct pairs.
+ */
+internal class CandidateCollector(ids: Collection<String>, initialCapacity: Int = 1 shl 16) {
+    private val sortedIds = ids.sorted()
+    private val index = HashMap<String, Int>(sortedIds.size * 2).apply {
+        sortedIds.forEachIndexed { i, id -> put(id, i) }
+    }
+    private var buffer = LongArray(maxOf(4, initialCapacity))
+    private var count = 0
+
+    fun add(a: String, b: String) {
+        val i = index.getValue(a)
+        val j = index.getValue(b)
+        if (i == j) return
+        if (count == buffer.size) {
+            compact()
+            if (count > buffer.size * 3 / 4) buffer = buffer.copyOf(buffer.size * 2)
+        }
+        buffer[count++] = (minOf(i, j).toLong() shl 32) or maxOf(i, j).toLong()
+    }
+
+    fun result(): CandidatePairs {
+        compact()
+        return CandidatePairs(sortedIds, buffer.copyOf(count))
+    }
+
+    private fun compact() {
+        if (count == 0) return
+        java.util.Arrays.sort(buffer, 0, count)
+        var unique = 1
+        for (k in 1 until count) if (buffer[k] != buffer[unique - 1]) buffer[unique++] = buffer[k]
+        count = unique
+    }
+}
 
 /**
  * Runs one pass over [entries] (already sorted by image ID). [decode] is `BoundedStillDecoder::decode` on a device;
@@ -232,7 +287,7 @@ class GalleryEvaluation internal constructor(
             if (outcome != EvaluationOutcome.LIMIT) sample()
         }
         val decodeNanos = nanoTime() - decodeStart
-        val candidates = HashSet<Pair<String, String>>()
+        val collector = CandidateCollector(entries.map { it.imageId })
         val groupStart = nanoTime()
         val grouping = GalleryGrouping.group(
             GalleryRun("g2-harness-$number", "g2-corpus", 1),
@@ -240,11 +295,7 @@ class GalleryEvaluation internal constructor(
             scopeComplete = outcomes.none { it.second.status == "not_processed" },
             current = { true },
             policy = policy,
-            probe = { query, candidate ->
-                val a = query.key.ref
-                val b = candidate.key.ref
-                candidates += if (a < b) a to b else b to a
-            },
+            probe = { query, candidate -> collector.add(query.key.ref, candidate.key.ref) },
         )
         val groupNanos = nanoTime() - groupStart
         sample()
@@ -252,7 +303,7 @@ class GalleryEvaluation internal constructor(
             number,
             outcomes,
             grouping,
-            candidates,
+            collector.result(),
             linkedMapOf("readDecodeFeatures" to decodeNanos, "grouping" to groupNanos),
             imageNanos,
             peakJava,
@@ -277,11 +328,17 @@ object EvaluationOutputs {
         pass: EvaluationPass,
         digests: Map<String, String>? = null,
         otherSplits: List<CorpusEntry> = emptyList(),
+    ): String = manifest(pass.outcomes, digests, otherSplits)
+
+    fun manifest(
+        outcomes: List<Pair<CorpusEntry, EvaluationOutcome>>,
+        digests: Map<String, String>? = null,
+        otherSplits: List<CorpusEntry> = emptyList(),
     ): String = buildString {
         append("image_id,event_id,split,stratum,status,skip_reason")
         if (digests != null) append(",sha256")
         append('\n')
-        for ((entry, outcome) in pass.outcomes) {
+        for ((entry, outcome) in outcomes) {
             append(entry.imageId).append(',').append(entry.eventId).append(',').append(entry.split).append(',')
             append(entry.stratum).append(',').append(outcome.status).append(',').append(outcome.reason)
             if (digests != null) append(',').append(digests[entry.imageId].orEmpty())
@@ -299,16 +356,32 @@ object EvaluationOutputs {
     fun groups(pass: EvaluationPass): String = buildString {
         append("group_id,image_id\n")
         pass.grouping.groups.forEachIndexed { index, group ->
-            val id = "g%05d".format(index + 1)
+            // Locale.ROOT: machine-readable IDs stay ASCII digits whatever the device's locale (review of PR #75).
+            val id = "g%05d".format(Locale.ROOT, index + 1)
             group.version.members.forEach { append(id).append(',').append(it.key.ref).append('\n') }
         }
     }
 
-    fun candidates(pass: EvaluationPass): String = buildString {
-        append("image_a,image_b\n")
-        pass.candidates.sortedWith(compareBy({ it.first }, { it.second })).forEach { (a, b) ->
-            append(a).append(',').append(b).append('\n')
+    fun candidates(pass: EvaluationPass): String = buildString { writeCandidates(pass, this) }
+
+    /** Streams the candidate CSV; nothing but the packed pairs is held in memory. */
+    fun writeCandidates(pass: EvaluationPass, out: Appendable) {
+        out.append("image_a,image_b\n")
+        pass.candidates.forEach { a, b -> out.append(a).append(',').append(b).append('\n') }
+    }
+
+    /** Writes the candidate CSV to [file] (or nowhere) and returns its SHA-256, so passes compare by digest. */
+    fun streamCandidates(pass: EvaluationPass, file: File?): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val sink: OutputStream = file?.let(::FileOutputStream) ?: object : OutputStream() {
+            override fun write(b: Int) = Unit
+
+            override fun write(b: ByteArray, off: Int, len: Int) = Unit
         }
+        DigestOutputStream(BufferedOutputStream(sink), digest).bufferedWriter(Charsets.UTF_8).use {
+            writeCandidates(pass, it)
+        }
+        return digest.digest().joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 0xff) }
     }
 
     /** Nearest-rank percentile in milliseconds; null when there is no observation (never zero). */
@@ -471,16 +544,23 @@ suspend fun runEvaluation(
     val indexMillis = (System.nanoTime() - start) / 1_000_000.0
     val deviceBefore = device()
     val reports = ArrayList<Map<String, Any?>>()
+    output.mkdirs()
+    // Only small texts and one digest per pass are kept: the first pass's candidate CSV is streamed straight to its
+    // file, later passes are compared by digest, and no pass object outlives its iteration (review of PR #75).
     var first: Triple<String, String, String>? = null
-    var firstPass: EvaluationPass? = null
+    var firstOutcomes: List<Pair<CorpusEntry, EvaluationOutcome>>? = null
     var identical = true
     for (number in 1..passes) {
         val pass = evaluation.pass(number, corpus, entries, maxImages)
-        val texts =
-            Triple(EvaluationOutputs.manifest(pass), EvaluationOutputs.groups(pass), EvaluationOutputs.candidates(pass))
+        val candidateFile = if (number == 1) File(output, "candidates.csv") else null
+        val texts = Triple(
+            EvaluationOutputs.manifest(pass),
+            EvaluationOutputs.groups(pass),
+            EvaluationOutputs.streamCandidates(pass, candidateFile),
+        )
         if (first == null) {
             first = texts
-            firstPass = pass
+            firstOutcomes = pass.outcomes
         } else if (texts != first) {
             identical = false
         }
@@ -510,12 +590,12 @@ suspend fun runEvaluation(
     } else {
         null
     }
-    val pass = checkNotNull(firstPass)
-    output.mkdirs()
     val otherSplits = all.filter { it.split != split }.sortedBy { it.imageId }
-    File(output, "manifest.csv").writeText(EvaluationOutputs.manifest(pass, sha, otherSplits), Charsets.UTF_8)
+    File(output, "manifest.csv").writeText(
+        EvaluationOutputs.manifest(checkNotNull(firstOutcomes), sha, otherSplits),
+        Charsets.UTF_8,
+    )
     File(output, "groups.csv").writeText(checkNotNull(first).second, Charsets.UTF_8)
-    File(output, "candidates.csv").writeText(first.third, Charsets.UTF_8)
     val report = linkedMapOf(
         "harness" to "keepclear-g2-harness-v1",
         "purpose" to "developer-only G2 measurement; not a user feature and not an accuracy result by itself",

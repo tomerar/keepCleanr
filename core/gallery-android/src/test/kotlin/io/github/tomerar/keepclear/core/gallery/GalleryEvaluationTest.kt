@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.tomerar.keepclear.core.gallery
 
+import io.github.tomerar.keepclear.core.gallery.evaluation.CandidateCollector
 import io.github.tomerar.keepclear.core.gallery.evaluation.CorpusIndex
 import io.github.tomerar.keepclear.core.gallery.evaluation.EvaluationIds
 import io.github.tomerar.keepclear.core.gallery.evaluation.EvaluationOutputs
@@ -283,6 +284,39 @@ class GalleryEvaluationTest {
                     { emptyMap() },
                 )
             }
+        }
+    }
+
+    @Test
+    fun `candidate pairs stay distinct and sorted with bounded memory, and group IDs stay ASCII in any locale`() {
+        // Review of PR #75: millions of pairs were kept as objects and whole CSV strings; Persian digits broke IDs.
+        val ids = (0 until 50).map { "i%02d".format(java.util.Locale.ROOT, it) }
+        val collector = CandidateCollector(ids.shuffled(java.util.Random(7)), initialCapacity = 4)
+        repeat(3) { for (a in ids) for (b in ids) collector.add(a, b) } // each pair many times, both directions
+        val pairs = collector.result()
+        assertEquals(50 * 49 / 2, pairs.size)
+        val seen = mutableListOf<String>()
+        pairs.forEach { a, b -> seen += "$a,$b" }
+        assertEquals(seen.sorted(), seen)
+        assertTrue(seen.all { row -> row.split(',').let { it[0] < it[1] } })
+        val corpus = temp.newFolder("locale")
+        File(corpus, "a.png").writeText("d:0")
+        File(corpus, "b.png").writeText("d:15")
+        File(corpus, CorpusIndex.FILE_NAME).writeText(HEADER + "a.png,e1,holdout,s\nb.png,e1,holdout,s")
+        val saved = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("fa"))
+            val output = File(temp.root, "locale-out")
+            runBlocking {
+                runEvaluation(GalleryEvaluation(decode = fake), corpus, output, "unit", "holdout", 1, null, false, {
+                    emptyMap()
+                })
+            }
+            val groups = File(output, "groups.csv").readLines().drop(1)
+            assertEquals(2, groups.size)
+            assertTrue(groups.toString(), groups.all { it.startsWith("g00001,") })
+        } finally {
+            java.util.Locale.setDefault(saved)
         }
     }
 
