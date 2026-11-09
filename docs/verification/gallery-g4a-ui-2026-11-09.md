@@ -39,6 +39,8 @@ Mutations (each applied alone with `scripts`-style text replacement, the named t
 | Photo tile given `selected = false` (a checkbox) | `G4aScreensTest` "the keeper marker is a label, not a selection …" |
 | Backup section shown for every group | `G4aScreensTest` "memories offer the existing backup …" |
 | Done always says "all N photos" | `G4aScreensTest` "run wording is honest …" |
+| `GalleryController.refresh` keeps its old members | `G4aGalleryTest` "back on the gallery, photos the latest scan dropped or the user kept …" and "… a photo whose lane changed shows its latest lane" (C235) |
+| `stopGalleryInBackground` does not stop the run | `G4aGalleryTest` "leaving the app stops a running comparison …" (C236) |
 | `Gallery.kt` imports `core.safety.ActionPlan` | `ArchitectureTest` "app gallery code is offline, advisory and foreground" |
 
 Each test-mutation run counted as killed only when Gradle reported failing tests (not a compile error).
@@ -50,4 +52,5 @@ Each test-mutation run counted as killed only when Gradle reported failing tests
 - A run lives in the ViewModel and the process: after process death nothing resumes and dismissals are forgotten; persisted review decisions are G4a-2.
 - "Back up" opens the Backup tab; it does not preselect the group's photos there.
 - Items from the foss all-files walk still have no guarded reader and are counted as skipped ("places KeepClear can't compare yet").
+- `MainActivity.onStop` calling `stopGalleryInBackground` (C236) has no unit test (no activity runs on Robolectric here); the app method it calls is tested and mutation-checked. Leaving the app during a run is part of owner check G4a-1.
 - The pause hook covers the flows that go through the executor or the MOVE controller; Android's own cache trim (`allocateBytes`) and the system cache-clear screen are not file actions on user files and do not pause a run.

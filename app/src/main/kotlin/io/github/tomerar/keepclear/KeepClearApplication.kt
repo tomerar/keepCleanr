@@ -471,6 +471,18 @@ class KeepClearApplication : Application() {
         if (galleryLazy.isInitialized()) gallery.pauseForFileAction()
     }
 
+    /**
+     * GAL-1 (C236): called when the app leaves the foreground. A running comparison stops (the honest partial result
+     * stays, Continue is explicit); an idle, finished or paused one is left as it is. Never creates the coordinator.
+     */
+    fun stopGalleryInBackground() {
+        if (galleryLazy.isInitialized() &&
+            gallery.progress.value.state == io.github.tomerar.keepclear.core.gallery.GalleryRunState.RUNNING
+        ) {
+            gallery.stop()
+        }
+    }
+
     /** MOVE jobs: Room store, the running job, the foreground service (M10). */
     val moveController by lazy { MoveController(this) }
 

@@ -297,7 +297,13 @@ class MainActivity : ComponentActivity() {
                                 onStop = galleryVm.controller::stop,
                                 onContinue = galleryVm.controller::continueRun,
                                 onAllowAccess = { mediaLauncher.launch(MediaAccess.requestPermissions()) },
-                                onCheckAccess = galleryVm.controller::checkScope,
+                                onCheckAccess = {
+                                    galleryVm.controller.checkScope()
+                                    galleryVm.controller.refresh(
+                                        vm.state.value.summary,
+                                        app.userChoices.state.value.kept,
+                                    )
+                                },
                                 onKeepThisTime = galleryVm.controller::keepThisTime,
                                 onDontOffer = { path ->
                                     vm.keep(path)
@@ -746,6 +752,15 @@ class MainActivity : ComponentActivity() {
     /** PRIV-5: the privacy policy, opened in the browser (KeepClear itself has no internet access). */
     private fun openPrivacy() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_URL.toUri())) }
+    }
+
+    /**
+     * GAL-1 (C236): the comparison is foreground only. Leaving the app (Home, the lock screen, another app) stops a
+     * running one at its next item; it stays stopped until the user taps Continue. A rotation is not leaving.
+     */
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) (application as KeepClearApplication).stopGalleryInBackground()
     }
 
     override fun onNewIntent(intent: Intent) {

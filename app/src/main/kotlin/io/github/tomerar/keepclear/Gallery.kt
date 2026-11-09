@@ -11,6 +11,7 @@ import io.github.tomerar.keepclear.core.gallery.GalleryRunState
 import io.github.tomerar.keepclear.core.gallery.GallerySkip
 import io.github.tomerar.keepclear.core.gallery.GallerySnapshot
 import io.github.tomerar.keepclear.core.model.Category
+import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
@@ -276,6 +277,24 @@ class GalleryController(
      */
     fun dontOffer(path: String) {
         hidden = hidden + path
+        last?.let(::publish)
+    }
+
+    /**
+     * C235, CLS-7: on every return to the gallery the groups follow the latest scan and the user's kept choices. A
+     * photo the latest scan no longer has (cleaned, moved to the trash, deleted elsewhere) or one kept since, from
+     * here or from the photo preview, leaves its group; a photo still there is shown with its latest lane.
+     */
+    fun refresh(summary: ClassificationSummary?, kept: Set<String>) {
+        val latest = summary?.let { s -> GalleryUi.keyed(s.groups.flatMap { it.items }) }.orEmpty()
+        val keptRules = GalleryExclusions(ProtectedPaths(), kept)
+        val next = items.mapNotNull { (key, shown) ->
+            latest[key]?.takeIf {
+                it.item.path == shown.item.path && !keptRules.isKept(it.item.path)
+            }?.let { key to it }
+        }.toMap()
+        if (next == items) return
+        items = next
         last?.let(::publish)
     }
 

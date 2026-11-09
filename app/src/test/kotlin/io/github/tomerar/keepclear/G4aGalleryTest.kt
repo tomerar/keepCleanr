@@ -200,6 +200,34 @@ class G4aGalleryTest {
     }
 
     @Test
+    fun `back on the gallery, photos the latest scan dropped or the user kept leave their groups (C235)`() {
+        val items = library()
+        controller.start(GalleryFakes.summary(items), scanComplete = true)
+        assertEquals(2, until { it.phase == GalleryPhase.DONE }.groups.size)
+        // Nothing changed: the same groups.
+        controller.refresh(GalleryFakes.summary(items), kept = emptySet())
+        assertEquals(2, controller.state.value.groups.size)
+        // The tied pair's photo 3 was cleaned since: the latest scan has no such item, so that pair is no group.
+        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }), kept = emptySet())
+        val cleaned = until { it.groups.size == 1 }
+        assertTrue(cleaned.groups.single().members.none { it.item == items[2] })
+        // Photo 1 was kept from the photo preview ("Don't suggest this again"): its pair goes too.
+        controller.refresh(GalleryFakes.summary(items), kept = setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))
+        assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
+    }
+
+    @Test
+    fun `back on the gallery, a photo whose lane changed shows its latest lane`() {
+        val items = library()
+        controller.start(GalleryFakes.summary(items), scanComplete = true)
+        until { it.phase == GalleryPhase.DONE }
+        val moved = items[1].copy(category = Category.MOVE)
+        controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }), kept = emptySet())
+        val shown = until { s -> s.groups.any { g -> g.members.any { it.item == moved } } }
+        assertTrue(shown.groups.single { g -> g.members.any { it.item == moved } }.hasMemories)
+    }
+
+    @Test
     fun `memories are flagged for backup and keep their lane`() {
         val items = library(memories = true)
         controller.start(GalleryFakes.summary(items), scanComplete = true)
@@ -290,6 +318,31 @@ class G4aGalleryTest {
             withTimeout(10_000) { test.app.gallery.progress.first { !it.state.running() } }
         }
         assertEquals(io.github.tomerar.keepclear.core.gallery.GalleryRunState.PAUSED_FOR_FILE_ACTION, paused.state)
+    }
+
+    @Test
+    fun `leaving the app stops a running comparison and only Continue resumes it (C236)`() {
+        val idle = TestApp(tmp.newFolder())
+        var made = 0
+        idle.app.galleryFactory = {
+            made++
+            fakes.coordinator()
+        }
+        idle.app.stopGalleryInBackground()
+        assertEquals(0, made)
+
+        val test = TestApp(tmp.newFolder())
+        val gate = runningOnApp(test)
+        test.app.stopGalleryInBackground()
+        val stopped = runBlocking {
+            withTimeout(10_000) { test.app.gallery.progress.first { !it.state.running() } }
+        }
+        assertEquals(io.github.tomerar.keepclear.core.gallery.GalleryRunState.STOPPED, stopped.state)
+        assertTrue(stopped.partial)
+        gate.complete(Unit)
+        // A later background transition leaves the stopped (or a finished) run as it is.
+        test.app.stopGalleryInBackground()
+        assertEquals(stopped.state, test.app.gallery.progress.value.state)
     }
 
     @Test
