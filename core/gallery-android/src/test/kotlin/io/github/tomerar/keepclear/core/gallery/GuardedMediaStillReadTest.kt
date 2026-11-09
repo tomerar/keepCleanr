@@ -26,8 +26,6 @@ import io.github.tomerar.keepclear.engine.scan.Source
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -44,11 +42,11 @@ import java.io.FileNotFoundException
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class GuardedMediaPngReadTest {
+class GuardedMediaStillReadTest {
     private val run = GalleryRun("run", "scan", 1)
     private val protected = ProtectedPaths()
     private lateinit var provider: FakeMediaProvider
-    private lateinit var reader: GuardedMediaPngRead
+    private lateinit var reader: GuardedMediaStillRead
 
     @Before
     fun setUp() {
@@ -60,7 +58,7 @@ class GuardedMediaPngReadTest {
         ShadowContentResolver.registerProviderInternal("media", provider)
         val context = ApplicationProvider.getApplicationContext<Context>()
         val observation = MediaStoreObservation(context.contentResolver) { "store-v1" }
-        reader = GuardedMediaPngRead(context.contentResolver, observation) {
+        reader = GuardedMediaStillRead(context.contentResolver, observation) {
             provider.opens++
             provider.onOpen()
             object : ByteArrayInputStream(provider.data) {
@@ -75,7 +73,7 @@ class GuardedMediaPngReadTest {
     @Test
     fun `current scoped png is decoded once`(): Unit = runBlocking {
         val result = reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true }
-        assertNotNull(result)
+        assertTrue(result is GuardedStill.Read)
         assertEquals(1, provider.opens)
         assertEquals(4, provider.queries)
         assertTrue(provider.closed)
@@ -83,37 +81,58 @@ class GuardedMediaPngReadTest {
 
     @Test
     fun `protected and unapproved sources do not open`(): Unit = runBlocking {
-        assertNull(reader.read(item(Category.PROTECTED), run, FeatureVersion.V1, protected) { _, _ -> true })
-        assertNull(reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> false })
-        assertNull(reader.read(item(), run, FeatureVersion("new", "new"), protected) { _, _ -> true })
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(Category.PROTECTED), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> false },
+        )
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion("new", "new"), protected) { _, _ -> true },
+        )
         assertEquals(0, provider.opens)
     }
 
     @Test
     fun `replaced source after open never publishes features`(): Unit = runBlocking {
         provider.onOpen = { provider.fields[MediaStore.MediaColumns.GENERATION_MODIFIED] = 4L }
-        assertNull(reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true })
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
         assertEquals(1, provider.opens)
     }
 
     @Test
     fun `scope reduction after open never publishes features`(): Unit = runBlocking {
         var calls = 0
-        assertNull(reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> ++calls < 3 })
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> ++calls < 3 },
+        )
         assertEquals(1, provider.opens)
     }
 
     @Test
     fun `revoked stream access is unavailable`(): Unit = runBlocking {
         provider.onOpen = { throw SecurityException("revoked") }
-        assertNull(reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true })
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
     }
 
     @Test
     fun `stream length mismatch never publishes features`(): Unit = runBlocking {
         val wrongSize = provider.data.size.toLong() + 1
         provider.fields[MediaStore.MediaColumns.SIZE] = wrongSize
-        assertNull(reader.read(item(size = wrongSize), run, FeatureVersion.V1, protected) { _, _ -> true })
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(size = wrongSize), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
         assertEquals(1, provider.opens)
     }
 
@@ -131,6 +150,65 @@ class GuardedMediaPngReadTest {
         }
     }
 
+    @Test
+    fun `content signature selects the decoder whatever the name and mime say`(): Unit = runBlocking {
+        content(JpegFixtures.oriented(6)) // Named a.png with MIME image/png.
+        val result = reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true }
+        assertTrue(result is GuardedStill.Read)
+        assertEquals(2.0, (result as GuardedStill.Read).record.facts.aspect, 0.0)
+        assertEquals(4, provider.queries)
+        assertTrue(provider.closed)
+    }
+
+    @Test
+    fun `current but unsupported or damaged content is reported as unsupported`(): Unit = runBlocking {
+        content("GIF89a".toByteArray() + ByteArray(32))
+        assertEquals(
+            GuardedStill.Unsupported(StillSkip.UNSUPPORTED_FORMAT),
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+        assertTrue(provider.closed)
+        content(JpegFixtures.encode(16, 16) + 0)
+        assertEquals(
+            GuardedStill.Unsupported(StillSkip.UNSUPPORTED_VARIANT),
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+        content(JpegFixtures.encode(16, 16).let { it.copyOf(it.size - 10) })
+        assertEquals(
+            GuardedStill.Unsupported(StillSkip.DAMAGED),
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+        assertEquals(3, provider.opens)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test
+    fun `unsupported content of a source that changed is unavailable`(): Unit = runBlocking {
+        content("GIF89a".toByteArray() + ByteArray(32))
+        provider.onOpen = { provider.fields[MediaStore.MediaColumns.GENERATION_MODIFIED] = 4L }
+        assertEquals(
+            GuardedStill.Unavailable,
+            reader.read(item(), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+    }
+
+    @Test
+    fun `a source above the byte cap is never opened`(): Unit = runBlocking {
+        val size = BoundedStillDecoder.MAX_BYTES + 1L
+        provider.fields[MediaStore.MediaColumns.SIZE] = size
+        assertEquals(
+            GuardedStill.Unsupported(StillSkip.TOO_LARGE_FILE),
+            reader.read(item(size = size), run, FeatureVersion.V1, protected) { _, _ -> true },
+        )
+        assertEquals(0, provider.opens)
+        assertEquals(4, provider.queries)
+    }
+
+    private fun content(bytes: ByteArray) {
+        provider.data = bytes
+        provider.fields[MediaStore.MediaColumns.SIZE] = bytes.size.toLong()
+    }
+
     private fun item(category: Category = Category.REVIEW, size: Long = provider.data.size.toLong()) = ClassifiedItem(
         item = ScanItem(
             ref = KPath.Media("external_primary", 17),
@@ -146,10 +224,11 @@ class GuardedMediaPngReadTest {
         risk = RiskChip.UNKNOWN,
     )
 
-    private class FakeMediaProvider(val data: ByteArray) : ContentProvider() {
+    private class FakeMediaProvider(var data: ByteArray) : ContentProvider() {
         var opens = 0
         var closed = false
         var queries = 0
+        var writes = 0
         var onOpen: () -> Unit = {}
         val fields = mutableMapOf<String, Any?>(
             MediaStore.MediaColumns._ID to 17L,
@@ -195,10 +274,24 @@ class GuardedMediaPngReadTest {
             return pipe[0]
         }
 
-        override fun insert(uri: Uri, values: ContentValues?): Uri? = null
+        override fun insert(uri: Uri, values: ContentValues?): Uri? {
+            writes++
+            return null
+        }
 
-        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
+        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
+            writes++
+            return 0
+        }
 
-        override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
+        override fun update(
+            uri: Uri,
+            values: ContentValues?,
+            selection: String?,
+            selectionArgs: Array<out String>?,
+        ): Int {
+            writes++
+            return 0
+        }
     }
 }

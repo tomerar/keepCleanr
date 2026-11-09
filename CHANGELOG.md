@@ -12,6 +12,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 - Thumbnails, temp files, WhatsApp statuses older than 24 hours and OS junk now stay in "Clean now" even when they are recent (owner decision B1; rules v3). Favourites and everything else recent still go to Review.
 
 ### Added
+- Add internal bounded JPEG still decoding (marker, dimension and EXIF checks before decoding; orientation applied once; progressive, CMYK, Motion Photo, multi-picture and trailing-data files skipped as unsupported) and make the guarded MediaStore read choose PNG or JPEG by content signature with explicit unsupported results. Nothing is connected to the application.
 - Add an internal, private gallery feature cache (database schema 8): numeric facts only, reused only for the same source version, feature version and permission scope, bounded in size, paused when the phone is nearly full, and clearable without touching the trash, backups or kept choices. Nothing uses it yet.
 - Begin an internal guarded PNG read that compares MediaStore observations before and after decoding; no application entry or action is enabled.
 - Add a limited internal PNG stream decoder with byte and pixel caps, CRC validation, animated/EXIF rejection and cooperative cancellation; it is not connected to the application.
