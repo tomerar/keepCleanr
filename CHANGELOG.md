@@ -5,6 +5,7 @@ All notable changes to KeepClear are documented here. Format: [Keep a Changelog]
 ## [Unreleased]
 
 ### Documentation
+- Add a developer-only on-device gallery evaluation harness (instrumentation test, never in the app) that runs the real still-image pipeline over a developer's local corpus and writes the scorer's inputs and an aggregate timing/memory report with opaque IDs only, a read-only candidate-stage hook in the engine, and an adb runbook. Record G2 honestly: tooling ready, evaluation blocked (no consented labelled corpus or physical devices, nothing measured); G3 not started because its prerequisites are unmet.
 - Add a developer-only offline gallery evaluation scorer and synthetic counterexample tests. No real-image benchmark results are claimed.
 - Adopt the owner's 2026-11-08 gallery scope: zero additional payment, on-device-only similar/duplicate grouping, deterministic-first selective local AI, incremental reuse and reasoned keeper advice. Add requirements/architecture/accepted ADR policies, edge/threat/test/benchmark/phase annexes, source evidence and a complete builder handoff; link them from the main specs and record G1a as the next unimplemented milestone. No application feature, ML dependency, runtime approval or measured device result is included in this documentation change.
 
