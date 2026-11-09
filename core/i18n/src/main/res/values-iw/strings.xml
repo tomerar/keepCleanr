@@ -966,7 +966,6 @@
     <string name="gallery_review_later">האפשרות לבחור מכאן מה למחוק תגיע בגרסה מאוחרת יותר.</string>
     <string name="gallery_back_up">לגבות</string>
     <string name="gallery_keep_this_time">להשאיר את כולן הפעם</string>
-    <string name="gallery_kept_this_time">הוסתרו בינתיים. הן יופיעו שוב בהשוואה הבאה.</string>
     <string name="gallery_details_title">פרטים</string>
     <string name="gallery_detail_eligible">תמונות להשוואה: %1$s</string>
     <string name="gallery_detail_from_cache">הושוו קודם ולא השתנו: %1$s</string>

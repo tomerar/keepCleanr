@@ -11,7 +11,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 **new** and **changed** strings are new since the last review; `reviewed` ones are unchanged. After a review,
 `python3 scripts/hebrew-review.py --mark-reviewed` makes the current texts the new baseline.
 
-889 Hebrew strings; 514 new since the last review (399 new, 115 changed).
+888 Hebrew strings; 513 new since the last review (398 new, 115 changed).
 
 ## Contents
 
@@ -33,7 +33,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 - [Launcher shortcuts](#launcher-shortcuts) (6, 6 new since last review)
 - [Other](#other) (20, 20 new since last review)
 - [Explanations (why / if deleted)](#explanations-why--if-deleted) (96, 16 new since last review)
-- [Not used in code](#not-used-in-code) (4, 4 new since last review)
+- [Not used in code](#not-used-in-code) (3, 3 new since last review)
 
 ## Intro and permissions
 
@@ -1014,7 +1014,6 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 
 | Key | English | עברית | Also | Status |
 |---|---|---|---|---|
-| `gallery_kept_this_time` | Hidden for now. They come back the next time you compare. | הוסתרו בינתיים. הן יופיעו שוב בהשוואה הבאה. |  | **new** (new since last review) |
 | `keep_notice` | KeepClear won't suggest %1$s again. | KeepClear לא יציע שוב את %1$s. |  | **new** (new since last review) |
 | `move_pick_target` | Choose where to back up | לבחור לאן לגבות |  | **changed** (new since last review) |
 | `notice_undo` | Undo | חזרה |  | **new** (new since last review) |

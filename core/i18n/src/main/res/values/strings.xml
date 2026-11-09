@@ -924,7 +924,6 @@
     <string name="gallery_review_later">Choosing what to delete from here comes in a later version.</string>
     <string name="gallery_back_up">Back up</string>
     <string name="gallery_keep_this_time">Keep them all this time</string>
-    <string name="gallery_kept_this_time">Hidden for now. They come back the next time you compare.</string>
     <string name="gallery_details_title">Details</string>
     <string name="gallery_detail_eligible">Photos to compare: %1$s</string>
     <string name="gallery_detail_from_cache">Compared before and unchanged: %1$s</string>

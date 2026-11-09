@@ -19,7 +19,7 @@ All with `--max-workers=2` and in-process Kotlin compilation.
 - `G4aScreensTest` (9, Robolectric Compose): marker is not a selection (no checkbox role, nothing selected, no delete label); memories show „לגבות”, others don't; abstention; TalkBack (one node per photo with Preview and Don't suggest this again, role Button); keep this time; honest partial/complete wording; running progress and Stop; no access offers the permission request; Details sheet; Hebrew at 200 % (56 dp main action, 48 dp target, first photo on the right).
 - `G4aScreenshotTest`: 28 recorded Roborazzi images (`gallery_entry`, `gallery_running`, `gallery_partial`, `gallery_groups`, `gallery_compare`, `gallery_compare_none`, `gallery_no_access`, each en/iw × light/dark), recorded with `recordRoborazziFossDebug --tests '*G4aScreenshotTest*'` and inspected.
 - Updated: `H3HelpTest` (11 topics; the new topic quotes the real entry, marker and lane labels), `ArchitectureTest` (new rule), `docs/hebrew-review.md` regenerated with a "Similar photos" screen.
-- CHECKS_PLACEHOLDER
+- Full `./gradlew ciCheck --continue` (both flavours' unit tests, lint, `verifyRoborazziFossDebug`, architecture and policy checks, spotless): the first run failed only on lint `UnusedResources` (an unused string, removed); the second run after that fix passed (`BUILD SUCCESSFUL`). The API 30/36 emulator tests are not part of `ciCheck` and are pending CI; no instrumented test was added.
 
 Mutations (each applied alone with `scripts`-style text replacement, the named tests run, then reverted):
 
