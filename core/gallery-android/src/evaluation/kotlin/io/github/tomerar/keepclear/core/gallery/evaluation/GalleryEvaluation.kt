@@ -115,6 +115,7 @@ enum class EvaluationOutcome(val status: String, val reason: String) {
     MISSING("not_processed", "missing"), // indexed but not a regular file in the corpus
     OUTSIDE_CORPUS("not_processed", "outside_corpus"), // resolves (for example via a link) outside the corpus
     LIMIT("not_processed", "limit"), // beyond the developer's maxImages argument
+    OTHER_SPLIT("not_processed", "other_split"), // another split than this run; listed for a complete inventory
     ;
 
     companion object {
@@ -267,11 +268,27 @@ class GalleryEvaluation internal constructor(
 
 /** Writers for the scoring tool's CSVs and the aggregate report. Only IDs, tokens and numbers are written. */
 object EvaluationOutputs {
-    fun manifest(pass: EvaluationPass, digests: Map<String, String>? = null): String = buildString {
+    /**
+     * Every analysed image of the pass, then [otherSplits] as `not_processed/other_split`: the scoring tool validates
+     * every label against the full inventory and uses digests across splits to detect identical content (review of
+     * PR #75). Grouping stays split-local.
+     */
+    fun manifest(
+        pass: EvaluationPass,
+        digests: Map<String, String>? = null,
+        otherSplits: List<CorpusEntry> = emptyList(),
+    ): String = buildString {
         append("image_id,event_id,split,stratum,status,skip_reason")
         if (digests != null) append(",sha256")
         append('\n')
         for ((entry, outcome) in pass.outcomes) {
+            append(entry.imageId).append(',').append(entry.eventId).append(',').append(entry.split).append(',')
+            append(entry.stratum).append(',').append(outcome.status).append(',').append(outcome.reason)
+            if (digests != null) append(',').append(digests[entry.imageId].orEmpty())
+            append('\n')
+        }
+        for (entry in otherSplits) {
+            val outcome = EvaluationOutcome.OTHER_SPLIT
             append(entry.imageId).append(',').append(entry.eventId).append(',').append(entry.split).append(',')
             append(entry.stratum).append(',').append(outcome.status).append(',').append(outcome.reason)
             if (digests != null) append(',').append(digests[entry.imageId].orEmpty())
@@ -478,7 +495,7 @@ suspend fun runEvaluation(
     }
     val root = corpus.canonicalFile.toPath()
     val sha = if (digests) {
-        entries.map { it to File(corpus, it.file) }
+        all.map { it to File(corpus, it.file) }
             .filter { (_, file) -> file.isFile && file.canonicalFile.toPath().startsWith(root) }
             .mapNotNull { (entry, file) ->
                 // An unreadable file keeps its manifest status (skipped/unreadable) and an empty digest.
@@ -495,7 +512,8 @@ suspend fun runEvaluation(
     }
     val pass = checkNotNull(firstPass)
     output.mkdirs()
-    File(output, "manifest.csv").writeText(EvaluationOutputs.manifest(pass, sha), Charsets.UTF_8)
+    val otherSplits = all.filter { it.split != split }.sortedBy { it.imageId }
+    File(output, "manifest.csv").writeText(EvaluationOutputs.manifest(pass, sha, otherSplits), Charsets.UTF_8)
     File(output, "groups.csv").writeText(checkNotNull(first).second, Charsets.UTF_8)
     File(output, "candidates.csv").writeText(first.third, Charsets.UTF_8)
     val report = linkedMapOf(

@@ -257,16 +257,18 @@ class GalleryEvaluationTest {
             },
         )
         val manifest = File(output, "manifest.csv").readLines().drop(1)
-        assertEquals(
-            setOf(EvaluationIds.imageId("hold-a.png"), EvaluationIds.imageId("hold-b.png")),
-            manifest.map { it.split(',')[0] }.toSet(),
-        )
-        assertTrue(manifest.all { it.split(',')[2] == "holdout" })
+        // The inventory stays complete: other splits are listed as not processed, never analysed or grouped.
+        val rows = manifest.associate { row -> row.split(',').let { it[0] to "${it[2]}:${it[4]}/${it[5]}" } }
+        assertEquals("holdout:analyzed/", rows[EvaluationIds.imageId("hold-a.png")])
+        assertEquals("development:not_processed/other_split", rows[EvaluationIds.imageId("dev-a.png")])
+        assertEquals("development:not_processed/other_split", rows[EvaluationIds.imageId("dev-b.png")])
+        assertEquals(4, rows.size)
         assertEquals(listOf("group_id,image_id"), File(output, "groups.csv").readLines()) // no cross-split group
 
         fun digestOf(name: String) = manifest.single { it.startsWith(EvaluationIds.imageId(name)) }.split(',')[6]
         assertEquals("f".repeat(64), digestOf("hold-a.png"))
         assertEquals("", digestOf("hold-b.png"))
+        assertEquals("f".repeat(64), digestOf("dev-a.png")) // digests cover other splits for leakage checks
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking {
                 runEvaluation(
