@@ -2,6 +2,7 @@
 package io.github.tomerar.keepclear.core.gallery
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -48,6 +49,9 @@ class PrefsEpochLedger(private val prefs: SharedPreferences) : EpochLedger {
         GalleryAuthorization(scope, prefs.getLong(EPOCH, 0))
     }.getOrNull()
 
+    // Deliberately synchronous: callers run on the IO dispatcher, and the new epoch must be on disk before any read of
+    // the new scope starts, so a process death can never leave an older epoch recorded after a narrowing (C211).
+    @SuppressLint("ApplySharedPref")
     override fun write(authorization: GalleryAuthorization) {
         prefs.edit().putString(SCOPE, authorization.scope.name).putLong(EPOCH, authorization.epoch).commit()
     }
