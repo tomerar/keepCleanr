@@ -88,10 +88,10 @@ Limits to record with any result: the instrumentation APK is a debuggable build,
    adb pull /sdcard/Android/data/$PKG/files/gallery-g2/oneplus10t-cold-1 results/
    python3 -I scripts/gallery-benchmark-score.py --manifest results/oneplus10t-cold-1/manifest.csv \
      --labels labels.csv --groups results/oneplus10t-cold-1/groups.csv \
-     --candidates results/oneplus10t-cold-1/candidates.csv --split development > private-aggregate.json
+     --candidates results/oneplus10t-cold-1/candidates.csv --split holdout > private-aggregate.json
    ```
 
-   Calibrate only on `development`, check on `validation`, then freeze the policy and run `holdout` once. Keep `timing.json`, the CSVs and the score private until reviewed; publish only redacted aggregates in a `docs/device-reports/` record per "Results artifact contract", with the device facts from step 4.
+   Score with the same `--split` the run used (`gallerySplit`); the example runs and scores `holdout`. Calibrate only on `development`, check on `validation`, then freeze the policy and run `holdout` once. Keep `timing.json`, the CSVs and the score private until reviewed; publish only redacted aggregates in a `docs/device-reports/` record per "Results artifact contract", with the device facts from step 4.
 7. **Clean up**: `adb uninstall $PKG` removes the corpus copy and the results from the phone.
 
 A changed policy needs a spec change and a new frozen holdout run; the harness never tunes thresholds itself.
