@@ -77,6 +77,40 @@ class ArchitectureTest {
     }
 
     /**
+     * G1b coordinator (GAL-15, E-G16, C213): gallery analysis is only ever user-started in the foreground. Nothing in
+     * the gallery modules may schedule, restart on boot or run as a background job, and the coordinator, its
+     * eligibility and read ports stay plain Kotlin (C210).
+     */
+    @Test
+    fun `gallery work never schedules itself and the coordinator is plain Kotlin`() {
+        listOf("engine/gallery", "core/gallery-android").forEach { module ->
+            val files = Konsist.scopeFromModule(module).files.filter { "/src/main/" in it.path }
+            check(files.isNotEmpty())
+            files.assertFalse { file ->
+                listOf(
+                    "androidx.work",
+                    "WorkManager",
+                    "JobScheduler",
+                    "AlarmManager",
+                    "BOOT_COMPLETED",
+                    "ForegroundService",
+                    "startService",
+                    "GlobalScope",
+                ).any { it in file.text }
+            }
+        }
+        val pure = Konsist.scopeFromModule("core/gallery-android").files.filter { file ->
+            listOf("GalleryCoordinator.kt", "GalleryEligibility.kt", "GalleryReadPorts.kt").any {
+                file.path.endsWith("/$it")
+            }
+        }
+        check(pure.size == 3)
+        pure.assertTrue { file ->
+            file.imports.none { it.name.startsWith("android.") || it.name.startsWith("androidx.") }
+        }
+    }
+
+    /**
      * GAL-11, AC-G8 (C209): the gallery cache lives in the app database (`databases/keepclear.db`), and app data never
      * goes to a cloud backup or a device transfer: `allowBackup=false`, and both rule files exclude the database
      * domain (and every other domain).
