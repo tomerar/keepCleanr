@@ -22,6 +22,10 @@ SPLITS = {"development", "validation", "holdout"}
 STATES = {"analyzed", "unsupported", "skipped", "not_processed"}
 LABELS = {"match", "different", "ambiguous"}
 MAX_ROWS = 1_000_000
+# The engine retrieves at most 100 candidates per query image (GalleryPolicy.maxComparisons is bounded to 1..100), so a
+# harness candidates file never holds more than 100 unordered pairs per manifest image. The candidate file's row limit
+# follows that bound instead of the generic one, so a valid crowded corpus is scored, never truncated.
+CANDIDATES_PER_IMAGE = 100
 
 
 class InputError(ValueError):
@@ -34,7 +38,7 @@ def token(value, context):
     return value
 
 
-def rows(path, required):
+def rows(path, required, max_rows=MAX_ROWS):
     with Path(path).open("r", encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         if reader.fieldnames is None or len(set(reader.fieldnames)) != len(reader.fieldnames):
@@ -42,8 +46,8 @@ def rows(path, required):
         if not required.issubset(reader.fieldnames):
             raise InputError("CSV is missing required columns: " + ", ".join(sorted(required - set(reader.fieldnames))))
         for index, row in enumerate(reader, start=2):
-            if index > MAX_ROWS + 1:
-                raise InputError("CSV exceeds the one-million-row limit")
+            if index > max_rows + 1:
+                raise InputError(f"CSV exceeds the {max_rows:,}-row limit")
             if None in row or any(value is None for value in row.values()):
                 raise InputError(f"CSV row {index}: wrong number of columns")
             yield index, row
@@ -154,11 +158,15 @@ def groups(path, items, split):
     return set(pair_groups), len(groups_by_id), len(members), pair_groups
 
 
+def candidate_row_limit(items):
+    return max(MAX_ROWS, CANDIDATES_PER_IMAGE * len(items))
+
+
 def candidates(path, items, split):
     if path is None:
         return None
     found = set()
-    for index, row in rows(path, {"image_a", "image_b"}):
+    for index, row in rows(path, {"image_a", "image_b"}, candidate_row_limit(items)):
         context = f"candidates row {index}"
         key = pair(row["image_a"], row["image_b"], context)
         if key in found or any(image not in items for image in key):

@@ -26,6 +26,19 @@
 | GAL-15, GAL-26, AC-G15; E-G08/14/15/16/20 | `GalleryCoordinatorTest`: cache hit decodes nothing, changed version recomputed, low space pauses without writing, failing write continues in memory, stop/pause-for-file-action and Continue reuse completed records, one worker and ≤ 8 queued refs. `ArchitectureTest` "gallery work never schedules itself and the coordinator is plain Kotlin" | Process death, memory/thermal/battery pauses, wiring into backup/clean flows |
 | GAL-3/10 advisory only | `GalleryCoordinatorTest` "grouping is advisory …" (no safety, model, classify, trash or move type reachable from the result); `GalleryGroupingTest` | G4b bridge |
 
+## G2 tooling (2026-11-09, local)
+
+Developer-only measurement preparation ([status](../verification/gallery-g2-2026-11-09.md), C215–C219). No row below is a G2 result: G2's evaluation is blocked on a consented labelled corpus and physical devices.
+
+| Requirement / case | Actual tests | Remaining |
+|---|---|---|
+| GAL-5, AC-G4 measurement inputs (pre-reranking candidate recall) | `CandidateProbeTest`: exact retrieved pairs, including an ungrouped one; results equal with and without a probe across capped and uncapped seeded workloads | Labelled H1/holdout corpus; calibration and frozen holdout run |
+| GAL-2, AC-G7/AC-G4 honest coverage in the manifest | `GalleryEvaluationTest`: every indexed image gets analyzed/unsupported/skipped/not_processed with the production skip reason; empty, oversized and missing files are never opened; `maxImages` leaves the rest `not_processed` and the scope partial | Real skip rates per format on V2 |
+| GAL-26, AC-G9/AC-G15 diagnostics (per-stage time, memory, decoded count, cache-free passes) | `GalleryEvaluationTest`: two passes identical, process cold/warm labels, sampled peaks, nearest-rank percentiles undefined without data, JSON escaping; `GalleryEvaluationHarness` collects device/thermal/battery facts (compiled; runs only with a corpus) | OnePlus 10T and 4 GB API 30 runs; release-equivalent timing; energy |
+| GAL-11/22, D-G2 (no content or path leaves; no network) | `GalleryEvaluationTest` no-names check over every output; `ArchitectureTest` "gallery evaluation harness stays out of the app and off the network"; instrumentation APK has no `INTERNET` permission | Privacy review of any real aggregate before sharing |
+| Pipeline correctness (synthetic only) | `GalleryEvaluationSmokeTest` (Robolectric native graphics) and `GalleryEvaluationSmokeDeviceTest` (Android ImageDecoder, pending CI): generated fixtures through the production decoder, grouping and writers | None as evidence of accuracy |
+| G3 gate (GAL-17, AC-G11, ADR 0015) | Not applicable: G3 not started, prerequisites unmet (C219) | A measured G2 gap first |
+
 ## Actual G1a test mapping (2026-11-08)
 
 | Contract portion | Existing implementation verification | Remaining gate |
@@ -106,7 +119,7 @@ Owner scope/category/cost/privacy and keeper choices are recorded in D-G1…D-G8
 | GAL-23; D-G1/D-G2 | AC-G12/8 | E-G26; T-G14/SEC-G14 | Fresh offline/no-account, dependency/UI/online-zero-network checks; no provider/subscription capability | All stages |
 | GAL-24; D-G4 | AC-G13 | E-G29/30; T-G13 | GalleryEscalationPolicyTest: calibrated state/reason eligibility, all-resolved/no-match/unsupported give zero inference | G1a/G3 |
 | GAL-25; D-G6 | AC-G14 | E-G29/31; T-G13/SEC-G13 | GalleryRunBudgetTest: shared participants, global count/time, initialization/stop/resume, no cap reset or automatic retry | G1a/G3/G5 |
-| GAL-26; D-G6 | AC-G15/9 | E-G30/31 | GalleryIncrementalWorkTest: zero-work revisit, targeted invalidation, decode/inference reuse, private aggregate stage counters | G1b/G3/G5 |
+| GAL-26; D-G6 | AC-G15/9 | E-G30/31 | GalleryIncrementalWorkTest: zero-work revisit, targeted invalidation, decode/inference reuse, private aggregate stage counters; G2 developer harness stage/memory JSON (tooling only) | G1b/G2/G3/G5 |
 | GAL-10; D-G5 | AC-G15/4 | E-G32; T-G1/T-G10 | GalleryKeeperAdviceTest: measured reason, tie/contradiction abstention, no implicit selection/confirmation | G1a/G4a/G5 |
 
 Implementation authority is in gallery-decisions.md, read order in gallery-overview.md and complete handoff in ../prompts/gallery-builder.md. The decision record supersedes any earlier proposal wording that suggests the same owner approval is still required. Hardware measurements and unimplemented test names stay pending.

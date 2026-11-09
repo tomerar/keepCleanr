@@ -1,6 +1,6 @@
 # Gallery benchmark and test strategy
 
-**Status: Owner-approved efficiency/quality policy; provisional numerical protocol and targets — no measured KeepClear gallery results.** Date: 8 November 2026. D-G1…D-G8 apply.
+**Status: Owner-approved efficiency/quality policy; provisional numerical protocol and targets — no measured KeepClear gallery results.** Date: 8 November 2026; developer harness and runbook added 9 November 2026 (G2 tooling ready, evaluation blocked: [G2 status](../verification/gallery-g2-2026-11-09.md)). D-G1…D-G8 apply.
 
 Existing owner checks, CI and no-loss tests remain mandatory. This protocol distinguishes filesystem scale, image decoding, task accuracy, user usefulness and energy; none substitutes for the others. The developer measurement workflow may use a computer. Ordinary setup/review and the owner's acceptance checklist remain phone-only, per P-1.
 
@@ -31,6 +31,70 @@ Use only opaque IDs and nonsensitive category names; keep the CSVs and the outpu
 The JSON reports labelled reference-pair recall including unprocessed images, pre-reranking recall on that reference, known-pair precision, uncertain/unlabelled suggestions, false-merge groups, split/event counts and labelled pair strata. The deterministic 95% cluster-bootstrap interval is **only for known, unambiguous suggested pairs** (clusters sorted by ID; percentile indices use floor); freeze the tool version, Python version and seed alongside the corpus; it is unavailable if there are fewer than two clusters, too many invalid resamples, or more than ten million bootstrap draws. Undefined metrics are `null`, never zero. Missing/ambiguous labels and incomplete processing are reported separately; a precision estimate over known labels is not the precision of all suggestions. No automatic release-gate decision is made.
 
 This tool cannot establish dataset rights, label quality, sufficient negative sampling, device performance, energy, confidence-interval validity for the actual study, or AC-G4 compliance. G2 must freeze the corpus/splits and threshold before held-out evaluation and document those independent checks.
+
+## Developer evaluation harness and runbook (G2 tooling, developer-only)
+
+**Developer-only.** This section is for whoever runs the G2 measurement with a computer and `adb`. No user or owner acceptance step ever needs it (product principle 1, P-1); the harness lives in `core:gallery-android`'s instrumentation APK and is never part of the app. Status 2026-11-09: tooling implemented and tested with synthetic fixtures only; **no corpus run has been made and no result exists** ([G2 status](../verification/gallery-g2-2026-11-09.md)).
+
+What it runs (C216, C217): for each image of the corpus index, in image-ID order, the production `BoundedStillDecoder` (content-signature dispatch, PNG/JPEG bounds, orientation, canonical features), then one `GalleryGrouping.group` call with the default production `GalleryPolicy()` (`g1a-experimental-v1`: dHash ≤4, pHash ≤6, ≤100 comparisons per image, groups of 2–20). This is the policy the coordinator uses today; it is **uncalibrated**, so the report says `"calibrated": false`. There is no calibrated Balanced profile yet: calibrating it on the development split and freezing it before the holdout is G2 work. The learned-inference budget (`GalleryRunBudget`) is not exercised because no model exists. The harness reads no feature cache (every pass decodes every analyzed image: "feature cache cold"), never writes the gallery cache, has no `INTERNET` permission and opens no connection (`ArchitectureTest`). Without the MediaStore observation and coordinator, it measures the decode/feature/grouping pipeline, not permission, query or database stages.
+
+Outputs (in `gallery-g2/<label>/` under the test APK's external files directory), all with opaque IDs only:
+
+| File | Content |
+|---|---|
+| `manifest.csv` | `image_id,event_id,split,stratum,status,skip_reason[,sha256]` for every indexed image. Status `analyzed`; `unsupported` (`unsupported_format`, `unsupported_variant`); `skipped` (`file_too_large`, `image_too_large`, `damaged`, `empty`, `unreadable`); `not_processed` (`missing`, `outside_corpus`, `limit`, `other_split`: images of the splits this run did not evaluate, listed so the scoring tool sees the whole inventory). The scoring tool ignores `skip_reason`. `sha256` only with `galleryDigests=true` |
+| `groups.csv` | `group_id,image_id` for every suggested group |
+| `candidates.csv` | `image_a,image_b`: every pair the hash-band candidate index retrieved before comparison (`CandidateProbe`, C215), grouped or not. Pairs the index cap never returned are absent, so pre-reranking recall is measured honestly |
+| `timing.json` | Policy and ID scheme; corpus counts; per pass: wall time of read+decode+features and of grouping, p50/p95/p99/max per-image latency, counts by status and reason, decoded images (one recycled software bitmap each, by construction), groups, candidate pairs, engine limits and counters, sampled peak Java heap (`Runtime`) and native heap (`Debug.getNativeHeapAllocatedSize`), PSS at the end of the pass (`Debug.getPss`); device identity, RAM, thermal status, battery level/temperature/plug state and power-save mode at start and end; `passesIdentical` |
+
+Image IDs: `"i" + sha256("keepclear-g2-id-v1\n" + relative path)[:16 hex]`, the relative path using `/`. A labeller computes the same ID on the computer with `python3 -c 'import hashlib,sys; print("i"+hashlib.sha256(("keepclear-g2-id-v1\n"+sys.argv[1]).encode()).hexdigest()[:16])' burst/IMG_0001.jpg`. File names are hashed, not secret: rename files to neutral names before the corpus leaves its owner if names are sensitive.
+
+Limits to record with any result: the instrumentation APK is a debuggable build, so its latency is a **debug-build** figure and does not replace the release-equivalent profileable run required above; heap peaks are sampled after each image, not traced; PSS is an end-of-pass value, not a peak; the harness runs one worker, as the coordinator does. Energy is not measured by the harness (see "Energy, battery and heat").
+
+### Runbook
+
+1. **Prepare the corpus on the computer** (licensed or consented images only; never a personal library without consent; never committed). Put the images in one folder and write `corpus-index.csv` next to them with the header `file,event_id,split,stratum[,kind]`: `file` is the relative path (`/` separators, no commas or quotes), `event_id`/`stratum` are simple tokens, `split` is `development`, `validation` or `holdout` (an event never spans splits), and the optional `kind` is `photo` or `text_sensitive` (use `text_sensitive` exactly for images the scan classifies as screenshots). Files not in the index are ignored and only counted. Freeze the index, the splits and the labels (`labels.csv`, scoring-tool schema, using the IDs above) before any holdout run.
+2. **Build and install the harness** (no app install needed):
+
+   ```sh
+   ./gradlew :core:gallery-android:assembleDebugAndroidTest
+   adb install -r -t core/gallery-android/build/outputs/apk/androidTest/debug/gallery-android-debug-androidTest.apk
+   ```
+
+   Use `adb install`, not `connectedAndroidTest`: the Gradle task uninstalls the test APK afterwards, which deletes both the pushed corpus and the results.
+3. **Push the corpus** into the test APK's own app-specific media folder, which Android lets an app read without a storage permission (these commands have not yet been exercised on a physical device; if the harness reports "no corpus directory", check the path and that the test APK is installed):
+
+   ```sh
+   PKG=io.github.tomerar.keepclear.core.gallery.test
+   adb shell mkdir -p /sdcard/Android/media/$PKG/gallery-corpus
+   adb push corpus/. /sdcard/Android/media/$PKG/gallery-corpus/
+   ```
+
+4. **Record the device state** before each run: model, Android version and build fingerprint (also in the JSON), free storage (`adb shell df -h /data`), battery level and temperature, whether it is charging, thermal status (`adb shell dumpsys thermalservice | head`), screen and radio state, and the time since boot. Let the phone cool to the same state between runs; unplug for any battery observation. For a "post-reboot" run, reboot and wait for the device to settle first.
+5. **Run.** Each `am instrument` starts a new process, so its first pass is "process cold"; `galleryPasses=N` (1–10) adds process-warm passes in the same process. Every pass is feature-cache cold. `gallerySplit` (required: `development`, `validation` or `holdout`) selects the one split a run evaluates: splits are never grouped together, so candidate caps and groups of one split never depend on another and the scoring tool's `--split` accepts the output (run once per split). Use a new `galleryRunLabel` per run (results are never overwritten); `galleryMaxImages` limits the run (the rest is `not_processed/limit`); `galleryDigests=true` adds full-file SHA-256 values for the scoring tool's leakage check (computed outside the timed stages; a file that cannot be read keeps an empty digest and its own manifest status).
+
+   ```sh
+   adb shell am instrument -w \
+     -e class io.github.tomerar.keepclear.core.gallery.GalleryEvaluationHarness \
+     -e galleryCorpus /sdcard/Android/media/$PKG/gallery-corpus \
+     -e gallerySplit holdout -e galleryRunLabel oneplus10t-cold-1 -e galleryPasses 3 -e galleryDigests true \
+     $PKG/androidx.test.runner.AndroidJUnitRunner
+   ```
+
+   Repeat at least 5 cold runs (and the warm passes) per device, counterbalanced and cooled, as "Runs and controls" requires. Without `galleryCorpus` the test is skipped.
+6. **Pull and score:**
+
+   ```sh
+   adb pull /sdcard/Android/data/$PKG/files/gallery-g2/oneplus10t-cold-1 results/
+   python3 -I scripts/gallery-benchmark-score.py --manifest results/oneplus10t-cold-1/manifest.csv \
+     --labels labels.csv --groups results/oneplus10t-cold-1/groups.csv \
+     --candidates results/oneplus10t-cold-1/candidates.csv --split holdout > private-aggregate.json
+   ```
+
+   Score with the same `--split` the run used (`gallerySplit`); the example runs and scores `holdout`. Calibrate only on `development`, check on `validation`, then freeze the policy and run `holdout` once. Keep `timing.json`, the CSVs and the score private until reviewed; publish only redacted aggregates in a `docs/device-reports/` record per "Results artifact contract", with the device facts from step 4.
+7. **Clean up**: `adb uninstall $PKG` removes the corpus copy and the results from the phone.
+
+A changed policy needs a spec change and a new frozen holdout run; the harness never tunes thresholds itself.
 
 ## Corpus and ground truth
 

@@ -111,6 +111,31 @@ class ArchitectureTest {
     }
 
     /**
+     * G2 harness (C216, GAL-26): the developer-only evaluation harness never ships and never uses the network. Its
+     * core lives in `core/gallery-android/src/evaluation` (JVM tests and the instrumentation APK only); no main source
+     * refers to it or passes the engine's read-only `CandidateProbe`, and the harness files name no network API.
+     */
+    @Test
+    fun `gallery evaluation harness stays out of the app and off the network`() {
+        var root = java.io.File("").absoluteFile
+        while (!java.io.File(root, "settings.gradle.kts").isFile) root = root.parentFile
+        val harness = java.io.File(root, "core/gallery-android/src").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { "/src/evaluation/" in it.invariantSeparatorsPath || it.name.startsWith("GalleryEvaluation") }
+            .toList()
+        check(harness.size >= 5)
+        check(harness.none { "/src/main/" in it.invariantSeparatorsPath })
+        val network = Regex("""java\.net\.|javax\.net\.|okhttp|HttpURLConnection|\bSocket\b|\bURL\(""")
+        harness.forEach { check(!network.containsMatchIn(it.readText())) { "network API in ${it.name}" } }
+        projectScope.files
+            .filter { "/src/main/" in it.path && "/engine/gallery/" !in it.path }
+            .assertFalse { file -> "core.gallery.evaluation" in file.text || "CandidateProbe" in file.text }
+        projectScope.files
+            .filter { "/src/main/" in it.path && ("/core/gallery-android/" in it.path || "/app/" in it.path) }
+            .assertFalse { file -> Regex("""\bprobe\s*=""").containsMatchIn(file.text) }
+    }
+
+    /**
      * GAL-11, AC-G8 (C209): the gallery cache lives in the app database (`databases/keepclear.db`), and app data never
      * goes to a cloud backup or a device transfer: `allowBackup=false`, and both rule files exclude the database
      * domain (and every other domain).
