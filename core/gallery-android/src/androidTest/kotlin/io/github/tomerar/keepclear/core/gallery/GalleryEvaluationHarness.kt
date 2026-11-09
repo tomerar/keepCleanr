@@ -42,6 +42,9 @@ class GalleryEvaluationHarness {
         check(File(corpus, CorpusIndex.FILE_NAME).isFile) { "the corpus has no ${CorpusIndex.FILE_NAME}" }
         val context = InstrumentationRegistry.getInstrumentation().context
         val label = args.getString("galleryRunLabel") ?: "run"
+        // One split per run (development, validation or holdout): splits are never grouped together.
+        val split =
+            checkNotNull(args.getString("gallerySplit")) { "pass -e gallerySplit development|validation|holdout" }
         val output = File(checkNotNull(context.getExternalFilesDir(null)), "gallery-g2/$label")
         val runtime = Runtime.getRuntime()
         val evaluation = GalleryEvaluation(
@@ -52,6 +55,7 @@ class GalleryEvaluationHarness {
             corpus,
             output,
             label,
+            split = split,
             passes = args.getString("galleryPasses")?.toInt() ?: 1,
             maxImages = args.getString("galleryMaxImages")?.toInt(),
             digests = args.getString("galleryDigests") == "true",

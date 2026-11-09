@@ -56,6 +56,7 @@ class GalleryEvaluationSmokeDeviceTest {
             corpus,
             output,
             "smoke",
+            split = "validation",
             passes = 1,
             maxImages = null,
             digests = true,

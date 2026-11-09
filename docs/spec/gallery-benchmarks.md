@@ -71,13 +71,13 @@ Limits to record with any result: the instrumentation APK is a debuggable build,
    ```
 
 4. **Record the device state** before each run: model, Android version and build fingerprint (also in the JSON), free storage (`adb shell df -h /data`), battery level and temperature, whether it is charging, thermal status (`adb shell dumpsys thermalservice | head`), screen and radio state, and the time since boot. Let the phone cool to the same state between runs; unplug for any battery observation. For a "post-reboot" run, reboot and wait for the device to settle first.
-5. **Run.** Each `am instrument` starts a new process, so its first pass is "process cold"; `galleryPasses=N` (1–10) adds process-warm passes in the same process. Every pass is feature-cache cold. Use a new `galleryRunLabel` per run (results are never overwritten); `galleryMaxImages` limits the run (the rest is `not_processed/limit`); `galleryDigests=true` adds full-file SHA-256 values for the scoring tool's leakage check (computed outside the timed stages).
+5. **Run.** Each `am instrument` starts a new process, so its first pass is "process cold"; `galleryPasses=N` (1–10) adds process-warm passes in the same process. Every pass is feature-cache cold. `gallerySplit` (required: `development`, `validation` or `holdout`) selects the one split a run evaluates: splits are never grouped together, so candidate caps and groups of one split never depend on another and the scoring tool's `--split` accepts the output (run once per split). Use a new `galleryRunLabel` per run (results are never overwritten); `galleryMaxImages` limits the run (the rest is `not_processed/limit`); `galleryDigests=true` adds full-file SHA-256 values for the scoring tool's leakage check (computed outside the timed stages; a file that cannot be read keeps an empty digest and its own manifest status).
 
    ```sh
    adb shell am instrument -w \
      -e class io.github.tomerar.keepclear.core.gallery.GalleryEvaluationHarness \
      -e galleryCorpus /sdcard/Android/media/$PKG/gallery-corpus \
-     -e galleryRunLabel oneplus10t-cold-1 -e galleryPasses 3 -e galleryDigests true \
+     -e gallerySplit holdout -e galleryRunLabel oneplus10t-cold-1 -e galleryPasses 3 -e galleryDigests true \
      $PKG/androidx.test.runner.AndroidJUnitRunner
    ```
 

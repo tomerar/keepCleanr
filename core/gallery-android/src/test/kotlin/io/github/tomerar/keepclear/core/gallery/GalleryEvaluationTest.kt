@@ -145,6 +145,7 @@ class GalleryEvaluationTest {
                 corpus,
                 output,
                 "unit",
+                split = "holdout",
                 passes = 2,
                 maxImages = null,
                 digests = true,
@@ -215,9 +216,73 @@ class GalleryEvaluationTest {
             }
             // A second run never overwrites earlier results.
             assertThrows(IllegalArgumentException::class.java) {
-                runBlocking { runEvaluation(evaluation, corpus, output, "unit", 1, null, false, { emptyMap() }) }
+                runBlocking {
+                    runEvaluation(evaluation, corpus, output, "unit", "holdout", 1, null, false, { emptyMap() })
+                }
             }
         }
+
+    @Test
+    fun `each split is evaluated on its own and an unreadable digest never aborts the run`(): Unit = runBlocking {
+        // Review of PR #75: splits used to be grouped together, which the scoring tool rejects and which let one split
+        // change another's caps and groups; and a digest read failure aborted the whole run before any output.
+        val corpus = temp.newFolder("splits")
+        File(corpus, "dev-a.png").writeText("d:0")
+        File(corpus, "dev-b.png").writeText("d:15")
+        File(corpus, "hold-a.png").writeText("d:0") // identical features to dev-a: would group across splits
+        File(corpus, "hold-b.png").writeText("d:1000003")
+        File(corpus, CorpusIndex.FILE_NAME).writeText(
+            HEADER + "dev-a.png,e1,development,s\ndev-b.png,e1,development,s\nhold-a.png,e2,holdout,s\n" +
+                "hold-b.png,e3,holdout,s",
+        )
+        val output = File(temp.root, "hold")
+        runEvaluation(
+            GalleryEvaluation(decode = fake),
+            corpus,
+            output,
+            "unit",
+            split = "holdout",
+            passes = 1,
+            maxImages = null,
+            digests = true,
+            device = { emptyMap() },
+            digest = { file ->
+                if (file.name ==
+                    "hold-b.png"
+                ) {
+                    throw java.io.IOException("unreadable")
+                } else {
+                    "f".repeat(64)
+                }
+            },
+        )
+        val manifest = File(output, "manifest.csv").readLines().drop(1)
+        assertEquals(
+            setOf(EvaluationIds.imageId("hold-a.png"), EvaluationIds.imageId("hold-b.png")),
+            manifest.map { it.split(',')[0] }.toSet(),
+        )
+        assertTrue(manifest.all { it.split(',')[2] == "holdout" })
+        assertEquals(listOf("group_id,image_id"), File(output, "groups.csv").readLines()) // no cross-split group
+
+        fun digestOf(name: String) = manifest.single { it.startsWith(EvaluationIds.imageId(name)) }.split(',')[6]
+        assertEquals("f".repeat(64), digestOf("hold-a.png"))
+        assertEquals("", digestOf("hold-b.png"))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                runEvaluation(
+                    GalleryEvaluation(decode = fake),
+                    corpus,
+                    File(temp.root, "none"),
+                    "unit",
+                    "validation",
+                    1,
+                    null,
+                    false,
+                    { emptyMap() },
+                )
+            }
+        }
+    }
 
     @Test
     fun `maxImages leaves the rest not processed and the scope partial`(): Unit = runBlocking {

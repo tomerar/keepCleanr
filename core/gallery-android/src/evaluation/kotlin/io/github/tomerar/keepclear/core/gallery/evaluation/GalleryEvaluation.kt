@@ -420,27 +420,33 @@ object EvaluationOutputs {
 }
 
 /**
- * Runs [passes] passes and writes the four outputs to [output], which must be new or empty (never overwritten).
- * Returns the report map. [device] holds caller-collected device facts (no personal data).
+ * Runs [passes] passes over the images of one [split] only and writes the four outputs to [output], which must be new
+ * or empty (never overwritten). Splits are evaluated independently, so candidate caps and groups never depend on another
+ * split and the scoring tool's `--split` accepts the output (review of PR #75). Returns the report map. [device] holds
+ * caller-collected device facts (no personal data). [digest] may fail per file; that file's optional digest stays empty.
  */
 suspend fun runEvaluation(
     evaluation: GalleryEvaluation,
     corpus: File,
     output: File,
     label: String,
+    split: String,
     passes: Int,
     maxImages: Int?,
     digests: Boolean,
     device: () -> Map<String, Any?>,
     afterPass: (EvaluationPass) -> Map<String, Any?> = { emptyMap() },
+    digest: (File) -> String = EvaluationOutputs::sha256,
 ): Map<String, Any?> {
     require(Regex("[A-Za-z0-9_-]{1,64}").matches(label)) { "run label must be a simple token" }
     require(passes in 1..10) { "passes must be 1..10" }
     require(!output.exists() || output.list().isNullOrEmpty()) { "output directory is not empty; use a new label" }
     val start = System.nanoTime()
     val indexFile = File(corpus, CorpusIndex.FILE_NAME)
-    val entries = CorpusIndex.parse(indexFile.readText(Charsets.UTF_8))
-    val indexed = entries.map { it.file }.toHashSet()
+    val all = CorpusIndex.parse(indexFile.readText(Charsets.UTF_8))
+    val entries = all.filter { it.split == split }
+    require(entries.isNotEmpty()) { "the corpus index has no image in split $split" }
+    val indexed = all.map { it.file }.toHashSet()
     val unindexed = corpus.walkTopDown().maxDepth(32).filter { it.isFile }.count {
         val relative = it.relativeTo(corpus).invariantSeparatorsPath
         relative != CorpusIndex.FILE_NAME && relative !in indexed
@@ -474,7 +480,16 @@ suspend fun runEvaluation(
     val sha = if (digests) {
         entries.map { it to File(corpus, it.file) }
             .filter { (_, file) -> file.isFile && file.canonicalFile.toPath().startsWith(root) }
-            .associate { (entry, file) -> entry.imageId to EvaluationOutputs.sha256(file) }
+            .mapNotNull { (entry, file) ->
+                // An unreadable file keeps its manifest status (skipped/unreadable) and an empty digest.
+                try {
+                    entry.imageId to digest(file)
+                } catch (_: java.io.IOException) {
+                    null
+                } catch (_: SecurityException) {
+                    null
+                }
+            }.toMap()
     } else {
         null
     }
@@ -487,10 +502,12 @@ suspend fun runEvaluation(
         "harness" to "keepclear-g2-harness-v1",
         "purpose" to "developer-only G2 measurement; not a user feature and not an accuracy result by itself",
         "label" to label,
+        "split" to split,
         "idScheme" to EvaluationIds.SCHEME,
         "policy" to EvaluationOutputs.policyReport(evaluation.policy),
         "indexMillis" to indexMillis,
         "indexedImages" to entries.size,
+        "indexedImagesAllSplits" to all.size,
         "unindexedFiles" to unindexed,
         "maxImages" to maxImages,
         "digestsWritten" to digests,
