@@ -217,7 +217,7 @@ class G4aGalleryTest {
     }
 
     @Test
-    fun `back on the gallery, a photo whose lane changed shows its latest lane`() {
+    fun `back on the gallery, a photo whose lane changed shows its latest lane and an edited one leaves`() {
         val items = library()
         controller.start(GalleryFakes.summary(items), scanComplete = true)
         until { it.phase == GalleryPhase.DONE }
@@ -225,6 +225,24 @@ class G4aGalleryTest {
         controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }), kept = emptySet())
         val shown = until { s -> s.groups.any { g -> g.members.any { it.item == moved } } }
         assertTrue(shown.groups.single { g -> g.members.any { it.item == moved } }.hasMemories)
+        // Photo 3 edited in place (same row and path, a new time): its old measurements no longer describe it.
+        val edited = items[2].copy(item = items[2].item.copy(mtimeMillis = items[2].item.mtimeMillis + 1))
+        controller.refresh(
+            GalleryFakes.summary(
+                items.map {
+                    if (it == items[1]) {
+                        moved
+                    } else if (it == items[2]) {
+                        edited
+                    } else {
+                        it
+                    }
+                },
+            ),
+            kept = emptySet(),
+        )
+        val after = until { it.groups.size == 1 }
+        assertTrue(after.groups.single().members.none { it.item.item.path == edited.item.path })
     }
 
     @Test

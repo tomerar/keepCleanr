@@ -283,20 +283,25 @@ class GalleryController(
     /**
      * C235, CLS-7: on every return to the gallery the groups follow the latest scan and the user's kept choices. A
      * photo the latest scan no longer has (cleaned, moved to the trash, deleted elsewhere) or one kept since, from
-     * here or from the photo preview, leaves its group; a photo still there is shown with its latest lane.
+     * here or from the photo preview, leaves its group; so does one edited or replaced in place (same row and path,
+     * another size or time), whose measurements no longer describe it. A photo still there is shown with its latest
+     * lane.
      */
     fun refresh(summary: ClassificationSummary?, kept: Set<String>) {
         val latest = summary?.let { s -> GalleryUi.keyed(s.groups.flatMap { it.items }) }.orEmpty()
         val keptRules = GalleryExclusions(ProtectedPaths(), kept)
         val next = items.mapNotNull { (key, shown) ->
             latest[key]?.takeIf {
-                it.item.path == shown.item.path && !keptRules.isKept(it.item.path)
+                sameVersion(it, shown) && !keptRules.isKept(it.item.path)
             }?.let { key to it }
         }.toMap()
         if (next == items) return
         items = next
         last?.let(::publish)
     }
+
+    private fun sameVersion(latest: ClassifiedItem, shown: ClassifiedItem) = latest.item.path == shown.item.path &&
+        latest.item.size == shown.item.size && latest.item.mtimeMillis == shown.item.mtimeMillis
 
     private fun follow(gallery: GalleryCoordinator) {
         if (collector != null) return
