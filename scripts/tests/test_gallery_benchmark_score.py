@@ -211,6 +211,15 @@ class BenchmarkScoreTest(unittest.TestCase):
         self.assertEqual(json.loads(run.stdout)["reference_recall"], 0.5)
         self.assertNotIn("private_family", run.stdout)
 
+    def test_candidate_row_limit_follows_the_engine_bound_not_the_generic_limit(self):
+        # Review of PR #75: a valid crowded corpus can retrieve more than a million candidate pairs.
+        self.assertEqual(benchmark.MAX_ROWS, benchmark.candidate_row_limit({}))
+        self.assertEqual(1_020_000, benchmark.candidate_row_limit({str(i): {} for i in range(10_200)}))
+        crowded = self.write_csv("crowded", ["image_a", "image_b"], [["a", "b"], ["a", "c"], ["b", "c"]])
+        self.assertEqual(3, len(list(benchmark.rows(crowded, {"image_a", "image_b"}, max_rows=3))))
+        with self.assertRaises(benchmark.InputError):
+            list(benchmark.rows(crowded, {"image_a", "image_b"}, max_rows=2))
+
     def test_missing_input_does_not_print_its_path(self):
         secret = self.root / "private-filename.csv"
         run = subprocess.run(
