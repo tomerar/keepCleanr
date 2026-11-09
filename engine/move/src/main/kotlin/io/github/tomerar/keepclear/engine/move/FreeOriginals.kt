@@ -198,7 +198,9 @@ class FreeOriginals(
                 FreeSkip.NOT_CONFIRMED
             }
 
-            SkipReason.STOPPED, SkipReason.WITNESS_GONE, SkipReason.LAST_COPY, SkipReason.UNSUPPORTED -> {
+            SkipReason.STOPPED, SkipReason.WITNESS_GONE, SkipReason.LAST_COPY, SkipReason.UNSUPPORTED,
+            SkipReason.RETAINED_MEMBER_GONE,
+            -> {
                 FreeSkip.OTHER
             }
         }

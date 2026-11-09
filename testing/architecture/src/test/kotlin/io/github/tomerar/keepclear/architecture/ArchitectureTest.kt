@@ -138,7 +138,7 @@ class ArchitectureTest {
     /**
      * G4a (C224; GAL-20, AC-G8): the app's gallery screens and controller stay offline, advisory and foreground. They
      * open no socket or URL and reach no backup or network module, never touch the file-action API (no executor,
-     * plan or confirmation: disposal is G4b), and never schedule work.
+     * plan or confirmation: G4b's disposal goes through `GalleryReview.kt`, checked below), and never schedule work.
      */
     @Test
     fun `app gallery code is offline, advisory and foreground`() {
@@ -172,6 +172,62 @@ class ArchitectureTest {
             file.imports.any { imp -> forbiddenImports.any { imp.name.startsWith(it) } } ||
                 forbiddenText.any { it in file.text }
         }
+    }
+
+    /**
+     * G4b (C231; GAL-3/4/7/8): the one app file that turns gallery choices into a plan, `GalleryReview.kt`, stays
+     * offline and narrow. It may name only the plan, the user's tap and the typed similar-photos evidence of
+     * `core.safety`; it never names a witness, a backup proof, a permanent kind or a MOVE original (similarity is not
+     * equality and a memory never leaves from a group), reaches no network, backup, move or trash module, runs no
+     * executor and schedules nothing. Only this file (and `core:safety` itself) constructs `VisualRetention`.
+     */
+    @Test
+    fun `the gallery review bridge is narrow and the only maker of similar-photos evidence`() {
+        val bridge = Konsist.scopeFromModule("app").files.filter { file ->
+            "/src/main/" in file.path && file.path.endsWith("/GalleryReview.kt")
+        }
+        check(bridge.size == 1)
+        val allowedSafety = setOf(
+            "io.github.tomerar.keepclear.core.safety.ActionPlan",
+            "io.github.tomerar.keepclear.core.safety.Confirmation",
+            "io.github.tomerar.keepclear.core.safety.RetainedMember",
+            "io.github.tomerar.keepclear.core.safety.VisualRetention",
+        )
+        val forbiddenImports = listOf(
+            "java.net",
+            "javax.net",
+            "okhttp3",
+            "android.net",
+            "io.github.tomerar.keepclear.backup",
+            "io.github.tomerar.keepclear.engine.trash",
+            "io.github.tomerar.keepclear.engine.move",
+            "androidx.work",
+        )
+        val forbiddenText = listOf(
+            "Witness",
+            "BackupProof",
+            "PermanentReason",
+            "DELETE_FOR_GOOD",
+            "MOVE_DELETE_ORIGINAL",
+            "duplicateGroup",
+            "classifiedSafe = true",
+            "executor(",
+            "Socket",
+            "URL(",
+            "WorkManager",
+            "GlobalScope",
+            "startService",
+        )
+        bridge.assertFalse { file ->
+            file.imports.any { imp ->
+                forbiddenImports.any { imp.name.startsWith(it) } ||
+                    (imp.name.startsWith("io.github.tomerar.keepclear.core.safety") && imp.name !in allowedSafety)
+            } || forbiddenText.any { it in file.text }
+        }
+        val makers = projectScope.files.filter { file ->
+            "/src/main/" in file.path && "/core/safety/" !in file.path && "/GalleryReview.kt" !in file.path
+        }
+        makers.assertFalse { file -> Regex("""\bVisualRetention\(""").containsMatchIn(file.text) }
     }
 
     /**
