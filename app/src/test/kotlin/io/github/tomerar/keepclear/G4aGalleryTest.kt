@@ -45,7 +45,11 @@ class G4aGalleryTest {
         liveScope = { fakes.scope },
         exclusions = { { live } },
         scope = work,
+        fileActionActive = { busy },
     )
+
+    /** E-G20: a file action is running (the app's gate). */
+    @Volatile private var busy = false
 
     /** The live exclusions the controller reads (kept roots change between steps of a test). */
     @Volatile private var live = GalleryExclusions(ProtectedPaths())
@@ -273,6 +277,68 @@ class G4aGalleryTest {
         val changed = until { it.phase == GalleryPhase.ACCESS_CHANGED }
         assertTrue(changed.groups.isEmpty())
         assertEquals(GalleryScope.SELECTED, changed.scope)
+        // C238: a refresh with a new scan, or "Keep this time", never brings back the old access's groups.
+        val items = library()
+        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[6] }))
+        controller.keepThisTime("none")
+        Thread.sleep(200)
+        assertEquals(GalleryPhase.ACCESS_CHANGED, controller.state.value.phase)
+        assertTrue(controller.state.value.groups.isEmpty())
+        // A new run starts afresh.
+        controller.start(GalleryFakes.summary(items), scanComplete = true)
+        assertEquals(GalleryPhase.DONE, until { it.phase == GalleryPhase.DONE }.phase)
+    }
+
+    @Test
+    fun `start and Continue wait while a file action runs (C237)`() {
+        busy = true
+        val items = library()
+        controller.start(GalleryFakes.summary(items), scanComplete = true)
+        assertEquals(GalleryPhase.PAUSED_FOR_FILE_ACTION, controller.state.value.phase)
+        assertEquals(0, created)
+        controller.continueRun()
+        Thread.sleep(100)
+        assertEquals(GalleryPhase.PAUSED_FOR_FILE_ACTION, controller.state.value.phase)
+        assertEquals(0, created)
+        busy = false
+        controller.continueRun()
+        assertEquals(2, until { it.phase == GalleryPhase.DONE }.groups.size)
+    }
+
+    @Test
+    fun `a stopped comparison doesn't continue while a file action runs (C237)`() {
+        val gate = CompletableDeferred<Unit>()
+        blockRead(3, gate)
+        controller.start(GalleryFakes.summary(library()), scanComplete = true)
+        until { it.running && it.done >= 2 }
+        controller.stop()
+        until { it.phase == GalleryPhase.STOPPED }
+        gate.complete(Unit)
+        busy = true
+        controller.continueRun()
+        Thread.sleep(100)
+        assertEquals(GalleryPhase.PAUSED_FOR_FILE_ACTION, controller.state.value.phase)
+        busy = false
+        controller.continueRun()
+        assertEquals(GalleryPhase.DONE, until { it.phase == GalleryPhase.DONE }.phase)
+    }
+
+    @Test
+    fun `the app's file-action gate follows a backup, a task and Home's clean (C237)`() {
+        val test = TestApp(tmp.newFolder())
+        assertFalse(test.app.fileActionActive())
+        test.app.moveController.setRunning("job")
+        assertTrue(test.app.fileActionActive())
+        test.app.moveController.setRunning(null)
+        assertFalse(test.app.fileActionActive())
+        val gate = CompletableDeferred<Unit>()
+        test.app.moveController.runTask(test.app, TaskKind.CHECK) { gate.await() }
+        assertTrue(test.app.fileActionActive())
+        gate.complete(Unit)
+        runBlocking { withTimeout(10_000) { test.app.moveController.task.first { it == null } } }
+        assertFalse(test.app.fileActionActive())
+        test.app.homeFileAction = true
+        assertTrue(test.app.fileActionActive())
     }
 
     // ------------------------------------------------------------------ E-G20: file actions take priority

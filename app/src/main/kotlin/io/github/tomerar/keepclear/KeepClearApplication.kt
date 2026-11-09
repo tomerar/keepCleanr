@@ -471,6 +471,17 @@ class KeepClearApplication : Application() {
         if (galleryLazy.isInitialized()) gallery.pauseForFileAction()
     }
 
+    /** E-G20 (C237): Home's clean, trash, restore or empty is running (set from its state). */
+    @Volatile internal var homeFileAction = false
+
+    /**
+     * E-G20 (C237): a file action is running now: Home's clean or trash work, a backup copy, or a free, check or
+     * restore task. A gallery comparison can't start or continue meanwhile (the pause hook stops one already
+     * running); the user taps Continue once it is over.
+     */
+    fun fileActionActive(): Boolean =
+        homeFileAction || moveController.running.value != null || moveController.task.value != null
+
     /**
      * GAL-1 (C236): called when the app leaves the foreground. A running comparison stops (the honest partial result
      * stays, Continue is explicit); an idle, finished or paused one is left as it is. Never creates the coordinator.

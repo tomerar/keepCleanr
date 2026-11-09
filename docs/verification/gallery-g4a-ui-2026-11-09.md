@@ -40,6 +40,10 @@ Mutations (each applied alone with `scripts`-style text replacement, the named t
 | Backup section shown for every group | `G4aScreensTest` "memories offer the existing backup …" |
 | Done always says "all N photos" | `G4aScreensTest` "run wording is honest …" |
 | `GalleryController.refresh` ignores a new size or time (edited in place) | `G4aGalleryTest` "… a photo whose lane changed shows its latest lane and an edited one leaves" (C235) |
+| Start ignores the file-action gate | `G4aGalleryTest` "start and Continue wait while a file action runs" (C237) |
+| Continue ignores the file-action gate | `G4aGalleryTest` "a stopped comparison doesn't continue while a file action runs" (C237) |
+| `fileActionActive` ignores a running free, check or restore task | `G4aGalleryTest` "the app's file-action gate follows …" (C237) |
+| `publish` ignores the access invalidation | `G4aGalleryTest` "an access change after the run hides the groups" (C238) |
 | `GalleryController.refresh` skips the eligibility check (new favourite, kept) | `G4aGalleryTest` both "back on the gallery …" tests (C235) |
 | `GalleryController.refresh` keeps its old members | `G4aGalleryTest` "back on the gallery, photos the latest scan dropped or the user kept …" and "… a photo whose lane changed shows its latest lane" (C235) |
 | `stopGalleryInBackground` does not stop the run | `G4aGalleryTest` "leaving the app stops a running comparison …" (C236) |
@@ -54,5 +58,6 @@ Each test-mutation run counted as killed only when Gradle reported failing tests
 - A run lives in the ViewModel and the process: after process death nothing resumes and dismissals are forgotten; persisted review decisions are G4a-2.
 - "Back up" opens the Backup tab; it does not preselect the group's photos there.
 - Items from the foss all-files walk still have no guarded reader and are counted as skipped ("places KeepClear can't compare yet").
+- Home's `busy` state feeding `homeFileAction` (C237) is a one-line collector in `HomeViewModel` without its own test; the gate it feeds is tested.
 - `MainActivity.onStop` calling `stopGalleryInBackground` (C236) has no unit test (no activity runs on Robolectric here); the app method it calls is tested and mutation-checked. Leaving the app during a run is part of owner check G4a-1.
 - The pause hook covers the flows that go through the executor or the MOVE controller; Android's own cache trim (`allocateBytes`) and the system cache-clear screen are not file actions on user files and do not pause a run.

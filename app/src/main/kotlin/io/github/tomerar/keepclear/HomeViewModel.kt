@@ -34,8 +34,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -246,6 +248,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var scanCancelled = false
 
     init {
+        // E-G20 (C237): while a clean, trash, restore or empty runs here, a gallery comparison can't start or continue.
+        viewModelScope.launch {
+            _state.map { it.busy }.distinctUntilChanged().collect { app.homeFileAction = it }
+        }
         // E3: a free, check or restore ended in the foreground service: free space, trash and scan are new.
         viewModelScope.launch {
             app.moveController.finished.drop(1).collect {

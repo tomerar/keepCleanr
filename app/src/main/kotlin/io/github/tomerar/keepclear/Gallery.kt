@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -188,6 +190,8 @@ class GalleryController(
     private val exclusions: suspend () -> () -> GalleryExclusions,
     private val scope: CoroutineScope,
     private val io: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO,
+    /** E-G20 (C237): a file action is running; a comparison neither starts nor continues meanwhile. */
+    private val fileActionActive: () -> Boolean = { false },
 ) {
     private val _state = MutableStateFlow(GalleryUi())
     val state: StateFlow<GalleryUi> = _state
@@ -198,6 +202,14 @@ class GalleryController(
     private var collector: Job? = null
     private var last: GalleryProgress? = null
 
+    private val refreshing = Mutex()
+
+    /** C238: the shown result's access is no longer current; nothing may show it again until a new run starts. */
+    private var invalidated = false
+
+    /** C237: a start the user asked for while a file action ran; Continue starts it once the action is over. */
+    private var deferred: Pair<ClassificationSummary, Boolean>? = null
+
     /** Shows the live scope before a run (no read, no coordinator). */
     fun checkScope() {
         scope.launch {
@@ -207,6 +219,7 @@ class GalleryController(
                 when {
                     // E-G02, AC-G1: never keep showing groups from an authorization that is no longer current.
                     run != null && auth.epoch != run.permissionEpoch && !s.running -> {
+                        invalidated = true
                         GalleryUi(GalleryPhase.ACCESS_CHANGED, auth.scope)
                     }
 
@@ -239,6 +252,13 @@ class GalleryController(
             _state.update { it.copy(phase = GalleryPhase.NO_SCAN, groups = emptyList()) }
             return
         }
+        if (fileActionActive()) {
+            deferred = summary to scanComplete
+            _state.update { it.copy(phase = GalleryPhase.PAUSED_FOR_FILE_ACTION, groups = emptyList()) }
+            return
+        }
+        deferred = null
+        invalidated = false
         dismissed = emptySet()
         hidden = emptySet()
         scope.launch {
@@ -258,6 +278,15 @@ class GalleryController(
 
     fun continueRun() {
         if (!_state.value.resumable) return
+        if (fileActionActive()) {
+            _state.update { it.copy(phase = GalleryPhase.PAUSED_FOR_FILE_ACTION) }
+            return
+        }
+        deferred?.let { (summary, complete) ->
+            _state.update { it.copy(phase = GalleryPhase.NOT_STARTED) }
+            start(summary, complete)
+            return
+        }
         scope.launch {
             val gallery = coordinator()
             follow(gallery)
@@ -292,12 +321,15 @@ class GalleryController(
         val latest = summary?.let { s -> GalleryUi.keyed(s.groups.flatMap { it.items }) }.orEmpty()
         scope.launch {
             val live = exclusions()()
-            val next = items.mapNotNull { (key, shown) ->
-                latest[key]?.takeIf { sameVersion(it, shown) && galleryCompares(it, live) }?.let { key to it }
-            }.toMap()
-            if (next == items) return@launch
-            items = next
-            last?.let(::publish)
+            // Members only ever leave, so refreshes applied in any order end the same; one at a time, none is lost.
+            refreshing.withLock {
+                val next = items.mapNotNull { (key, shown) ->
+                    latest[key]?.takeIf { sameVersion(it, shown) && galleryCompares(it, live) }?.let { key to it }
+                }.toMap()
+                if (next == items) return@launch
+                items = next
+                last?.let(::publish)
+            }
         }
     }
 
@@ -313,6 +345,8 @@ class GalleryController(
 
     private fun publish(progress: GalleryProgress) {
         last = progress
+        // C238: a refresh, "Keep this time" or a late progress never brings back a result whose access changed.
+        if (invalidated) return
         _state.value = GalleryUi.of(progress, items, dismissed, hidden)
     }
 }
@@ -325,6 +359,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         liveScope = { app.galleryScope },
         exclusions = { galleryExclusions(app) },
         scope = viewModelScope,
+        fileActionActive = app::fileActionActive,
     )
     val state: StateFlow<GalleryUi> = controller.state
 }
