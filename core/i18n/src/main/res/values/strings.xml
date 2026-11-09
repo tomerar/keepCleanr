@@ -379,6 +379,7 @@
     <string name="trash_uninstall_note">If you uninstall KeepClear, what is in the trash (%1$s) stays on the phone and takes space. Empty or restore it first.</string>
     <string name="settings_uninstall_title">Before you uninstall</string>
     <string name="android_trash_done">%1$s moved to the gallery\'s bin. Android deletes them after 30 days; until then you can restore them from KeepClear\'s Trash.</string>
+    <string name="android_trash_restored">%1$s restored from the gallery\'s bin.</string>
     <string name="android_trash_declined">Nothing changed: the request was declined in Android\'s window.</string>
     <string name="trash_group_android">In the gallery\'s bin</string>
     <string name="trash_android_note">Android deletes these by itself 30 days after they were deleted. Android asks you to confirm each restore or delete.</string>
@@ -919,9 +920,14 @@
     <string name="gallery_reason_sharper">Sharper</string>
     <string name="gallery_reason_clipping">Fewer areas that are too bright or too dark</string>
     <string name="gallery_compare_hint">This is only a suggestion; nothing is chosen. Tap a photo to see it larger.</string>
+    <string name="gallery_compare_hint_choose">This is only a suggestion; nothing is chosen until you tap a photo below.</string>
     <string name="gallery_section_memories">Memories to back up</string>
     <string name="gallery_section_review">Other photos</string>
-    <string name="gallery_review_later">Choosing what to delete from here comes in a later version.</string>
+    <string name="gallery_review_choose">Tap the photos you don\'t need to choose them for the trash; press and hold one to see it larger. At least one photo of every similar group always stays.</string>
+    <plurals name="gallery_skipped_kept_changed">
+        <item quantity="one">%1$s photo was left alone because a photo you kept from its group changed or is gone.</item>
+        <item quantity="other">%1$s photos were left alone because a photo you kept from their group changed or is gone.</item>
+    </plurals>
     <string name="gallery_back_up">Back up</string>
     <string name="gallery_keep_this_time">Keep them all this time</string>
     <string name="gallery_details_title">Details</string>

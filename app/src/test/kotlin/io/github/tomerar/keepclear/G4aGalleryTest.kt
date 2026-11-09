@@ -220,7 +220,7 @@ class G4aGalleryTest {
         assertTrue(cleaned.groups.single().members.none { it.item == items[2] })
         // Photo 1 was kept from the photo preview ("Don't suggest this again"): its pair goes too.
         live = GalleryExclusions(ProtectedPaths(), setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))
-        controller.refresh(GalleryFakes.summary(items))
+        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }))
         assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
     }
 
@@ -253,7 +253,7 @@ class G4aGalleryTest {
         // Photo 1 made a favourite in another gallery app (unchanged path, size and time): a run would not compare
         // it any more, so its pair goes too.
         val favourite = items[0].copy(item = items[0].item.copy(isFavorite = true))
-        controller.refresh(GalleryFakes.summary(listOf(favourite, moved) + items.drop(2)))
+        controller.refresh(GalleryFakes.summary(listOf(favourite, moved, edited) + items.drop(3)))
         assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
     }
 

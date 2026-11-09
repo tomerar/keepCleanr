@@ -1,6 +1,6 @@
 # Gallery requirements
 
-**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G4a read-only comparison wired into the app locally (2026-11-09, not yet PR); disposal (GAL-7/8/9) pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G4a read-only comparison wired into the app (2026-11-09); G4b: GAL-7/GAL-8 and the in-session part of GAL-9 implemented locally (2026-11-09, not yet a PR; persisted decisions and device checks pending).** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding.
 
 This accepted gallery annex follows the repository's ID-based “THE SYSTEM SHALL” style and expands REV-8. It does not change SAFE, REVIEW, MOVE or any accepted safety exception. G0 owner approval is recorded; the builder must reconcile the current code and execute G1a first. G1a now implements the internal advisory contracts and numeric policies; [verification](../verification/gallery-g1a-2026-11-08.md) distinguishes those tests from the remaining application, migration and hardware acceptance work.
 

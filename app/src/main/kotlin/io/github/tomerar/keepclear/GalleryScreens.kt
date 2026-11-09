@@ -48,9 +48,10 @@ import java.text.NumberFormat
 import java.time.ZoneId
 
 /**
- * G4a: what the gallery screens can do. None of these selects, plans, confirms or changes a file: the only
- * persistent choice is the existing "Don't suggest this again" rule (CLS-7, [onDontOffer]), and the only way on for
- * a memory is the existing backup flow ([onBackUp]).
+ * G4a: what the gallery screens can do. None of these plans, confirms or changes a file: the only persistent choice is
+ * the existing "Don't suggest this again" rule (CLS-7, [onDontOffer]), and the only way on for a memory is the
+ * existing backup flow ([onBackUp]). G4b: [onToggleChoice] chooses or un-chooses one REVIEW photo in this session, and
+ * [onReviewChosen] opens the existing editable confirmation for the group's choices (`GalleryReview`).
  */
 class GalleryActions(
     val onStart: () -> Unit = {},
@@ -67,6 +68,10 @@ class GalleryActions(
     /** The Backup tab's existing flow for memories (GAL-4). */
     val onBackUp: () -> Unit = {},
     val onOpenPhoto: (ClassifiedItem) -> Unit = {},
+    /** G4b: a tap on a REVIEW photo of a group: chosen for the trash, or not any more (GAL-6). */
+    val onToggleChoice: (groupId: String, path: String) -> Unit = { _, _ -> },
+    /** G4b: the group's "Delete …" button: the existing confirmation shows the choices (GAL-7). */
+    val onReviewChosen: (groupId: String) -> Unit = {},
 )
 
 /** G4a: the gallery's state as a flow (read only by its own screens) and its actions, for [AppScreens]. */
@@ -74,6 +79,12 @@ class GalleryHost(
     val flow: kotlinx.coroutines.flow.StateFlow<GalleryUi>? = null,
     val value: GalleryUi = GalleryUi(),
     val actions: GalleryActions = GalleryActions(),
+    /** G4b: the group's choices described for the review-trash path ([GalleryController.disposal]). */
+    val disposal: (groupId: String) -> GalleryDisposal? = { null },
+    /** G4b: the confirmation's ✕ takes one photo out of the group's choices. */
+    val onUnchoose: (groupId: String, path: String) -> Unit = { _, _ -> },
+    /** G4b: the choices were handed over (or can't be any more); they are forgotten. */
+    val onChoicesDone: (groupId: String) -> Unit = {},
 )
 
 /** G4a: the review lane's entry ("Find similar photos"); user-started only, never a Home hero (ux-flows.md §10). */
@@ -103,6 +114,8 @@ fun GalleryScreen(
     actions: GalleryActions,
     onOpenGroup: (String) -> Unit,
     onBack: () -> Unit,
+    /** G4b: the result of an action started from a group that is gone now. */
+    header: (@Composable () -> Unit)? = null,
 ) {
     LifecycleResumeEffect(Unit) {
         actions.onCheckAccess()
@@ -119,6 +132,7 @@ fun GalleryScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (header != null) item { header() }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ScopeLine(ui.scope, ui.phase, actions)
@@ -353,11 +367,20 @@ private fun GalleryDetailsSheet(ui: GalleryUi, n: (Int) -> String, onDismiss: ()
 
 /**
  * G4a: one group side by side (GAL-6, GAL-10): date and size per photo, the "Suggested to keep" marker with its
- * reasons or "No clear recommendation". No checkbox, nothing preselected, no delete button. Memories (MOVE) offer the
- * existing backup; other photos have no action in this version (G4b adds the review choice).
+ * reasons or "No clear recommendation". Memories (MOVE) offer only the existing backup, never a choice (GAL-4).
+ *
+ * G4b (GAL-6/7/8): other photos (REVIEW) are checkboxes, all unchosen at first; the marker is never a choice. A tap
+ * chooses or un-chooses a photo; a photo whose choice would leave a similar group with nothing is not offered (the
+ * last unchosen photo of this group, or of an overlapping group). "Delete …" with the exact count and size opens the
+ * existing editable confirmation. [header] shows the result of the last action from this screen.
  */
 @Composable
-fun GalleryGroupScreen(group: GalleryGroupUi, actions: GalleryActions, onBack: () -> Unit) {
+fun GalleryGroupScreen(
+    group: GalleryGroupUi,
+    actions: GalleryActions,
+    onBack: () -> Unit,
+    header: (@Composable () -> Unit)? = null,
+) {
     LifecycleResumeEffect(Unit) {
         actions.onCheckAccess()
         onPauseOrDispose { }
@@ -369,9 +392,16 @@ fun GalleryGroupScreen(group: GalleryGroupUi, actions: GalleryActions, onBack: (
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (header != null) item { header() }
             item {
                 Text(
-                    stringResource(R.string.gallery_compare_hint),
+                    stringResource(
+                        if (group.choosable.isEmpty() && group.chosen.isEmpty()) {
+                            R.string.gallery_compare_hint
+                        } else {
+                            R.string.gallery_compare_hint_choose
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.testTag("galleryHint"),
                 )
@@ -414,10 +444,22 @@ fun GalleryGroupScreen(group: GalleryGroupUi, actions: GalleryActions, onBack: (
                 item { MemberRows(others, group, actions) }
                 item {
                     Text(
-                        stringResource(R.string.gallery_review_later),
+                        stringResource(R.string.gallery_review_choose),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("galleryChooseHint"),
                     )
+                }
+                val chosen = group.chosenItems
+                if (chosen.isNotEmpty()) {
+                    item {
+                        val total = chosen.fold(io.github.tomerar.keepclear.engine.classify.Total()) { t, i -> t + i }
+                        KcButton(
+                            stringResource(R.string.review_delete, totalText(total)),
+                            onClick = { actions.onReviewChosen(group.id) },
+                            modifier = Modifier.fillMaxWidth().testTag("galleryDeleteChosen"),
+                        )
+                    }
                 }
             }
             item {
@@ -444,7 +486,7 @@ private fun MemberRows(members: List<GalleryMember>, group: GalleryGroupUi, acti
         members.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { member ->
-                    MemberTile(member, group.members.indexOf(member), actions, Modifier.weight(1f))
+                    MemberTile(member, group, actions, Modifier.weight(1f))
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
@@ -453,7 +495,8 @@ private fun MemberRows(members: List<GalleryMember>, group: GalleryGroupUi, acti
 }
 
 @Composable
-private fun MemberTile(member: GalleryMember, index: Int, actions: GalleryActions, modifier: Modifier) {
+private fun MemberTile(member: GalleryMember, group: GalleryGroupUi, actions: GalleryActions, modifier: Modifier) {
+    val index = group.members.indexOf(member)
     val locale = LocalConfiguration.current.locales[0]
     val item = member.item.item
     val name = item.path.substringAfterLast('/')
@@ -463,14 +506,23 @@ private fun MemberTile(member: GalleryMember, index: Int, actions: GalleryAction
     val base = stringResource(R.string.grid_tile_description, Bidi.fileName(name), date, size)
     val previewLabel = stringResource(R.string.grid_preview)
     val dontOfferLabel = stringResource(R.string.choice_keep)
+    // G4b: only a REVIEW photo is ever a checkbox; a memory never is (GAL-4). Chosen photos can always be un-chosen;
+    // an unchosen photo is offered only when the groups it belongs to keep another photo (GAL-8).
+    val review = member.item.category == Category.REVIEW
+    val chosen = item.path in group.chosen
+    val offered = review && (chosen || item.path in group.choosable)
     MediaTile(
         thumbnail = rememberTilePainter(item.path, sizeDp = 180) { loader, px -> loader.load(item, px) },
         typeIcon = kindIcon(FileKinds.of(name)),
         date = date,
         size = size,
         description = if (marker != null) "$base. $marker" else base,
-        onClick = { actions.onOpenPhoto(member.item) },
-        modifier = modifier.testTag("galleryMember_$index"),
+        onClick = {
+            if (offered) actions.onToggleChoice(group.id, item.path) else actions.onOpenPhoto(member.item)
+        },
+        onLongClick = { actions.onOpenPhoto(member.item) }.takeIf { offered },
+        selected = chosen.takeIf { offered },
+        modifier = modifier.testTag(if (chosen) "galleryChosen_$index" else "galleryMember_$index"),
         actions = listOf(
             CustomAccessibilityAction(previewLabel) {
                 actions.onOpenPhoto(member.item)

@@ -79,6 +79,12 @@ data class PlannedOp(
     val permanentReason: PermanentReason? = null,
     /** Owner decision P1: the copy's check at free time, for [OpKind.MOVE_DELETE_ORIGINAL] only ([SafetyGuard]). */
     val backupProof: BackupProof? = null,
+    /**
+     * G4b (GAL-8, C227): the keep-one evidence of **every** similar-photos group this photo belongs to (overlapping
+     * groups each keep a member); empty for every other op. It is never a [Witness] and never makes the op permanent
+     * ([VisualRetention]).
+     */
+    val visualGroups: List<VisualRetention> = emptyList(),
 ) {
     /** The path the confirmation must contain for this op (review PR B). */
     val confirmKey: String get() = shownAs ?: displayPath

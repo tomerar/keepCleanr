@@ -75,8 +75,63 @@ class SafetyGuard(
                 reasons += "Duplicate group $group would lose its last copy (SAFETY-8)"
             }
         }
+        reasons += visualReasons(plan)
         return if (reasons.isEmpty()) Verdict.Accepted else Verdict.Rejected(reasons)
     }
+
+    /**
+     * G4b (GAL-8, AC-G6, C227/C228): the structural rules of [VisualRetention]. Similar-photos evidence sits only on a
+     * plain REVIEW move of one file to the trash, with nothing that claims equal bytes or a backup (no duplicate
+     * group, witness, SHA-256, backup proof or "last copy"); every op of one group carries the same evidence; it keeps
+     * at least one member; and no op of this plan acts on a member another op relies on, so choosing every member of a
+     * group, or removing a group's last member through an overlapping group, is refused before anything runs.
+     */
+    private fun visualReasons(plan: ActionPlan): List<String> {
+        val visual = plan.ops.filter { it.visualGroups.isNotEmpty() }
+        if (visual.isEmpty()) return emptyList()
+        val reasons = mutableListOf<String>()
+        for (op in visual) {
+            val misplaced = op.kind != OpKind.TRASH || op.isDirectory || op.classifiedSafe ||
+                op.duplicateGroup != null || op.witnesses.isNotEmpty() || op.expectedSha256 != null ||
+                op.backupProof != null || op.lastCopyConfirmed || op.verifiedCopy != null
+            if (misplaced) reasons += "Similar-photos evidence on an op it doesn't belong to: ${op.displayPath}"
+            if (op.visualGroups.map { it.groupId }.distinct().size != op.visualGroups.size) {
+                reasons += "Similar group named twice on one op: ${op.displayPath}"
+            }
+            for (r in op.visualGroups) {
+                if (r.groupId.isBlank() || r.groupVersion.isBlank()) {
+                    reasons += "Similar-photos evidence without a group version: ${op.displayPath}"
+                }
+                if (r.retained.isEmpty()) reasons += "Similar group ${r.groupId} would lose every photo (GAL-8)"
+                for (m in r.retained) {
+                    val ref = m.ref
+                    if (ref is io.github.tomerar.keepclear.core.storage.KPath.Local && ref.absolute != m.path) {
+                        reasons += "Kept photo differs from what is shown in group ${r.groupId}"
+                    }
+                    // A MediaStore row keeps its size and time when Android trashes or edits it; only its identity
+                    // (generation and trashed flag) tells, so a kept row without one can't be re-checked.
+                    if (ref is io.github.tomerar.keepclear.core.storage.KPath.Media && m.identity == null) {
+                        reasons += "Kept photo without an identity in group ${r.groupId}"
+                    }
+                }
+            }
+        }
+        val evidence = visual.flatMap { it.visualGroups }
+        for ((group, all) in evidence.groupBy { it.groupId }) {
+            if (all.distinct().size != 1) reasons += "Similar group $group carries different evidence (GAL-9)"
+        }
+        val actedRefs = plan.ops.map { it.ref }.toSet()
+        val actedPaths = plan.ops.flatMap { listOfNotNull(it.displayPath, it.shownAs) }.map(::pathKey).toSet()
+        for (r in evidence.distinct()) {
+            if (r.retained.any { it.ref in actedRefs || pathKey(it.path) in actedPaths }) {
+                reasons += "Similar group ${r.groupId} would lose a photo it keeps (GAL-8)"
+            }
+        }
+        return reasons.distinct()
+    }
+
+    /** Canonical when possible (case, aliases), so a differently spelled path can't hide a kept photo. */
+    private fun pathKey(path: String): String = CanonicalPath.of(path) ?: path
 
     /**
      * D5: [SkipReason.PROTECTED] when [op] would change a PROTECTED path (SAFETY-3) or act on a folder that holds

@@ -732,9 +732,9 @@ private fun ResumeSwipeSheet(
     }
 }
 
-/** REV-3: the user sees and can trim exactly what will move to the trash. */
+/** REV-3: the user sees and can trim exactly what will move to the trash (also the gallery's choices, G4b). */
 @Composable
-private fun EditableConfirm(
+internal fun EditableConfirm(
     items: List<ClassifiedItem>,
     onRemove: (ClassifiedItem) -> Unit,
     onConfirm: () -> Unit,

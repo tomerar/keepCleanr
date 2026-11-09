@@ -94,6 +94,12 @@ enum class SkipReason {
      * time is missing, too old or doesn't match. Nothing happens to it; the result counts it.
      */
     COPY_NOT_CONFIRMED,
+
+    /**
+     * G4b (GAL-8, C227): a photo the user kept from the same similar-photos group is gone, changed, in a trash, kept
+     * or protected since the confirmation, so no photo of that group is moved (for the rest of this run).
+     */
+    RETAINED_MEMBER_GONE,
 }
 
 sealed interface ExecutionReport {
@@ -166,8 +172,10 @@ class ActionExecutor(
     private suspend fun runAccepted(plan: ActionPlan): ExecutionReport {
         val results = mutableListOf<OpResult>()
         var stopped = false
+        // G4b (C227): a similar-photos group refused once stays refused for the rest of this run.
+        val refusedGroups = mutableSetOf<String>()
         for (op in plan.ops) {
-            val result = if (stopped) OpResult.Skipped(op, SkipReason.STOPPED) else runOne(op)
+            val result = if (stopped) OpResult.Skipped(op, SkipReason.STOPPED) else runOne(op, refusedGroups)
             if (result is OpResult.Failed &&
                 (
                     result.error is StorageException.PermissionDenied ||
@@ -194,7 +202,7 @@ class ActionExecutor(
 
     private fun unexpected(op: PlannedOp, e: Exception) = StorageException.Io(op.ref, e, UNEXPECTED)
 
-    private suspend fun runOne(op: PlannedOp): OpResult = try {
+    private suspend fun runOne(op: PlannedOp, refusedGroups: MutableSet<String>): OpResult = try {
         val removes = op.kind == OpKind.TRASH || op.kind == OpKind.MOVE_DELETE_ORIGINAL
         val protectedReason = guard.skipReason(op)
         if (protectedReason != null) {
@@ -207,6 +215,10 @@ class ActionExecutor(
             val acting = PermanentKinds.reasonFor(op, clock())
                 ?.let { op.copy(kind = OpKind.DELETE_FOR_GOOD, permanentReason = it) } ?: op
             precheck(acting) ?: handler.veto(acting, gateway)?.let { OpResult.Skipped(acting, it) } ?: run {
+                // G4b (GAL-8, C227): the group's kept photos are re-read last, right before acting (and in test mode).
+                if (!retentionHolds(acting, refusedGroups)) {
+                    return@run OpResult.Skipped(acting, SkipReason.RETAINED_MEMBER_GONE)
+                }
                 // Owner decision P1: decided after every check above (incl. the strict re-hash of the original).
                 val final = freedOriginal(acting) ?: return@run OpResult.Skipped(acting, SkipReason.COPY_NOT_CONFIRMED)
                 if (isDryRun()) {
@@ -237,6 +249,37 @@ class ActionExecutor(
         if (op.kind != OpKind.MOVE_DELETE_ORIGINAL || !freeOriginalsForGood()) return op
         val reason = PermanentKinds.verifiedBackupReason(op, clock(), strictRehash) ?: return null
         return op.copy(kind = OpKind.DELETE_FOR_GOOD, permanentReason = reason)
+    }
+
+    /**
+     * G4b (GAL-8, AC-G6, C227): true when [op] carries no similar-photos evidence, or when every photo each of its groups keeps
+     * is still there as the user saw it: a plain file or row (no link, no folder), the same size and modification time,
+     * the same identity when one was recorded (a MediaStore row moved to Android's trash changes it), not PROTECTED now
+     * (KeepClear's trash, a backup place, an exclusion) and not kept since. Unreadable counts as gone. Conservative:
+     * one member that no longer holds refuses the group, and the group stays refused for the rest of the run.
+     */
+    private suspend fun retentionHolds(op: PlannedOp, refusedGroups: MutableSet<String>): Boolean {
+        if (op.visualGroups.isEmpty()) return true
+        if (op.visualGroups.any { it.groupId in refusedGroups }) return false
+        var holds = true
+        for (r in op.visualGroups) {
+            if (r.retained.isEmpty() || !r.retained.all { retainedUnchanged(it, op) }) {
+                refusedGroups += r.groupId
+                holds = false
+            }
+        }
+        return holds
+    }
+
+    private suspend fun retainedUnchanged(m: RetainedMember, op: PlannedOp): Boolean {
+        if (m.ref == op.ref || protectedPaths.isProtected(m.path) || keptNow(m.path)) return false
+        val stat = try {
+            gateway.stat(m.ref)
+        } catch (e: StorageException) {
+            null
+        } ?: return false
+        if (!stat.isFile || stat.isSymlink || stat.size != m.size || stat.mtimeMillis != m.mtime) return false
+        return m.identity == null || stat.identity == m.identity
     }
 
     /** Returns a skip result, or null when the op may proceed. */

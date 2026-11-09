@@ -80,6 +80,8 @@ object PermanentKinds {
     fun reasonFor(op: PlannedOp, now: Long): PermanentReason? {
         if (op.kind != OpKind.TRASH || !op.classifiedSafe || op.isDirectory) return null
         if (op.duplicateGroup != null || op.witnesses.isNotEmpty() || op.lastCopyConfirmed) return null
+        // G4b (GAL-3, C228): a photo chosen from a similar-photos group always goes to the 30-day trash.
+        if (op.visualGroups.isNotEmpty()) return null
         val rule = op.ruleId ?: return null
         if (rule !in rules) return null
         // A MediaStore row Android already has in its trash: the media handler re-reads IS_TRASHED right before it
@@ -135,6 +137,7 @@ object PermanentKinds {
      */
     fun verifiedBackupReason(op: PlannedOp, now: Long, strictRehash: Boolean): PermanentReason? {
         if (op.kind != OpKind.MOVE_DELETE_ORIGINAL || op.isDirectory || !strictRehash) return null
+        if (op.visualGroups.isNotEmpty()) return null
         val sha = op.expectedSha256?.takeIf { Sha256.isValidHex(it) } ?: return null
         val proof = op.backupProof ?: return null
         if (proof.copySha256 != sha || proof.secondCheckAt <= 0) return null
