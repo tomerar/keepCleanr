@@ -20,6 +20,7 @@ dependencies {
     api(project(":engine:scan"))
     api(project(":engine:trash"))
     api(project(":engine:move"))
+    implementation(project(":engine:gallery"))
     api(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

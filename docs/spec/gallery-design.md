@@ -1,6 +1,6 @@
 # Gallery architecture
 
-**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. G1a now implements the internal JVM contracts and numeric policies described below; no application entry, Android adapter, cache or action bridge is wired.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G1b primitives and the schema-8 feature cache implemented but not called; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. G1a now implements the internal JVM contracts and numeric policies described below; no application entry, Android adapter, cache or action bridge is wired.
 
 ## Context and design choice
 
@@ -82,7 +82,7 @@ CPU with one worker is the initial resource policy. GPU/NPU and higher thread co
 
 ## Data and identity
 
-Proposed schema additions are conceptual contracts, not SQL/code to apply. At the audited head they would require a declared schema 7→8 migration; recalculate if another migration lands first.
+Proposed schema additions are conceptual contracts, not SQL/code to apply, except where marked implemented. **G1b cache (2026-11-09, [verification](../verification/gallery-g1b-cache-2026-11-09.md)):** schema 8 (declared `AutoMigration(7, 8)`, additive) implements only the feature cache: `gallery_feature` stores, per source, SHA-256 digests of the source key, the full source version (size, time and provider revision, or the observation when no revision is known) and the feature version, the permission epoch and the numeric facts; `gallery_state` holds the current permission epoch. No path, media ID, revision text, vector or thumbnail is stored. It is reached only through the engine's `GalleryFeatureStore` port, implemented by `RoomGalleryFeatureStore` over `GalleryDao`; nothing calls it yet. `gallery_run`, `gallery_group` and user review decisions below remain unimplemented (G4a).
 
 | Record | Minimum fields | Lifetime and authority |
 |---|---|---|
@@ -98,6 +98,8 @@ Metadata keys use the existing canonical path/ref concepts but never treat path 
 ## Footprint, low space and concurrency
 
 Ten thousand 1024-dimensional float32 vectors alone consume **40,960,000 bytes**, before keys/indexes/WAL. Byte vectors consume **10,240,000 bytes**; at 50k, even those consume 51.2 MB. Therefore an unlimited embedding table would violate LOW-5's existing 50 MB **total app-data** budget.
+
+**Implemented for the feature cache (G1b, not yet called):** at most 23,437 rows = (16,000,000 − 4,000,000 bytes of WAL/journal allowance) ÷ a 512-byte per-row bound covering the row, its two index entries and page slack; eviction drops rows of another feature version first, then the least recently stored, and an evicted source is a miss. A build-machine measurement at the cap after churn gave an 8.97 MB database file and a 0.47 MB WAL peak; phone measurements remain. Writes are refused unless `SpaceMode` is NORMAL, and an SQLite error aborts only that gallery write. The whole-app 50 MB share below is not implemented.
 
 Propose a gallery cache target of at most **16 MB total including its index/WAL allowance**, and an actual allocation bounded by the remaining whole-app 50 MB budget. Measure base DB/settings/cache, migration/WAL peaks and non-gallery growth; with insufficient remaining budget, store fewer/recent features or use the hash-only path. An eviction makes analysis incomplete/needs re-analysis, never “all photos checked.” Do not persist vector JSON or keep all float vectors boxed in memory.
 
