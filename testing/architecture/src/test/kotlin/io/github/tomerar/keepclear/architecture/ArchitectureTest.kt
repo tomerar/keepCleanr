@@ -46,6 +46,73 @@ class ArchitectureTest {
         }
     }
 
+    /**
+     * G1b cache (GAL-13, T-G12, C208): gallery code reaches its cache only through the engine's `GalleryFeatureStore`
+     * port, never the database module; the Room side holds only `GalleryDao`, whose queries name only `gallery_*`
+     * tables, so a cache write or clear cannot reach trash, backup, move, scan or hash data.
+     */
+    @Test
+    fun `gallery cache code cannot reach other tables or DAOs`() {
+        listOf("engine/gallery", "core/gallery-android").forEach { module ->
+            val files = Konsist.scopeFromModule(module).files
+            check(files.isNotEmpty())
+            files.assertFalse { file -> "io.github.tomerar.keepclear.core.database" in file.text }
+        }
+        val cache = Konsist.scopeFromModule("core/database").files.filter { it.path.endsWith("/GalleryCache.kt") }
+        check(cache.size == 1)
+        cache.assertFalse { file ->
+            listOf("ScanDao", "HashCacheDao", "TrashDao", "MoveDao", "KeepClearDatabase", "RoomDatabase", "execSQL")
+                .any { Regex("""\b$it\b""").containsMatchIn(file.text) }
+        }
+        cache.assertTrue { file ->
+            val queries = Regex("""@Query\(\s*((?:"[^"]*"\s*\+?\s*)+)""").findAll(file.text)
+                .map { m -> Regex(""""([^"]*)"""").findAll(m.groupValues[1]).joinToString("") { it.groupValues[1] } }
+                .toList()
+            val tables = queries.flatMap { q ->
+                Regex("""\b(?:FROM|INTO|UPDATE|JOIN|TABLE)\s+`?(\w+)""", RegexOption.IGNORE_CASE).findAll(q)
+                    .map { it.groupValues[1] }.toList()
+            }
+            queries.size >= 9 && tables.isNotEmpty() && tables.all { it.startsWith("gallery_") }
+        }
+    }
+
+    /**
+     * GAL-11, AC-G8 (C209): the gallery cache lives in the app database (`databases/keepclear.db`), and app data never
+     * goes to a cloud backup or a device transfer: `allowBackup=false`, and both rule files exclude the database
+     * domain (and every other domain).
+     */
+    @Test
+    fun `gallery cache stays out of cloud backup and device transfer`() {
+        var root = java.io.File("").absoluteFile
+        while (!java.io.File(root, "settings.gradle.kts").isFile) root = root.parentFile
+
+        fun xml(path: String) = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+            .apply { isNamespaceAware = true }.newDocumentBuilder().parse(java.io.File(root, path))
+        val android = "http://schemas.android.com/apk/res/android"
+        val app = xml("app/src/main/AndroidManifest.xml").getElementsByTagName("application").item(0)
+            as org.w3c.dom.Element
+        check(app.getAttributeNS(android, "allowBackup") == "false")
+        check(app.getAttributeNS(android, "dataExtractionRules") == "@xml/data_extraction_rules")
+        check(app.getAttributeNS(android, "fullBackupContent") == "@xml/backup_rules")
+
+        fun excluded(doc: org.w3c.dom.Document, section: String): Set<String> {
+            val parent = doc.getElementsByTagName(section).item(0) as org.w3c.dom.Element
+            val nodes = parent.getElementsByTagName("exclude")
+            check(parent.getElementsByTagName("include").length == 0)
+            return (0 until nodes.length).map { (nodes.item(it) as org.w3c.dom.Element).getAttribute("domain") }.toSet()
+        }
+        val all = setOf("root", "file", "database", "sharedpref", "external")
+        val extraction = xml("app/src/main/res/xml/data_extraction_rules.xml")
+        check(excluded(extraction, "cloud-backup") == all)
+        check(excluded(extraction, "device-transfer") == all)
+        check(excluded(xml("app/src/main/res/xml/backup_rules.xml"), "full-backup-content") == all)
+        val database = java.io.File(
+            root,
+            "core/database/src/main/kotlin/io/github/tomerar/keepclear/core/database/KeepClearDatabase.kt",
+        ).readText()
+        check("const val NAME = \"keepclear.db\"" in database && "Room.databaseBuilder(context," in database)
+    }
+
     @Test
     fun `pure JVM modules do not import android`() {
         pureJvmModules.forEach { module ->
