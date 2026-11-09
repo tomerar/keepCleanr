@@ -2,6 +2,7 @@
 package io.github.tomerar.keepclear.core.gallery
 
 import android.content.ContentValues
+import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,6 +13,7 @@ import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
 import io.github.tomerar.keepclear.engine.classify.GroupKey
 import io.github.tomerar.keepclear.engine.classify.RiskChip
+import io.github.tomerar.keepclear.engine.gallery.FeatureVersion
 import io.github.tomerar.keepclear.engine.gallery.GalleryRun
 import io.github.tomerar.keepclear.engine.scan.ScanItem
 import io.github.tomerar.keepclear.engine.scan.Source
@@ -21,6 +23,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class MediaStoreObservationDeviceTest {
@@ -39,8 +42,8 @@ class MediaStoreObservationDeviceTest {
     @Test
     fun readsCurrentMetadataAndRejectsTrashedRow(): Unit = runBlocking {
         val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, "kc_gallery_${System.nanoTime()}.jpg")
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "kc_gallery_${System.nanoTime()}.png")
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
             put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/KeepClearTest")
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
@@ -49,7 +52,11 @@ class MediaStoreObservationDeviceTest {
                 resolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values),
             )
         created = uri
-        requireNotNull(resolver.openOutputStream(uri)).use { it.write(ByteArray(64)) }
+        val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        val png = ByteArrayOutputStream()
+        check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, png))
+        bitmap.recycle()
+        requireNotNull(resolver.openOutputStream(uri)).use { it.write(png.toByteArray()) }
         resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
         val projection =
             arrayOf(MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED)
@@ -60,15 +67,18 @@ class MediaStoreObservationDeviceTest {
                 path = cursor.getString(0),
                 size = cursor.getLong(1),
                 mtimeMillis = cursor.getLong(2) * 1_000,
-                mime = "image/jpeg",
+                mime = "image/png",
                 source = Source.MEDIA_STORE,
             )
         }
         val item = ClassifiedItem(scan, Category.REVIEW, "review", GroupKey("review"), RiskChip.UNKNOWN)
         val reader = MediaStoreObservation(context)
+        val guarded = GuardedMediaPngRead(resolver, reader)
         val run = GalleryRun("run", "scan", 1)
         assertNotNull(reader.observe(item, run, ProtectedPaths()) { _, _ -> true })
+        assertNotNull(guarded.read(item, run, FeatureVersion.V1, ProtectedPaths()) { _, _ -> true })
         resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_TRASHED, 1) }, null, null)
         assertNull(reader.observe(item, run, ProtectedPaths()) { _, _ -> true })
+        assertNull(guarded.read(item, run, FeatureVersion.V1, ProtectedPaths()) { _, _ -> true })
     }
 }
