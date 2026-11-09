@@ -32,3 +32,5 @@ Instrumented (compiled locally with `:core:gallery-android:assembleDebugAndroidT
 - Progressive JPEGs, Motion Photos, MPF/Ultra HDR files and JPEGs above 8 MiB are reported unsupported, not analyzed. How many camera files that affects on a real phone is unmeasured.
 - No photographic accuracy, device memory peak, decode time, battery, low-space, blocked-provider cancellation, real permission-epoch or Selected Photos behaviour is claimed. Cancellation of a single blocked provider read or native decode is not guaranteed.
 - Full CI and review are pending; see the report for the exact local checks.
+
+Review of PR #73: a sequential JPEG with several scans, or one scan that does not cover every frame component, is now unsupported before the platform decoder runs, because it needs whole-image coefficient buffers that sample-size downscaling does not bound. `BoundedJpegDecoderTest` checks three-component frames split into three single-component scans, two full scans and one partial scan, and that a one-component, one-scan grey JPEG still passes. Mutation: dropping the check makes that test fail.

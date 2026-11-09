@@ -129,6 +129,11 @@ class BoundedJpegDecoderTest {
             assertEquals("marker $marker", variant, check(JpegFixtures.skeleton(frameMarker = marker)))
         }
         assertEquals(variant, check(JpegFixtures.skeleton(components = 4)))
+        // Multi-scan or non-interleaved sequential JPEGs need whole-image coefficient buffers in the platform decoder.
+        assertEquals(variant, check(JpegFixtures.skeleton(scans = listOf(1, 1, 1))))
+        assertEquals(variant, check(JpegFixtures.skeleton(scans = listOf(3, 3))))
+        assertEquals(variant, check(JpegFixtures.skeleton(scans = listOf(1))))
+        assertTrue(check(JpegFixtures.skeleton(components = 1, scans = listOf(1))) is BoundedJpegDecoder.Check.Ok)
         assertEquals(variant, check(JpegFixtures.skeleton(precision = 12)))
         assertEquals(variant, check(JpegFixtures.skeleton(height = 0)))
         assertEquals(variant, check(JpegFixtures.skeleton(extra = listOf(0xcc to byteArrayOf(0, 1)))))

@@ -45,6 +45,7 @@ internal object BoundedJpegDecoder {
         var frame: Check.Ok? = null
         var orientation: Int? = null
         var scans = 0
+        var frameComponents = 0
         var sinceCheck = 0
         while (true) {
             if (offset >= bytes.size || u8(bytes, offset) != 0xff) return damaged()
@@ -75,6 +76,7 @@ internal object BoundedJpegDecoder {
             when (marker) {
                 0xc0, 0xc1 -> {
                     if (frame != null || scans > 0) return damaged()
+                    frameComponents = if (end - body >= 6) u8(bytes, body + 5) else 0
                     frame = when (val parsed = frame(bytes, body, end)) {
                         is Check.Rejected -> return parsed
                         is Check.Ok -> parsed
@@ -103,6 +105,10 @@ internal object BoundedJpegDecoder {
                     if (frame == null) return damaged()
                     val components = if (length >= 3) u8(bytes, body) else 0
                     if (components !in 1..4 || length != 6 + 2 * components) return damaged()
+                    // Only one interleaved scan covering every frame component is analyzed. A multi-scan or
+                    // non-interleaved sequential JPEG makes the platform decoder buffer coefficients for the whole
+                    // image, like a progressive one, which sample-size downscaling does not bound (C201).
+                    if (scans > 0 || components != frameComponents) return Check.Rejected(StillSkip.UNSUPPORTED_VARIANT)
                     scans++
                     // Entropy-coded data runs until a marker other than a stuffed byte, fill byte or restart.
                     var position = end

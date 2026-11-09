@@ -130,6 +130,7 @@ internal object JpegFixtures {
         components: Int = 3,
         entropy: ByteArray = byteArrayOf(0x12, 0x34),
         extra: List<Pair<Int, ByteArray>> = emptyList(),
+        scans: List<Int> = listOf(components),
     ): ByteArray {
         val output = ByteArrayOutputStream()
         DataOutputStream(output).apply {
@@ -150,15 +151,18 @@ internal object JpegFixtures {
                 write(0x11)
                 write(0)
             }
-            writeShort(0xffda)
-            writeShort(6 + 2 * components)
-            write(components)
-            repeat(components) {
-                write(it + 1)
-                write(0)
+            var next = 0
+            for (count in scans) {
+                writeShort(0xffda)
+                writeShort(6 + 2 * count)
+                write(count)
+                repeat(count) {
+                    write((next++ % components) + 1)
+                    write(0)
+                }
+                write(byteArrayOf(0, 63, 0))
+                write(entropy)
             }
-            write(byteArrayOf(0, 63, 0))
-            write(entropy)
             writeShort(0xffd9)
         }
         return output.toByteArray()

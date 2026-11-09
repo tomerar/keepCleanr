@@ -53,6 +53,7 @@ The initial `CanonicalPixels` primitive operates only on a caller-owned, already
 | APNG (`acTL`/`fcTL`/`fdAT`), PNG with `eXIf` | Unsupported variant | Animation semantics; PNG orientation not yet established safely |
 | JPEG baseline/extended sequential (SOF0/SOF1), 8-bit, 1 or 3 components, nothing after EOI | Analyzed; EXIF orientation applied once by the platform | The common camera/messenger still; marker structure and dimensions checked first |
 | Progressive JPEG (SOF2) | Unsupported variant (C201) | The platform must buffer whole-image coefficients regardless of sample size; that memory is unmeasured |
+| Multi-scan or non-interleaved sequential JPEG | Unsupported variant (C201, review of PR #73) | Same whole-image coefficient buffering as progressive; only one interleaved scan covering all frame components is analyzed |
 | CMYK/YCCK or other 4-component, 12-bit, arithmetic-coded, lossless, hierarchical or DNL-height JPEG | Unsupported variant (C201) | Rare; no reliable colour conversion or bounded decode established |
 | Any byte after the primary EOI: Motion Photo / embedded video, MPF multi-picture, Ultra HDR gain map, unknown trailer; or an MPF `APP2` block | Unsupported variant (C202) | The file is more than its still frame; a preview frame must never stand for the whole asset (E-G12) |
 | Several EXIF blocks, malformed EXIF or an orientation outside 1–8 | Unsupported variant or damaged | Orientation would be a guess |
