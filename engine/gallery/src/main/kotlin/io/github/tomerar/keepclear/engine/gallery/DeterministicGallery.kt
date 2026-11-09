@@ -13,6 +13,7 @@ internal class DeterministicGallery(private val policy: GalleryPolicy = GalleryP
         inventory: List<GallerySource>,
         port: GalleryReadPort,
         scopeComplete: Boolean = true,
+        probe: CandidateProbe? = null,
     ): GalleryResult {
         require(inventory.map { it.version.key }.distinct().size == inventory.size) { "duplicate source key" }
         val sources = inventory.sortedBy { it.version.key }
@@ -93,6 +94,7 @@ internal class DeterministicGallery(private val policy: GalleryPolicy = GalleryP
         for ((source, feature) in facts) {
             currentCoroutineContext().ensureActive()
             val query = index.candidates(feature)
+            if (probe != null) for (other in query.sources) probe.retrieved(source, other)
             visits += query.visits
             if (query.truncated) {
                 limits += AnalysisLimit.CANDIDATES

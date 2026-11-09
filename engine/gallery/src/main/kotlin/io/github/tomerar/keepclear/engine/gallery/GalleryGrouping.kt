@@ -17,6 +17,7 @@ object GalleryGrouping {
         scopeComplete: Boolean,
         current: suspend (SourceVersion) -> Boolean,
         policy: GalleryPolicy = GalleryPolicy(),
+        probe: CandidateProbe? = null,
     ): GalleryResult {
         val records = completed.associateBy { it.record.source }
         val port = object : GalleryReadPort {
@@ -36,6 +37,18 @@ object GalleryGrouping {
             completed.map { GallerySource(it.record.source, it.kind) },
             port,
             scopeComplete,
+            probe,
         )
     }
+}
+
+/**
+ * C215: a developer-only, read-only view of the candidate-retrieval stage, for the G2 evaluation harness's
+ * pre-reranking candidate recall (gallery-benchmarks.md). [retrieved] is told each source the hash-band index
+ * returned for [query] before any comparison, cap or complete-link check; a pair the comparison cap later refuses is
+ * still reported, a pair the index cap never returned is not. It receives only versions the caller supplied and
+ * returns nothing, so it cannot change groups, routes, limits or counters. The app never passes one.
+ */
+fun interface CandidateProbe {
+    fun retrieved(query: SourceVersion, candidate: SourceVersion)
 }

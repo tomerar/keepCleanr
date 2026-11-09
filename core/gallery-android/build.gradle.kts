@@ -5,6 +5,10 @@ plugins {
 
 android {
     namespace = "io.github.tomerar.keepclear.core.gallery"
+    // C216: the developer-only G2 evaluation harness core is compiled into the JVM tests and the instrumentation
+    // APK only, never into the library (and so never into the app).
+    sourceSets.getByName("test").kotlin.srcDir("src/evaluation/kotlin")
+    sourceSets.getByName("androidTest").kotlin.srcDir("src/evaluation/kotlin")
 }
 
 dependencies {
