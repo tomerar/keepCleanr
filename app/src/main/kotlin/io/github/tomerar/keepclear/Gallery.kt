@@ -14,11 +14,14 @@ import io.github.tomerar.keepclear.core.model.Category
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
+import io.github.tomerar.keepclear.engine.gallery.GalleryGroup
 import io.github.tomerar.keepclear.engine.gallery.GalleryScope
 import io.github.tomerar.keepclear.engine.gallery.GalleryScopeSource
+import io.github.tomerar.keepclear.engine.gallery.GroupVersion
 import io.github.tomerar.keepclear.engine.gallery.KeeperAdvice
 import io.github.tomerar.keepclear.engine.gallery.KeeperReason
 import io.github.tomerar.keepclear.engine.gallery.SourceKey
+import io.github.tomerar.keepclear.engine.gallery.SourceVersion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,19 +52,48 @@ enum class GalleryPhase {
     DONE,
 }
 
-/** One photo of a comparison group: the scan's own item (its lane is unchanged, GAL-4) and the keeper marker. */
-data class GalleryMember(val item: ClassifiedItem, val suggested: Boolean)
+/**
+ * One photo of a comparison group: the scan's own item (its lane is unchanged, GAL-4), the keeper marker, and the
+ * source version the comparison read ([source], G4b: binds a choice to the content it was made for, GAL-9).
+ */
+data class GalleryMember(val item: ClassifiedItem, val suggested: Boolean, val source: SourceVersion? = null)
 
 /**
  * One small virtual group. [reasons] are the factual reasons for the "Suggested to keep" marker; empty means
  * "No clear recommendation" (abstention). The marker is never a selection (GAL-6, GAL-10).
+ *
+ * G4b (C230): [version] is a digest of the group version (run, policy, member source versions); [chosen] are the
+ * REVIEW photos the user explicitly chose to move to the trash in this session (empty at first, GAL-6); [choosable]
+ * are the photos a tap may choose now: REVIEW only (never a memory, GAL-4), and never the last photo any similar group
+ * it belongs to keeps (GAL-8).
  */
-data class GalleryGroupUi(val id: String, val members: List<GalleryMember>, val reasons: List<KeeperReason>) {
+data class GalleryGroupUi(
+    val id: String,
+    val members: List<GalleryMember>,
+    val reasons: List<KeeperReason>,
+    val version: String = "",
+    val chosen: Set<String> = emptySet(),
+    val choosable: Set<String> = emptySet(),
+) {
     val suggested: GalleryMember? get() = members.firstOrNull { it.suggested }
 
     /** MOVE memories offer the backup handoff, never deletion (GAL-4, AC-G3). */
     val hasMemories: Boolean get() = members.any { it.item.category == Category.MOVE }
+
+    /** The chosen photos, in the group's order. */
+    val chosenItems: List<ClassifiedItem> get() = members.map { it.item }.filter { it.item.path in chosen }
 }
+
+/**
+ * G4b (C230/C231): what one group's choices hand to the existing review-trash path, without any file-action type
+ * (that is `GalleryReview`'s job): the chosen REVIEW photos with the source versions they were compared at, and every
+ * similar group any of them belongs to (overlapping groups too, also groups hidden for this session) with its photos
+ * that are still available. The bridge keeps each group's unchosen photos as the evidence the choke point re-checks.
+ */
+data class GalleryDisposal(val groupId: String, val chosen: List<GalleryMember>, val groups: List<GalleryKeep>)
+
+/** One similar group a disposal touches: its id and version and its available photos (chosen or not). */
+data class GalleryKeep(val id: String, val version: String, val members: List<GalleryMember>)
 
 /** Technical counts for the Details sheet only (never on the default path). */
 data class GalleryDetails(
@@ -110,6 +142,8 @@ data class GalleryUi(
             dismissed: Set<String> = emptySet(),
             /** Photos the user just chose "Don't suggest this again" for (the kept rule, CLS-7). */
             hidden: Set<String> = emptySet(),
+            /** G4b: the session's choices per group id: the group version they were made for and the paths. */
+            chosen: Map<String, Pair<String, Set<String>>> = emptyMap(),
         ): GalleryUi {
             val phase = when (progress.state) {
                 GalleryRunState.IDLE -> GalleryPhase.NOT_STARTED
@@ -126,21 +160,42 @@ data class GalleryUi(
             val grouping = progress.grouping?.takeIf {
                 phase != GalleryPhase.ACCESS_CHANGED && phase != GalleryPhase.NO_ACCESS
             }
-            val groups = grouping?.groups.orEmpty().mapNotNull { group ->
+            val all = grouping?.groups.orEmpty()
+            // G4b (C230): a member is available only while the latest scan still has it as it was compared (same
+            // size and time); a photo the user just kept is not offered (and is never counted as the one kept).
+            val available = all.map { group -> availableMembers(group, items, hidden) }
+            val groups = all.mapIndexedNotNull { index, group ->
                 val suggested = (group.advice as? KeeperAdvice.Suggested)?.source?.key
-                val members = group.version.members.mapNotNull { source ->
-                    items[source.key]?.takeIf { it.item.path !in hidden }
-                        ?.let { GalleryMember(it, suggested == source.key) }
-                }
-                val id = group.version.members.minOf { it.key }.let { "${it.volume}:${it.ref}" }
-                if (members.size < 2 || id in dismissed) return@mapNotNull null
+                val members = available[index].map { it.copy(suggested = suggested == it.source?.key) }
+                val id = groupId(group)
+                if (members.size < 2 || id in dismissed) return@mapIndexedNotNull null
                 // A suggestion for a member that can't be shown is no suggestion at all.
                 val reasons = if (members.any { it.suggested }) {
                     (group.advice as KeeperAdvice.Suggested).reasons.take(2)
                 } else {
                     emptyList()
                 }
-                GalleryGroupUi(id, members.map { if (reasons.isEmpty()) it.copy(suggested = false) else it }, reasons)
+                val version = versionDigest(group.version)
+                // GAL-9: a choice holds only for the same group version and photos still shown and reviewable.
+                val own = chosen[id]?.takeIf { it.first == version }?.second.orEmpty()
+                    .filter { path -> members.any { it.item.item.path == path && it.item.category == Category.REVIEW } }
+                    .toSet()
+                val choosable = members.filter { m ->
+                    val path = m.item.item.path
+                    m.item.category == Category.REVIEW && path !in own &&
+                        // GAL-8: every group this photo belongs to keeps another available, unchosen photo.
+                        all.indices.filter { g -> available[g].any { it.item.item.path == path } }.all { g ->
+                            available[g].any { it.item.item.path != path && it.item.item.path !in own }
+                        }
+                }.map { it.item.item.path }.toSet()
+                GalleryGroupUi(
+                    id,
+                    members.map { if (reasons.isEmpty()) it.copy(suggested = false) else it },
+                    reasons,
+                    version,
+                    own,
+                    choosable,
+                )
             }
             return GalleryUi(
                 phase = phase,
@@ -165,6 +220,49 @@ data class GalleryUi(
             )
         }
 
+        /** The group's photos the latest scan still has as they were compared, without [hidden] ones. */
+        internal fun availableMembers(
+            group: GalleryGroup,
+            items: Map<SourceKey, ClassifiedItem>,
+            hidden: Set<String>,
+        ): List<GalleryMember> = group.version.members.mapNotNull { source ->
+            items[source.key]?.takeIf {
+                it.item.path !in hidden && it.item.size == source.size && it.item.mtimeMillis == source.mtimeMillis
+            }?.let { GalleryMember(it, suggested = false, source = source) }
+        }
+
+        /** The group's id: its smallest member key (stable across runs for the same photos). */
+        internal fun groupId(group: GalleryGroup): String =
+            group.version.members.minOf { it.key }.let { "${it.volume}:${it.ref}" }
+
+        /**
+         * G4b (GAL-9): a digest of the group version (run, scan, permission epoch, policy and feature versions, every
+         * member's key and source version), length-prefixed so no two versions read the same. A label that binds
+         * choices to what was reviewed, never authority to act: the choke point re-reads the files.
+         */
+        fun versionDigest(version: GroupVersion): String {
+            val parts = listOf(
+                version.run.id,
+                version.run.scanId,
+                version.run.permissionEpoch.toString(),
+                version.policy.version,
+                version.policy.features.preprocessing,
+                version.policy.features.algorithm,
+            ) + version.members.sortedBy { it.key }.flatMap {
+                listOf(
+                    it.key.volume,
+                    it.key.ref,
+                    it.size.toString(),
+                    it.mtimeMillis.toString(),
+                    it.revision ?: "-",
+                    it.observationId,
+                )
+            }
+            val text = parts.joinToString("") { "${it.length}:$it" }
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
+            return digest.joinToString("") { "%02x".format(it) }
+        }
+
         /** The scan's MediaStore items by the key the gallery observation uses (volume + row id, C212). */
         fun keyed(items: List<ClassifiedItem>): Map<SourceKey, ClassifiedItem> = items.mapNotNull { item ->
             (item.item.ref as? KPath.Media)?.let { SourceKey(it.volume, it.id.toString()) to item }
@@ -175,8 +273,9 @@ data class GalleryUi(
 /**
  * G4a (C220): the app side of one user-started gallery comparison. It builds the snapshot from the latest scan and
  * the live exclusions, runs the coordinator off the main thread, maps its progress, and keeps "Keep this time"
- * dismissals for this session only (C223). It never selects, plans or confirms anything, and it changes no lane
- * total: the scan's summary is only read (GAL-21).
+ * dismissals for this session only (C223). G4b (C230): it holds the user's explicit choices in memory and describes
+ * them ([disposal]); it never preselects, plans or confirms anything (`GalleryReview` and the existing clean path do),
+ * and it changes no lane total: the scan's summary is only read (GAL-21).
  */
 class GalleryController(
     /** Created on first use only, so the gallery costs nothing until the user opens it (C220). */
@@ -194,6 +293,12 @@ class GalleryController(
     private var items: Map<SourceKey, ClassifiedItem> = emptyMap()
     private var dismissed: Set<String> = emptySet()
     private var hidden: Set<String> = emptySet()
+
+    /**
+     * G4b (C230, GAL-6/9): the user's explicit choices per group id, with the group version they were made for. In
+     * memory only: nothing is preselected, and nothing brings a choice or a confirmation back after process death.
+     */
+    private var chosen: Map<String, Pair<String, Set<String>>> = emptyMap()
     private var collector: Job? = null
     private var last: GalleryProgress? = null
 
@@ -240,6 +345,9 @@ class GalleryController(
         }
         dismissed = emptySet()
         hidden = emptySet()
+        chosen = emptyMap()
+        // GAL-9: a new comparison carries no earlier choice, not even while it starts.
+        _state.update { s -> s.copy(groups = s.groups.map { it.copy(chosen = emptySet()) }) }
         scope.launch {
             val live = exclusions()
             val all = summary.groups.flatMap { it.items }
@@ -279,6 +387,71 @@ class GalleryController(
         last?.let(::publish)
     }
 
+    /**
+     * G4b (GAL-6): the user taps a REVIEW photo of group [groupId] to choose it for the trash, or taps again to
+     * un-choose it. Only a photo the group offers ([GalleryGroupUi.choosable]) can be chosen; a memory, a photo of another
+     * version or the last photo a similar group keeps can't (GAL-4, GAL-8).
+     */
+    fun toggleChoice(groupId: String, path: String) {
+        val group = _state.value.groups.firstOrNull { it.id == groupId } ?: return
+        val now = group.chosen
+        val next = when (path) {
+            in now -> now - path
+            in group.choosable -> now + path
+            else -> return
+        }
+        chosen = if (next.isEmpty()) chosen - groupId else chosen + (groupId to (group.version to next))
+        last?.let(::publish)
+    }
+
+    /** G4b: the confirmation's ✕ ("Keep this one") takes [path] out of the group's choices. */
+    fun unchoose(groupId: String, path: String) {
+        val group = _state.value.groups.firstOrNull { it.id == groupId } ?: return
+        if (path in group.chosen) toggleChoice(groupId, path)
+    }
+
+    /** G4b: the group's choices are forgotten (confirmed and handed to the trash path, or the group was left). */
+    fun clearChoices(groupId: String) {
+        chosen = chosen - groupId
+        last?.let(::publish)
+    }
+
+    /**
+     * G4b (C231): what the group's current choices hand to the review-trash path, or null when there is nothing to
+     * hand over. Every similar group of the last comparison that holds a chosen photo is included, also overlapping
+     * groups and groups hidden for this session, each with its photos that are still available (as the screen shows
+     * them); `GalleryReview` keeps their unchosen photos as the evidence the choke point re-checks.
+     */
+    fun disposal(groupId: String): GalleryDisposal? {
+        val group = _state.value.groups.firstOrNull { it.id == groupId } ?: return null
+        val picked = group.members.filter { it.item.item.path in group.chosen }
+        if (picked.isEmpty() || picked.any { it.item.category != Category.REVIEW || it.source == null }) return null
+        val all = last?.grouping?.groups.orEmpty()
+        val paths = picked.map { it.item.item.path }.toSet()
+        val keeps = all.mapNotNull { g ->
+            val members = GalleryUi.availableMembers(g, items, hidden)
+            if (members.none { it.item.item.path in paths }) {
+                null
+            } else {
+                GalleryKeep(GalleryUi.groupId(g), GalleryUi.versionDigest(g.version), members)
+            }
+        }
+        return GalleryDisposal(groupId, picked, keeps)
+    }
+
+    /**
+     * G4b (GAL-21, E-G09): the latest scan's items, after every scan (also the one that follows a clean). A photo the
+     * scan no longer has, or has with another size or time, leaves every group at once and can't be chosen or kept
+     * as evidence.
+     */
+    fun sync(summary: ClassificationSummary?) {
+        if (summary == null) return
+        val latest = GalleryUi.keyed(summary.groups.flatMap { it.items })
+        if (latest == items) return
+        items = latest
+        last?.let(::publish)
+    }
+
     private fun follow(gallery: GalleryCoordinator) {
         if (collector != null) return
         collector = scope.launch {
@@ -288,7 +461,10 @@ class GalleryController(
 
     private fun publish(progress: GalleryProgress) {
         last = progress
-        _state.value = GalleryUi.of(progress, items, dismissed, hidden)
+        val ui = GalleryUi.of(progress, items, dismissed, hidden, chosen)
+        // GAL-9: choices that no longer apply (another group version, a photo gone or changed) are dropped.
+        chosen = ui.groups.filter { it.chosen.isNotEmpty() }.associate { it.id to (it.version to it.chosen) }
+        _state.value = ui
     }
 }
 

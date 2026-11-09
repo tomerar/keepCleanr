@@ -73,6 +73,15 @@ data class CleanResult(
     val measured: Measured? = null,
     /** PR H5: test mode only: what the run would have deleted, for „לייצא את הרשימה”; empty otherwise. */
     val wouldDelete: List<WouldDelete> = emptyList(),
+    /**
+     * G4b (C232): photos from a similar-photos group that Android moved to its trash after its own dialog; Undo asks
+     * Android to put exactly these back. Empty for every other result (their recovery stays in KeepClear's Trash).
+     */
+    val androidTrashed: List<io.github.tomerar.keepclear.core.safety.PlannedOp> = emptyList(),
+    /** G4b (C232): Android put items back from its trash after its own dialog (an Undo); nothing was moved to it. */
+    val restoredFromBin: Total = Total(),
+    /** G4b (C227): photos left alone because a photo kept from their similar group changed or is gone. */
+    val groupRefused: Int = 0,
 ) {
     /** What went to a trash (KeepClear's or Android's) and can be put back. */
     val trashed: Total get() = Total(done.files - deletedForGood.files, done.bytes - deletedForGood.bytes)
@@ -411,6 +420,7 @@ fun CleanResultBanner(
     val trashedPart = r.trashed.files > 0
     val message = when {
         r.simulated -> stringResource(R.string.test_mode_would_free, totalText(r.done))
+        r.restoredFromBin.files > 0 -> stringResource(R.string.android_trash_restored, totalText(r.restoredFromBin))
         measured != null -> stringResource(R.string.result_freed_now, s(measured.freed), s(measured.nowFree))
         r.declined -> stringResource(R.string.android_trash_declined)
         r.androidTrash -> stringResource(R.string.android_trash_done, totalText(r.trashed))
@@ -434,9 +444,12 @@ fun CleanResultBanner(
         }
         if (r.skipped > 0) add(countSentence(R.plurals.clean_skipped, r.skipped))
         if (r.protectedSkipped > 0) add(countSentence(R.plurals.clean_skipped_protected, r.protectedSkipped))
+        if (r.groupRefused > 0) add(countSentence(R.plurals.gallery_skipped_kept_changed, r.groupRefused))
     }.joinToString("\n").ifEmpty { null }
-    // Undo and "Empty now" only for what is in KeepClear's trash; what was deleted for good can't come back.
-    val undoable = ownTrash
+    // Undo and "Empty now" only for what is in KeepClear's trash; what was deleted for good can't come back. G4b: a
+    // similar photo in Android's trash can be put back too (Android asks again); "Empty now" stays KeepClear's own.
+    val fromBin = !r.simulated && r.androidTrashed.isNotEmpty()
+    val undoable = ownTrash || fromBin
     // PR H5: in test mode, „לייצא את הרשימה” (after a line that says the list has file names; never automatic).
     val exporter = LocalTestExporter.current
     val exportable = exporter != null && TestExport.offered(r, exporter.testModeOn())
@@ -456,15 +469,17 @@ fun CleanResultBanner(
             message = message,
             detail = listOfNotNull(detail, exportDetail).joinToString("\n").ifEmpty { null },
             undoText = stringResource(R.string.clean_undo).takeIf { undoable },
-            onUndo = { onUndo(r, userConfirmed(r.trashedPaths)) }.takeIf { undoable },
+            onUndo = {
+                onUndo(r, userConfirmed(r.trashedPaths + r.androidTrashed.map { it.displayPath }))
+            }.takeIf { undoable },
             // "Need the space now? Empty now" opens the trash, where emptying is confirmed separately.
             actionText = when {
-                undoable -> stringResource(R.string.clean_empty_now)
+                ownTrash -> stringResource(R.string.clean_empty_now)
                 exportable -> stringResource(R.string.test_export_button)
                 else -> null
             },
             onAction = when {
-                undoable -> {
+                ownTrash -> {
                     onOpenTrash
                 }
 
@@ -477,7 +492,7 @@ fun CleanResultBanner(
                 }
             },
             undoModifier = Modifier.testTag("undo"),
-            actionModifier = Modifier.testTag(if (undoable) "emptyNowLink" else "testExport"),
+            actionModifier = Modifier.testTag(if (ownTrash) "emptyNowLink" else "testExport"),
             modifier = Modifier.testTag(tag),
         )
     }

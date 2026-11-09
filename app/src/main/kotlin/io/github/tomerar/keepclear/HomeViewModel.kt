@@ -128,6 +128,8 @@ data class MediaConsent(
     val headId: Int = 0,
     /** E12: the id of the dialog Android shows right now; it is not shown again (rotation, theme, language). */
     val launchedId: Int? = null,
+    /** G4b (C232): the ops come from a similar-photos group; the result offers Undo for what Android trashed. */
+    val undoable: Boolean = false,
 ) {
     /** E12: the first request still has to be shown. */
     val needsLaunch: Boolean get() = requests.isNotEmpty() && launchedId != headId
@@ -148,6 +150,18 @@ data class MediaConsent(
     fun result(): CleanResult {
         // Owner decision 2026-11-02: rows already in Android's trash were deleted for good, not moved to it.
         val forGood = approved.filter { it.kind == OpKind.DELETE_FOR_GOOD }
+        // G4b (C232): an Undo's dialog put items back; nothing went to Android's trash.
+        val restored = approved.filter { it.kind == OpKind.RESTORE }
+        if (restored.isNotEmpty() && restored.size == approved.size) {
+            return CleanResult(
+                done = Total(),
+                skipped = declined,
+                failed = failed,
+                trashedPaths = emptyList(),
+                origin = origin,
+                restoredFromBin = Total(restored.size, restored.sumOf { it.expectedSize }),
+            )
+        }
         return CleanResult(
             done = Total(approved.size, approved.sumOf { it.expectedSize }),
             skipped = declined,
@@ -157,6 +171,7 @@ data class MediaConsent(
             androidTrash = approved.size > forGood.size,
             declined = approved.isEmpty() && failed == 0,
             deletedForGood = Total(forGood.size, forGood.sumOf { it.expectedSize }),
+            androidTrashed = if (undoable) approved.filter { it.kind == OpKind.TRASH } else emptyList(),
         )
     }
 }
@@ -722,7 +737,40 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** SAFE-1 / REV-3: move the confirmed items to the trash through the executor. */
-    fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) {
+    fun clean(items: List<ClassifiedItem>, confirmation: Confirmation) = cleanWith(items, confirmation, gallery = null)
+
+    /**
+     * G4b (GAL-7, C231): the photos chosen in one similar-photos group go through the same clean path: the same
+     * executor, re-check, test mode, Android's dialog, result and Undo. The plan is [GalleryReview]'s: REVIEW photos
+     * only, each with the keep-one evidence of every group it belongs to, always to the trash. A disposal that can't be
+     * planned safely changes nothing and is reported as not done.
+     */
+    fun cleanGallery(disposal: GalleryDisposal, confirmation: Confirmation) {
+        if (_state.value.busy) return
+        val plan = GalleryReview.plan(UUID.randomUUID().toString(), disposal)
+        if (plan == null) {
+            _state.update {
+                it.copy(
+                    cleanResult = CleanResult(
+                        Total(),
+                        skipped = 0,
+                        failed = disposal.chosen.size,
+                        trashedPaths = emptyList(),
+                        origin = currentScreen(),
+                    ),
+                )
+            }
+            return
+        }
+        cleanWith(disposal.chosen.map { it.item }, confirmation, gallery = plan)
+    }
+
+    private fun cleanWith(
+        items: List<ClassifiedItem>,
+        confirmation: Confirmation,
+        /** G4b: the gallery bridge's plan for [items]; null builds the usual one. */
+        gallery: io.github.tomerar.keepclear.core.safety.ActionPlan?,
+    ) {
         if (_state.value.busy) return
         // E-G20 (C221): cleaning takes priority over a running gallery comparison, before anything is planned.
         app.pauseGalleryForFileAction()
@@ -734,7 +782,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Owner decision 2026-11-02: a row already in Android's trash is deleted for good, with Android's consent.
             val (local, unsupported) = items.partition { it.item.ref is KPath.Local || it.item.ref is KPath.Media }
             // SAFETY-6/8, H2: built from the scan snapshot with duplicate groups and witnesses (CleanPlanner).
-            val unconfirmed = CleanPlanner.plan(UUID.randomUUID().toString(), local, evidence, "clean")
+            val reachable = local.map { it.item.path }.toSet()
+            val unconfirmed = gallery?.let { g -> g.copy(ops = g.ops.filter { it.displayPath in reachable }) }
+                ?: CleanPlanner.plan(UUID.randomUUID().toString(), local, evidence, "clean")
             val ops = unconfirmed.ops
             var done = emptyList<PlannedOp>()
             var forGood = emptyList<PlannedOp>()
@@ -745,6 +795,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val before = freeNow()
             var skipped = unsupported.size
             var protectedSkipped = 0
+            var groupRefused = 0
             var failed = 0
             var trashedIds = emptySet<String>()
             if (ops.isNotEmpty()) {
@@ -764,7 +815,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         forGood = done.filter { op -> op.kind == OpKind.DELETE_FOR_GOOD }
                         // M12: Android asks the user itself; the result comes back in consentResult().
                         if (report.consent.isNotEmpty()) {
-                            _state.update { it.copy(consent = MediaConsent(report.consent, origin)) }
+                            _state.update {
+                                it.copy(consent = MediaConsent(report.consent, origin, undoable = gallery != null))
+                            }
                         }
                         val lastCopies = report.skipped.filter {
                             it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.LAST_COPY
@@ -777,7 +830,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         protectedSkipped = report.skipped.count {
                             it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.PROTECTED
                         }
-                        skipped += report.skipped.size - lastCopies.size - protectedSkipped
+                        // G4b: a similar group refused because a photo kept from it changed has its own line.
+                        groupRefused = report.skipped.count {
+                            it.reason == io.github.tomerar.keepclear.core.safety.SkipReason.RETAINED_MEMBER_GONE
+                        }
+                        skipped += report.skipped.size - lastCopies.size - protectedSkipped - groupRefused
                         failed = report.failed.size
                         if (!simulated && earlier != null) {
                             val paths = report.done.filter { it.op.kind != OpKind.DELETE_FOR_GOOD }
@@ -818,6 +875,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         measured = Measured((after - before).coerceAtLeast(0), after, before, origin)
                             .takeIf { forGood.isNotEmpty() && !simulated },
                         protectedSkipped = protectedSkipped,
+                        groupRefused = groupRefused,
                         simulated = simulated,
                         origin = origin,
                         trashedIds = trashedIds,
@@ -925,6 +983,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun undo(result: CleanResult, confirmation: Confirmation) {
         if (_state.value.busy) return
+        // G4b (C232): similar photos Android moved to its trash go back through Android's own dialog, exactly these.
+        if (result.androidTrashed.isNotEmpty()) {
+            _state.update { it.copy(cleanResult = null) }
+            androidTrash(
+                result.androidTrashed.map { ScanItem(it.ref, it.displayPath, it.expectedSize, it.expectedMtime) },
+                restore = true,
+                confirmation,
+            )
+            return
+        }
         viewModelScope.launch {
             val ids = result.trashedIds
             val entries = withContext(Dispatchers.IO) { app.trashManager.entries() }.filter { it.id in ids }

@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,8 @@ class MainActivity : ComponentActivity() {
                 val nextcloudHost by app.nextcloud.hostState.collectAsStateWithLifecycle()
                 // G4a: the read-only gallery comparison; its coordinator is created only when a run starts (C220).
                 val galleryVm: GalleryViewModel = viewModel()
+                // G4b (GAL-21, E-G09): every scan (also the one after a clean) updates what the groups may show.
+                LaunchedEffect(state.summary) { galleryVm.controller.sync(state.summary) }
                 var notificationsOff by remember { mutableStateOf(!MoveNotifications.allowed(this)) }
                 var explainNotifications by remember { mutableStateOf(false) }
                 // ONB-1: the intro on first launch, or when Settings asks for it again.
@@ -303,7 +306,20 @@ class MainActivity : ComponentActivity() {
                                     vm.keep(path)
                                     galleryVm.controller.dontOffer(path)
                                 },
+                                onToggleChoice = galleryVm.controller::toggleChoice,
                             ),
+                            disposal = galleryVm.controller::disposal,
+                            onUnchoose = galleryVm.controller::unchoose,
+                            onChoicesDone = galleryVm.controller::clearChoices,
+                        ),
+                        // G4b: the comparison's REVIEW choices use Home's clean path, its Undo and the Trash.
+                        galleryReview = GalleryReviewActions(
+                            onDispose = vm::cleanGallery,
+                            onUndo = vm::undo,
+                            onOpenTrash = {
+                                vm.loadTrash()
+                                vm.open(Screen.Trash)
+                            },
                         ),
                         settingsActions = SettingsActions(
                             networkHost = networkHost,

@@ -67,6 +67,8 @@ fun AppScreens(
     info: InfoUi = InfoUi(),
     /** G4a: the read-only gallery comparison. */
     gallery: GalleryHost = GalleryHost(),
+    /** G4b: the comparison's review: the existing clean path, Undo and the Trash. */
+    galleryReview: GalleryReviewActions = GalleryReviewActions(),
 ) {
     // F1b: system Back pops the shown tab's stack, then goes to the first tab; there it closes the app.
     BackHandler(enabled = Nav.handlesBack(state), onBack = onBack)
@@ -108,6 +110,7 @@ fun AppScreens(
                     tabs,
                     info,
                     gallery,
+                    galleryReview,
                 )
             }
         }
@@ -251,6 +254,7 @@ private fun CurrentScreen(
     tabs: TabsUi,
     info: InfoUi,
     gallery: GalleryHost,
+    galleryReview: GalleryReviewActions,
 ) {
     val summary = state.summary
     // PR H3: Help's and Settings' links open screens only; "Restore from a backup" is the Backup tab's own flow.
@@ -339,9 +343,25 @@ private fun CurrentScreen(
             val group = ui.groups.firstOrNull { it.id == screen.id }
             val actions = galleryActions(gallery, onOpen)
             if (group == null) {
-                GalleryScreen(ui, actions, onOpenGroup = { onOpen(Screen.GalleryGroup(it)) }, onBack)
+                // After the last choosable photos went to the trash the group is gone; its result stays here.
+                GalleryScreen(
+                    ui,
+                    actions,
+                    onOpenGroup = { onOpen(Screen.GalleryGroup(it)) },
+                    onBack,
+                    header = result?.let { { GalleryResult(it, galleryReview) } },
+                )
             } else {
-                GalleryGroupScreen(group, actions, onBack)
+                GalleryReviewGroupScreen(
+                    group,
+                    actions,
+                    disposal = gallery.disposal,
+                    onUnchoose = gallery.onUnchoose,
+                    onChoicesDone = gallery.onChoicesDone,
+                    review = galleryReview,
+                    result = result,
+                    onBack = onBack,
+                )
             }
         }
 
@@ -527,6 +547,8 @@ private fun galleryActions(gallery: GalleryHost, onOpen: (Screen) -> Unit): Gall
             onOpen(Screen.Backup)
         },
         onOpenPhoto = { item -> onOpen(Screen.Preview(item.item.path, item.ruleId, item.category)) },
+        onToggleChoice = a.onToggleChoice,
+        onReviewChosen = a.onReviewChosen,
     )
 }
 

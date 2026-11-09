@@ -51,7 +51,7 @@ class GalleryFakes {
         SourceKey((item.item.ref as KPath.Media).volume, (item.item.ref as KPath.Media).id.toString()),
         item.item.size,
         item.item.mtimeMillis,
-        "media:r1",
+        "media:2:r1:5",
         run.id,
     )
 

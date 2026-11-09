@@ -399,6 +399,7 @@
     <string name="trash_uninstall_note">אם מסירים את KeepClear, מה שבסל (%1$s) נשאר בטלפון ותופס מקום. כדאי לרוקן או לשחזר קודם.</string>
     <string name="settings_uninstall_title">לפני שמסירים את האפליקציה</string>
     <string name="android_trash_done">%1$s הועברו לסל הגלריה. אנדרואיד מוחק אותם אחרי 30 יום, ועד אז אפשר לשחזר אותם מסל המחזור.</string>
+    <string name="android_trash_restored">%1$s שוחזרו מסל הגלריה.</string>
     <string name="android_trash_declined">שום דבר לא השתנה: הבקשה נדחתה בחלון של אנדרואיד.</string>
     <string name="trash_group_android">בסל הגלריה</string>
     <string name="trash_android_note">אנדרואיד מוחק אותם בעצמו 30 יום אחרי שנמחקו. אנדרואיד מבקש אישור לכל שחזור או מחיקה.</string>
@@ -961,9 +962,15 @@
     <string name="gallery_reason_sharper">חדה יותר</string>
     <string name="gallery_reason_clipping">פחות אזורים בהירים או כהים מדי</string>
     <string name="gallery_compare_hint">זו רק המלצה, שום דבר לא נבחר. אפשר ללחוץ על תמונה כדי לראות אותה גדולה.</string>
+    <string name="gallery_compare_hint_choose">זו רק המלצה, שום דבר לא נבחר עד שתקישו על תמונה למטה.</string>
     <string name="gallery_section_memories">זיכרונות לגבות</string>
     <string name="gallery_section_review">תמונות אחרות</string>
-    <string name="gallery_review_later">האפשרות לבחור מכאן מה למחוק תגיע בגרסה מאוחרת יותר.</string>
+    <string name="gallery_review_choose">הקישו על התמונות שאתם לא צריכים כדי לבחור אותן להעברה לסל; לחיצה ארוכה מראה תמונה גדולה. לפחות תמונה אחת מכל קבוצה של תמונות דומות תמיד נשארת.</string>
+    <plurals name="gallery_skipped_kept_changed">
+        <item quantity="one">לא נגענו בתמונה אחת, כי תמונה שהשארתם מאותה קבוצה השתנתה או נעלמה.</item>
+        <item quantity="two">לא נגענו בשתי תמונות, כי תמונה שהשארתם מאותה קבוצה השתנתה או נעלמה.</item>
+        <item quantity="other">לא נגענו ב-%1$s תמונות, כי תמונה שהשארתם מאותה קבוצה השתנתה או נעלמה.</item>
+    </plurals>
     <string name="gallery_back_up">לגבות</string>
     <string name="gallery_keep_this_time">להשאיר את כולן הפעם</string>
     <string name="gallery_details_title">פרטים</string>
