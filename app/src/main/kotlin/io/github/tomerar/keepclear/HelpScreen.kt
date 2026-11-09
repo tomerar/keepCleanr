@@ -77,6 +77,8 @@ object HelpTopics {
             listOf(HelpLink.TRASH),
         ),
         HelpTopic("private_space", R.string.help_private_space_title, R.string.help_private_space_body),
+        // G4a: the read-only comparison ("Find similar photos").
+        HelpTopic(SIMILAR, R.string.help_similar_title, R.string.help_similar_body),
     )
 
     fun byId(id: String, foss: Boolean = BuildConfig.FLAVOR == "foss"): HelpTopic? = all(foss).firstOrNull {
@@ -88,6 +90,9 @@ object HelpTopics {
 
     /** PR H4: "KeepClear's storage and uninstalling" (Android's "Manage space" and keeping data on uninstall). */
     const val MANAGE_SPACE = "manage_space"
+
+    /** G4a: "Similar photos" (what the comparison does and does not do). */
+    const val SIMILAR = "similar"
 }
 
 /** A topic's body as its paragraphs. */

@@ -514,7 +514,10 @@ Not enough room … There is room for 2 of 3 files.  [Restore these now]
 | Backup paused, phone full (H2a) | Free some space on the phone first, then tap Continue. `[Continue]` `[Free up space on the phone]` | כדאי קודם לפנות קצת מקום בטלפון, ואז ללחוץ על „להמשיך”. `[להמשיך]` `[לפנות מקום בטלפון]` |
 | Backup paused, unexpected error (H2a) | Tap Continue. If it happens again, unplug the USB drive and plug it back in, or restart the phone. `[Continue]` | אפשר ללחוץ על „להמשיך”. אם זה קורה שוב, לנתק את הדיסק און קי ולחבר שוב, או להפעיל מחדש את הטלפון. `[להמשיך]` |
 
-## 10. Gallery comparison — owner scope accepted 2026-11-08, not implemented
+## 10. Gallery comparison — owner scope accepted 2026-11-08; read-only part implemented locally (G4a, 2026-11-09)
+
+**G4a status (local, not yet PR; [verification](../verification/gallery-g4a-ui-2026-11-09.md)).** Implemented: the entry card at the top of „לבחור מה למחוק” / "Choose what to delete"; the run screen (scope in plain words, „N מתוך M תמונות” with the skipped count, Stop / Continue, honest partial and „כל … התמונות” only when nothing was partial, skipped or limited, low-space and file-action pauses, access changed, no access with the existing permission request, technical counts under „לראות פרטים”); the groups list (photo count, thumbnails, the marker's reasons or „אין המלצה ברורה”, a note when a group holds memories; no bytes); the comparison (date and size per photo, „מומלץ להשאיר” with one or two reasons or abstention, no checkbox, nothing preselected, no delete button); „לגבות” for memories opening the Backup tab; „להשאיר את כולן הפעם” (this session only) and the existing per-photo „לא להציע את זה שוב” (preview screen and TalkBack action). Not yet: REVIEW choices and their confirmation (G4b), persisted review decisions across process death (G4a-2), swipe review of a group. Keep/Skip/Undo below therefore apply from G4b on.
+
 
 Entry within existing review/navigation: **Find similar photos** / **למצוא תמונות דומות**. State the currently authorized scope and incomplete/selected-photo status, then show calm analyzed/eligible/skipped progress and Stop. Do not add a paid tier, sign-in, model download or a new Home safe-bytes hero. Technical router/model details belong under Advanced, not default copy.
 

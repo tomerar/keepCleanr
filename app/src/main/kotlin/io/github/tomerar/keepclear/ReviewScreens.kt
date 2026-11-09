@@ -154,6 +154,8 @@ fun CategoryListScreen(
     onBack: () -> Unit,
     /** Owner brief H2 item 11: the empty list's one next step (the Backup tab). */
     onBackUp: () -> Unit = {},
+    /** G4a: "Find similar photos" in the review lane; null where it is not offered. */
+    onFindSimilar: (() -> Unit)? = null,
 ) {
     Scaffold(topBar = { SubScreenTopBar(categoryTitle(category), onBack) }) { padding ->
         LazyColumn(
@@ -177,6 +179,7 @@ fun CategoryListScreen(
                     }
                 }
             }
+            if (onFindSimilar != null) item { GalleryEntryCard(onFindSimilar) }
             if (groups.isEmpty()) {
                 item {
                     EmptyNext(R.string.review_list_empty, R.string.home_big_win_backup_button, "reviewEmpty", onBackUp)
