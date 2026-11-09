@@ -6,6 +6,16 @@
 
 `CanonicalPixelsTest` covers synthetic EXIF orientations, aspect-preserving padding, transparency, low-detail/quality facts and rejected bounds. `BoundedPngDecoderTest` covers a synthetic PNG, malformed/animated/EXIF inputs, byte and pixel limits, cancellation and stream closure. `BoundedJpegDecoderTest` (GAL-1/12/26; E-G11/12/13) covers a generated baseline JPEG, all eight EXIF orientations through decode and canonical features, downsampling, truncated/damaged structure and EXIF, byte and pixel bounds, trailing data/Motion Photo/MPF, progressive/CMYK/12-bit/arithmetic/lossless/DNL frames, signature dispatch with GIF/WebP/HEIF/AVIF/BMP/TIFF refusals, cancellation and stream closure. `GuardedMediaStillReadTest` (GAL-1/12; E-G04/07/13) keeps the seven PNG guard cases and adds mislabelled JPEG content, unsupported/damaged current sources, a changed unsupported source and a never-opened oversize row. `BoundedJpegDecoderDeviceTest` and the MediaStore device test run the platform path on API 30/36 (pending CI). These tests do not establish other formats, permission handling, persistence, photographic accuracy or device resource gates. The primitives are not wired to the app; see the [JPEG verification record](../verification/gallery-g1b-jpeg-2026-11-09.md).
 
+## G1b feature cache (2026-11-09, local)
+
+| Requirement / case | Actual tests | Remaining |
+|---|---|---|
+| GAL-12, GAL-26, AC-G15; E-G07/10 | `GalleryFeatureStoreTest`: round trip; key, size, time, revision, missing revision, preprocessing and algorithm mismatches are misses; revision-backed reuse across runs; observation-bound records without a revision; corrupt stored facts are misses | A real caller; provider reindex/restore on devices |
+| GAL-12; E-G02/25 | `GalleryFeatureStoreTest`: a newer epoch hides old records before any write, then deletes them; stale-epoch puts and backwards epochs refused; no write before an epoch is recorded | Real permission-epoch source and Selected Photos reductions |
+| GAL-11, AC-G8 | `GalleryFeatureStoreTest` (no key/ref/path/revision/run text in any column); `ArchitectureTest` "gallery cache stays out of cloud backup and device transfer" | Report-redaction tests when diagnostics exist |
+| GAL-13, AC-G8; E-G21; T-G12 | `GalleryFeatureStoreTest` clear isolation; `MigrationTest` "7 to 8 …" (every authoritative row identical); `ArchitectureTest` "gallery cache code cannot reach other tables or DAOs" | Clear UI wording ("clear suggestions") with G4a |
+| GAL-14/15; E-G14/15; LOW-1/2/4 | `GalleryFeatureStoreTest` low-space refusal (LIGHT, MINIMAL, failing probe) and real `SQLITE_FULL` via `max_page_count`; `GalleryCacheQuotaTest` measured file and WAL at the 23,437-row cap after churn; eviction order tests | Phone size/WAL measurements; whole-app 50 MB share; filesystem ENOSPC |
+
 ## Actual G1a test mapping (2026-11-08)
 
 | Contract portion | Existing implementation verification | Remaining gate |

@@ -19,6 +19,10 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class MigrationTest {
+    private companion object {
+        const val LATEST = 8
+    }
+
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
@@ -37,7 +41,7 @@ class MigrationTest {
                     "VALUES ('/a', 'local', '/a', 1, 1, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("migration-test", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("migration-test", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -53,7 +57,7 @@ class MigrationTest {
                     "isFavorite, isTrashed, source, scanRunId) VALUES ('/b', 'local', '/b', 2, 2, NULL, NULL, NULL, 0, 0, 'FILE_WALK', 1)",
             )
         }
-        helper.runMigrationsAndValidate("m12", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m12", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM scan_item").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -74,7 +78,7 @@ class MigrationTest {
                     "VALUES ('t1', '/o', '/t', '/v', 1, 1, NULL, NULL, 'r', 1, 2, 1, 'b', 'ACTIVE', 1, NULL)",
             )
         }
-        helper.runMigrationsAndValidate("m23", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m23", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT COUNT(*) FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.getInt(0) shouldBe 1
@@ -105,7 +109,7 @@ class MigrationTest {
                     "NULL, 0, NULL, 5, 0, 0)",
             )
         }
-        helper.runMigrationsAndValidate("m34", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m34", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT deletedAtUptime FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
@@ -133,7 +137,7 @@ class MigrationTest {
                     "1, NULL, 5)",
             )
         }
-        helper.runMigrationsAndValidate("m45", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m45", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             db.query("SELECT witnessPaths, deletedAtUptime FROM trash_entry").use { c ->
                 c.moveToFirst()
                 c.isNull(0) shouldBe true
@@ -156,7 +160,7 @@ class MigrationTest {
                     "'VERIFIED', NULL, 0, NULL, 5, 0, 0, 7)",
             )
         }
-        helper.runMigrationsAndValidate("m56", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m56", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             // An older copy keeps its state and confirmation; how it was verified is simply not known.
             db.query("SELECT verifiedBy, confirmedAt, state FROM move_file").use { c ->
                 c.moveToFirst()
@@ -181,7 +185,7 @@ class MigrationTest {
                     "'KeepClear/P/a', 'VERIFIED', NULL, 0, NULL, 5, 0, 0, NULL, 'READ_BACK')",
             )
         }
-        helper.runMigrationsAndValidate("m67", 7, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate("m67", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
             // An older copy keeps everything; where its first check ran is simply not known (the job's boot id).
             db.query("SELECT verifyBootId, verifyAttach, verifiedBy, state FROM move_file").use { c ->
                 c.moveToFirst()
@@ -193,6 +197,25 @@ class MigrationTest {
             db.query("SELECT verifyBootId FROM move_job").use { c ->
                 c.moveToFirst()
                 c.getString(0) shouldBe "b"
+            }
+        }
+    }
+
+    @Test
+    fun `7 to 8 adds only the empty gallery cache and keeps every authoritative row intact (C205, T-G12)`() {
+        File("schemas/${KeepClearDatabase::class.java.name}/8.json").exists() shouldBe true
+        val before = helper.createDatabase("m78", 7).use { db ->
+            AuthoritativeRows.insert(db)
+            AuthoritativeRows.dump(db)
+        }
+        before.values.forEach { it.size shouldBe 1 }
+        helper.runMigrationsAndValidate("m78", LATEST, true, *KeepClearDatabase.MIGRATIONS).use { db ->
+            AuthoritativeRows.dump(db) shouldBe before
+            listOf("gallery_feature", "gallery_state").forEach { table ->
+                db.query("SELECT COUNT(*) FROM $table").use { c ->
+                    c.moveToFirst()
+                    c.getInt(0) shouldBe 0
+                }
             }
         }
     }

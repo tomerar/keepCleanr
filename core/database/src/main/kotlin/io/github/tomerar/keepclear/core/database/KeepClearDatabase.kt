@@ -14,7 +14,8 @@ import androidx.room.RoomDatabase
  * move_file.confirmedAt, trash_entry.deletedAtUptime; nullable columns, auto-migration 3→4); 5 = trash_entry.witnessPaths
  * (owner decision 1.3, auto-migration 4→5); 6 = move_file.verifiedBy (M17b, how a copy was verified; nullable,
  * auto-migration 5→6); 7 = move_file.verifyBootId and move_file.verifyAttach (D4, where each file's first check
- * ran; nullable, auto-migration 6→7).
+ * ran; nullable, auto-migration 6→7); 8 = G1b gallery cache (`gallery_feature`, `gallery_state`; new recomputable
+ * tables only, no existing column or row touched, auto-migration 7→8, C205).
  */
 @Database(
     entities = [
@@ -24,8 +25,10 @@ import androidx.room.RoomDatabase
         TrashEntryEntity::class,
         MoveJobEntity::class,
         MoveFileEntity::class,
+        GalleryFeatureEntity::class,
+        GalleryStateEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -34,6 +37,7 @@ import androidx.room.RoomDatabase
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 6, to = 7),
+        AutoMigration(from = 7, to = 8),
     ],
 )
 abstract class KeepClearDatabase : RoomDatabase() {
@@ -44,6 +48,9 @@ abstract class KeepClearDatabase : RoomDatabase() {
     abstract fun trashDao(): TrashDao
 
     abstract fun moveDao(): MoveDao
+
+    /** Gallery cache only; hand it to [RoomGalleryFeatureStore], never the whole database (GAL-13). */
+    abstract fun galleryDao(): GalleryDao
 
     companion object {
         const val NAME = "keepclear.db"
