@@ -16,6 +16,16 @@
 | GAL-13, AC-G8; E-G21; T-G12 | `GalleryFeatureStoreTest` clear isolation; `MigrationTest` "7 to 8 …" (every authoritative row identical); `ArchitectureTest` "gallery cache code cannot reach other tables or DAOs" | Clear UI wording ("clear suggestions") with G4a |
 | GAL-14/15; E-G14/15; LOW-1/2/4 | `GalleryFeatureStoreTest` low-space refusal (LIGHT, MINIMAL, failing probe) and real `SQLITE_FULL` via `max_page_count`; `GalleryCacheQuotaTest` measured file and WAL at the 23,437-row cap after churn; eviction order tests | Phone size/WAL measurements; whole-app 50 MB share; filesystem ENOSPC |
 
+## G1b coordinator (2026-11-09, local)
+
+| Requirement / case | Actual tests | Remaining |
+|---|---|---|
+| GAL-1, AC-G1; E-G01/03/04 | `GalleryCoordinatorTest`: no access; Selected/full/all-files scopes; protected, kept (rule, path, favourite), trashed, junk, backup-volume and pending items never read; an item kept mid-run is not read. `LiveGalleryScopeTest`: platform scope per API level | Selected Photos and all-files on real devices (pending CI/device); file-walk reader |
+| GAL-2, AC-G7 | `GalleryCoordinatorTest`: partial flag for Selected photos, an incomplete scan and items without a reader; skipped/excluded counts by reason; stop leaves `notReached` | UI wording (G4a) |
+| GAL-12, AC-G1; E-G02/25 | `GalleryCoordinatorTest`: scope reduction mid-run (no reads after it, new epoch begun, old records dropped, no groups, no Continue), epoch change between runs, a newer cache epoch cleared, second start refused. `GalleryGroupingTest` and `LiveGalleryScopeTest`: epoch moves on every change, persisted across instances | Device permission revocation and auto-reset |
+| GAL-15, GAL-26, AC-G15; E-G08/14/15/16/20 | `GalleryCoordinatorTest`: cache hit decodes nothing, changed version recomputed, low space pauses without writing, failing write continues in memory, stop/pause-for-file-action and Continue reuse completed records, one worker and ≤ 8 queued refs. `ArchitectureTest` "gallery work never schedules itself and the coordinator is plain Kotlin" | Process death, memory/thermal/battery pauses, wiring into backup/clean flows |
+| GAL-3/10 advisory only | `GalleryCoordinatorTest` "grouping is advisory …" (no safety, model, classify, trash or move type reachable from the result); `GalleryGroupingTest` | G4b bridge |
+
 ## Actual G1a test mapping (2026-11-08)
 
 | Contract portion | Existing implementation verification | Remaining gate |
