@@ -33,3 +33,15 @@ The accepted exceptions for daily expiry, existing regenerable/bin deletion and 
 ## Adoption evidence
 
 Owner accepted the scope and requested documentation on main plus an implementation handoff on 2026-11-08. This creates a scoped gallery-development exception to the earlier freeze; it does not pass any device/release gate. Read-only/no-network tests and any new disposal-guard tests remain required in the implementation milestones. Existing safety ADRs are not weakened.
+
+## Implementation note: G4b retention guard and REVIEW bridge (2026-11-09, local, not yet a PR)
+
+Decision 4 is implemented as an additive extension of the existing choke point ([verification](../verification/gallery-g4b-2026-11-09.md); C227–C234 in [progress](../progress.md)). Nothing in decisions 1–3 or 5–6 changes.
+
+- **Typed evidence (C227).** `PlannedOp.visualGroups` carries a `VisualRetention` (group id, a group-version digest, retained members with ref, path, size, modification time and identity) for every similar group the photo belongs to. It is a distinct type: no SHA-256, no `Witness`, no `duplicateGroup`, no `BackupProof`.
+- **Structural refusal (C227).** `SafetyGuard` rejects the whole plan when the evidence sits on anything other than a plain REVIEW move of one file to the trash, is malformed, keeps no member, names one group twice, differs between ops of one group, keeps a MediaStore row without an identity, or keeps a member that any op of the same plan acts on (choosing every member, overlapping groups).
+- **Live refusal (C227).** `ActionExecutor` re-reads every retained member right before each op of the group, after the existing re-checks and also in test mode; a member that is missing, a link or folder, changed in size, time or identity (a MediaStore edit or a move to Android's trash changes the identity), PROTECTED or kept since refuses the group for the rest of the run (`SkipReason.RETAINED_MEMBER_GONE`).
+- **Never permanent (C228).** `PermanentKinds` returns no reason for an op with similar-photos evidence, whatever its rule, SAFE flag or backup proof; such an op always goes to the 30-day trash (KeepClear's folder trash, or Android's own trash for MediaStore rows after Android's dialog).
+- **Bridge (C230–C232).** Only explicitly chosen REVIEW photos reach the existing editable confirmation and the existing clean path; MOVE memories keep only the backup handoff.
+
+Residual risk, unchanged in kind from every MediaStore deletion: Android's own dialog runs after the executor's checks, so a kept photo removed by another app in that window is not seen; the evidence is only as complete as the comparison's grouping (the choke point cannot know a group the app does not name).

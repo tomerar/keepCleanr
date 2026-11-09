@@ -192,20 +192,12 @@ class G4bGalleryReviewTest {
         val done = compared()
         val memory = done.groupWith(1)
         val all = memory.members
-        assertNull(
-            GalleryReview.plan(
-                "p",
-                GalleryDisposal(
-                    memory.id,
-                    all.filter {
-                        it.item.category == Category.MOVE
-                    },
-                    emptyList(),
-                ),
-            ),
-        )
-        val noVersion = all.filter { it.item.category == Category.REVIEW }.map { it.copy(source = null) }
         val keep = GalleryKeep(memory.id, memory.version, all)
+        val (memories, others) = all.partition { it.item.category == Category.MOVE }
+        // The same group and evidence plan the saved copy, but never the memory (GAL-4).
+        assertNotNull(GalleryReview.plan("p", GalleryDisposal(memory.id, others, listOf(keep))))
+        assertNull(GalleryReview.plan("p", GalleryDisposal(memory.id, memories, listOf(keep))))
+        val noVersion = others.map { it.copy(source = null) }
         assertNull(GalleryReview.plan("p", GalleryDisposal(memory.id, noVersion, listOf(keep))))
         assertNull(GalleryReview.plan("p", GalleryDisposal(memory.id, emptyList(), listOf(keep))))
     }
