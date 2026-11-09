@@ -11,7 +11,6 @@ import io.github.tomerar.keepclear.core.gallery.GalleryRunState
 import io.github.tomerar.keepclear.core.gallery.GallerySkip
 import io.github.tomerar.keepclear.core.gallery.GallerySnapshot
 import io.github.tomerar.keepclear.core.model.Category
-import io.github.tomerar.keepclear.core.safety.ProtectedPaths
 import io.github.tomerar.keepclear.core.storage.KPath
 import io.github.tomerar.keepclear.engine.classify.ClassificationSummary
 import io.github.tomerar.keepclear.engine.classify.ClassifiedItem
@@ -287,12 +286,11 @@ class GalleryController(
      * another size or time), whose measurements no longer describe it. A photo still there is shown with its latest
      * lane.
      */
-    fun refresh(summary: ClassificationSummary?, kept: Set<String>) {
+    fun refresh(summary: ClassificationSummary?, isKept: (String) -> Boolean) {
         val latest = summary?.let { s -> GalleryUi.keyed(s.groups.flatMap { it.items }) }.orEmpty()
-        val keptRules = GalleryExclusions(ProtectedPaths(), kept)
         val next = items.mapNotNull { (key, shown) ->
             latest[key]?.takeIf {
-                sameVersion(it, shown) && !keptRules.isKept(it.item.path)
+                sameVersion(it, shown) && !isKept(it.item.path)
             }?.let { key to it }
         }.toMap()
         if (next == items) return

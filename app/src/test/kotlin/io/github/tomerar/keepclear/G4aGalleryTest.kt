@@ -205,14 +205,17 @@ class G4aGalleryTest {
         controller.start(GalleryFakes.summary(items), scanComplete = true)
         assertEquals(2, until { it.phase == GalleryPhase.DONE }.groups.size)
         // Nothing changed: the same groups.
-        controller.refresh(GalleryFakes.summary(items), kept = emptySet())
+        controller.refresh(GalleryFakes.summary(items), isKept = { false })
         assertEquals(2, controller.state.value.groups.size)
         // The tied pair's photo 3 was cleaned since: the latest scan has no such item, so that pair is no group.
-        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }), kept = emptySet())
+        controller.refresh(GalleryFakes.summary(items.filterNot { it == items[2] }), isKept = { false })
         val cleaned = until { it.groups.size == 1 }
         assertTrue(cleaned.groups.single().members.none { it.item == items[2] })
         // Photo 1 was kept from the photo preview ("Don't suggest this again"): its pair goes too.
-        controller.refresh(GalleryFakes.summary(items), kept = setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))
+        controller.refresh(
+            GalleryFakes.summary(items),
+            isKept = GalleryExclusions(ProtectedPaths(), setOf("/storage/emulated/0/Pictures/Saved/IMG_1.jpg"))::isKept,
+        )
         assertTrue(until { it.groups.isEmpty() }.groups.isEmpty())
     }
 
@@ -222,7 +225,7 @@ class G4aGalleryTest {
         controller.start(GalleryFakes.summary(items), scanComplete = true)
         until { it.phase == GalleryPhase.DONE }
         val moved = items[1].copy(category = Category.MOVE)
-        controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }), kept = emptySet())
+        controller.refresh(GalleryFakes.summary(items.map { if (it == items[1]) moved else it }), isKept = { false })
         val shown = until { s -> s.groups.any { g -> g.members.any { it.item == moved } } }
         assertTrue(shown.groups.single { g -> g.members.any { it.item == moved } }.hasMemories)
         // Photo 3 edited in place (same row and path, a new time): its old measurements no longer describe it.
@@ -239,7 +242,7 @@ class G4aGalleryTest {
                     }
                 },
             ),
-            kept = emptySet(),
+            isKept = { false },
         )
         val after = until { it.groups.size == 1 }
         assertTrue(after.groups.single().members.none { it.item.item.path == edited.item.path })
