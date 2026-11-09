@@ -1,6 +1,6 @@
 # Gallery traceability and documentation changes
 
-**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; application integration pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. The G1a verification section below lists actual tests. Other proposed test names remain plans, not claims those tests already exist.
+**Status: Owner-approved scope and policy, 2026-11-08; G1a internal engine implemented; G4a read-only comparison UI implemented locally (2026-11-09); disposal pending.** Quantitative targets are provisional and unmeasured. [Owner decisions](gallery-decisions.md) govern scope; existing safety/resource constraints remain binding. The G1a verification section below lists actual tests. Other proposed test names remain plans, not claims those tests already exist.
 
 ## G1b primitive under development
 
@@ -15,6 +15,18 @@
 | GAL-11, AC-G8 | `GalleryFeatureStoreTest` (no key/ref/path/revision/run text in any column); `ArchitectureTest` "gallery cache stays out of cloud backup and device transfer" | Report-redaction tests when diagnostics exist |
 | GAL-13, AC-G8; E-G21; T-G12 | `GalleryFeatureStoreTest` clear isolation; `MigrationTest` "7 to 8 …" (every authoritative row identical); `ArchitectureTest` "gallery cache code cannot reach other tables or DAOs" | Clear UI wording ("clear suggestions") with G4a |
 | GAL-14/15; E-G14/15; LOW-1/2/4 | `GalleryFeatureStoreTest` low-space refusal (LIGHT, MINIMAL, failing probe) and real `SQLITE_FULL` via `max_page_count`; `GalleryCacheQuotaTest` measured file and WAL at the 23,437-row cap after churn; eviction order tests | Phone size/WAL measurements; whole-app 50 MB share; filesystem ENOSPC |
+
+## G4a read-only comparison UI (2026-11-09, local)
+
+| Requirement / case | Actual tests | Remaining |
+|---|---|---|
+| GAL-1, GAL-2, AC-G1/7; E-G01/02 | `G4aGalleryTest`: complete run over all photos; Selected photos, an unsupported photo and an incomplete scan never "all"; no access reads nothing; access change after a run hides groups; nothing created before a start. `G4aScreensTest`: partial / complete wording, no-access permission request | Real Selected Photos / revocation on the phone (G4a-1) |
+| GAL-4, AC-G3 | `G4aGalleryTest` "memories are flagged …" (MOVE keeps its lane); `G4aScreensTest` "memories offer the existing backup, other photos have no action yet" | G4b REVIEW bridge |
+| GAL-6, GAL-10, AC-G3/5 | `G4aGalleryTest` reasoned keeper and abstention; `G4aScreensTest` "the keeper marker is a label, not a selection …" (no checkbox, nothing selected, no delete label), "abstention says so and marks nobody", "keep them all this time …" | Blinded preference evaluation (G2/G5) |
+| GAL-21, AC-G5/9 | `G4aGalleryTest` (the scan summary's REVIEW total is unchanged by a run); groups show no bytes (screenshots) | G4b accounting |
+| GAL-16, AC-G10 | `G4aScreensTest` TalkBack (one node per photo, Preview / Don't suggest this again actions), 200 % font in Hebrew (56 dp main action, 48 dp targets, RTL order); `G4aScreenshotTest` en/he × light/dark for entry, running, partial, groups, comparison with recommendation and with abstention, no access; `H3HelpTest` (Help topic quotes the real labels); Terminology/HebrewVoice/ButtonLabels tests | Owner phone check G4a-4 |
+| E-G20 | `G4aGalleryTest`: the executor, a backup start, a free/check/restore task and the clean flow pause a running comparison; the hook never creates the coordinator | Phone check G4a-2 |
+| GAL-20, AC-G8 | `ArchitectureTest` "app gallery code is offline, advisory and foreground" plus the existing project-wide network rules | Airplane-mode phone run (G4a-2) |
 
 ## G1b coordinator (2026-11-09, local)
 

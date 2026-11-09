@@ -925,7 +925,7 @@
     <string name="gallery_title">תמונות דומות</string>
     <string name="gallery_scope_all">KeepClear משווה את כל התמונות שהוא רואה בטלפון.</string>
     <string name="gallery_scope_selected">KeepClear רואה רק את התמונות שבחרתם, אז רק הן מושוות.</string>
-    <string name="gallery_scope_none">KeepClear עדיין לא רואה את התמונות. כדי להשוות אותן, צריך לתת גישה.</string>
+    <string name="gallery_scope_none">KeepClear עדיין לא רואה את התמונות. כדי להשוות אותן, צריך לאשר גישה.</string>
     <string name="gallery_needs_scan">קודם צריך לסרוק את הטלפון, ואז אפשר להשוות תמונות דומות.</string>
     <string name="gallery_start">להשוות תמונות</string>
     <string name="gallery_start_again">להשוות שוב</string>

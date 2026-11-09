@@ -316,7 +316,7 @@ Status compares each string with `docs/hebrew-review-reviewed.json` (the texts a
 | `gallery_review_later` | Choosing what to delete from here comes in a later version. | האפשרות לבחור מכאן מה למחוק תגיע בגרסה מאוחרת יותר. |  | **new** (new since last review) |
 | `gallery_running` | Comparing photos… | משווים תמונות… |  | **new** (new since last review) |
 | `gallery_scope_all` | KeepClear compares all the photos it can see on this phone. | KeepClear משווה את כל התמונות שהוא רואה בטלפון. |  | **new** (new since last review) |
-| `gallery_scope_none` | KeepClear can't see your photos yet. Allow access to compare them. | KeepClear עדיין לא רואה את התמונות. כדי להשוות אותן, צריך לתת גישה. |  | **new** (new since last review) |
+| `gallery_scope_none` | KeepClear can't see your photos yet. Allow access to compare them. | KeepClear עדיין לא רואה את התמונות. כדי להשוות אותן, צריך לאשר גישה. |  | **new** (new since last review) |
 | `gallery_scope_selected` | KeepClear sees only the photos you picked, so only those are compared. | KeepClear רואה רק את התמונות שבחרתם, אז רק הן מושוות. |  | **new** (new since last review) |
 | `gallery_section_memories` | Memories to back up | זיכרונות לגבות |  | **new** (new since last review) |
 | `gallery_section_review` | Other photos | תמונות אחרות |  | **new** (new since last review) |
